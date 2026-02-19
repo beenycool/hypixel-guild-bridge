@@ -8,7 +8,7 @@ import type { Logger, Logger as Logger4Js } from 'log4js'
 import type Application from '../application'
 import type { SqliteManager } from '../common/sqlite-manager'
 
-const CurrentVersion = 6
+const CurrentVersion = 7
 
 export function initializeCoreDatabase(application: Application, sqliteManager: SqliteManager, name: string): void {
   sqliteManager.setTargetVersion(CurrentVersion)
@@ -30,6 +30,9 @@ export function initializeCoreDatabase(application: Application, sqliteManager: 
   })
   sqliteManager.registerMigrator(5, (database, logger, postCleanupActions, newlyCreated) => {
     migrateFrom5to6(database, logger, newlyCreated)
+  })
+  sqliteManager.registerMigrator(6, (database, logger, postCleanupActions, newlyCreated) => {
+    migrateFrom6to7(database, logger, newlyCreated)
   })
 
   sqliteManager.migrate(name)
@@ -425,6 +428,44 @@ function migrateFrom5to6(database: Database, logger: Logger4Js, newlyCreated: bo
   database.exec('CREATE INDEX inactivityExpiresAt ON "inactivity" (expiresAt);')
 
   database.pragma('user_version = 6')
+}
+
+function migrateFrom6to7(database: Database, logger: Logger4Js, newlyCreated: boolean): void {
+  if (!newlyCreated) logger.debug('Migrating database from version 6 to 7')
+
+  // reference: core/rankup/pending-review-manager.ts
+  database.exec(
+    'CREATE TABLE IF NOT EXISTS "rankupPendingReviews" (' +
+      '  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,' +
+      '  bridgeId TEXT NOT NULL,' +
+      '  uuid TEXT NOT NULL,' +
+      '  currentRank TEXT NOT NULL,' +
+      '  proposedRank TEXT NOT NULL,' +
+      '  action TEXT NOT NULL,' + // 'promote' | 'demote' | 'kick'
+      '  reason TEXT NOT NULL,' +
+      '  createdAt INTEGER NOT NULL DEFAULT (unixepoch()),' +
+      '  notifiedAt INTEGER DEFAULT NULL' +
+      ' ) STRICT'
+  )
+  database.exec('CREATE INDEX IF NOT EXISTS rankupPendingBridge ON "rankupPendingReviews" (bridgeId);')
+  database.exec('CREATE UNIQUE INDEX IF NOT EXISTS rankupPendingUnique ON "rankupPendingReviews" (bridgeId, uuid);')
+
+  database.exec(
+    'CREATE TABLE IF NOT EXISTS "rankupHistory" (' +
+      '  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,' +
+      '  bridgeId TEXT NOT NULL,' +
+      '  uuid TEXT NOT NULL,' +
+      '  action TEXT NOT NULL,' + // 'promote' | 'demote' | 'kick' | 'reject' | 'manual_update'
+      '  fromRank TEXT NOT NULL,' +
+      '  toRank TEXT NOT NULL,' +
+      '  triggeredBy TEXT NOT NULL,' + // 'system' | 'user:ID'
+      '  createdAt INTEGER NOT NULL DEFAULT (unixepoch())' +
+      ' ) STRICT'
+  )
+  database.exec('CREATE INDEX IF NOT EXISTS rankupHistoryBridge ON "rankupHistory" (bridgeId);')
+  database.exec('CREATE INDEX IF NOT EXISTS rankupHistoryUuid ON "rankupHistory" (uuid);')
+
+  database.pragma('user_version = 7')
 }
 
 function findIdentifier(identifiers: string[]): { originInstance: string; userId: string } | undefined {
