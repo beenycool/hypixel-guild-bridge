@@ -82,6 +82,21 @@ const healthServer = http.createServer((req, res) => {
 
     // Proxy /metrics and /ping to Prometheus (runs on its own port)
     const pathname = url.split('?')[0]
+    if (pathname === '/metrics' || pathname === '/ping') {
+      const metricsToken = process.env.GRAFANA_METRICS_TOKEN
+      if (metricsToken) {
+        const authHeader = req.headers.authorization
+        const queryToken = url.includes('?') ? new URLSearchParams(url.split('?')[1]).get('token') : null
+        const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+        const basicMatch = authHeader?.startsWith('Basic ') ? Buffer.from(authHeader.slice(6), 'base64').toString().split(':')[1] : null
+        const tokenOk = queryToken === metricsToken || bearer === metricsToken || basicMatch === metricsToken
+        if (!tokenOk) {
+          res.writeHead(401, { 'Content-Type': 'text/plain' })
+          res.end('Unauthorized')
+          return
+        }
+      }
+    }
     const proxyPort = pathname === '/metrics' || pathname === '/ping' ? prometheusPort : internalPort
 
     const proxy = http.request(
