@@ -37,6 +37,7 @@ const ConfigsDirectory = process.env.CONFIG_DIR
 // We also export INTERNAL_PORT so the application config can use ${INTERNAL_PORT}.
 const externalPort = Number(process.env.WEBSITES_PORT ?? process.env.PORT ?? 80)
 const internalPort = Number(process.env.INTERNAL_PORT ?? 9091)
+const prometheusPort = Number(process.env.PROMETHEUS_PORT ?? 9090)
 process.env.INTERNAL_PORT = String(internalPort)
 
 console.log(`Starting application...`)
@@ -79,9 +80,12 @@ const healthServer = http.createServer((req, res) => {
       return
     }
 
-    // Proxy other requests to the internal server
+    // Proxy /metrics and /ping to Prometheus (runs on its own port)
+    const pathname = url.split('?')[0]
+    const proxyPort = pathname === '/metrics' || pathname === '/ping' ? prometheusPort : internalPort
+
     const proxy = http.request(
-      { hostname: '127.0.0.1', port: internalPort, path: url, method: req.method, headers: req.headers },
+      { hostname: '127.0.0.1', port: proxyPort, path: url, method: req.method, headers: req.headers },
       (proxyRes) => {
         res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers)
         proxyRes.pipe(res, { end: true })
@@ -160,7 +164,7 @@ if (process.argv.includes('test-run')) {
   await gracefullyExitProcess(0)
 }
 
-const File = process.argv[2] ?? './config.yaml'
+const File = process.env.CONFIG_PATH ?? process.argv[2] ?? './config.yaml'
 let config: ReturnType<typeof loadApplicationConfig>
 
 // Priority order for loading configuration:
