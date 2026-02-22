@@ -54,7 +54,7 @@ A shorter version can also be used: `!- rtca`
 | `forge`          | Returns a player's forge items                                                     |
 | `garden`         | Returns a player's garden stats                                                    |
 | `guild`          | Returns a player's guild, if they're in one                                        |
-| `guildexp`       | Weekly guild experience of specified user.                                         |
+| `guildexp`       | Guild experience of user. Usage: gexp [daily/weekly/monthly] [username]            |
 | `help`           | Shows a command description and an example about its usage                         |
 | `hotm`           | Returns a player's hotm and powder                                                 |
 | `hlevel`         | Returns a player's Hypixel common stats                                            |

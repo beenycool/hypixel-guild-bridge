@@ -2,28 +2,89 @@ import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 import { getUuidIfExists, usernameNotExists } from '../common/utility'
 
+type Period = 'daily' | 'weekly' | 'monthly'
+
+const ValidPeriods = new Set<Period>(['daily', 'weekly', 'monthly'])
+
 export default class GuildExperience extends ChatCommandHandler {
   constructor() {
     super({
       triggers: ['guildexp', 'gexp'],
-      description: 'Weekly guild experience of specified user.',
-      example: `guildexp %s`
+      description: 'Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]',
+      example: `gexp daily %s`
     })
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
+    const { period, username } = this.parseArguments(context)
 
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
+    const uuid = await getUuidIfExists(context.app.mojangApi, username)
+    if (uuid == undefined) return usernameNotExists(context, username)
 
     const guild = await context.app.hypixelApi.getGuild('player', uuid, {}).catch(() => undefined)
-    if (!guild) return `${givenUsername} is not in a guild.`
+    if (!guild) return `${username} is not in a guild.`
 
     const member = guild.members.find((entry) => entry.uuid === uuid)
-    if (!member) return `${givenUsername} is not in a guild.`
+    if (!member) return `${username} is not in a guild.`
 
-    const weeklyExperience = member.weeklyExperience ?? 0
-    return `${givenUsername}'s Weekly Guild Experience: ${weeklyExperience.toLocaleString('en-US')}.`
+    return this.formatResponse(username, period, member)
+  }
+
+  private parseArguments(context: ChatCommandContext): { period: Period; username: string } {
+    const argumentsLength = context.args.length
+
+    if (argumentsLength === 0) {
+      return { period: 'weekly', username: context.username }
+    }
+
+    if (argumentsLength === 1) {
+      const argument = context.args[0].toLowerCase()
+      if (ValidPeriods.has(argument as Period)) {
+        return { period: argument as Period, username: context.username }
+      }
+      return { period: 'weekly', username: context.args[0] }
+    }
+
+    const firstArgument = context.args[0].toLowerCase()
+    const secondArgument = context.args[1].toLowerCase()
+
+    if (ValidPeriods.has(firstArgument as Period)) {
+      return { period: firstArgument as Period, username: context.args[1] }
+    }
+
+    if (ValidPeriods.has(secondArgument as Period)) {
+      return { period: secondArgument as Period, username: context.args[0] }
+    }
+
+    return { period: 'weekly', username: context.args[0] }
+  }
+
+  private formatResponse(
+    username: string,
+    period: Period,
+    member: { weeklyExperience?: number; expHistory?: { day: string; date: Date; exp: number; totalExp: number }[] }
+  ): string {
+    switch (period) {
+      case 'daily': {
+        const dailyExp = this.getDailyExperience(member)
+        return `${username}'s Daily Guild Experience: ${dailyExp.toLocaleString('en-US')}.`
+      }
+      case 'weekly': {
+        const weeklyExp = member.weeklyExperience ?? 0
+        return `${username}'s Weekly Guild Experience: ${weeklyExp.toLocaleString('en-US')}.`
+      }
+      case 'monthly': {
+        return `${username}'s Monthly Guild Experience: Not available from Hypixel API (only 7 days of history provided).`
+      }
+    }
+  }
+
+  private getDailyExperience(member: {
+    expHistory?: { day: string; date: Date; exp: number; totalExp: number }[]
+  }): number {
+    if (!member.expHistory || member.expHistory.length === 0) return 0
+
+    const sorted = member.expHistory.toSorted((a, b) => b.date.getTime() - a.date.getTime())
+    return sorted[0]?.exp ?? 0
   }
 }
