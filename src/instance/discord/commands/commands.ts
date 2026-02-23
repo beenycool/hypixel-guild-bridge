@@ -65,7 +65,7 @@ export default {
 
     try {
       // Get command configuration manager
-      const commandConfigManager = new CommandConfigManager(application, application.logger)
+      const commandConfigManager = new CommandConfigManager(application)
       
       // Check admin permissions
       const isAdmin = context.permission === Permission.Admin
@@ -270,7 +270,7 @@ async function sendInitialResponse(
         inline: true
       }
     ],
-    footer: DefaultCommandFooter
+    footer: { text: DefaultCommandFooter }
   }
 
   return await interaction.reply({
@@ -567,7 +567,7 @@ async function updateCommandList(
       (sessionState.selectedCategory ? `\n${i18n.t(($) => $['discord.commands.commands.filters.category'])}: **${sessionState.selectedCategory}**` : ''),
     color: Color.Default,
     fields: [],
-    footer: DefaultCommandFooter
+    footer: { text: DefaultCommandFooter }
   }
 
   // Add commands to embed
@@ -796,7 +796,7 @@ async function showCategorySelector(
     description: i18n.t(($) => $['discord.commands.commands.categories.description']),
     color: Color.Default,
     fields: [],
-    footer: DefaultCommandFooter
+    footer: { text: DefaultCommandFooter }
   }
 
   categories.forEach(category => {
@@ -860,7 +860,7 @@ async function showCommandDetails(
     description: command.description,
     color: Color.Default,
     fields: [],
-    footer: DefaultCommandFooter
+    footer: { text: DefaultCommandFooter }
   }
 
   if (command.category) {
@@ -978,4 +978,152 @@ async function showCommandDetails(
     components,
     flags: MessageFlags.IsComponentsV2
   })
+}
+
+/**
+ * Handle modal submissions from the collector (if any)
+ */
+async function handleModalSubmit(
+  interaction: any,
+  commands: { discord: CommandInfo[]; minecraft: CommandInfo[] },
+  sessionState: SessionState,
+  sessionToken: string,
+  application: Application,
+  errorHandler: UnexpectedErrorHandler
+) {
+  // Modals are usually not caught by MessageComponentCollector, but kept for compatibility if needed.
+  if (interaction.isModalSubmit && interaction.isModalSubmit()) {
+    await interaction.deferUpdate()
+  }
+}
+
+async function showRenameModal(
+  interaction: ButtonInteraction,
+  commands: { discord: CommandInfo[]; minecraft: CommandInfo[] },
+  sessionState: SessionState,
+  sessionToken: string,
+  commandIndex: number,
+  application: Application
+) {
+  const i18n = application.i18n
+  const currentCommands = sessionState.currentTab === 'discord' ? commands.discord : commands.minecraft
+  const filteredCommands = filterCommands(currentCommands, sessionState)
+  const command = filteredCommands[commandIndex]
+  if (!command) return
+
+  const modalId = `${SESSION_PREFIX}${sessionToken}:admin-rename-submit:${commandIndex}`
+  
+  await interaction.showModal({
+    customId: modalId,
+    title: i18n.t(($) => $['discord.commands.commands.admin.rename.modal.title']),
+    components: [
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.TextInput,
+            customId: `${SESSION_PREFIX}${sessionToken}:rename-input`,
+            label: i18n.t(($) => $['discord.commands.commands.admin.rename.modal.label']),
+            style: TextInputStyle.Short,
+            value: command.name,
+            placeholder: i18n.t(($) => $['discord.commands.commands.admin.rename.modal.placeholder'])
+          }
+        ]
+      }
+    ]
+  })
+
+  // Await the modal submit
+  try {
+    const submit = await interaction.awaitModalSubmit({
+      time: 60_000,
+      filter: (i) => i.customId === modalId && i.user.id === interaction.user.id
+    })
+
+    const newName = submit.fields.getTextInputValue(`${SESSION_PREFIX}${sessionToken}:rename-input`)
+    const commandType = command.isDiscordCommand ? 'discord' : 'minecraft'
+    const identifier = command.originalName || command.name
+
+    if (commandType === 'discord') {
+      sessionState.commandConfigManager.updateDiscordCommandConfig(identifier, { displayName: newName }, interaction.user.id)
+    } else {
+      sessionState.commandConfigManager.updateMinecraftCommandConfig(identifier, { displayName: newName }, interaction.user.id)
+    }
+
+    sessionState.commandConfigManager.addAuditLogEntry({
+      action: 'rename',
+      commandType: commandType,
+      commandIdentifier: identifier,
+      oldValue: command.name,
+      newValue: newName,
+      userId: interaction.user.id
+    })
+    
+    // Refresh the list
+    await updateCommandList(submit as any, commands, sessionState, sessionToken, application)
+
+  } catch (e) {
+    // Modal timed out or error
+  }
+}
+
+async function toggleCommand(
+  interaction: ButtonInteraction,
+  commands: { discord: CommandInfo[]; minecraft: CommandInfo[] },
+  sessionState: SessionState,
+  sessionToken: string,
+  commandIndex: number,
+  application: Application
+) {
+  const currentCommands = sessionState.currentTab === 'discord' ? commands.discord : commands.minecraft
+  const filteredCommands = filterCommands(currentCommands, sessionState)
+  const command = filteredCommands[commandIndex]
+  if (!command) return
+
+  const commandType = command.isDiscordCommand ? 'discord' : 'minecraft'
+  const identifier = command.originalName || command.name
+  const isEnabled = sessionState.commandConfigManager.isCommandEnabled(commandType, identifier)
+  
+  if (commandType === 'discord') {
+    sessionState.commandConfigManager.updateDiscordCommandConfig(identifier, { enabled: !isEnabled }, interaction.user.id)
+  } else {
+    sessionState.commandConfigManager.updateMinecraftCommandConfig(identifier, { enabled: !isEnabled }, interaction.user.id)
+  }
+
+  sessionState.commandConfigManager.addAuditLogEntry({
+    action: isEnabled ? 'disable' : 'enable',
+    commandType: commandType,
+    commandIdentifier: identifier,
+    userId: interaction.user.id
+  })
+
+  await showCommandDetails(interaction, commands, sessionState, sessionToken, commandIndex, application)
+}
+
+async function showAuditLog(
+  interaction: ButtonInteraction,
+  commands: { discord: CommandInfo[]; minecraft: CommandInfo[] },
+  sessionState: SessionState,
+  sessionToken: string,
+  commandIndex: number,
+  application: Application
+) {
+  const i18n = application.i18n
+  // Placeholder
+  await interaction.reply({ 
+    content: i18n.t(($) => $['discord.commands.commands.admin.audit.empty']), 
+    flags: MessageFlags.Ephemeral 
+  })
+}
+
+async function confirmDisableCommand(
+  interaction: ButtonInteraction,
+  commands: { discord: CommandInfo[]; minecraft: CommandInfo[] },
+  sessionState: SessionState,
+  sessionToken: string,
+  commandIndex: number,
+  application: Application
+) {
+  // Direct toggle for now
+  await toggleCommand(interaction, commands, sessionState, sessionToken, commandIndex, application)
 }

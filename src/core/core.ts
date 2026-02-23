@@ -45,6 +45,7 @@ import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
 import { Inactivity } from './users/inactivity'
 import { MojangApi } from './users/mojang'
+import { RankupManager } from './rankup/rankup-manager'
 import ScoresManager from './users/scores-manager'
 import { Verification } from './users/verification'
 
@@ -79,6 +80,7 @@ export class Core extends Instance<InstanceType.Core> {
 
   // instance
   public readonly statusHistory: StatusHistory
+  public readonly rankupManager: RankupManager
 
   // misc
   public readonly applicationConfigurations: ApplicationConfigurations
@@ -87,7 +89,7 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly spontaneousEventsConfigurations: SpontaneousEventsConfigurations
 
   // database
-  private readonly sqliteManager: SqliteManager
+  public readonly sqliteManager: SqliteManager
   private readonly configurationsManager: ConfigurationsManager
 
   public constructor(application: Application) {
@@ -127,6 +129,8 @@ export class Core extends Instance<InstanceType.Core> {
     this.punishments = new Punishments(this.sqliteManager, application, this.logger)
     this.commandsHeat = new CommandsHeat(this.sqliteManager, this.moderationConfiguration, this.logger)
     this.enforcer = new PunishmentsEnforcer(application, this, this.eventHelper, this.logger, this.errorHandler)
+
+    this.rankupManager = new RankupManager(application, this.bridgeConfigurations, this.sqliteManager, this.logger)
 
     this.guildManager = new GuildManager(application, this, this.eventHelper, this.logger, this.errorHandler)
     this.autoComplete = new Autocomplete(

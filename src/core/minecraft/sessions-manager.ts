@@ -194,7 +194,7 @@ export class SessionsManager {
           // Pattern: starts with {, contains ","key": patterns which indicate multiple top-level keys
           const hasTopLevelCommas = trimmed.startsWith('{') && trimmed.match(/,"[^"]+":/g)
           const hasConcatenatedObjects = trimmed.match(/\}\s*\{/g)
-          const isSingleObject = hasTopLevelCommas !== null && (hasConcatenatedObjects === null || hasTopLevelCommas.length > hasConcatenatedObjects.length)
+          const isSingleObject = hasTopLevelCommas && (hasConcatenatedObjects === null || hasTopLevelCommas.length > hasConcatenatedObjects.length)
           
           // If that fails, try to fix common issues and parse again
           let fixedParsed: Record<string, unknown> | undefined

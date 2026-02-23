@@ -197,9 +197,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     } else {
       const clickableUsername = hyperlink(username, event.user.profileLink())
 
-      const withoutPrefix = event.message.replaceAll(/^-+/g, '').replaceAll('Guild > ', '')
+      const withoutPrefix = event.message.replaceAll(/^-+/g, '')
 
-      const newMessage = `**${escapeMarkdown(event.instanceName)} >** ${escapeMarkdown(withoutPrefix).replaceAll(escapeMarkdown(username), clickableUsername)}`
+      const newMessage = escapeMarkdown(withoutPrefix).replaceAll(escapeMarkdown(username), clickableUsername)
 
       const embed = {
         url: event.user.profileLink(),
@@ -215,13 +215,19 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     if (removeLater) {
-      const currentTime = Date.now()
-      const entries = messages.map((message) => ({
-        channelId: message.channelId,
-        messageId: message.id,
-        createdAt: currentTime
-      }))
-      await this.messageDeleter.add(entries)
+      const shouldPersist =
+        this.application.bridgeResolver.isMultiBridgeEnabled() && event.bridgeId !== undefined
+          ? this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(event.bridgeId)
+          : false
+      if (!shouldPersist) {
+        const currentTime = Date.now()
+        const entries = messages.map((message) => ({
+          channelId: message.channelId,
+          messageId: message.id,
+          createdAt: currentTime
+        }))
+        await this.messageDeleter.add(entries)
+      }
     }
   }
 

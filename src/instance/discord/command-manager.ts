@@ -43,6 +43,9 @@ import PingCommand from './commands/ping.js'
 import ProfanityCommand from './commands/profanity.js'
 import PromoteCommand from './commands/promote.js'
 import PunishmentsCommand from './commands/punishments.js'
+import RankupCheckCommand from './commands/rankup-check.js'
+import RankupHistoryCommand from './commands/rankup-history.js'
+import RankupPendingCommand from './commands/rankup-pending.js'
 import ReconnectCommand from './commands/reconnect.js'
 import RequirementsCommand from './commands/requirements.js'
 import RestartCommand from './commands/restart.js'
@@ -134,6 +137,9 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       ProfanityCommand,
       PromoteCommand,
       PunishmentsCommand,
+      RankupCheckCommand,
+      RankupHistoryCommand,
+      RankupPendingCommand,
       ReconnectCommand,
       RequirementsCommand,
       SetrankCommand,

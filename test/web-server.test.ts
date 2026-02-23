@@ -16,8 +16,11 @@ const makeFakeApp = () => ({
 
 void describe('web server /health', () => {
   void it('returns status ok, uptime number and version', async () => {
-    const app = makeFakeApp()
-    const server = new WebServer(app, { port: 0, token: 'test' })
+    const app = {
+      emit: () => {}
+    } as unknown as Application
+    const server = new WebServer(app, { port: 0, token: 'test', enabled: true })
+    await server.onRun()
 
     // wait for server to bind to ephemeral port
     await new Promise<void>((resolve) => {

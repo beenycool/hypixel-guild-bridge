@@ -27,7 +27,7 @@ import {
 
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 
-export const DEFAULT_PAGE_SIZE = 12
+export const DEFAULT_PAGE_SIZE = 6
 export const MAX_COMPONENTS = 39
 
 export enum OptionType {

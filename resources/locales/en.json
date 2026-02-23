@@ -149,104 +149,66 @@
     "{{name}}, You have something special... it's just well hidden. Like, really well."
   ],
 
-  "discord.commands.commands": {
-    "title": "Command Reference",
-    "description": "Browse all available Discord and Minecraft commands. Use the tabs below to switch between command types.",
-    "stats": {
-      "discord": "Discord Commands",
-      "minecraft": "Minecraft Commands",
-      "commands": "commands available"
-    },
-    "tabs": {
-      "discord": "Discord Commands",
-      "minecraft": "Minecraft Commands"
-    },
-    "actions": {
-      "search": "Search",
-      "categories": "Categories",
-      "details": "Details",
-      "back-to-list": "Back to List",
-      "clear-search": "Clear Search",
-      "clear-category": "Clear Category"
-    },
-    "filters": {
-      "search": "Searching for",
-      "category": "Category"
-    },
-    "no-results": "No commands found",
-    "try-different-filters": "Try adjusting your search terms or clearing filters.",
-    "no-categories": "No categories available for the current command type.",
-    "command-not-found": "Command not found.",
-    "pagination": {
-      "info": "Page Navigation",
-      "display": "Showing {{current}} of {{total}} pages ({{count}} total commands)",
-      "previous": "Previous",
-      "next": "Next"
-    },
-    "search": {
-      "title": "Search Commands",
-      "label": "Search terms"
-    },
-    "categories": {
-      "title": "Command Categories",
-      "description": "Select a category to filter commands.",
-      "select": "Click to view {{category}} commands"
-    },
-    "details": {
-      "category": "Category",
-      "aliases": "Aliases",
-      "permission": "Permission",
-      "status": "Status",
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "custom-name": "Custom Name"
-    },
-    "admin": {
-      "title": "Admin Command Management",
-      "description": "Manage command settings and permissions.",
-      "rename": {
-        "button": "Rename Command",
-        "modal": {
-          "title": "Rename Command",
-          "label": "New command name",
-          "placeholder": "Enter the new name for this command",
-          "success": "Command renamed successfully",
-          "error": {
-            "empty": "Command name cannot be empty",
-            "invalid": "Command name contains invalid characters",
-            "duplicate": "A command with this name already exists",
-            "protected": "This command cannot be renamed as it is a core admin command"
-          }
-        }
-      },
-      "toggle": {
-        "enable": "Enable Command",
-        "disable": "Disable Command",
-        "success": "Command {{action}}d successfully",
-        "error": {
-          "protected": "This command cannot be disabled as it is a core admin command"
-        }
-      },
-      "audit": {
-        "title": "Recent Changes",
-        "empty": "No recent changes",
-        "entry": {
-          "rename": "Renamed from '{{old}}' to '{{new}}'",
-          "enable": "Enabled command",
-          "disable": "Disabled command",
-          "restore": "Restored to default settings"
-        },
-        "timestamp": "{{time}} ago",
-        "by": "by {{user}}"
-      },
-      "confirm": {
-        "disable": {
-          "title": "Disable Command",
-          "message": "Are you sure you want to disable '{{command}}'? This will make the command unavailable to all users.",
-          "confirm": "Disable",
-          "cancel": "Cancel"
-        }
-      }
-    }
-  }
+  "discord.commands.commands.title": "Command Reference",
+  "discord.commands.commands.description": "Browse all available Discord and Minecraft commands. Use the tabs below to switch between command types.",
+  "discord.commands.commands.stats.discord": "Discord Commands",
+  "discord.commands.commands.stats.minecraft": "Minecraft Commands",
+  "discord.commands.commands.stats.commands": "commands available",
+  "discord.commands.commands.tabs.discord": "Discord Commands",
+  "discord.commands.commands.tabs.minecraft": "Minecraft Commands",
+  "discord.commands.commands.actions.search": "Search",
+  "discord.commands.commands.actions.categories": "Categories",
+  "discord.commands.commands.actions.details": "Details",
+  "discord.commands.commands.actions.back-to-list": "Back to List",
+  "discord.commands.commands.actions.clear-search": "Clear Search",
+  "discord.commands.commands.actions.clear-category": "Clear Category",
+  "discord.commands.commands.filters.search": "Searching for",
+  "discord.commands.commands.filters.category": "Category",
+  "discord.commands.commands.no-results": "No commands found",
+  "discord.commands.commands.try-different-filters": "Try adjusting your search terms or clearing filters.",
+  "discord.commands.commands.no-categories": "No categories available for the current command type.",
+  "discord.commands.commands.command-not-found": "Command not found.",
+  "discord.commands.commands.pagination.info": "Page Navigation",
+  "discord.commands.commands.pagination.display": "Showing {{current}} of {{total}} pages ({{count}} total commands)",
+  "discord.commands.commands.pagination.previous": "Previous",
+  "discord.commands.commands.pagination.next": "Next",
+  "discord.commands.commands.search.title": "Search Commands",
+  "discord.commands.commands.search.label": "Search terms",
+  "discord.commands.commands.categories.title": "Command Categories",
+  "discord.commands.commands.categories.description": "Select a category to filter commands.",
+  "discord.commands.commands.categories.select": "Click to view {{category}} commands",
+  "discord.commands.commands.details.category": "Category",
+  "discord.commands.commands.details.aliases": "Aliases",
+  "discord.commands.commands.details.permission": "Permission",
+  "discord.commands.commands.details.status": "Status",
+  "discord.commands.commands.details.enabled": "Enabled",
+  "discord.commands.commands.details.disabled": "Disabled",
+  "discord.commands.commands.details.custom-name": "Custom Name",
+  "discord.commands.commands.admin.title": "Admin Command Management",
+  "discord.commands.commands.admin.description": "Manage command settings and permissions.",
+  "discord.commands.commands.admin.rename.button": "Rename Command",
+  "discord.commands.commands.admin.rename.modal.title": "Rename Command",
+  "discord.commands.commands.admin.rename.modal.label": "New command name",
+  "discord.commands.commands.admin.rename.modal.placeholder": "Enter the new name for this command",
+  "discord.commands.commands.admin.rename.modal.success": "Command renamed successfully",
+  "discord.commands.commands.admin.rename.modal.error.empty": "Command name cannot be empty",
+  "discord.commands.commands.admin.rename.modal.error.invalid": "Command name contains invalid characters",
+  "discord.commands.commands.admin.rename.modal.error.duplicate": "A command with this name already exists",
+  "discord.commands.commands.admin.rename.modal.error.protected": "This command cannot be renamed as it is a core admin command",
+  "discord.commands.commands.admin.toggle.enable": "Enable Command",
+  "discord.commands.commands.admin.toggle.disable": "Disable Command",
+  "discord.commands.commands.admin.toggle.success": "Command {{action}}d successfully",
+  "discord.commands.commands.admin.toggle.error.protected": "This command cannot be disabled as it is a core admin command",
+  "discord.commands.commands.admin.audit.title": "Recent Changes",
+  "discord.commands.commands.admin.audit.empty": "No recent changes",
+  "discord.commands.commands.admin.audit.entry.rename": "Renamed from '{{old}}' to '{{new}}'",
+  "discord.commands.commands.admin.audit.entry.enable": "Enabled command",
+  "discord.commands.commands.admin.audit.entry.disable": "Disabled command",
+  "discord.commands.commands.admin.audit.entry.restore": "Restored to default settings",
+  "discord.commands.commands.admin.audit.timestamp": "{{time}} ago",
+  "discord.commands.commands.admin.audit.by": "by {{user}}",
+  "discord.commands.commands.admin.confirm.disable.title": "Disable Command",
+  "discord.commands.commands.admin.confirm.disable.message": "Are you sure you want to disable '{{command}}'? This will make the command unavailable to all users.",
+  "discord.commands.commands.admin.confirm.disable.confirm": "Disable",
+  "discord.commands.commands.admin.confirm.disable.cancel": "Cancel"
 }

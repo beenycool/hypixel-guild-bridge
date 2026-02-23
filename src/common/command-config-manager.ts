@@ -62,20 +62,17 @@ export interface CommandAuditLogEntry {
  */
 export class CommandConfigManager {
   private configManager: ConfigManager<CommandConfiguration>
+  private application: Application
   private static readonly DEFAULT_CONFIG: CommandConfiguration = {
     discord: {},
     minecraft: {},
     auditLog: []
   }
 
-  public constructor(application: Application, logger: Logger) {
-    const configPath = application.dataPath + '/command-config.json'
-    this.configManager = new ConfigManager<CommandConfiguration>(
-      application,
-      logger,
-      configPath,
-      CommandConfigManager.DEFAULT_CONFIG
-    )
+  constructor(application: Application) {
+    const configPath = application.getConfigFilePath('command-config.json')
+    this.configManager = new ConfigManager(application, (application as any).logger, configPath, CommandConfigManager.DEFAULT_CONFIG)
+    this.application = application
   }
 
   /**

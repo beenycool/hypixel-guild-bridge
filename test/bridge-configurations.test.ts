@@ -56,6 +56,19 @@ try {
   bridgeCfg.deleteSkyblockNotifiers(bridgeId)
   assert.strictEqual(bridgeCfg.getSkyblockEventNotifiers(bridgeId), undefined)
 
+  // Persist guild online/offline getter/setter
+  assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), false)
+  bridgeCfg.setPersistGuildOnlineOffline(bridgeId, true)
+  assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), true)
+  bridgeCfg.setPersistGuildOnlineOffline(bridgeId, false)
+  assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), false)
+
+  // Removal cleans up persist key
+  bridgeCfg.setPersistGuildOnlineOffline(bridgeId, true)
+  bridgeCfg.addBridgeId(bridgeId)
+  bridgeCfg.removeBridgeId(bridgeId)
+  assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), false)
+
   // Language getter/setter
   assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
   bridgeCfg.setLanguage(bridgeId, 'de')
