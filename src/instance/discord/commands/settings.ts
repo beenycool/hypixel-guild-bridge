@@ -24,7 +24,13 @@ import Duration from '../../../utility/duration'
 import { SkyblockEventKeys } from '../../../utility/skyblock-calendar'
 import { Timeout } from '../../../utility/timeout.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
-import type { BooleanOption, CategoryOption, EmbedCategoryOption, TextOption } from '../utility/options-handler.js'
+import type {
+  ActionOption,
+  BooleanOption,
+  CategoryOption,
+  EmbedCategoryOption,
+  TextOption
+} from '../utility/options-handler.js'
 import { InputStyle, OptionsHandler, OptionType } from '../utility/options-handler.js'
 
 const Essential = ':shield:'
@@ -2226,7 +2232,7 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
               ]
             } satisfies EmbedCategoryOption,
             {
-              type: OptionType.Category,
+              type: OptionType.Category as const,
               name: 'Chat Processing',
               description: 'Fine tune how chat messages are sent to the game.',
               header: 'Fine tune how chat messages are sent to the game.\n\n' + CategoryLabel,
@@ -2245,7 +2251,7 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
                       toggleOption: () => {
                         minecraft.setHideLinksViaStuf(!minecraft.getHideLinksViaStuf())
                       }
-                    },
+                    } satisfies BooleanOption,
                     {
                       type: OptionType.Boolean,
                       name: `Resolve Links ${Recommended}`,
@@ -2255,9 +2261,9 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
                       toggleOption: () => {
                         minecraft.setResolveHideLinks(!minecraft.getResolveHideLinks())
                       }
-                    }
+                    } satisfies BooleanOption
                   ]
-                },
+                } satisfies EmbedCategoryOption,
                 {
                   type: OptionType.EmbedCategory,
                   name: 'Anti Spam',
@@ -2272,11 +2278,11 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
                       toggleOption: () => {
                         minecraft.setAntispamEnabled(!minecraft.getAntispamEnabled())
                       }
-                    }
+                    } satisfies BooleanOption
                   ]
-                }
+                } satisfies EmbedCategoryOption
               ]
-            }
+            } satisfies CategoryOption
           ]
         : []),
       {
@@ -2285,49 +2291,42 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
         options: [
           {
             type: OptionType.Action,
-
             name: 'Instances Status',
             description: 'Fetch Minecraft instances status.',
             label: 'fetch',
             style: ButtonStyle.Primary,
-
-            onInteraction: (interaction) => minecraftInstancesStatus(application, interaction, context.bridgeId)
+            onInteraction: (interaction: ButtonInteraction, _errorHandler: UnexpectedErrorHandler) =>
+              minecraftInstancesStatus(application, interaction, context.bridgeId)
           },
           {
             type: OptionType.Action,
-
             name: 'Instance Add',
             description: 'Add a Minecraft instance.',
             label: 'add',
             style: ButtonStyle.Success,
-
-            onInteraction: (interaction, errorHandler) =>
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) =>
               minecraftInstanceAdd(application, interaction, errorHandler, context.bridgeId)
           },
           {
             type: OptionType.Action,
-
             name: 'Instance Remove',
             description: 'Remove a Minecraft instance.',
             label: 'remove',
             style: ButtonStyle.Danger,
-
-            onInteraction: (interaction, errorHandler) =>
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) =>
               minecraftInstanceRemove(application, interaction, errorHandler, context.bridgeId)
           },
           {
             type: OptionType.Action,
-
             name: 'Import Microsoft Auth Cache',
             description:
               'Import Microsoft authentication cache from JSON. Paste the JSON content from your auth-cache files.',
             label: 'import',
             style: ButtonStyle.Secondary,
-
-            onInteraction: (interaction, errorHandler) =>
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) =>
               minecraftInstanceImportAuthCache(application, interaction, errorHandler, context.bridgeId)
           }
-        ] as any
+        ] as ActionOption[]
       }
     ]
   }

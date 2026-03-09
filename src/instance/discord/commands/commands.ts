@@ -560,7 +560,7 @@ async function updateCommandList(
 
   const embed: APIEmbed = {
     title: i18n.t(($) => $['discord.commands.commands.title'] + 
-      ` - ${i18n.t(($) => $['discord.commands.commands.tabs.' + sessionState.currentTab])}`
+      ` - ${i18n.t(($) => (sessionState.currentTab === 'discord' ? $['discord.commands.commands.tabs.discord'] : $['discord.commands.commands.tabs.minecraft']))}`
     ),
     description: i18n.t(($) => $['discord.commands.commands.description']) +
       (sessionState.searchQuery ? `\n\n${i18n.t(($) => $['discord.commands.commands.filters.search'])}: **${sessionState.searchQuery}**` : '') +
@@ -763,8 +763,10 @@ async function showSearchModal(
       const value = modalInteraction.fields.getTextInputValue(`${SESSION_PREFIX}${sessionToken}:search-input`).trim()
       sessionState.searchQuery = value.length === 0 ? undefined : value
       sessionState.currentPage = 0
-      // Update the display
-      modalInteraction.update({ components: [] }).catch(() => {})
+      // Update the display (modal from message has update)
+      if (modalInteraction.isFromMessage()) {
+        modalInteraction.update({ components: [] }).catch(() => {})
+      }
     })
     .catch(() => {})
 }

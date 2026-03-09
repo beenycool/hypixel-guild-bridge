@@ -116,9 +116,9 @@ export function shortenNumber(value: number): string {
   return value.toFixed(Math.max(0, digitsCount - digits)) + suffix
 }
 
-export function formatStatNumber(value: number): string {
+export function formatStatNumber(value: number, decimals = 2): string {
   if (!Number.isFinite(value)) return '0'
-  return value.toString()
+  return value.toFixed(decimals)
 }
 
 export function capitalize(name: string): string {
