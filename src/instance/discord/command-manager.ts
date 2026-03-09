@@ -51,6 +51,7 @@ import RequirementsCommand from './commands/requirements.js'
 import RestartCommand from './commands/restart.js'
 import SetrankCommand from './commands/setrank.js'
 import SettingsCommand from './commands/settings.js'
+import StatsCommand from './commands/stats.js'
 import SkyblockCommand from './commands/skyblock.js'
 import UnlinkCommand from './commands/unlink.js'
 import VerificationCommand from './commands/verification.js'
@@ -143,6 +144,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       ReconnectCommand,
       RequirementsCommand,
       SetrankCommand,
+      StatsCommand,
       RestartCommand,
       UnlinkCommand,
       SkyblockCommand,

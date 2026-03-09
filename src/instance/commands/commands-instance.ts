@@ -54,6 +54,7 @@ import Kuudra from './triggers/kuudra.js'
 import Level from './triggers/level.js'
 import List from './triggers/list.js'
 import MagicalPower from './triggers/magicalpower.js'
+import Murdermystery from './triggers/murdermystery.js'
 import Mayor from './triggers/mayor.js'
 import Mute from './triggers/mute.js'
 import NameHistory from './triggers/name.js'
@@ -144,6 +145,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Level(),
       new List(),
       new MagicalPower(),
+      new Murdermystery(),
       new Mayor(),
       new Mute(),
       new NameHistory(),

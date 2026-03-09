@@ -1,6 +1,12 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
-import { getUuidIfExists, playerNeverPlayedHypixel, shortenNumber, usernameNotExists } from '../common/utility'
+import {
+  formatStatNumber,
+  getUuidIfExists,
+  playerNeverPlayedHypixel,
+  shortenNumber,
+  usernameNotExists
+} from '../common/utility'
 
 export default class Murdermystery extends ChatCommandHandler {
   constructor() {
@@ -21,11 +27,18 @@ export default class Murdermystery extends ChatCommandHandler {
     if (player == undefined) return playerNeverPlayedHypixel(context, givenUsername)
 
     const stats = player.stats?.murdermystery
-    if (stats === undefined) return `${givenUsername} has never played Murder Mystery.`
+    if (stats === undefined || stats.playedGames === 0)
+      return `${givenUsername} has never played Murder Mystery.`
 
-    const wins = stats.wins
-    const kills = stats.kills
+    const wins = stats.wins ?? 0
+    const kills = stats.kills ?? 0
+    const deaths = stats.deaths ?? 0
+    const kdr = stats.KDRatio ?? 0
 
-    return `${givenUsername}'s Murder Mystery: ` + `Wins: ${shortenNumber(wins)} | Kills: ${shortenNumber(kills)}`
+    return (
+      `${givenUsername}'s Murder Mystery: ` +
+      `Wins: ${shortenNumber(wins)} | Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | ` +
+      `KDR: ${formatStatNumber(kdr)}`
+    )
   }
 }
