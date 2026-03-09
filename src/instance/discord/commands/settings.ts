@@ -2296,7 +2296,12 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             label: 'fetch',
             style: ButtonStyle.Primary,
             onInteraction: (interaction: ButtonInteraction, _errorHandler: UnexpectedErrorHandler) =>
-              minecraftInstancesStatus(application, interaction, context.bridgeId)
+              minecraftInstancesStatus(
+                application,
+                interaction,
+                context.bridgeId,
+                context.permission === Permission.Admin
+              )
           },
           {
             type: OptionType.Action,
@@ -2341,13 +2346,19 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
 async function minecraftInstancesStatus(
   application: Application,
   interaction: ButtonInteraction,
-  bridgeId?: string
+  bridgeId?: string,
+  isAdmin?: boolean
 ): Promise<boolean> {
   const config = application.core.minecraftSessions
   const savedInstances = config.getAllInstances()
   const instances = application.minecraftManager.getAllInstances()
 
-  const bridgeInstances = bridgeId ? application.core.bridgeConfigurations.getMinecraftInstances(bridgeId) : []
+  const bridgeConfig = application.core.bridgeConfigurations
+  const bridgeInstances = bridgeId
+    ? bridgeConfig.getMinecraftInstances(bridgeId)
+    : []
+  const includeInstance = (instanceName: string) =>
+    isAdmin || !bridgeId || bridgeInstances.includes(instanceName)
 
   const embed: APIEmbed = {
     title: 'Minecraft Status',
@@ -2361,7 +2372,7 @@ async function minecraftInstancesStatus(
   const registeredInstances = instances.filter(
     (instance) =>
       savedInstances.some((configInstance) => instance.instanceName === configInstance.name) &&
-      (!bridgeId || bridgeInstances.includes(instance.instanceName))
+      includeInstance(instance.instanceName)
   )
   embed.fields.push({
     name: 'Registered Instances',
@@ -2376,7 +2387,7 @@ async function minecraftInstancesStatus(
   const dynamicInstances = instances.filter(
     (instance) =>
       !savedInstances.some((configInstance) => instance.instanceName === configInstance.name) &&
-      (!bridgeId || bridgeInstances.includes(instance.instanceName))
+      includeInstance(instance.instanceName)
   )
   if (dynamicInstances.length > 0) {
     embed.fields.push({
@@ -2392,7 +2403,7 @@ async function minecraftInstancesStatus(
     .filter(
       (configName) =>
         !instances.some((instance) => instance.instanceName === configName) &&
-        (!bridgeId || bridgeInstances.includes(configName))
+        includeInstance(configName)
     )
   if (unavailableInstances.length > 0) {
     embed.color = Color.Bad
