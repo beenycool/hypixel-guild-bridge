@@ -2314,7 +2314,13 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             label: 'remove',
             style: ButtonStyle.Danger,
             onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) =>
-              minecraftInstanceRemove(application, interaction, errorHandler, context.bridgeId)
+              minecraftInstanceRemove(
+                application,
+                interaction,
+                errorHandler,
+                context.bridgeId,
+                context.permission === Permission.Admin
+              )
           },
           {
             type: OptionType.Action,
@@ -2610,7 +2616,8 @@ async function minecraftInstanceRemove(
   application: Application,
   interaction: ButtonInteraction,
   errorHandler: UnexpectedErrorHandler,
-  bridgeId?: string
+  bridgeId?: string,
+  isAdmin?: boolean
 ): Promise<boolean> {
   await interaction.showModal({
     customId: 'minecraft-instance-remove',
@@ -2641,7 +2648,7 @@ async function minecraftInstanceRemove(
 
   const instanceName = modalInteraction.fields.getTextInputValue('instance-name')
 
-  if (bridgeId) {
+  if (bridgeId && !isAdmin) {
     const bridgeInstances = application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
     if (!bridgeInstances.includes(instanceName)) {
       await modalInteraction.reply({
@@ -2689,13 +2696,22 @@ async function minecraftInstanceRemove(
       embed.description += '- Session files have been detected and deleted.'
     }
 
-    if (bridgeId) {
-      const instances = application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
-      const index = instances.indexOf(instanceName)
-      if (index !== -1) {
-        instances.splice(index, 1)
-        application.core.bridgeConfigurations.setMinecraftInstances(bridgeId, instances)
-        embed.description += '- Instance has been removed from this bridge association.\n'
+    const bridgeConfig = application.core.bridgeConfigurations
+    const affectedBridges: string[] = []
+    for (const bid of bridgeConfig.getAllBridgeIds()) {
+      const instances = bridgeConfig.getMinecraftInstances(bid)
+      if (instances.includes(instanceName)) {
+        instances.splice(instances.indexOf(instanceName), 1)
+        bridgeConfig.setMinecraftInstances(bid, instances)
+        affectedBridges.push(bid)
+      }
+    }
+    if (affectedBridges.length > 0) {
+      application.bridgeResolver.rebuildLookupMaps()
+      if (affectedBridges.length === 1) {
+        embed.description += '- Instance has been removed from bridge association.\n'
+      } else {
+        embed.description += `- Instance has been removed from ${affectedBridges.length} bridge associations.\n`
       }
     }
   } catch (error: unknown) {
