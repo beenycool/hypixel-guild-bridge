@@ -1,5 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+
 import { calculateDuelsDivision } from '../src/instance/commands/common/utility.js'
 
 describe('Duels Division Calculation', () => {
@@ -45,25 +46,25 @@ describe('Duels Division Calculation', () => {
     })
 
     it('should calculate Godlike divisions correctly', () => {
-      assert.equal(calculateDuelsDivision(10000, false), 'Godlike I')
-      assert.equal(calculateDuelsDivision(13000, false), 'Godlike II')
-      assert.equal(calculateDuelsDivision(22000, false), 'Godlike V')
+      assert.equal(calculateDuelsDivision(10_000, false), 'Godlike I')
+      assert.equal(calculateDuelsDivision(13_000, false), 'Godlike II')
+      assert.equal(calculateDuelsDivision(22_000, false), 'Godlike V')
     })
 
     it('should calculate Celestial divisions correctly', () => {
-      assert.equal(calculateDuelsDivision(25000, false), 'Celestial I')
-      assert.equal(calculateDuelsDivision(45000, false), 'Celestial V')
+      assert.equal(calculateDuelsDivision(25_000, false), 'Celestial I')
+      assert.equal(calculateDuelsDivision(45_000, false), 'Celestial V')
     })
 
     it('should calculate Divine divisions correctly', () => {
-      assert.equal(calculateDuelsDivision(50000, false), 'Divine I')
-      assert.equal(calculateDuelsDivision(90000, false), 'Divine V')
+      assert.equal(calculateDuelsDivision(50_000, false), 'Divine I')
+      assert.equal(calculateDuelsDivision(90_000, false), 'Divine V')
     })
 
     it('should calculate Ascended divisions correctly', () => {
-      assert.equal(calculateDuelsDivision(100000, false), 'Ascended I')
-      assert.equal(calculateDuelsDivision(110000, false), 'Ascended II')
-      assert.equal(calculateDuelsDivision(590000, false), 'Ascended L')
+      assert.equal(calculateDuelsDivision(100_000, false), 'Ascended I')
+      assert.equal(calculateDuelsDivision(110_000, false), 'Ascended II')
+      assert.equal(calculateDuelsDivision(590_000, false), 'Ascended L')
     })
   })
 
@@ -89,12 +90,12 @@ describe('Duels Division Calculation', () => {
     })
 
     it('should calculate Godlike divisions correctly (2x multiplier)', () => {
-      assert.equal(calculateDuelsDivision(20000, true), 'Godlike I')
-      assert.equal(calculateDuelsDivision(44000, true), 'Godlike V')
+      assert.equal(calculateDuelsDivision(20_000, true), 'Godlike I')
+      assert.equal(calculateDuelsDivision(44_000, true), 'Godlike V')
     })
 
     it('should calculate Ascended divisions correctly (2x multiplier)', () => {
-      assert.equal(calculateDuelsDivision(200000, true), 'Ascended I')
+      assert.equal(calculateDuelsDivision(200_000, true), 'Ascended I')
     })
   })
 

@@ -8,11 +8,7 @@ export default class EventHelper<K extends InstanceType> {
     private readonly instanceType: K,
     bridgeId?: string | (() => string | undefined)
   ) {
-    if (typeof bridgeId === 'function') {
-      this.bridgeIdProvider = bridgeId
-    } else {
-      this.bridgeIdProvider = () => bridgeId
-    }
+    this.bridgeIdProvider = typeof bridgeId === 'function' ? bridgeId : () => bridgeId
   }
   private lastId = 0
 

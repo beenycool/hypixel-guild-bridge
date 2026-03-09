@@ -169,8 +169,8 @@ const DuelsDivisionThresholds: readonly DivisionThreshold[] = [
   { tier: 'Grandmaster', maxLevel: 5, increment: 1000 },
   { tier: 'Godlike', maxLevel: 5, increment: 3000 },
   { tier: 'Celestial', maxLevel: 5, increment: 5000 },
-  { tier: 'Divine', maxLevel: 5, increment: 10000 },
-  { tier: 'Ascended', maxLevel: 50, increment: 10000 }
+  { tier: 'Divine', maxLevel: 5, increment: 10_000 },
+  { tier: 'Ascended', maxLevel: 50, increment: 10_000 }
 ] as const
 
 const DivisionStartWins: readonly number[] = [
@@ -181,13 +181,13 @@ const DivisionStartWins: readonly number[] = [
   1000, // Master I
   2000, // Legend I
   5000, // Grandmaster I
-  10000, // Godlike I
-  25000, // Celestial I
-  50000, // Divine I
-  100000 // Ascended I
+  10_000, // Godlike I
+  25_000, // Celestial I
+  50_000, // Divine I
+  100_000 // Ascended I
 ] as const
 
-function romanNumeral(num: number): string {
+function romanNumeral(number_: number): string {
   const numerals: Record<number, string> = {
     1: 'I',
     2: 'II',
@@ -240,7 +240,7 @@ function romanNumeral(num: number): string {
     49: 'XLIX',
     50: 'L'
   }
-  return numerals[num] ?? num.toString()
+  return numerals[number_] ?? number_.toString()
 }
 
 export function calculateDuelsDivision(wins: number, isOverall: boolean): string {

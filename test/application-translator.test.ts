@@ -2,12 +2,12 @@ import assert from 'node:assert'
 
 import Application from '../src/application'
 
-function makeFakeApp(dynamicLang?: string | undefined, staticLang?: string | undefined) {
+function makeFakeApp(dynamicLang?: string, staticLang?: string) {
   const calls: any[] = []
   const fakeI18n = {
-    t: (key: any, opts?: any) => {
-      calls.push({ key, opts })
-      return `translated:${key}:${opts?.lng ?? 'undefined'}`
+    t: (key: any, options?: any) => {
+      calls.push({ key, opts: options })
+      return `translated:${key}:${options?.lng ?? 'undefined'}`
     }
   }
 

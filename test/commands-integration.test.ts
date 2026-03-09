@@ -1,5 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+
 import { Collection } from 'discord.js'
 
 import commandsCommand from '../src/instance/discord/commands/commands.js'
@@ -22,7 +23,8 @@ const createMockApplication = () => ({
         'discord.commands.commands.actions.back-to-list': 'Back to List',
         'discord.commands.commands.pagination.previous': 'Previous',
         'discord.commands.commands.pagination.next': 'Next',
-        'discord.commands.commands.pagination.display': 'Showing {{current}} of {{total}} pages ({{count}} total commands)',
+        'discord.commands.commands.pagination.display':
+          'Showing {{current}} of {{total}} pages ({{count}} total commands)',
         'discord.commands.commands.no-results': 'No commands found',
         'discord.commands.commands.try-different-filters': 'Try adjusting your search terms or clearing filters.',
         'discord.commands.commands.filters.search': 'Searching for',
@@ -36,11 +38,11 @@ const createMockApplication = () => ({
 // Mock interaction for testing
 const createMockInteraction = () => ({
   user: { id: '123456789' },
-  reply: async (args: any) => ({ fetch: async () => ({ id: 'message123' }) }),
-  update: async (args: any) => {},
-  showModal: async (args: any) => {},
+  reply: async (arguments_: any) => ({ fetch: async () => ({ id: 'message123' }) }),
+  update: async (arguments_: any) => {},
+  showModal: async (arguments_: any) => {},
   deferReply: async () => {},
-  editReply: async (args: any) => {},
+  editReply: async (arguments_: any) => {},
   isButton: () => true,
   isFromMessage: () => true,
   customId: '',
@@ -98,7 +100,7 @@ void describe('commands command integration', () => {
     // Test the component interaction handling logic
     const SESSION_PREFIX = 'commands_session_'
     const sessionToken = 'test123'
-    
+
     // Test parsing valid custom IDs
     const testCases = [
       {
@@ -141,11 +143,7 @@ void describe('commands command integration', () => {
     }
 
     // Test invalid custom IDs
-    const invalidIds = [
-      'invalid_id',
-      'commands_session_:missing_action',
-      'different_prefix:test:action'
-    ]
+    const invalidIds = ['invalid_id', 'commands_session_:missing_action', 'different_prefix:test:action']
 
     for (const invalidId of invalidIds) {
       const parsed = (commandsCommand as any).parseSessionData?.(invalidId)
@@ -155,7 +153,7 @@ void describe('commands command integration', () => {
 
   void it('should handle search modal interactions', async () => {
     const mockApplication = createMockApplication()
-    
+
     // Test search modal configuration
     const searchModal = {
       customId: 'commands_session_test123:search-modal',
@@ -212,7 +210,8 @@ void describe('commands command integration', () => {
     // Test command list embed with filters
     const filteredEmbed = {
       title: 'Command Reference - Discord Commands',
-      description: 'Browse all available Discord and Minecraft commands.\n\nSearching for: **skyblock**\nCategory: **Skyblock**',
+      description:
+        'Browse all available Discord and Minecraft commands.\n\nSearching for: **skyblock**\nCategory: **Skyblock**',
       fields: [
         {
           name: '!skyblock (Skyblock)',
@@ -265,31 +264,31 @@ void describe('commands command integration', () => {
       { name: 'calculate', category: 'Utility' }
     ]
 
-    const categories = Array.from(new Set(commands.map(cmd => cmd.category))).sort()
+    const categories = [...new Set(commands.map((cmd) => cmd.category))].sort()
     assert.strictEqual(categories.length, 4)
     assert.deepStrictEqual(categories, ['Games', 'Guild', 'Skyblock', 'Utility'])
 
     // Test category filtering
-    const skyblockCommands = commands.filter(cmd => cmd.category === 'Skyblock')
+    const skyblockCommands = commands.filter((cmd) => cmd.category === 'Skyblock')
     assert.strictEqual(skyblockCommands.length, 1)
     assert.strictEqual(skyblockCommands[0].name, 'skyblock')
   })
 
   void it('should validate session token generation and parsing', async () => {
     const generateSessionToken = () => {
-      return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      return Math.random().toString(36).slice(2, 15) + Math.random().toString(36).slice(2, 15)
     }
 
     const token1 = generateSessionToken()
     const token2 = generateSessionToken()
-    
+
     // Tokens should be unique
     assert.notStrictEqual(token1, token2)
-    
+
     // Tokens should be proper length
     assert.strictEqual(token1.length, 28)
     assert.strictEqual(token2.length, 28)
-    
+
     // Tokens should only contain valid characters
     assert.match(token1, /^[a-z0-9]+$/)
     assert.match(token2, /^[a-z0-9]+$/)
@@ -305,9 +304,10 @@ void describe('commands command integration', () => {
     // Test empty search query
     const filterCommands = (searchQuery?: string) => {
       if (!searchQuery) return commands
-      return commands.filter(cmd => 
-        cmd.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        cmd.description.toLowerCase().includes(searchQuery.toLowerCase())
+      return commands.filter(
+        (cmd) =>
+          cmd.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          cmd.description.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 

@@ -4,7 +4,7 @@ import type { StatusChange } from '../../common/application-event'
 import { InstanceMessageType } from '../../common/application-event'
 import { Status } from '../../common/connectable-instance'
 
-export type Translator = (key: Parameters<i18n['t']>[0], opts?: any) => string
+export type Translator = (key: Parameters<i18n['t']>[0], options?: any) => string
 
 export function translateInstanceMessage(t: Translator, key: InstanceMessageType): string {
   switch (key) {

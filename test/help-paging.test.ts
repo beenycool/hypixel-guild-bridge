@@ -1,9 +1,10 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+
 import { Collection } from 'discord.js'
 
-import * as pager from '../src/instance/discord/utility/discord-pager.js'
 import helpCommand from '../src/instance/discord/commands/help.js'
+import * as pager from '../src/instance/discord/utility/discord-pager.js'
 
 // Create mock command handlers
 function makeMockCommand(name: string, desc: string) {
@@ -22,11 +23,11 @@ void describe('help command paging', () => {
 
     // create many commands to force large help text
     const allCommands = []
-    for (let i = 0; i < 500; i++) {
-      allCommands.push(makeMockCommand(`cmd${i}`, 'A long description for testing ' + 'x'.repeat(50)))
+    for (let index = 0; index < 500; index++) {
+      allCommands.push(makeMockCommand(`cmd${index}`, 'A long description for testing ' + 'x'.repeat(50)))
     }
 
-    const fakeCollector = () => ({ on: (_: string, __: (...args: any[]) => void) => {}, stop: () => {} })
+    const fakeCollector = () => ({ on: (_: string, __: (...arguments_: any[]) => void) => {}, stop: () => {} })
 
     const context: any = {
       interaction: {
@@ -35,8 +36,8 @@ void describe('help command paging', () => {
         deferReply: async () => {},
         guild: { commands: { fetch: async () => guildCommands } },
         channel: { createMessageComponentCollector: fakeCollector },
-        editReply: async (args: any) => {
-          captured.replyArgs = args
+        editReply: async (arguments_: any) => {
+          captured.replyArgs = arguments_
         }
       },
       allCommands,

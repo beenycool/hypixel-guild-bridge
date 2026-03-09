@@ -348,12 +348,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     } catch (error) {
       this.logger.error('Error while handling command', error)
       const errorMessage = `${event.user.displayName()}, an error occurred while trying to execute ${command.triggers[0]}.`
-      const randomSuffix = (Math.random() + 1).toString(36).substring(7)
-      await this.reply(
-        event,
-        command.triggers[0],
-        `${errorMessage} (${randomSuffix})`
-      )
+      const randomSuffix = (Math.random() + 1).toString(36).slice(7)
+      await this.reply(event, command.triggers[0], `${errorMessage} (${randomSuffix})`)
     }
   }
 

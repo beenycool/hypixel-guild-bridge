@@ -240,9 +240,9 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     // Get passthrough prefix (bridge-specific or global)
     const passthroughPrefix =
-      bridgeId !== undefined
-        ? (bridgeConfig.getPassthroughPrefix(bridgeId) ?? globalCommandsConfig.getPassthroughPrefix())
-        : globalCommandsConfig.getPassthroughPrefix()
+      bridgeId === undefined
+        ? globalCommandsConfig.getPassthroughPrefix()
+        : (bridgeConfig.getPassthroughPrefix(bridgeId) ?? globalCommandsConfig.getPassthroughPrefix())
 
     // Check if message starts with passthrough prefix
     if (!content.startsWith(passthroughPrefix)) return false
@@ -262,9 +262,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     if (!commandName) return false
 
     // Check if command is in passthrough list
-    const isPassthroughCommand = passthroughCommands.some(
-      (cmd) => cmd.toLowerCase() === commandName
-    )
+    const isPassthroughCommand = passthroughCommands.some((cmd) => cmd.toLowerCase() === commandName)
     if (!isPassthroughCommand) return false
 
     // Get instances to send to (based on bridge if applicable)
@@ -279,12 +277,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     // Send the command directly to in-game guild chat without bridge formatting
     const gcCommand = `/gc ${content}`
-    await this.application.sendMinecraft(
-      instances,
-      MinecraftSendChatPriority.Default,
-      undefined,
-      gcCommand
-    )
+    await this.application.sendMinecraft(instances, MinecraftSendChatPriority.Default, undefined, gcCommand)
 
     this.logger.debug(`Passthrough command sent to guild chat: ${content}`)
     return true
