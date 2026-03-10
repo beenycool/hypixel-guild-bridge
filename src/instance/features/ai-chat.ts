@@ -51,13 +51,22 @@ export class AiChat extends Instance<InstanceType.Utility> {
           })
         })
 
-        const data = (await response.json()) as any
-        let aiMessage = data.choices[0].message.content.trim()
+        if (!response.ok) {
+          this.logger.error(`AI chat API returned an error: ${response.status} ${response.statusText}`);
+          return;
+        }
+        const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+        const aiMessageContent = data?.choices?.[0]?.message?.content;
+
+        if (!aiMessageContent) {
+          this.logger.error('AI chat response is empty or has an invalid structure.');
+          return;
+        }
 
         // Remove newlines and limit to 250 characters as Minecraft chat has limits and formatting issues
-        aiMessage = aiMessage.replaceAll('\n', ' ')
+        let aiMessage = aiMessageContent.trim().replaceAll('\n', ' ');
         if (aiMessage.length > 250) {
-          aiMessage = aiMessage.slice(0, 247) + '...'
+          aiMessage = aiMessage.slice(0, 247) + '...';
         }
 
         // Send the AI message back to Minecraft chat
