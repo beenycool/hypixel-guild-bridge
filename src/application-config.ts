@@ -85,8 +85,8 @@ export interface InactivityConfig {
 
 export interface SkyblockEventsConfig {
   enabled: boolean
-  notifiers?: { [key: string]: boolean }
-  customTimes?: { [key: string]: string[] }
+  notifiers?: Record<string, boolean>
+  customTimes?: Record<string, string[]>
 }
 
 export interface HypixelUpdatesConfig {
@@ -131,7 +131,7 @@ export interface BridgeConfig {
      */
     officerChannelIds: string[]
   }
-} 
+}
 
 export interface ApplicationConfig {
   version: 2 // typeof ApplicationConfigVersion

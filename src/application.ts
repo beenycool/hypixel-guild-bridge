@@ -26,6 +26,7 @@ import ApplicationIntegrity from './instance/application-integrity.js'
 import AutoRestart from './instance/auto-restart'
 import { CommandsInstance } from './instance/commands/commands-instance.js'
 import DiscordInstance from './instance/discord/discord-instance.js'
+import { AiChat } from './instance/features/ai-chat.js'
 import { PluginsManager } from './instance/features/plugins-manager.js'
 import HypixelUpdates from './instance/hypixel-updates'
 import MetricsInstance from './instance/metrics/metrics-instance.js'
@@ -139,6 +140,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly skyblockReminders: SkyblockReminders
   private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
+  private readonly aiChat: AiChat
   private readonly autoRestart: AutoRestart
 
   public constructor(
@@ -201,6 +203,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.skyblockReminders = new SkyblockReminders(this)
     this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
+    this.aiChat = new AiChat(this)
     this.autoRestart = new AutoRestart(this)
   }
 
@@ -252,7 +255,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
    * Resolution precedence: dynamic DB > static bridge config > global application language.
    * Returns a function compatible with `i18n.t` that will call `this.i18n.t` with the resolved `lng` option.
    */
-  public getTranslatorForBridge(bridgeId?: string): (key: Parameters<i18n['t']>[0], opts?: any) => string {
+  public getTranslatorForBridge(bridgeId?: string): (key: Parameters<i18n['t']>[0], options?: any) => string {
     let dynamicLang: string | undefined
     if (bridgeId !== undefined) {
       dynamicLang = this.core.bridgeConfigurations.getLanguage(bridgeId)
@@ -266,8 +269,8 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
     const chosenLang = dynamicLang ?? staticLang
 
-    return (key: Parameters<i18n['t']>[0], opts?: any) =>
-      (this.i18n.t(key as any, { ...(opts ?? {}), ...(chosenLang ? { lng: chosenLang } : {}) }) as unknown) as string
+    return (key: Parameters<i18n['t']>[0], options?: any) =>
+      this.i18n.t(key as any, { ...(options ?? {}), ...(chosenLang ? { lng: chosenLang } : {}) }) as unknown as string
   }
 
   public async start(): Promise<void> {
@@ -440,6 +443,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.skyblockReminders,
       this.hypixelUpdates,
       this.spontaneousEvents,
+      this.aiChat,
       this.autoRestart
     ].filter((instance) => instance != undefined)
 

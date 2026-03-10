@@ -1,14 +1,14 @@
 import assert from 'node:assert'
 
-import {
-  translateInstanceMessage,
-  translateAuthenticationCodeExpired,
-  translateInstanceStatus
-} from '../src/core/instance/instance-language'
 import { InstanceMessageType } from '../src/common/application-event'
 import { Status } from '../src/common/connectable-instance'
+import {
+  translateAuthenticationCodeExpired,
+  translateInstanceMessage,
+  translateInstanceStatus
+} from '../src/core/instance/instance-language'
 
-const t = (k: any, opts?: any) => `translated:${opts?.from ?? opts?.to ?? opts?.instanceName ?? ''}`
+const t = (k: any, options?: any) => `translated:${options?.from ?? options?.to ?? options?.instanceName ?? ''}`
 
 // message type
 {
