@@ -4,12 +4,12 @@ import { HttpStatusCode } from 'axios'
 import type { RawData } from 'ws'
 import { WebSocket, WebSocketServer } from 'ws'
 
+import PackageJson from '../../package.json' with { type: 'json' }
 import type { WebConfig } from '../application-config.js'
 import type Application from '../application.js'
 import type { ChatEvent } from '../common/application-event.js'
 import { InstanceType, MinecraftSendChatPriority } from '../common/application-event.js'
 import { Instance } from '../common/instance.js'
-import PackageJson from '../../package.json' with { type: 'json' }
 
 interface WebMessagePayload {
   type?: string

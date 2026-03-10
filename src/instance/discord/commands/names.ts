@@ -1,12 +1,16 @@
+import DefaultAxios from 'axios'
 import type { APIEmbed } from 'discord.js'
 import { SlashCommandBuilder, SlashCommandStringOption } from 'discord.js'
-import DefaultAxios from 'axios'
 
 import { Color } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 
-function createNamesEmbed(username: string, uuid: string, history: { username: string; changed_at?: string }[]): APIEmbed {
+function createNamesEmbed(
+  username: string,
+  uuid: string,
+  history: { username: string; changed_at?: string }[]
+): APIEmbed {
   const names = history
     .map((entry) => {
       if (entry.changed_at) {

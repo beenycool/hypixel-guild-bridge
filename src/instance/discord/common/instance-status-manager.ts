@@ -136,9 +136,7 @@ export class InstanceStatusManager {
           }
           case StatusHistoryEntryType.Status: {
             result +=
-              escapeMarkdown(
-                translateInstanceStatus(t, { from: element.fromStatus, to: element.toStatus })
-              ) + '\n'
+              escapeMarkdown(translateInstanceStatus(t, { from: element.fromStatus, to: element.toStatus })) + '\n'
             break
           }
 
@@ -476,7 +474,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t((($: any) => $['discord.status.chat-notice']), {
+          description: t(($: any) => $['discord.status.chat-notice'], {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -490,7 +488,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t((($: any) => $['discord.status.requires-authentication']), {
+          description: t(($: any) => $['discord.status.requires-authentication'], {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -503,7 +501,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t((($: any) => $['discord.status.instance-started']), {
+          description: t(($: any) => $['discord.status.instance-started'], {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -517,7 +515,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t((($: any) => $['discord.status.chat-failed']), {
+          description: t(($: any) => $['discord.status.chat-failed'], {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Bad
@@ -531,7 +529,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t((($: any) => $['discord.status.chat-resumed']), {
+          description: t(($: any) => $['discord.status.chat-resumed'], {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Good
@@ -544,7 +542,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t((($: any) => $['discord.status.chat-interrupted']), {
+          description: t(($: any) => $['discord.status.chat-interrupted'], {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info

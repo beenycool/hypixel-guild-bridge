@@ -64,9 +64,9 @@ try {
 // the real web server can boot on the internal port without exposing the slow startup window.
 const processStartTime = Date.now()
 
-const healthServer = http.createServer((req, res) => {
+const healthServer = http.createServer((request, res) => {
   try {
-    const url = req.url ?? '/'
+    const url = request.url ?? '/'
     if (url.split('?')[0] === '/uptime' || url.split('?')[0] === '/health') {
       // Respond immediately for probes
       res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -85,10 +85,12 @@ const healthServer = http.createServer((req, res) => {
     if (pathname === '/metrics' || pathname === '/ping') {
       const metricsToken = process.env.GRAFANA_METRICS_TOKEN
       if (metricsToken) {
-        const authHeader = req.headers.authorization
+        const authHeader = request.headers.authorization
         const queryToken = url.includes('?') ? new URLSearchParams(url.split('?')[1]).get('token') : null
         const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-        const basicMatch = authHeader?.startsWith('Basic ') ? Buffer.from(authHeader.slice(6), 'base64').toString().split(':')[1] : null
+        const basicMatch = authHeader?.startsWith('Basic ')
+          ? Buffer.from(authHeader.slice(6), 'base64').toString().split(':')[1]
+          : null
         const tokenOk = queryToken === metricsToken || bearer === metricsToken || basicMatch === metricsToken
         if (!tokenOk) {
           res.writeHead(401, { 'Content-Type': 'text/plain' })
@@ -100,7 +102,7 @@ const healthServer = http.createServer((req, res) => {
     const proxyPort = pathname === '/metrics' || pathname === '/ping' ? prometheusPort : internalPort
 
     const proxy = http.request(
-      { hostname: '127.0.0.1', port: proxyPort, path: url, method: req.method, headers: req.headers },
+      { hostname: '127.0.0.1', port: proxyPort, path: url, method: request.method, headers: request.headers },
       (proxyRes) => {
         res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers)
         proxyRes.pipe(res, { end: true })
@@ -112,8 +114,8 @@ const healthServer = http.createServer((req, res) => {
       res.end('Bad gateway')
     })
 
-    req.pipe(proxy, { end: true })
-  } catch (err) {
+    request.pipe(proxy, { end: true })
+  } catch {
     res.writeHead(500)
     res.end('Internal error')
   }
@@ -130,7 +132,6 @@ healthServer.listen(externalPort, () => {
 
 process.on('SIGINT', () => healthServer.close())
 process.on('SIGTERM', () => healthServer.close())
-
 
 const LoggerConfigName = 'log4js-config.json'
 const LoggerPath = path.join(ConfigsDirectory, LoggerConfigName)
