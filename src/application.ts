@@ -270,7 +270,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     const chosenLang = dynamicLang ?? staticLang
 
     return (key: Parameters<i18n['t']>[0], options?: any) =>
-      this.i18n.t(key as any, { ...options, ...(chosenLang ? { lng: chosenLang } : {}) }) as unknown as string
+      this.i18n.t(key as any, { ...(options ?? {}), ...(chosenLang ? { lng: chosenLang } : {}) }) as unknown as string
   }
 
   public async start(): Promise<void> {
