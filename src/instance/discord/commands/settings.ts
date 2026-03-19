@@ -281,21 +281,21 @@ async function createBridgeOptionAsync(
           },
           {
             type: OptionType.Role,
-            name: `Admin Roles ${Warning}`,
+            name: `Owner Roles ${Warning}`,
             description:
-              `Staff roles that have FULL access in bridge "${bridgeId}" (including \`/execute\`). ` +
+              `Staff roles that have access to destructive commands like \`/ban\` and \`/kick\` in bridge "${bridgeId}". ` +
               `Only assign to trusted users.`,
             min: 0,
             max: 5,
-            getOption: () => bridgeConfig.getAdminRoleIds(bridgeId),
+            getOption: () => bridgeConfig.getOwnerRoleIds(bridgeId),
             setOption: (values) => {
-              bridgeConfig.setAdminRoleIds(bridgeId, values)
+              bridgeConfig.setOwnerRoleIds(bridgeId, values)
             }
           },
           {
             type: OptionType.Role,
             name: 'Officer Roles',
-            description: `Staff roles that have permissions to execute destructive commands such as \`/kick\` in bridge "${bridgeId}"`,
+            description: `Staff roles that have permissions to execute non-destructive moderation commands like \`/punishments mute\` in bridge "${bridgeId}"`,
             min: 0,
             max: 5,
             getOption: () => bridgeConfig.getOfficerRoleIds(bridgeId),
@@ -1873,8 +1873,22 @@ function fetchDiscordOptions(application: Application): CategoryOption {
           {
             type: OptionType.Role,
 
+            name: 'Owner Roles',
+            description: 'Staff roles that have access to destructive commands like `/ban` and `/kick`.',
+
+            min: 0,
+            max: 5,
+
+            getOption: () => discord.getOwnerRoleIds(),
+            setOption: (values) => {
+              discord.setOwnerRoleIds(values)
+            }
+          },
+          {
+            type: OptionType.Role,
+
             name: 'Officer Roles',
-            description: 'Staff roles that have permissions to execute destructive commands such as `/kick`.',
+            description: 'Staff roles that have permissions to execute non-destructive moderation commands like `/punishments mute`.',
 
             min: 0,
             max: 5,

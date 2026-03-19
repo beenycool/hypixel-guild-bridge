@@ -5,6 +5,7 @@
 | Anyone  | Anything that usually can be seen in-game guild chat<br> e.g. public chat, join/leave notification, etc            |
 | Helper  | Anything that requires special permission to see in-game guild chat<br> e.g. officer chat, mute notification, etc. |
 | Officer | Superset of **Helper** role. Given to trusted members                                                              |
+| Owner   | Given to senior staff who can execute destructive moderation commands such as `/ban` and `/kick`                   |
 | Admin   | Special permission that is used to administrate the service.<br> Note: Only ONE person can have this permission!   |
 
 ## Chat Commands
@@ -54,12 +55,13 @@ A shorter version can also be used: `!- rtca`
 | `forge`          | Returns a player's forge items                                                     |
 | `garden`         | Returns a player's garden stats                                                    |
 | `guild`          | Returns a player's guild, if they're in one                                        |
-| `guildexp`       | Guild experience of user. Usage: gexp [daily/weekly/monthly] [username]            |
+| `guildexp`       | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]  |
 | `help`           | Shows a command description and an example about its usage                         |
 | `hotm`           | Returns a player's hotm and powder                                                 |
 | `hlevel`         | Returns a player's Hypixel common stats                                            |
 | `insult`         | insult a player                                                                    |
 | `iq`             | Returns a player's IQ (0-200)                                                      |
+| `kms`            | mute yourself for 5 minutes                                                        |
 | `kuudra`         | Returns a player's kuudra runs                                                     |
 | `level`          | Returns a player's skyblock level                                                  |
 | `list`           | List online members in a guild                                                     |
@@ -68,7 +70,7 @@ A shorter version can also be used: `!- rtca`
 | `megawalls`      | Returns a player's Megawalls stats                                                 |
 | `murdermystery`  | Returns a player's Murder Mystery stats                                            |
 | `mute`           | mute a random online person for 5 minutes for no good reason                       |
-| `name`           | Returns a player's name history                                                    |
+| `name`           | Get a player's name history.                                                       |
 | `networth`       | Networth of specified user.                                                        |
 | `paintball`      | Returns a player's Paintball stats                                                 |
 | `parties`        | List all active parties in guild                                                   |
@@ -123,6 +125,7 @@ A shorter version can also be used: `!- rtca`
 | `/about`              | Display basic info about the client.                             |
 | `/accept`             | accept a player to the guild if they have a join request in-game |
 | `/blacklist`          | Add or remove a player from the ignore list                      |
+| `/commands`           | Browse all available Discord and Minecraft commands              |
 | `/connectivity`       | Check connectivity to Minecraft instances                        |
 | `/create-leaderboard` | Create a leaderboard message in this channel                     |
 | `/demote`             | demote guild member in-game                                      |
@@ -140,12 +143,15 @@ A shorter version can also be used: `!- rtca`
 | `/list-leaderboard`   | List all existing leaderboards                                   |
 | `/list`               | List players in your guild(s)                                    |
 | `/log`                | View guild activity logs                                         |
-| `/names`              | Returns a player's name history                                  |
+| `/names`              | View a player's name history                                     |
 | `/ping`               | Discord Ping                                                     |
 | `/player`             | View a player's Hypixel profile                                  |
 | `/profanity`          | Manage application profanity filter                              |
 | `/promote`            | promote guild member in-game                                     |
 | `/punishments`        | Manage active punishments                                        |
+| `/rankup-check`       | Check rankup status for a player (Dry Run)                       |
+| `/rankup-history`     | View rankup history                                              |
+| `/rankup-pending`     | View and manage pending rankup reviews                           |
 | `/reconnect`          | reconnect minecraft clients                                      |
 | `/requirements`       | Check if a player meets guild requirements                       |
 | `/restart`            | Send signal to restart the bridge                                |

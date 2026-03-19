@@ -76,11 +76,28 @@ try {
   bridgeCfg.setLanguage(bridgeId, undefined)
   assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
 
+  // Owner roles and migration
+  assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), [])
+  bridgeCfg.setOwnerRoleIds(bridgeId, ['owner1'])
+  assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), ['owner1'])
+
+  const bridgeIdMigrate = 'bridge-migrate'
+  // Directly set legacy adminRoleIds in the configuration to test migration
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(bridgeCfg as any).configuration.setStringArray(`${bridgeIdMigrate}_adminRoleIds`, ['legacyAdmin'])
+
+  // getOwnerRoleIds should migrate it
+  assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeIdMigrate), ['legacyAdmin'])
+  // Should also have saved it to the new key
+  assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeIdMigrate), ['legacyAdmin'])
+
   // Removal cleans up language key
   bridgeCfg.setLanguage(bridgeId, 'ar')
   bridgeCfg.addBridgeId(bridgeId)
   bridgeCfg.removeBridgeId(bridgeId)
   assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
+  // And owner/admin roles
+  assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), [])
 
   console.log('PASS: BridgeConfigurations DB getters/setters')
 } finally {

@@ -73,6 +73,34 @@ export class CommandConfigManager {
     const configPath = application.getConfigFilePath('command-config.json')
     this.configManager = new ConfigManager(application, (application as any).logger, configPath, CommandConfigManager.DEFAULT_CONFIG)
     this.application = application
+    this.migratePermissions()
+  }
+
+  /**
+   * Migrate numeric permission levels after Owner was added.
+   * Old Admin (3) is now Owner (3) and Admin is (4).
+   * Since Owner didn't exist before, any stored '3' must be bumped to '4'.
+   */
+  private migratePermissions(): void {
+    let changed = false
+    const migrate = (configs: Record<string, CommandConfig>): void => {
+      for (const config of Object.values(configs)) {
+        // We check for exactly 3 because that's what Admin used to be.
+        // If it's already 4, it means it was already migrated or manually set.
+        if (config.permission === 3) {
+          config.permission = 4 // Permission.Admin
+          changed = true
+        }
+      }
+    }
+
+    migrate(this.configManager.data.discord)
+    migrate(this.configManager.data.minecraft)
+
+    if (changed) {
+      this.configManager.markDirty()
+      this.save()
+    }
   }
 
   /**

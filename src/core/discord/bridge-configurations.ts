@@ -47,6 +47,8 @@ export class BridgeConfigurations {
     this.configuration.delete(`${bridgeId}_minecraftInstances`)
     this.configuration.delete(`${bridgeId}_helperRoleIds`)
     this.configuration.delete(`${bridgeId}_officerRoleIds`)
+    this.configuration.delete(`${bridgeId}_ownerRoleIds`)
+    this.configuration.delete(`${bridgeId}_adminRoleIds`) // legacy cleanup
     this.configuration.delete(`${bridgeId}_alwaysReplyReaction`)
     this.configuration.delete(`${bridgeId}_enforceVerification`)
     this.configuration.delete(`${bridgeId}_textToImage`)
@@ -199,17 +201,25 @@ export class BridgeConfigurations {
   }
 
   /**
-   * Get admin role IDs for a specific bridge
+   * Get owner role IDs for a specific bridge
    */
-  public getAdminRoleIds(bridgeId: string): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_adminRoleIds`, [])
+  public getOwnerRoleIds(bridgeId: string): string[] {
+    const ownerRoleIds = this.configuration.getStringArray(`${bridgeId}_ownerRoleIds`, [])
+    if (ownerRoleIds.length === 0) {
+      const legacyAdminRoleIds = this.configuration.getStringArray(`${bridgeId}_adminRoleIds`, [])
+      if (legacyAdminRoleIds.length > 0) {
+        this.setOwnerRoleIds(bridgeId, legacyAdminRoleIds)
+        return legacyAdminRoleIds
+      }
+    }
+    return ownerRoleIds
   }
 
   /**
-   * Set admin role IDs for a specific bridge
+   * Set owner role IDs for a specific bridge
    */
-  public setAdminRoleIds(bridgeId: string, roleIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_adminRoleIds`, roleIds)
+  public setOwnerRoleIds(bridgeId: string, roleIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_ownerRoleIds`, roleIds)
   }
 
   /**

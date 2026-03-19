@@ -40,6 +40,14 @@ export class DiscordConfigurations {
     this.configuration.setStringArray('officerRoleIds', roleIds)
   }
 
+  public getOwnerRoleIds(): string[] {
+    return this.configuration.getStringArray('ownerRoleIds', [])
+  }
+
+  public setOwnerRoleIds(roleIds: string[]): void {
+    this.configuration.setStringArray('ownerRoleIds', roleIds)
+  }
+
   public getLoggerChannelIds(): string[] {
     return this.configuration.getStringArray('loggerChannelIds', [])
   }

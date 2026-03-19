@@ -161,8 +161,8 @@ export default {
 
     switch (groupCommand) {
       case 'ban': {
-        if (context.permission < Permission.Officer) {
-          await context.showPermissionDenied(Permission.Officer)
+        if (context.permission < Permission.Owner) {
+          await context.showPermissionDenied(Permission.Owner)
           return
         }
 
@@ -179,8 +179,8 @@ export default {
         return
       }
       case 'kick': {
-        if (context.permission < Permission.Officer) {
-          await context.showPermissionDenied(Permission.Officer)
+        if (context.permission < Permission.Owner) {
+          await context.showPermissionDenied(Permission.Owner)
           return
         }
 
@@ -190,8 +190,8 @@ export default {
         return
       }
       case 'forgive': {
-        if (context.permission < Permission.Officer) {
-          await context.showPermissionDenied(Permission.Officer)
+        if (context.permission < Permission.Owner) {
+          await context.showPermissionDenied(Permission.Owner)
           return
         }
 

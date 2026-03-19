@@ -155,7 +155,13 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
       const guildMember = guild.members.cache.get(userId)
       if (guildMember === undefined) continue
       const permissionLevel = this.resolvePrivilegeLevel(guildMember.roles.cache.keys().toArray(), bridgeId)
-      if (permissionLevel > highestPermission) highestPermission = permissionLevel
+
+      let currentLevel = permissionLevel
+      if (guild.ownerId === userId && currentLevel < Permission.Owner) {
+        currentLevel = Permission.Owner
+      }
+
+      if (currentLevel > highestPermission) highestPermission = currentLevel
     }
 
     return highestPermission
@@ -164,6 +170,10 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
   private resolvePrivilegeLevel(roles: string[], bridgeId?: string): Permission {
     if (bridgeId !== undefined) {
       const bridgeConfig = this.application.core.bridgeConfigurations
+      if (roles.some((role) => bridgeConfig.getOwnerRoleIds(bridgeId).includes(role))) {
+        return Permission.Owner
+      }
+
       if (roles.some((role) => bridgeConfig.getOfficerRoleIds(bridgeId).includes(role))) {
         return Permission.Officer
       }
@@ -174,6 +184,10 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     }
 
     const config = this.application.core.discordConfigurations
+    if (roles.some((role) => config.getOwnerRoleIds().includes(role))) {
+      return Permission.Owner
+    }
+
     if (roles.some((role) => config.getOfficerRoleIds().includes(role))) {
       return Permission.Officer
     }
