@@ -46,6 +46,24 @@ export default class MessageToImage {
   private static readonly WidthMargin = 5
   private static readonly SkinSize = 35
 
+  /**
+   * Split on § / newlines without injecting §r per word (preserves Minecraft color carry-over).
+   * If the string does not start with §, prepend §f so the first run uses default white.
+   */
+  private static splitFormattedSegments(message: string): string[] {
+    if (message.length === 0) {
+      return []
+    }
+    const normalized = message.startsWith('§') ? message : `§f${message}`
+    const parts = normalized.split(/§|\n/g)
+    if (parts[0] === '') {
+      parts.shift()
+    } else {
+      parts[0] = `f${parts[0]}`
+    }
+    return parts
+  }
+
   constructor(private readonly application: Application) {}
 
   public shouldRenderImage(): boolean {
@@ -73,14 +91,7 @@ export default class MessageToImage {
 
     this.paintBackgroundIfNeeded(canvas, options)
 
-    const splitMessageSpace = message.split(' ')
-    for (let index = 0; index < splitMessageSpace.length; index++) {
-      const segment = splitMessageSpace[index]
-      if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
-    }
-
-    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-    splitMessage.shift()
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
 
     // Matching source: 4px shadow, #131313, 40px font
     context.shadowOffsetX = 4
@@ -138,14 +149,7 @@ export default class MessageToImage {
 
     this.paintBackgroundIfNeeded(canvas, options)
 
-    const splitMessageSpace = message.split(' ')
-    for (let index = 0; index < splitMessageSpace.length; index++) {
-      const segment = splitMessageSpace[index]
-      if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
-    }
-
-    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-    splitMessage.shift()
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
 
     // Matching source: 4px shadow, #131313, 40px font
     context.shadowOffsetX = 4
@@ -221,13 +225,7 @@ export default class MessageToImage {
   private getHeight(message: string): number {
     const canvas = createCanvas(1, 1)
     const context = canvas.getContext('2d')
-    const splitMessageSpace = message.split(' ')
-    for (let index = 0; index < splitMessageSpace.length; index++) {
-      const segment = splitMessageSpace[index]
-      if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
-    }
-    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-    splitMessage.shift()
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
     context.font = `40px Minecraft, MinecraftUnicode`
 
     let width = MessageToImage.WidthMargin
