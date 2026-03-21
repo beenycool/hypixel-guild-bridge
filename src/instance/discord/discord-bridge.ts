@@ -191,12 +191,15 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     let messages: Message[]
     if (this.messageToImage.shouldRenderImage()) {
-      const formattedMessage = this.removeGuildPrefix(event.rawMessage)
+      const withoutPrefix = event.message.replaceAll(/^-+/g, '')
+      const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
       messages = await this.sendImageToChannels(
         event.eventId,
         this.resolveChannelsForEvent(event.channels, event.bridgeId),
-        await this.messageToImage.generateMessageImage(formattedMessage)
+        await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: event.user.displayName()
+        })
       )
     } else {
       const clickableUsername = hyperlink(username, event.user.profileLink())
@@ -344,10 +347,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     } else {
       await this.sendEmbedToChannels(event, channels, undefined)
     }
-  }
-
-  private formatRenderedImage(prefix: string, message: string): string {
-    return `§4§l[§c${prefix}§4§l]§f§r ${message}`
   }
 
   private resolveChannels(channels: ChannelType[]): string[] {
@@ -553,8 +552,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     for (const replyId of replyIds) {
       try {
         if (this.messageToImage.shouldRenderImage()) {
-          const message = this.formatRenderedImage(feedback ? 'FEED' : 'COMMAND', event.commandResponse)
-          const image = this.messageToImage.generateMessageImageSync(message)
+          const image = this.messageToImage.generateMessageImageSync(event.commandResponse)
           await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
         } else {
           await this.replyWithEmbed(event.eventId, replyId, replyEmbed)
