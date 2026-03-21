@@ -124,14 +124,14 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   async onChat(event: ChatEvent): Promise<void> {
     const channels = this.resolveChannelsForEvent([event.channelType], event.bridgeId)
     const username = event.user.displayName()
+    const channelPrefix = this.getChannelPrefix(event.channelType)
 
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
       if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
-        const prefix = event.channelType === ChannelType.Officer ? 'Officer > ' : 'Guild > '
         const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
-        const formattedMessage = `${prefix}{skin} ${withoutPrefix}`
+        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
         })
@@ -147,15 +147,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         if (this.application.core.applicationConfigurations.getOriginTag()) {
           displayUsername += event.instanceType === InstanceType.Discord ? ` [DC]` : ` [${event.instanceName}]`
         }
-
-        const channelPrefix =
-          event.instanceType === InstanceType.Minecraft
-            ? event.channelType === ChannelType.Officer
-              ? 'Officer > '
-              : event.channelType === ChannelType.Public
-                ? 'Guild > '
-                : ''
-            : ''
 
         const message = await webhook.send({
           content: channelPrefix + escapeMarkdown(event.message),
@@ -408,6 +399,28 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     return finalMessage
+  }
+
+  private getChannelPrefix(channelType: ChannelType): string {
+    switch (channelType) {
+      case ChannelType.Officer:
+        return 'Officer > '
+      case ChannelType.Public:
+        return 'Guild > '
+      default:
+        return ''
+    }
+  }
+
+  private getRenderedChannelPrefix(channelType: ChannelType): string {
+    switch (channelType) {
+      case ChannelType.Officer:
+        return '§3Officer §3> '
+      case ChannelType.Public:
+        return '§2Guild §2> '
+      default:
+        return ''
+    }
   }
 
   private async generateEmbed(event: GenerateEmbedType, guildId: string | undefined): Promise<APIEmbed> {
