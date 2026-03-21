@@ -191,7 +191,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     let messages: Message[]
     if (this.messageToImage.shouldRenderImage()) {
-      const withoutPrefix = event.message.replaceAll(/^-+/g, '')
+      const withoutPrefix = this.removeGuildPrefix(this.removePlainGuildPrefix(event.message)).replaceAll(/^-+/g, '')
       const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
       messages = await this.sendImageToChannels(
@@ -400,6 +400,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     return finalMessage
   }
 
+  private removePlainGuildPrefix(message: string): string {
+    const prefixes = ['Guild > ', 'Officer > ', '-'.repeat(53) + '\n']
+
+    let finalMessage = message
+    for (const prefix of prefixes) {
+      if (finalMessage.startsWith(prefix)) finalMessage = finalMessage.slice(prefix.length)
+    }
+
+    return finalMessage
+  }
+
   private getChannelPrefix(channelType: ChannelType): string {
     switch (channelType) {
       case ChannelType.Officer:
@@ -552,7 +563,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     for (const replyId of replyIds) {
       try {
         if (this.messageToImage.shouldRenderImage()) {
-          const image = this.messageToImage.generateMessageImageSync(event.commandResponse)
+          const image = await this.messageToImage.generateMessageImage(event.commandResponse)
           await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
         } else {
           await this.replyWithEmbed(event.eventId, replyId, replyEmbed)
