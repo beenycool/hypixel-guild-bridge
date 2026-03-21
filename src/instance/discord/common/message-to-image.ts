@@ -10,9 +10,9 @@ registerFont('./resources/fonts/unifont.ttf', { family: 'MinecraftUnicode' })
 export interface MessageImageOptions {
   /** Username for skin rendering when {skin} placeholder is used */
   username?: string
-  /** Whether to add a dark background gradient */
+  /** When true, draws a dark panel behind the text (PNG stays transparent if unset) */
   withBackground?: boolean
-  /** Background style: 'gradient', 'solid', or 'transparent' */
+  /** With `withBackground` or alone: `gradient`, `solid`, or `transparent` */
   backgroundStyle?: 'gradient' | 'solid' | 'transparent'
   /** Custom background color for solid style */
   backgroundColor?: string
@@ -36,7 +36,9 @@ export default class MessageToImage {
     c: 'rgba(255,85,85,1)',
     d: 'rgba(255,85,255,1)',
     e: 'rgba(255,255,85,1)',
-    f: 'rgba(255,255,255,1)'
+    f: 'rgba(255,255,255,1)',
+    /** Minecraft §r reset — same as default chat (white) */
+    r: 'rgba(255,255,255,1)'
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 
@@ -65,97 +67,11 @@ export default class MessageToImage {
    * @param options Optional configuration for rendering
    */
   public async generateMessageImage(message: string, options?: MessageImageOptions): Promise<Buffer> {
-    // Delegate to the chat-bridge renderer for exact parity, falling back to the
-    // local renderer on error.
-    try {
-      const modulePath = new URL(
-        '../../../../hypixel-discord-chat-bridge/src/contracts/messageToImage.js',
-        import.meta.url
-      ).href
-      const module_ = await import(modulePath)
-      const generate = (module_.default ?? module_) as unknown as (
-        message: string,
-        username?: string
-      ) => Promise<Buffer>
-      return await generate(message, options?.username)
-    } catch {
-      // Fallback to local rendering if import fails
-      const canvasHeight = this.getHeight(message)
-      const canvas = createCanvas(1000, canvasHeight)
-      const context = canvas.getContext('2d')
-
-      // Apply background if requested
-      if (options?.withBackground || options?.backgroundStyle) {
-        this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
-      }
-
-      const splitMessageSpace = message.split(' ')
-      for (let index = 0; index < splitMessageSpace.length; index++) {
-        const segment = splitMessageSpace[index]
-        if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
-      }
-
-      const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-      splitMessage.shift()
-
-      // Matching source: 4px shadow, #131313, 40px font
-      context.shadowOffsetX = 4
-      context.shadowOffsetY = 4
-      context.shadowColor = '#131313'
-      context.font = `40px Minecraft, MinecraftUnicode`
-
-      let width = MessageToImage.WidthMargin
-      let height = 35
-
-      for (const segment of splitMessage) {
-        const colorCode = MessageToImage.RgbaColor[segment.charAt(0)]
-        const currentMessage = segment.slice(1)
-
-        // Handle line wrapping
-        if (width + context.measureText(currentMessage).width > 1000 || segment.startsWith('n')) {
-          width = MessageToImage.WidthMargin
-          height += 40
-        }
-
-        // Handle {skin} placeholder - render player head
-        if (currentMessage.trim() === '{skin}' && options?.username) {
-          try {
-            const skinImage = await loadImage(
-              `https://mc-heads.net/avatar/${options.username}/${MessageToImage.SkinSize}`
-            )
-            context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
-            width += MessageToImage.SkinSize + 20 // Add some padding after skin
-            continue
-          } catch {
-            // If skin load fails, just skip the placeholder
-            continue
-          }
-        }
-
-        if (colorCode) {
-          context.fillStyle = colorCode
-        }
-
-        context.fillText(currentMessage, width, height)
-        width += context.measureText(currentMessage).width
-      }
-
-      return canvas.toBuffer()
-    }
-  }
-
-  /**
-   * Generate a simple synchronous image without async features like skins
-   */
-  public generateMessageImageSync(message: string, options?: MessageImageOptions): Buffer {
     const canvasHeight = this.getHeight(message)
     const canvas = createCanvas(1000, canvasHeight)
     const context = canvas.getContext('2d')
 
-    // Apply background if requested
-    if (options?.withBackground || options?.backgroundStyle) {
-      this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
-    }
+    this.paintBackgroundIfNeeded(canvas, options)
 
     const splitMessageSpace = message.split(' ')
     for (let index = 0; index < splitMessageSpace.length; index++) {
@@ -171,6 +87,72 @@ export default class MessageToImage {
     context.shadowOffsetY = 4
     context.shadowColor = '#131313'
     context.font = `40px Minecraft, MinecraftUnicode`
+    context.fillStyle = MessageToImage.RgbaColor.f
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of splitMessage) {
+      const colorCode = MessageToImage.RgbaColor[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
+
+      // Handle line wrapping
+      if (width + context.measureText(currentMessage).width > 1000 || segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += 40
+      }
+
+      // Handle {skin} placeholder - render player head
+      if (currentMessage.trim() === '{skin}' && options?.username) {
+        try {
+          const skinImage = await loadImage(
+            `https://mc-heads.net/avatar/${options.username}/${MessageToImage.SkinSize}`
+          )
+          context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
+          width += MessageToImage.SkinSize + 20 // Add some padding after skin
+          continue
+        } catch {
+          // If skin load fails, just skip the placeholder
+          continue
+        }
+      }
+
+      if (colorCode) {
+        context.fillStyle = colorCode
+      }
+
+      context.fillText(currentMessage, width, height)
+      width += context.measureText(currentMessage).width
+    }
+
+    return canvas.toBuffer()
+  }
+
+  /**
+   * Generate a simple synchronous image without async features like skins
+   */
+  public generateMessageImageSync(message: string, options?: MessageImageOptions): Buffer {
+    const canvasHeight = this.getHeight(message)
+    const canvas = createCanvas(1000, canvasHeight)
+    const context = canvas.getContext('2d')
+
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    const splitMessageSpace = message.split(' ')
+    for (let index = 0; index < splitMessageSpace.length; index++) {
+      const segment = splitMessageSpace[index]
+      if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
+    }
+
+    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
+    splitMessage.shift()
+
+    // Matching source: 4px shadow, #131313, 40px font
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+    context.fillStyle = MessageToImage.RgbaColor.f
 
     let width = MessageToImage.WidthMargin
     let height = 35
@@ -193,6 +175,13 @@ export default class MessageToImage {
     }
 
     return canvas.toBuffer()
+  }
+
+  /** Background only when `withBackground` or `backgroundStyle` is set (default: transparent PNG). */
+  private paintBackgroundIfNeeded(canvas: Canvas, options?: MessageImageOptions): void {
+    if (options?.withBackground || options?.backgroundStyle) {
+      this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
+    }
   }
 
   /**
