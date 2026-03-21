@@ -191,7 +191,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     let messages: Message[]
     if (this.messageToImage.shouldRenderImage()) {
-      const withoutPrefix = this.removeGuildPrefix(this.removePlainGuildPrefix(event.message)).replaceAll(/^-+/g, '')
+      const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(event.rawMessage)).replaceAll(/^-+/g, '')
       const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
       messages = await this.sendImageToChannels(
