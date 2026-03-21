@@ -129,8 +129,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
       if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
-        const formattedMessage = this.removeGuildPrefix(event.rawMessage)
-        const image = await this.messageToImage.generateMessageImage(formattedMessage)
+        const prefix = event.channelType === ChannelType.Officer ? 'Officer > ' : 'Guild > '
+        const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
+        const formattedMessage = `${prefix}{skin} ${withoutPrefix}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: event.user.displayName()
+        })
         await this.sendImageToChannels(event.eventId, [channelId], image)
       } else {
         const webhook = await this.getWebhook(channelId)
@@ -144,8 +148,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           displayUsername += event.instanceType === InstanceType.Discord ? ` [DC]` : ` [${event.instanceName}]`
         }
 
+        const channelPrefix =
+          event.instanceType === InstanceType.Minecraft
+            ? event.channelType === ChannelType.Officer
+              ? 'Officer > '
+              : event.channelType === ChannelType.Public
+                ? 'Guild > '
+                : ''
+            : ''
+
         const message = await webhook.send({
-          content: escapeMarkdown(event.message),
+          content: channelPrefix + escapeMarkdown(event.message),
           username: displayUsername,
           avatarURL: event.user.avatar(),
           allowedMentions: { parse: [] }
