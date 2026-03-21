@@ -13,6 +13,7 @@
     "generate-code": "npx ts-interface-builder src/application-config.ts",
     "generate-docs": "node --import tsx/esm scripts/generate-documentation.ts",
     "script:message-image-compare": "node --import tsx/esm scripts/message-image-before-after.ts",
+    "script:message-image-preview": "node --import tsx/esm scripts/message-image-preview.ts",
     "lint:fix": "npx eslint . --fix && npx prettier . \"!**/*.ts\" --write",
     "lint:coverage": "npx type-coverage --detail true --update true",
     "test:compile": "npx tsc --noEmit",
