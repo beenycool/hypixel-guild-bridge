@@ -20,7 +20,7 @@ export default {
       .addStringOption((option) =>
         option.setName('rank').setDescription('rank to change to').setRequired(true).setAutocomplete(true)
       ),
-  permission: Permission.Helper,
+  permission: Permission.Owner,
 
   handler: async function (context) {
     await context.interaction.deferReply()

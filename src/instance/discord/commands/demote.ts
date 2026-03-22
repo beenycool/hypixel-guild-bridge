@@ -17,7 +17,7 @@ export default {
       .addStringOption((option) =>
         option.setName('username').setDescription('Username of the player').setRequired(true).setAutocomplete(true)
       ),
-  permission: Permission.Helper,
+  permission: Permission.Owner,
 
   handler: async function (context) {
     await context.interaction.deferReply()

@@ -1,4 +1,5 @@
 import type { SqliteManager } from '../../common/sqlite-manager'
+import { debugSessionLog } from '../../utility/debug-session-log.js'
 import Duration from '../../utility/duration'
 import type { Configuration, ConfigurationsManager } from '../configurations'
 
@@ -908,6 +909,21 @@ export class BridgeConfigurations {
       gracePeriod: number
     }>
   ): void {
+    const prev = this.getRankupDemotionRules(bridgeId)
+    if (prev.length > 0 && rules.length === 0) {
+      // #region agent log
+      debugSessionLog({
+        hypothesisId: 'H8',
+        location: 'bridge-configurations.ts:setRankupDemotionRules',
+        message: 'Demotion rules cleared (non-empty to empty)',
+        data: {
+          bridgeId,
+          prevLen: prev.length,
+          stack: new Error().stack?.split('\n').slice(0, 12).join('\n')
+        }
+      })
+      // #endregion
+    }
     this.configuration.setString(`${bridgeId}_rankupDemotionRules`, JSON.stringify(rules))
   }
 

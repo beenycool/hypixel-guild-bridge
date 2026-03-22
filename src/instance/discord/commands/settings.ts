@@ -966,7 +966,10 @@ async function createBridgeOptionAsync(
                             min: 1,
                             max: 32
                           }),
-                      getOption: () => (guildRanks.length > 0 ? [rule.targetRank] : rule.targetRank),
+                      getOption: () => {
+                        const r = bridgeConfig.getRankupRules(bridgeId)[index]
+                        return guildRanks.length > 0 ? [r?.targetRank ?? ''] : (r?.targetRank ?? '')
+                      },
                       setOption: (val: any) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                         newRules[index] = { ...newRules[index], targetRank: Array.isArray(val) ? val[0] : val }
@@ -980,7 +983,7 @@ async function createBridgeOptionAsync(
                       description: 'Minimum weekly GEXP required for this rank.',
                       min: 0,
                       max: 10_000_000,
-                      getOption: () => rule.minWeeklyGexp || 0,
+                      getOption: () => bridgeConfig.getRankupRules(bridgeId)[index]?.minWeeklyGexp ?? 0,
                       setOption: (val: number) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                         newRules[index] = { ...newRules[index], minWeeklyGexp: val }
@@ -994,7 +997,7 @@ async function createBridgeOptionAsync(
                       description: 'Minimum days the member must have been in the guild.',
                       min: 0,
                       max: 3650,
-                      getOption: () => rule.minDaysInGuild || 0,
+                      getOption: () => bridgeConfig.getRankupRules(bridgeId)[index]?.minDaysInGuild ?? 0,
                       setOption: (val: number) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                         newRules[index] = { ...newRules[index], minDaysInGuild: val }
@@ -1008,7 +1011,7 @@ async function createBridgeOptionAsync(
                       description: 'Minimum hours online.',
                       min: 0,
                       max: 100_000,
-                      getOption: () => rule.minOnlineHours || 0,
+                      getOption: () => bridgeConfig.getRankupRules(bridgeId)[index]?.minOnlineHours ?? 0,
                       setOption: (val: number) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                         newRules[index] = { ...newRules[index], minOnlineHours: val }
@@ -1022,7 +1025,16 @@ async function createBridgeOptionAsync(
                       label: 'Delete',
                       style: ButtonStyle.Danger,
                       onInteraction: async (interaction: any) => {
-                        const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
+                        const prev = bridgeConfig.getRankupRules(bridgeId)
+                        // #region agent log
+                        debugSessionLog({
+                          hypothesisId: 'H6',
+                          location: 'settings.ts:promotion:deleteRule',
+                          message: 'Delete promotion rule',
+                          data: { bridgeId, index, prevLen: prev.length }
+                        })
+                        // #endregion
+                        const newRules = [...prev]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupRules(bridgeId, newRules)
                         cachedPromotionOptions = null
@@ -1115,7 +1127,10 @@ async function createBridgeOptionAsync(
                             min: 1,
                             max: 32
                           }),
-                      getOption: () => (guildRanks.length > 0 ? [rule.fromRank] : rule.fromRank),
+                      getOption: () => {
+                        const r = bridgeConfig.getRankupDemotionRules(bridgeId)[index]
+                        return guildRanks.length > 0 ? [r?.fromRank ?? ''] : (r?.fromRank ?? '')
+                      },
                       setOption: (val: any) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
                         newRules[index] = { ...newRules[index], fromRank: Array.isArray(val) ? val[0] : val }
@@ -1134,7 +1149,9 @@ async function createBridgeOptionAsync(
                         { label: 'Kick', value: 'kick' },
                         { label: 'Notify Only', value: 'notify' }
                       ],
-                      getOption: () => [rule.action || 'demote'],
+                      getOption: () => [
+                        bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.action ?? 'demote'
+                      ],
                       setOption: (val: string[]) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
                         newRules[index] = {
@@ -1163,7 +1180,12 @@ async function createBridgeOptionAsync(
                                   min: 1,
                                   max: 32
                                 }),
-                            getOption: () => (guildRanks.length > 0 ? [rule.targetRank || ''] : rule.targetRank || ''),
+                            getOption: () => {
+                              const r = bridgeConfig.getRankupDemotionRules(bridgeId)[index]
+                              return guildRanks.length > 0
+                                ? [r?.targetRank ?? '']
+                                : (r?.targetRank ?? '')
+                            },
                             setOption: (val: any) => {
                               const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
                               const targetRank = Array.isArray(val) ? val[0] : val
@@ -1192,7 +1214,8 @@ async function createBridgeOptionAsync(
                       description: 'Demote if GEXP is below this amount.',
                       min: 0,
                       max: 10_000_000,
-                      getOption: () => rule.maxWeeklyGexp || 0,
+                      getOption: () =>
+                        bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.maxWeeklyGexp ?? 0,
                       setOption: (val: number) => {
                         const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
                         // #region agent log
@@ -1221,7 +1244,8 @@ async function createBridgeOptionAsync(
                       description: 'Days before demotion applies (e.g. for new members).',
                       min: 0,
                       max: 365,
-                      getOption: () => rule.gracePeriod || 0,
+                      getOption: () =>
+                        bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.gracePeriod ?? 0,
                       setOption: (val: number) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
                         newRules[index] = { ...newRules[index], gracePeriod: val }
@@ -1235,7 +1259,16 @@ async function createBridgeOptionAsync(
                       label: 'Delete',
                       style: ButtonStyle.Danger,
                       onInteraction: async (interaction: any) => {
-                        const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
+                        const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
+                        // #region agent log
+                        debugSessionLog({
+                          hypothesisId: 'H6',
+                          location: 'settings.ts:demotion:deleteRule',
+                          message: 'Delete demotion rule',
+                          data: { bridgeId, index, prevLen: prev.length }
+                        })
+                        // #endregion
+                        const newRules = [...prev]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                         cachedDemotionOptions = null // Invalidate cache
