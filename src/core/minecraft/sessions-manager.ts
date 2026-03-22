@@ -21,12 +21,22 @@ export class SessionsManager {
     const database = this.sqliteManager.getDatabase()
     const transaction = database.transaction(() => {
       const statement = database.prepare('DELETE FROM "mojangSessions" WHERE name = ?')
-      const result = statement.run(instanceName).changes
-      if (result !== 0) {
-        this.logger.debug(`Deleted Minecraft instance with the name=${instanceName}`)
+      const result = statement.run(instanceName)
+      const changes = result.changes
+      if (changes !== 0) {
+        this.logger.debug(`Deleted Minecraft sessions for name=${instanceName} (changes=${changes})`)
       }
 
-      return result
+      // Log remaining sessions count for this instance
+      try {
+        const countStmt = database.prepare('SELECT COUNT(*) as c FROM "mojangSessions" WHERE name = ?')
+        const remaining = (countStmt.pluck(true).get(instanceName) as number) ?? 0
+        this.logger.debug(`Remaining mojangSessions for ${instanceName} = ${remaining}`)
+      } catch (err) {
+        this.logger.debug(`Failed to count remaining mojangSessions for ${instanceName}: ${err}`)
+      }
+
+      return changes
     })
 
     return transaction()
@@ -54,7 +64,15 @@ export class SessionsManager {
     const statement = database.prepare(
       'INSERT OR REPLACE INTO "mojangSessions" (name, cacheName, value, createdAt) VALUES (?, ?, ?, ?)'
     )
-    statement.run(name, cacheName, JSON.stringify(value), Math.floor(Date.now() / 1000))
+    try {
+      const result = statement.run(name, cacheName, JSON.stringify(value), Math.floor(Date.now() / 1000))
+      this.logger.debug(
+        `setSession: name=${name} cacheName=${cacheName} changes=${result.changes} lastInsertRowid=${result.lastInsertRowid}`
+      )
+    } catch (err) {
+      this.logger.error(`setSession failed for name=${name} cacheName=${cacheName}: ${err}`)
+      throw err
+    }
   }
 
   public setInstanceAutoConnect(instanceName: string, enabled: boolean): void {
@@ -128,7 +146,19 @@ export class SessionsManager {
       }
 
       const instance = database.prepare('INSERT INTO "mojangInstances" (name, proxyId) VALUES (?, ?)')
-      instance.run(options.name, proxyId)
+      const result = instance.run(options.name, proxyId)
+
+      // Log insertion result and total instances count
+      this.logger.debug(
+        `addInstance: inserted name=${options.name} proxyId=${String(proxyId)} lastInsertRowid=${result.lastInsertRowid}`
+      )
+      try {
+        const countStmt = database.prepare('SELECT COUNT(*) as c FROM "mojangInstances"')
+        const total = (countStmt.pluck(true).get() as number) ?? 0
+        this.logger.debug(`addInstance: total mojangInstances=${total}`)
+      } catch (err) {
+        this.logger.debug(`addInstance: failed to count mojangInstances: ${err}`)
+      }
     })
 
     transaction()
@@ -141,19 +171,30 @@ export class SessionsManager {
       if (instance == undefined) return 0
 
       const statement = database.prepare('DELETE FROM "mojangInstances" WHERE name = ?')
-      const result = statement.run(instance.name).changes
+      const res = statement.run(instance.name)
+      const result = res.changes
       if (result !== 0) {
-        this.logger.debug(`Deleted Minecraft instance with the name=${instanceName}`)
+        this.logger.debug(`Deleted Minecraft instance with the name=${instanceName} (changes=${result})`)
       }
 
       if (instance.proxy !== undefined) {
         const statement = database.prepare('DELETE FROM "proxies" WHERE id = ?')
-        const result = statement.run(instance.proxy.id).changes
-        if (result !== 0) {
+        const res2 = statement.run(instance.proxy.id)
+        const result2 = res2.changes
+        if (result2 !== 0) {
           this.logger.debug(
-            `Deleted related proxy with the id=${instance.proxy.id} to the Minecraft instance with the name=${instanceName}`
+            `Deleted related proxy with the id=${instance.proxy.id} to the Minecraft instance with the name=${instanceName} (changes=${result2})`
           )
         }
+      }
+
+      // Log remaining instances count
+      try {
+        const countStmt = database.prepare('SELECT COUNT(*) as c FROM "mojangInstances"')
+        const total = (countStmt.pluck(true).get() as number) ?? 0
+        this.logger.debug(`deleteInstance: remaining mojangInstances=${total}`)
+      } catch (err) {
+        this.logger.debug(`deleteInstance: failed to count mojangInstances: ${err}`)
       }
 
       return result
@@ -194,8 +235,10 @@ export class SessionsManager {
           // Pattern: starts with {, contains ","key": patterns which indicate multiple top-level keys
           const hasTopLevelCommas = trimmed.startsWith('{') && trimmed.match(/,"[^"]+":/g)
           const hasConcatenatedObjects = trimmed.match(/\}\s*\{/g)
-          const isSingleObject = hasTopLevelCommas && (hasConcatenatedObjects === null || hasTopLevelCommas.length > hasConcatenatedObjects.length)
-          
+          const isSingleObject =
+            hasTopLevelCommas &&
+            (hasConcatenatedObjects === null || hasTopLevelCommas.length > hasConcatenatedObjects.length)
+
           // If that fails, try to fix common issues and parse again
           let fixedParsed: Record<string, unknown> | undefined
           const fixedJson = this.tryFixJson(jsonData)
@@ -207,7 +250,7 @@ export class SessionsManager {
               // Fixed version also failed, continue to alternative parsers
             }
           }
-          
+
           // If single object parsing still failed, try more aggressive fixing
           if (!fixedParsed && (isSingleObject || trimmed.startsWith('{'))) {
             // Try aggressive fixing for single object
@@ -221,7 +264,7 @@ export class SessionsManager {
               }
             }
           }
-          
+
           // If single object parsing still failed, only try concatenated JSON objects
           // if it doesn't look like a single object (has multiple complete objects)
           if (fixedParsed) {
@@ -241,7 +284,7 @@ export class SessionsManager {
                 .replace(/^\uFEFF/, '') // Remove BOM
                 .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
                 .trim()
-              
+
               if (normalized !== trimmed) {
                 try {
                   parsedData = JSON.parse(normalized) as Record<string, unknown>
@@ -292,7 +335,19 @@ export class SessionsManager {
 
           // Additional validation: check if this looks like a nested property that was incorrectly extracted
           // Common nested property names that shouldn't be top-level cache entries
-          const nestedPropertyNames = ['IssueInstant', 'NotAfter', 'Token', 'DisplayClaims', 'xui', 'xdi', 'xti', 'uhs', 'did', 'dcs', 'tid']
+          const nestedPropertyNames = [
+            'IssueInstant',
+            'NotAfter',
+            'Token',
+            'DisplayClaims',
+            'xui',
+            'xdi',
+            'xti',
+            'uhs',
+            'did',
+            'dcs',
+            'tid'
+          ]
           if (nestedPropertyNames.includes(cacheName)) {
             // This is likely a nested property, skip it
             this.logger.debug(`Skipping nested property "${cacheName}" that was incorrectly extracted as a cache entry`)
@@ -438,12 +493,18 @@ export class SessionsManager {
       if (!inString) {
         // Check if the last non-whitespace character suggests we can safely close
         const lastChar = trimmed[lastNonWhitespacePos]
-        const canClose = lastChar === '}' || lastChar === '"' || lastChar === ']' || 
-                         (lastChar >= '0' && lastChar <= '9') || // number
-                         lastChar === 'e' || lastChar === 'E' || // scientific notation end
-                         trimmed.substring(Math.max(0, lastNonWhitespacePos - 4), lastNonWhitespacePos + 1).match(/(true|false|null)$/) ||
-                         // If we end with a comma, we can close after removing it
-                         lastChar === ','
+        const canClose =
+          lastChar === '}' ||
+          lastChar === '"' ||
+          lastChar === ']' ||
+          (lastChar >= '0' && lastChar <= '9') || // number
+          lastChar === 'e' ||
+          lastChar === 'E' || // scientific notation end
+          trimmed
+            .substring(Math.max(0, lastNonWhitespacePos - 4), lastNonWhitespacePos + 1)
+            .match(/(true|false|null)$/) ||
+          // If we end with a comma, we can close after removing it
+          lastChar === ','
 
         if (canClose) {
           // Remove any trailing commas/whitespace before adding closing braces
@@ -524,10 +585,7 @@ export class SessionsManager {
    * @param errors Array to append any parsing errors to
    * @returns Merged object containing all parsed cache entries
    */
-  private parseConcatenatedJsonObjects(
-    jsonString: string,
-    errors: string[]
-  ): Record<string, unknown> {
+  private parseConcatenatedJsonObjects(jsonString: string, errors: string[]): Record<string, unknown> {
     const merged: Record<string, unknown> = {}
     let position = 0
     const trimmed = jsonString.trim()
@@ -558,7 +616,9 @@ export class SessionsManager {
         const skipped = trimmed.substring(position, nextBrace).trim()
         if (skipped.length > 0 && !skipped.match(/^[,:]\s*$/)) {
           // Only report non-trivial skipped content (not just commas/colons)
-          errors.push(`Skipped unexpected content between JSON objects: "${skipped.substring(0, 50)}${skipped.length > 50 ? '...' : ''}"`)
+          errors.push(
+            `Skipped unexpected content between JSON objects: "${skipped.substring(0, 50)}${skipped.length > 50 ? '...' : ''}"`
+          )
         }
         position = nextBrace
       }
@@ -620,22 +680,22 @@ export class SessionsManager {
           const endPos = Math.min(startPos + 200, trimmed.length)
           const partial = trimmed.substring(startPos, endPos)
           const objectPreview = partial.substring(0, 100)
-          
+
           // Try to identify which cache entry this is
           const cacheNameMatch = partial.match(/"([^"]+)":\s*\{/)
           const cacheName = cacheNameMatch ? cacheNameMatch[1] : 'unknown'
-          
+
           // Check if we're near the end of the string (likely truncated)
           const isNearEnd = position >= trimmed.length - 100
           const truncationWarning = isNearEnd
-            ? ' The JSON appears to be truncated (likely due to Discord\'s 4000 character limit). Consider splitting your cache entries into multiple imports.'
+            ? " The JSON appears to be truncated (likely due to Discord's 4000 character limit). Consider splitting your cache entries into multiple imports."
             : ''
-          
+
           errors.push(
             `Unclosed JSON object "${cacheName}" starting at position ${startPos} (missing ${depth} closing brace${depth > 1 ? 's' : ''}).${truncationWarning} ` +
-            `Partial content: "${objectPreview}${objectPreview.length < 100 ? '' : '...'}"`
+              `Partial content: "${objectPreview}${objectPreview.length < 100 ? '' : '...'}"`
           )
-          
+
           // If we're at the end of the string and depth is reasonable, try to heal by closing braces
           if (isNearEnd && depth > 0 && depth <= 10) {
             const healedJson = trimmed.substring(startPos) + '}'.repeat(depth)
@@ -647,7 +707,7 @@ export class SessionsManager {
               errors.pop()
               errors.push(
                 `Recovered partial data for "${cacheName}" by closing ${depth} missing brace${depth > 1 ? 's' : ''}. ` +
-                `Data may be incomplete due to truncation.`
+                  `Data may be incomplete due to truncation.`
               )
               break // We've reached the end
             } catch {

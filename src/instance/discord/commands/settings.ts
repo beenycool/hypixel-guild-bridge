@@ -1149,9 +1149,7 @@ async function createBridgeOptionAsync(
                         { label: 'Kick', value: 'kick' },
                         { label: 'Notify Only', value: 'notify' }
                       ],
-                      getOption: () => [
-                        bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.action ?? 'demote'
-                      ],
+                      getOption: () => [bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.action ?? 'demote'],
                       setOption: (val: string[]) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
                         newRules[index] = {
@@ -1182,9 +1180,7 @@ async function createBridgeOptionAsync(
                                 }),
                             getOption: () => {
                               const r = bridgeConfig.getRankupDemotionRules(bridgeId)[index]
-                              return guildRanks.length > 0
-                                ? [r?.targetRank ?? '']
-                                : (r?.targetRank ?? '')
+                              return guildRanks.length > 0 ? [r?.targetRank ?? ''] : (r?.targetRank ?? '')
                             },
                             setOption: (val: any) => {
                               const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
@@ -1214,8 +1210,7 @@ async function createBridgeOptionAsync(
                       description: 'Demote if GEXP is below this amount.',
                       min: 0,
                       max: 10_000_000,
-                      getOption: () =>
-                        bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.maxWeeklyGexp ?? 0,
+                      getOption: () => bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.maxWeeklyGexp ?? 0,
                       setOption: (val: number) => {
                         const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
                         // #region agent log
@@ -1244,8 +1239,7 @@ async function createBridgeOptionAsync(
                       description: 'Days before demotion applies (e.g. for new members).',
                       min: 0,
                       max: 365,
-                      getOption: () =>
-                        bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.gracePeriod ?? 0,
+                      getOption: () => bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.gracePeriod ?? 0,
                       setOption: (val: number) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
                         newRules[index] = { ...newRules[index], gracePeriod: val }
@@ -1974,7 +1968,8 @@ function fetchDiscordOptions(application: Application): CategoryOption {
             type: OptionType.Role,
 
             name: 'Officer Roles',
-            description: 'Staff roles that have permissions to execute non-destructive moderation commands like `/punishments mute`.',
+            description:
+              'Staff roles that have permissions to execute non-destructive moderation commands like `/punishments mute`.',
 
             min: 0,
             max: 5,
@@ -2454,11 +2449,8 @@ async function minecraftInstancesStatus(
   const instances = application.minecraftManager.getAllInstances()
 
   const bridgeConfig = application.core.bridgeConfigurations
-  const bridgeInstances = bridgeId
-    ? bridgeConfig.getMinecraftInstances(bridgeId)
-    : []
-  const includeInstance = (instanceName: string) =>
-    isAdmin || !bridgeId || bridgeInstances.includes(instanceName)
+  const bridgeInstances = bridgeId ? bridgeConfig.getMinecraftInstances(bridgeId) : []
+  const includeInstance = (instanceName: string) => isAdmin || !bridgeId || bridgeInstances.includes(instanceName)
 
   const embed: APIEmbed = {
     title: 'Minecraft Status',
@@ -2501,9 +2493,7 @@ async function minecraftInstancesStatus(
   const unavailableInstances = savedInstances
     .map((instance) => instance.name)
     .filter(
-      (configName) =>
-        !instances.some((instance) => instance.instanceName === configName) &&
-        includeInstance(configName)
+      (configName) => !instances.some((instance) => instance.instanceName === configName) && includeInstance(configName)
     )
   if (unavailableInstances.length > 0) {
     embed.color = Color.Bad
@@ -2699,7 +2689,17 @@ async function minecraftInstanceAdd(
     embed.description += `- Creating a fresh Minecraft instance\n`
     await application.minecraftManager.addAndStart({ name: instanceName, proxy: proxy })
 
+    // Persist settings to DB and log current DB state
     application.core.minecraftSessions.addInstance({ name: instanceName, proxy: proxy })
+    // Also log a quick DB snapshot for debugging
+    ;(application as any).logger?.debug?.(
+      `ADD_FLOW: snapshot mojangInstances=${JSON.stringify(application.core.minecraftSessions.getAllInstances().map((i) => i.name))}`
+    )
+    ;(application as any).logger?.debug?.(
+      `ADD_FLOW: after addInstance -> mojangInstances=${JSON.stringify(
+        application.core.minecraftSessions.getAllInstances().map((i) => i.name)
+      )}`
+    )
     embed.description += `- Instance has been added to settings for future reboot\n`
 
     if (bridgeId) {
@@ -2708,6 +2708,9 @@ async function minecraftInstanceAdd(
         instances.push(instanceName)
         application.core.bridgeConfigurations.setMinecraftInstances(bridgeId, instances)
         embed.description += `- Instance has been associated with this bridge\n`
+        ;(application as any).logger?.debug?.(
+          `ADD_FLOW: bridge=${bridgeId} minecraftInstances=${JSON.stringify(instances)}`
+        )
       }
     }
   } catch (error: unknown) {
@@ -2816,6 +2819,15 @@ async function minecraftInstanceRemove(
         bridgeConfig.setMinecraftInstances(bid, instances)
         affectedBridges.push(bid)
       }
+    }
+    // Log bridge configuration change for debugging
+    if (affectedBridges.length > 0) {
+      ;(application as any).logger?.debug?.(
+        `REMOVE_FLOW: removed=${instanceName} affectedBridges=${JSON.stringify(affectedBridges)}`
+      )
+      ;(application as any).logger?.debug?.(
+        `REMOVE_FLOW: currentBridgeConfigs=${JSON.stringify(bridgeConfig.getAllBridgeIds().map((b) => ({ bridge: b, instances: bridgeConfig.getMinecraftInstances(b) })))}`
+      )
     }
     if (affectedBridges.length > 0) {
       application.bridgeResolver.rebuildLookupMaps()
