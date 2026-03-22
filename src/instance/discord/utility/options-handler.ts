@@ -26,6 +26,7 @@ import {
 } from 'discord.js'
 
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
+import { debugSessionLog } from '../../../utility/debug-session-log.js'
 
 export const DEFAULT_PAGE_SIZE = 6
 export const MAX_COMPONENTS = 39
@@ -510,6 +511,18 @@ export class OptionsHandler {
     option: NumberOption
   ): Promise<boolean> {
     assert.ok(interaction.isButton())
+    // #region agent log
+    debugSessionLog({
+      hypothesisId: 'H1',
+      location: 'options-handler.ts:handleNumber:open',
+      message: 'Number modal opening',
+      data: {
+        optionName: option.name,
+        getOptionValue: option.getOption(),
+        customId: interaction.customId
+      }
+    })
+    // #endregion
     await interaction.showModal({
       customId: interaction.customId,
       title: `Setting ${option.name}`,
@@ -542,12 +555,39 @@ export class OptionsHandler {
 
         const value = modalInteraction.fields.getTextInputValue(interaction.customId).trim()
         const intValue = value.includes('.') ? Number.parseFloat(value) : Number.parseInt(value, 10)
+        const normalizedOk = value === intValue.toString(10)
+        const rangeOk = intValue >= option.min && intValue <= option.max
+        // #region agent log
+        debugSessionLog({
+          hypothesisId: 'H2_H3',
+          location: 'options-handler.ts:handleNumber:submit',
+          message: 'Number modal submit',
+          data: {
+            optionName: option.name,
+            raw: value,
+            intValue,
+            min: option.min,
+            max: option.max,
+            normalizedOk,
+            rangeOk,
+            willApply: rangeOk && normalizedOk
+          }
+        })
+        // #endregion
         if (intValue < option.min || intValue > option.max || value !== intValue.toString(10)) {
           await modalInteraction.reply({
             content: `**${option.name}** must be a number between ${option.min} and ${option.max}.\nGiven: ${escapeMarkdown(value)}`,
             flags: MessageFlags.Ephemeral
           })
         } else {
+          // #region agent log
+          debugSessionLog({
+            hypothesisId: 'H2',
+            location: 'options-handler.ts:handleNumber:beforeSetOption',
+            message: 'Calling setOption',
+            data: { optionName: option.name, intValue }
+          })
+          // #endregion
           option.setOption(intValue)
           await this.updateView(modalInteraction)
         }

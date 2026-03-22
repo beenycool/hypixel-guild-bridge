@@ -21,6 +21,7 @@ import type { ProxyConfig } from '../../../core/minecraft/sessions-manager'
 import { ProxyProtocol } from '../../../core/minecraft/sessions-manager'
 import { SpontaneousEventsNames } from '../../../core/spontanmous-events-configurations'
 import Duration from '../../../utility/duration'
+import { debugSessionLog } from '../../../utility/debug-session-log.js'
 import { SkyblockEventKeys } from '../../../utility/skyblock-calendar'
 import { Timeout } from '../../../utility/timeout.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
@@ -1073,6 +1074,24 @@ async function createBridgeOptionAsync(
 
               cachedDemotionOptions = []
               const demoRules = bridgeConfig.getRankupDemotionRules(bridgeId)
+              // #region agent log
+              debugSessionLog({
+                hypothesisId: 'H5',
+                location: 'settings.ts:demotionRules:getOptions:cacheMiss',
+                message: 'Demotion rules options rebuilt from config',
+                data: {
+                  bridgeId,
+                  ruleCount: demoRules.length,
+                  rules: demoRules.map((r) => ({
+                    fromRank: r.fromRank,
+                    action: r.action,
+                    targetRank: r.targetRank,
+                    maxWeeklyGexp: r.maxWeeklyGexp,
+                    gracePeriod: r.gracePeriod
+                  }))
+                }
+              })
+              // #endregion
 
               for (const [index, rule] of demoRules.entries()) {
                 cachedDemotionOptions.push({
@@ -1146,10 +1165,20 @@ async function createBridgeOptionAsync(
                                 }),
                             getOption: () => (guildRanks.length > 0 ? [rule.targetRank || ''] : rule.targetRank || ''),
                             setOption: (val: any) => {
-                              const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
+                              const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
+                              const targetRank = Array.isArray(val) ? val[0] : val
+                              // #region agent log
+                              debugSessionLog({
+                                hypothesisId: 'H5',
+                                location: 'settings.ts:demotion:targetRank:setOption',
+                                message: 'Demotion targetRank set',
+                                data: { bridgeId, index, prevTarget: prev[index]?.targetRank, nextTarget: targetRank }
+                              })
+                              // #endregion
+                              const newRules = [...prev]
                               newRules[index] = {
                                 ...newRules[index],
-                                targetRank: Array.isArray(val) ? val[0] : val
+                                targetRank
                               }
                               bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                               cachedDemotionOptions = null
@@ -1165,7 +1194,22 @@ async function createBridgeOptionAsync(
                       max: 10_000_000,
                       getOption: () => rule.maxWeeklyGexp || 0,
                       setOption: (val: number) => {
-                        const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
+                        const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
+                        // #region agent log
+                        debugSessionLog({
+                          hypothesisId: 'H4_H5',
+                          location: 'settings.ts:demotion:maxWeeklyGexp:setOption',
+                          message: 'Demotion maxWeeklyGexp set',
+                          data: {
+                            bridgeId,
+                            index,
+                            prevMax: prev[index]?.maxWeeklyGexp,
+                            nextVal: val,
+                            prevRulesLen: prev.length
+                          }
+                        })
+                        // #endregion
+                        const newRules = [...prev]
                         newRules[index] = { ...newRules[index], maxWeeklyGexp: val }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                         cachedDemotionOptions = null
@@ -1212,7 +1256,8 @@ async function createBridgeOptionAsync(
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
                 onInteraction: async (interaction: any) => {
-                  const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
+                  const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
+                  const newRules = [...prev]
                   newRules.push({
                     fromRank: guildRanks.length > 0 ? guildRanks[0] : 'Member',
                     action: 'demote' as const,
@@ -1220,6 +1265,14 @@ async function createBridgeOptionAsync(
                     maxWeeklyGexp: 0,
                     gracePeriod: 0
                   })
+                  // #region agent log
+                  debugSessionLog({
+                    hypothesisId: 'H4',
+                    location: 'settings.ts:demotion:addRule',
+                    message: 'Add demotion rule',
+                    data: { bridgeId, prevLen: prev.length, nextLen: newRules.length }
+                  })
+                  // #endregion
                   bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                   cachedDemotionOptions = null // Invalidate cache
                   await interaction.reply({
