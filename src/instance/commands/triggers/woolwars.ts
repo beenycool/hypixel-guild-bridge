@@ -26,18 +26,26 @@ export default class Woolwars extends ChatCommandHandler {
     const player = await context.app.hypixelApi.getPlayer(uuid, {}).catch(() => undefined)
     if (player == undefined) return playerNeverPlayedHypixel(context, givenUsername)
 
-    const stats = (player.stats as any)?.woolwars as
+    const stats = (player.stats as Record<string, unknown> | undefined)?.woolgames as
       | {
           level?: number
-          stats?: { overall?: Record<string, number> }
+          woolWars?: {
+            wins?: number
+            gamesPlayed?: number
+            woolsPlaced?: number
+            blocksBroken?: number
+            /* eslint-disable-next-line @typescript-eslint/naming-convention */
+            KDRatio?: number
+          }
         }
       | undefined
-    if (stats?.stats?.overall == undefined) return `${givenUsername} has never played Wool Wars.`
+
+    if (stats?.woolWars == undefined) return `${givenUsername} has never played Wool Wars.`
 
     const level = stats.level ?? 0
-    const overall = stats.stats.overall
+    const overall = stats.woolWars
 
-    const roundWins = overall.roundWins ?? 0
+    const roundWins = overall.wins ?? 0
     const gamesPlayed = overall.gamesPlayed ?? 0
     const woolsPlaced = overall.woolsPlaced ?? 0
     const blocksBroken = overall.blocksBroken ?? 0

@@ -109,12 +109,12 @@ export const HypixelUpdatesConfig = t.iface([], {
 
 export const BridgeConfig = t.iface([], {
   "id": "string",
+  "language": t.opt("string"),
   "minecraftInstanceNames": t.array("string"),
   "discord": t.iface([], {
     "publicChannelIds": t.array("string"),
     "officerChannelIds": t.array("string"),
   }),
-  "language": t.opt("string"),
 });
 
 export const ApplicationConfig = t.iface([], {
