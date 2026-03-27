@@ -5,6 +5,18 @@ import { Pool } from 'pg'
 
 import { MirroredTables, ensurePostgresMirrorSchema, markPostgresMirrorSeeded } from '../src/common/postgres-mirror.js'
 
+const IdentityTables = new Set([
+  'AllMembers',
+  'OnlineMembers',
+  'punishments',
+  'heatsCommands',
+  'instanceStatusHistory',
+  'instanceMessageHistory',
+  'proxies',
+  'rankupPendingReviews',
+  'rankupHistory'
+])
+
 const sqlitePath = process.argv[2]
   ? path.resolve(process.cwd(), process.argv[2])
   : path.resolve(process.cwd(), 'config/users.sqlite')
@@ -19,6 +31,7 @@ const pool = new Pool({
   connectionString: databaseUrl,
   ssl: { rejectUnauthorized: false }
 })
+const BatchSize = 500
 
 try {
   await ensurePostgresMirrorSchema(pool)
@@ -41,15 +54,22 @@ try {
         continue
       }
 
-      const insertSql = `INSERT INTO ${quoteIdentifier(table.name)} (${quoteColumns(table.columns)}) VALUES (${table.columns.map((_, index) => `$${index + 1}`).join(', ')})`
-      for (const row of rows) {
-        await client.query(
-          insertSql,
-          table.columns.map((column) => row[column] ?? null)
-        )
+      for (let offset = 0; offset < rows.length; offset += BatchSize) {
+        const batch = rows.slice(offset, offset + BatchSize)
+        const values: unknown[] = []
+        const placeholders = batch.map((row, rowIndex) => {
+          const rowPlaceholders = table.columns.map(
+            (_column, columnIndex) => `$${rowIndex * table.columns.length + columnIndex + 1}`
+          )
+          values.push(...table.columns.map((column) => row[column] ?? null))
+          return `(${rowPlaceholders.join(', ')})`
+        })
+
+        const insertSql = `INSERT INTO ${quoteIdentifier(table.name)} (${quoteColumns(table.columns)}) VALUES ${placeholders.join(', ')}`
+        await client.query(insertSql, values)
       }
 
-      if (table.columns.includes('id')) {
+      if (IdentityTables.has(table.name)) {
         const sequenceName = `"${table.name}"`
         await client.query(
           `SELECT setval(pg_get_serial_sequence('${sequenceName}', 'id'), COALESCE(MAX("id"), 0) + 1, false) FROM ${quoteIdentifier(table.name)}`
