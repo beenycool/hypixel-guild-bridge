@@ -749,6 +749,7 @@ function translateWriteStatement(sql: string, parameters: readonly unknown[]): {
   translatedSql = rewriteInsertOrReplace(translatedSql)
   translatedSql = rewriteTargetlessUpsert(translatedSql)
   translatedSql = rewriteMojangReplace(translatedSql)
+  translatedSql = quoteKnownColumns(translatedSql)
 
   const bound = bindParameters(translatedSql, translatedParameters)
   return bound
@@ -869,4 +870,27 @@ function quoteIdentifier(identifier: string): string {
 function renderOrderBy(orderBy: readonly string[] | undefined): string {
   if (orderBy === undefined || orderBy.length === 0) return ''
   return ` ORDER BY ${quoteColumns(orderBy)}`
+}
+
+function quoteKnownColumns(sql: string): string {
+  const table = resolveMirroredTable(sql)
+  if (table === undefined) return sql
+
+  let rewritten = sql
+  for (const column of table.columns.toSorted((left, right) => right.length - left.length)) {
+    const pattern = new RegExp(`(?<![\"@$])\\b${escapeRegExp(column)}\\b(?!\")`, 'g')
+    rewritten = rewritten.replaceAll(pattern, quoteIdentifier(column))
+  }
+
+  return rewritten
+}
+
+function resolveMirroredTable(sql: string): MirroredTableDefinition | undefined {
+  const match = /(?:INTO|UPDATE|FROM)\s+"?([A-Za-z0-9_]+)"?/i.exec(sql)
+  if (match === null) return undefined
+  return MirroredTables.find((table) => table.name === match[1])
+}
+
+function escapeRegExp(value: string): string {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
