@@ -5,6 +5,9 @@ config.yaml
 .idea
 build
 config
+config/users.sqlite
+config/users.sqlite-shm
+config/users.sqlite-wal
 .vscode
 /plugins/
 hypixel-guild-dscord-chat-bridge.publishsettings

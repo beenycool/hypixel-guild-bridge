@@ -119,7 +119,8 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   private readonly logger: Logger
   private readonly errorHandler: UnexpectedErrorHandler
-  private readonly shutdownListeners: (() => void)[] = []
+  private readonly shutdownListeners: Array<() => void | Promise<void>> = []
+  private initializationPromise: Promise<void> | undefined
 
   private readonly rootDirectory
   private readonly configsDirectory
@@ -175,19 +176,9 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     // Connect bridge resolver to dynamic config from database
     this.bridgeResolver.setDynamicConfig(this.core.bridgeConfigurations)
 
-    let selectedLanguage = this.core.languageConfigurations.getLanguage()
-    if (!Object.values(ApplicationLanguages).includes(selectedLanguage)) {
-      this.logger.warn(`Saved language '${selectedLanguage}' is not supported.`)
-      this.logger.info(`Switching to default language '${LanguageConfigurations.DefaultLanguage}'.`)
-
-      selectedLanguage = LanguageConfigurations.DefaultLanguage
-    }
-    this.changeLanguage(selectedLanguage)
-
     this.discordInstance = new DiscordInstance(this, this.config.discord)
 
     this.minecraftManager = new MinecraftManager(this)
-    this.minecraftManager.loadInstances()
 
     this.pluginsManager = new PluginsManager(this)
 
@@ -228,8 +219,28 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     throw new Error(`could not find viable backup path for '${name}'.`)
   }
 
-  public addShutdownListener(listener: () => void): void {
+  public addShutdownListener(listener: () => void | Promise<void>): void {
     this.shutdownListeners.push(listener)
+  }
+
+  public initialize(): Promise<void> {
+    this.initializationPromise ??= this.initializeInternal()
+    return this.initializationPromise
+  }
+
+  private async initializeInternal(): Promise<void> {
+    await this.core.initialize()
+
+    let selectedLanguage = this.core.languageConfigurations.getLanguage()
+    if (!Object.values(ApplicationLanguages).includes(selectedLanguage)) {
+      this.logger.warn(`Saved language '${selectedLanguage}' is not supported.`)
+      this.logger.info(`Switching to default language '${LanguageConfigurations.DefaultLanguage}'.`)
+
+      selectedLanguage = LanguageConfigurations.DefaultLanguage
+    }
+    this.changeLanguage(selectedLanguage)
+
+    this.minecraftManager.loadInstances()
   }
 
   public changeLanguage(language: ApplicationLanguages): void {
@@ -267,10 +278,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     const chosenLang = dynamicLang ?? staticLang
 
     return (key: Parameters<i18n['t']>[0], opts?: any) =>
-      (this.i18n.t(key as any, { ...(opts ?? {}), ...(chosenLang ? { lng: chosenLang } : {}) }) as unknown) as string
+      this.i18n.t(key as any, { ...(opts ?? {}), ...(chosenLang ? { lng: chosenLang } : {}) }) as unknown as string
   }
 
   public async start(): Promise<void> {
+    await this.initialize()
     await this.core.awaitReady()
     await this.pluginsManager.loadPlugins(this.rootDirectory)
 
@@ -307,7 +319,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     await setImmediate()
 
     for (const shutdownListener of this.shutdownListeners.toReversed()) {
-      shutdownListener()
+      await shutdownListener()
     }
   }
 
