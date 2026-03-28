@@ -478,11 +478,6 @@ interface CapturedWrite {
   readonly args: unknown[]
 }
 
-const SqliteHydrationColumns = new Map<string, readonly string[]>([
-  ['AllMembers', ['id', 'uuid', 'fromTimestamp', 'toTimestamp']],
-  ['OnlineMembers', ['id', 'uuid', 'fromTimestamp', 'toTimestamp']]
-])
-
 export class PostgresMirror {
   private readonly pool: Pool
   private writeQueue = Promise.resolve()
@@ -564,14 +559,13 @@ export class PostgresMirror {
         const rows = tableRows.get(table.name) ?? []
         if (rows.length === 0) continue
 
-        const sqliteColumns = SqliteHydrationColumns.get(table.name) ?? table.columns
-        const placeholders = sqliteColumns.map(() => '?').join(', ')
+        const placeholders = table.columns.map(() => '?').join(', ')
         const insert = sqliteDatabase.prepare(
-          `INSERT INTO ${quoteIdentifier(table.name)} (${quoteColumns(sqliteColumns)}) VALUES (${placeholders})`
+          `INSERT INTO ${quoteIdentifier(table.name)} (${quoteColumns(table.columns)}) VALUES (${placeholders})`
         )
 
         for (const row of rows) {
-          const values = sqliteColumns.map((column) => row[column] ?? null)
+          const values = table.columns.map((column) => row[column] ?? null)
           insert.run(...values)
         }
       }
