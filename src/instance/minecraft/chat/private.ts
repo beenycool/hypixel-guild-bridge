@@ -23,6 +23,7 @@ export default {
         ...event,
 
         channelType: ChannelType.Private,
+        bridgeId: context.clientInstance.bridgeId,
 
         user: user,
         hypixelRank: hypixelRank,

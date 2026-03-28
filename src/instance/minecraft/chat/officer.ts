@@ -43,6 +43,7 @@ export default {
         ...event,
 
         channelType: ChannelType.Officer,
+        bridgeId: bridgeId,
 
         user: user,
         hypixelRank: hypixelRank,
