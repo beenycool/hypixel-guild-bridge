@@ -760,13 +760,19 @@ function rewriteTimeframeInsert(sql: string, parameters: readonly unknown[]): { 
   if (match === null) return { sql, parameters: [...parameters] }
 
   const [, tableName, rawColumns] = match
-  const columns = splitCsv(rawColumns)
+  const columns = splitCsv(rawColumns).map(unquoteIdentifier)
   if (columns.length !== 3 || columns[0] !== 'uuid' || columns[1] !== 'fromTimestamp' || columns[2] !== 'toTimestamp') {
     return { sql, parameters: [...parameters] }
   }
 
-  if (parameters.length !== 3) return { sql, parameters: [...parameters] }
-  const [uuid, fromTimestamp, toTimestamp] = parameters
+  const namedParameters = getNamedParameters(parameters)
+  const positionalParameters = parameters.length === 3 ? parameters : undefined
+  const uuid = positionalParameters?.[0] ?? namedParameters?.uuid
+  const fromTimestamp = positionalParameters?.[1] ?? namedParameters?.fromTimestamp
+  const toTimestamp = positionalParameters?.[2] ?? namedParameters?.toTimestamp
+  if (uuid === undefined || fromTimestamp === undefined || toTimestamp === undefined) {
+    return { sql, parameters: [...parameters] }
+  }
   const nextParameters = [uuid, dateFromEpoch(fromTimestamp), fromTimestamp, dateFromEpoch(toTimestamp), toTimestamp]
 
   return {
@@ -776,7 +782,7 @@ function rewriteTimeframeInsert(sql: string, parameters: readonly unknown[]): { 
 }
 
 function rewriteInsertOrReplace(sql: string): string {
-  const match = /^INSERT OR REPLACE INTO\s+"?([A-Za-z0-9_]+)"?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)$/i.exec(sql)
+  const match = /^INSERT OR REPLACE INTO\s+"?([A-Za-z0-9_]+)"?(?:\s*\(([^)]+)\))?\s*VALUES\s*\(([^)]+)\)$/i.exec(sql)
   if (match === null) return sql
 
   const [, tableName, rawColumns, rawValues] = match
@@ -787,13 +793,15 @@ function rewriteInsertOrReplace(sql: string): string {
     throw new Error(`No Postgres REPLACE mapping configured for table '${tableName}'`)
   }
 
-  const columns = splitCsv(rawColumns)
-  const updateAssignments = columns.map((column) => `${column.trim()} = EXCLUDED.${column.trim()}`)
+  const table = MirroredTables.find((entry) => entry.name === tableName)
+  const columns: string[] =
+    rawColumns !== undefined ? splitCsv(rawColumns).map(unquoteIdentifier) : [...(table?.columns ?? [])]
+  const updateAssignments = columns.map((column) => `${quoteIdentifier(column)} = EXCLUDED.${quoteIdentifier(column)}`)
   for (const defaultColumn of ReplaceDefaultColumns.get(tableName) ?? []) {
     updateAssignments.push(`${quoteIdentifier(defaultColumn)} = DEFAULT`)
   }
 
-  return `INSERT INTO ${quoteIdentifier(tableName)} (${rawColumns}) VALUES (${rawValues}) ON CONFLICT (${quoteColumns(conflictColumns)}) DO UPDATE SET ${updateAssignments.join(', ')}`
+  return `INSERT INTO ${quoteIdentifier(tableName)} (${quoteColumns(columns)}) VALUES (${rawValues}) ON CONFLICT (${quoteColumns(conflictColumns)}) DO UPDATE SET ${updateAssignments.join(', ')}`
 }
 
 function rewriteMojangReplace(sql: string): string {
@@ -818,7 +826,16 @@ function rewriteTargetlessUpsert(sql: string): string {
     throw new Error(`No ON CONFLICT mapping configured for table '${tableName}'`)
   }
 
-  return `INSERT INTO ${quoteIdentifier(tableName)} (${rawColumns}) VALUES (${rawValues}) ON CONFLICT (${quoteColumns(conflictColumns)}) DO UPDATE SET ${updateClause}`
+  const columns: string[] = splitCsv(rawColumns).map(unquoteIdentifier)
+  return `INSERT INTO ${quoteIdentifier(tableName)} (${quoteColumns(columns)}) VALUES (${rawValues}) ON CONFLICT (${quoteColumns(conflictColumns)}) DO UPDATE SET ${rewriteUpdateClause(tableName, updateClause)}`
+}
+
+function rewriteUpdateClause(tableName: string, updateClause: string): string {
+  if (/^count\s*=\s*count\s*\+\s*1$/i.test(updateClause.trim())) {
+    return `${quoteIdentifier('count')} = ${quoteIdentifier(tableName)}.${quoteIdentifier('count')} + 1`
+  }
+
+  return updateClause
 }
 
 function bindParameters(sql: string, parameters: readonly unknown[]): { sql: string; parameters: unknown[] } {
@@ -854,6 +871,15 @@ function splitCsv(value: string): string[] {
   return value.split(',').map((entry) => entry.trim())
 }
 
+function unquoteIdentifier(value: string): string {
+  return value.replaceAll(/^"|"$/g, '')
+}
+
+function getNamedParameters(parameters: readonly unknown[]): Record<string, unknown> | undefined {
+  if (parameters.length !== 1) return undefined
+  return isPlainObject(parameters[0]) ? parameters[0] : undefined
+}
+
 function dateFromEpoch(value: unknown): string {
   const seconds = typeof value === 'bigint' ? Number(value) : Number(value)
   return new Date(seconds * 1000).toISOString().slice(0, 10)
@@ -878,7 +904,7 @@ function quoteKnownColumns(sql: string): string {
 
   let rewritten = sql
   for (const column of table.columns.toSorted((left, right) => right.length - left.length)) {
-    const pattern = new RegExp(`(?<![\"@$])\\b${escapeRegExp(column)}\\b(?!\")`, 'g')
+    const pattern = new RegExp(`(?<![\"@$:])\\b${escapeRegExp(column)}\\b(?!\")`, 'g')
     rewritten = rewritten.replaceAll(pattern, quoteIdentifier(column))
   }
 
