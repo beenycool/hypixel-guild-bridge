@@ -91,7 +91,6 @@ export class Core extends Instance<InstanceType.Core> {
   // database
   public readonly sqliteManager: SqliteManager
   private readonly configurationsManager: ConfigurationsManager
-  private initializationPromise: Promise<void> | undefined
 
   public constructor(application: Application) {
     super(application, InternalInstancePrefix + 'core', InstanceType.Core)
@@ -153,11 +152,6 @@ export class Core extends Instance<InstanceType.Core> {
       this.errorHandler,
       this.sqliteManager
     )
-  }
-
-  public initialize(): Promise<void> {
-    this.initializationPromise ??= this.sqliteManager.initialize()
-    return this.initializationPromise
   }
 
   public completeUsername(query: string, limit: number): string[] {
@@ -243,7 +237,6 @@ export class Core extends Instance<InstanceType.Core> {
   }
 
   public async awaitReady(): Promise<void> {
-    await this.initialize()
     await this.punishments.ready
   }
 

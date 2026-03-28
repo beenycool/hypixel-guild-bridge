@@ -6,18 +6,14 @@ import type { Logger } from 'log4js'
 
 import type Application from '../application.js'
 
-import { PostgresMirror } from './postgres-mirror.js'
-
 export class SqliteManager {
   private static readonly CleanEvery = 3 * 60 * 60 * 1000
 
   private readonly configFilePath: string
   private readonly database: Database.Database
   private readonly newlyCreated: boolean
-  private readonly postgresMirror: PostgresMirror | undefined
 
   private closed = false
-  private initializationPromise: Promise<void> | undefined
 
   private lastClean = -1
   private cleanCallbacks: (() => void)[] = []
@@ -45,12 +41,6 @@ export class SqliteManager {
 
     this.database = new Database(filepath)
     this.database.pragma('journal_mode = WAL')
-    this.postgresMirror = PostgresMirror.createFromEnvironment(application, logger)
-  }
-
-  public async initialize(): Promise<void> {
-    this.initializationPromise ??= this.postgresMirror?.initialize(this.database) ?? Promise.resolve()
-    await this.initializationPromise
   }
 
   public isNewlyCreated(): boolean {
