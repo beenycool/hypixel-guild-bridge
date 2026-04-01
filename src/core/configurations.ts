@@ -1,13 +1,11 @@
 import assert from 'node:assert'
 
-import NodeCache from 'node-cache'
-
 import type { SqliteManager } from '../common/sqlite-manager'
-import Duration from '../utility/duration'
 
 export class ConfigurationsManager {
   private static readonly Tablename = 'configurations'
   private readonly createdCategories = new Set<string>()
+  private readonly configurations = new Set<Configuration>()
 
   constructor(private readonly sqliteManager: SqliteManager) {}
 
@@ -18,20 +16,36 @@ export class ConfigurationsManager {
     )
 
     this.createdCategories.add(category)
-    return new Configuration(this.sqliteManager, ConfigurationsManager.Tablename, category)
+    const configuration = new Configuration(this.sqliteManager, ConfigurationsManager.Tablename, category)
+    this.configurations.add(configuration)
+    return configuration
+  }
+
+  public async load(): Promise<void> {
+    await Promise.all([...this.configurations].map(async (configuration) => await configuration.load()))
   }
 }
 
 export class Configuration {
-  private static readonly CacheDuration = Duration.minutes(2)
-
-  private readonly cache = new NodeCache({ stdTTL: Configuration.CacheDuration.toSeconds() })
+  private readonly cache = new Map<string, unknown>()
 
   constructor(
     private readonly sqliteManager: SqliteManager,
     private readonly tablename: string,
     private readonly category: string
   ) {}
+
+  public async load(): Promise<void> {
+    const rows = await this.sqliteManager.queryRows<{ name: string; value: string }>(
+      `SELECT "name", "value" FROM "${this.tablename}" WHERE "category" = $1`,
+      [this.category]
+    )
+
+    this.cache.clear()
+    for (const row of rows) {
+      this.cache.set(row.name, row.value)
+    }
+  }
 
   public getStringArray(name: string, defaultValue: string[]): string[] {
     return this.get(name, defaultValue, (raw) => JSON.parse(raw) as string[])
@@ -68,60 +82,42 @@ export class Configuration {
   }
 
   public delete(name: string): boolean {
-    this.cache.del(name)
+    const existed = this.cache.delete(name)
 
-    const statement = this.sqliteManager
-      .getDatabase()
-      .prepare(`DELETE FROM ${this.tablename} WHERE category = ? AND name = ?`)
-    const result = statement.run(this.category, name)
-    assert.ok(result.changes >= 0)
+    this.sqliteManager.enqueueWrite(`deleting configuration ${this.category}.${name}`, async (database) => {
+      await database.query(`DELETE FROM "${this.tablename}" WHERE "category" = $1 AND "name" = $2`, [
+        this.category,
+        name
+      ])
+    })
 
-    return result.changes !== 0
+    return existed
   }
 
   private get<T>(name: string, defaultValue: T, deserialize?: (raw: string) => T): T {
-    const cached = this.getCachedValue<T>(name)
-    if (cached !== undefined) return cached
+    const cached = this.cache.get(name)
+    if (cached === undefined) return defaultValue
 
-    const statement = this.sqliteManager
-      .getDatabase()
-      .prepare(`SELECT value FROM ${this.tablename} WHERE category = ? AND name = ? LIMIT 1`)
-    const row = statement.all(this.category, name) as { value: unknown }[]
-
-    let value = defaultValue
-    if (row.length > 0) {
-      assert.strictEqual(row.length, 1)
-      const rawValue = row[0].value
-
-      if (deserialize === undefined) {
-        value = rawValue as T
-      } else {
-        assert.ok(typeof rawValue === 'string')
-        value = deserialize(rawValue)
-      }
+    if (deserialize === undefined) {
+      return cached as T
     }
 
-    this.setCachedValue(name, value)
-    return value
+    assert.ok(typeof cached === 'string')
+    return deserialize(cached)
   }
 
   private set<T>(name: string, value: T, serialize?: (value: T) => string): void {
-    this.setCachedValue(name, value)
+    const serializedValue = serialize === undefined ? String(value) : serialize(value)
+    this.cache.set(name, serializedValue)
 
-    const insert = this.sqliteManager
-      .getDatabase()
-      .prepare(`INSERT OR REPLACE INTO "${this.tablename}" (category, name, value, lastUpdatedAt) VALUES (?, ?, ?, ?)`)
-    const serializedValue = serialize === undefined ? value : serialize(value)
-    insert.run(this.category, name, serializedValue, Math.floor(Date.now() / 1000))
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  private getCachedValue<T>(name: string): T | undefined {
-    return this.cache.get<T>(name)
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-  private setCachedValue<T>(name: string, value: T): void {
-    this.cache.set<T>(name, value)
+    this.sqliteManager.enqueueWrite(`saving configuration ${this.category}.${name}`, async (database) => {
+      await database.query(
+        `INSERT INTO "${this.tablename}" ("category", "name", "value", "lastUpdatedAt") VALUES ($1, $2, $3, $4)
+         ON CONFLICT ("category", "name") DO UPDATE SET
+           "value" = EXCLUDED."value",
+           "lastUpdatedAt" = EXCLUDED."lastUpdatedAt"`,
+        [this.category, name, serializedValue, Math.floor(Date.now() / 1000)]
+      )
+    })
   }
 }

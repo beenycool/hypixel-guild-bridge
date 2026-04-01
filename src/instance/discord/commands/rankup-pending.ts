@@ -10,7 +10,6 @@ import {
 } from 'discord.js'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 import { MinecraftSendChatPriority, Permission } from '../../../common/application-event'
-import { PendingReviewManager } from '../../../core/rankup/pending-review-manager'
 
 export default {
   getCommandBuilder: () =>
@@ -26,7 +25,7 @@ export default {
       return
     }
 
-    const pendingManager = new PendingReviewManager(application.core.sqliteManager.getDatabase())
+    const pendingManager = application.core.pendingReviewManager
     const bridgeConfig = application.core.bridgeConfigurations
 
     // We need to resolve names for UUIDs to make the list readable

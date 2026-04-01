@@ -21,6 +21,11 @@ export const PrometheusConfig = t.iface([], {
   "prefix": "string",
 });
 
+export const DatabaseConfig = t.iface([], {
+  "url": t.opt("string"),
+  "ssl": t.opt("boolean"),
+});
+
 export const WebConfig = t.iface([], {
   "enabled": "boolean",
   "port": "number",
@@ -122,6 +127,7 @@ export const ApplicationConfig = t.iface([], {
   "general": "GeneralConfig",
   "discord": "StaticDiscordConfig",
   "prometheus": "PrometheusConfig",
+  "database": t.opt("DatabaseConfig"),
   "web": t.opt("WebConfig"),
   "statsChannels": t.opt("StatsChannelsConfig"),
   "verification": t.opt("VerificationConfig"),
@@ -136,6 +142,7 @@ const exportedTypeSuite: t.ITypeSuite = {
   GeneralConfig,
   StaticDiscordConfig,
   PrometheusConfig,
+  DatabaseConfig,
   WebConfig,
   StatsChannelConfig,
   StatsChannelsConfig,

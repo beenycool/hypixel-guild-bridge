@@ -50,7 +50,12 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
       ;(this.application as any).logger?.debug?.('STARTUP_CFG: failed to read bridge configurations')
     }
     for (const instanceConfig of instances) {
-      this.instances.add(new MinecraftInstance(this.application, instanceConfig.name, instanceConfig))
+      const alreadyLoaded = [...this.instances].some(
+        (instance) => instance.instanceName.toLowerCase() === instanceConfig.name.toLowerCase()
+      )
+      if (!alreadyLoaded) {
+        this.instances.add(new MinecraftInstance(this.application, instanceConfig.name, instanceConfig))
+      }
     }
   }
 

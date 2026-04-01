@@ -54,7 +54,6 @@ import Kuudra from './triggers/kuudra.js'
 import Level from './triggers/level.js'
 import List from './triggers/list.js'
 import MagicalPower from './triggers/magicalpower.js'
-import Murdermystery from './triggers/murdermystery.js'
 import Mayor from './triggers/mayor.js'
 import Mute from './triggers/mute.js'
 import NameHistory from './triggers/name.js'
@@ -145,7 +144,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Level(),
       new List(),
       new MagicalPower(),
-      new Murdermystery(),
       new Mayor(),
       new Mute(),
       new NameHistory(),
@@ -349,11 +347,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       this.logger.error('Error while handling command', error)
       const errorMessage = `${event.user.displayName()}, an error occurred while trying to execute ${command.triggers[0]}.`
       const randomSuffix = (Math.random() + 1).toString(36).substring(7)
-      await this.reply(
-        event,
-        command.triggers[0],
-        `${errorMessage} (${randomSuffix})`
-      )
+      await this.reply(event, command.triggers[0], `${errorMessage} (${randomSuffix})`)
     }
   }
 

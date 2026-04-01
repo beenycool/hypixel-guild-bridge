@@ -9,79 +9,88 @@ export interface InactivityEntry {
 }
 
 export class Inactivity {
-  private readonly database: InactivityDatabase
+  private readonly entries = new Map<string, InactivityEntry>()
 
-  constructor(sqliteManager: SqliteManager) {
-    this.database = new InactivityDatabase(sqliteManager)
+  constructor(private readonly sqliteManager: SqliteManager) {}
+
+  public async load(): Promise<void> {
+    const rows = await this.sqliteManager.queryRows<InactivityEntry>('SELECT * FROM "inactivity"')
+    this.entries.clear()
+    for (const row of rows) {
+      this.entries.set(row.uuid, row)
+    }
   }
 
   public getActiveByUuid(uuid: string): InactivityEntry | undefined {
-    return this.database.getActiveByUuid(uuid, nowSeconds())
+    const entry = this.entries.get(uuid)
+    if (entry === undefined || entry.expiresAt <= nowSeconds()) return undefined
+    return entry
   }
 
   public getActiveByDiscordId(discordId: string): InactivityEntry | undefined {
-    return this.database.getActiveByDiscordId(discordId, nowSeconds())
+    for (const entry of this.entries.values()) {
+      if (entry.discordId === discordId && entry.expiresAt > nowSeconds()) {
+        return entry
+      }
+    }
   }
 
   public getAllActive(): InactivityEntry[] {
-    return this.database.getAllActive(nowSeconds())
+    const now = nowSeconds()
+    return [...this.entries.values()].filter((entry) => entry.expiresAt > now)
   }
 
   public add(entry: Omit<InactivityEntry, 'createdAt'>): void {
-    this.database.add({ ...entry, createdAt: nowSeconds() })
+    const completeEntry = { ...entry, createdAt: nowSeconds() }
+    this.entries.set(completeEntry.uuid, completeEntry)
+
+    this.sqliteManager.enqueueWrite(`saving inactivity ${completeEntry.uuid}`, async (database) => {
+      await database.query(
+        `INSERT INTO "inactivity" ("uuid", "discordId", "reason", "createdAt", "expiresAt") VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT ("uuid") DO UPDATE SET
+           "discordId" = EXCLUDED."discordId",
+           "reason" = EXCLUDED."reason",
+           "createdAt" = EXCLUDED."createdAt",
+           "expiresAt" = EXCLUDED."expiresAt"`,
+        [
+          completeEntry.uuid,
+          completeEntry.discordId,
+          completeEntry.reason,
+          completeEntry.createdAt,
+          completeEntry.expiresAt
+        ]
+      )
+    })
   }
 
   public removeByUuid(uuid: string): number {
-    return this.database.removeByUuid(uuid)
+    const existed = this.entries.delete(uuid) ? 1 : 0
+
+    this.sqliteManager.enqueueWrite(`deleting inactivity ${uuid}`, async (database) => {
+      await database.query('DELETE FROM "inactivity" WHERE "uuid" = $1', [uuid])
+    })
+
+    return existed
   }
 
   public purgeExpired(): number {
-    return this.database.purgeExpired(nowSeconds())
+    const now = nowSeconds()
+    const expiredUuids = [...this.entries.values()].filter((entry) => entry.expiresAt <= now).map((entry) => entry.uuid)
+
+    for (const uuid of expiredUuids) {
+      this.entries.delete(uuid)
+    }
+
+    if (expiredUuids.length > 0) {
+      this.sqliteManager.enqueueWrite('purging expired inactivity entries', async (database) => {
+        await database.query('DELETE FROM "inactivity" WHERE "expiresAt" <= $1', [now])
+      })
+    }
+
+    return expiredUuids.length
   }
 }
 
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000)
-}
-
-class InactivityDatabase {
-  constructor(private readonly sqliteManager: SqliteManager) {}
-
-  public getActiveByUuid(uuid: string, now: number): InactivityEntry | undefined {
-    const database = this.sqliteManager.getDatabase()
-    const select = database.prepare('SELECT * FROM "inactivity" WHERE uuid = ? AND expiresAt > ? LIMIT 1')
-    return select.get(uuid, now) as InactivityEntry | undefined
-  }
-
-  public getActiveByDiscordId(discordId: string, now: number): InactivityEntry | undefined {
-    const database = this.sqliteManager.getDatabase()
-    const select = database.prepare('SELECT * FROM "inactivity" WHERE discordId = ? AND expiresAt > ? LIMIT 1')
-    return select.get(discordId, now) as InactivityEntry | undefined
-  }
-
-  public getAllActive(now: number): InactivityEntry[] {
-    const database = this.sqliteManager.getDatabase()
-    const select = database.prepare('SELECT * FROM "inactivity" WHERE expiresAt > ?')
-    return select.all(now) as InactivityEntry[]
-  }
-
-  public add(entry: InactivityEntry): void {
-    const database = this.sqliteManager.getDatabase()
-    const insert = database.prepare(
-      'INSERT OR REPLACE INTO "inactivity" (uuid, discordId, reason, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?)'
-    )
-    insert.run(entry.uuid, entry.discordId, entry.reason, entry.createdAt, entry.expiresAt)
-  }
-
-  public removeByUuid(uuid: string): number {
-    const database = this.sqliteManager.getDatabase()
-    const remove = database.prepare('DELETE FROM "inactivity" WHERE uuid = ?')
-    return remove.run(uuid).changes
-  }
-
-  public purgeExpired(now: number): number {
-    const database = this.sqliteManager.getDatabase()
-    const remove = database.prepare('DELETE FROM "inactivity" WHERE expiresAt <= ?')
-    return remove.run(now).changes
-  }
 }

@@ -16,6 +16,9 @@ import type { Core } from '../core'
 export default class Autocomplete extends SubInstance<Core, InstanceType.Core, void> {
   private static readonly MaxLife = Duration.years(1)
 
+  private readonly usernames = new Map<string, AutocompleteEntry>()
+  private readonly ranks = new Map<string, AutocompleteEntry>()
+
   constructor(
     application: Application,
     clientInstance: Core,
@@ -58,77 +61,96 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
     })
 
     this.sqliteManager.registerCleaner(() => {
-      const database = this.sqliteManager.getDatabase()
-      database.transaction(() => {
-        const oldestTimestamp = Date.now() - Autocomplete.MaxLife.toMilliseconds()
-        const cleanUsernames = database.prepare('DELETE FROM "autocompleteUsernames" WHERE timestamp < ?')
-        const cleanRanks = database.prepare('DELETE FROM "autocompleteRanks" WHERE timestamp < ?')
+      const oldestTimestamp = Math.floor((Date.now() - Autocomplete.MaxLife.toMilliseconds()) / 1000)
+      const usernamesDeleted = removeOldAutocompleteEntries(this.usernames, oldestTimestamp)
+      const ranksDeleted = removeOldAutocompleteEntries(this.ranks, oldestTimestamp)
+      const count = usernamesDeleted + ranksDeleted
 
-        let count = 0
-        count += cleanUsernames.run(Math.floor(oldestTimestamp / 1000)).changes
-        count += cleanRanks.run(Math.floor(oldestTimestamp / 1000)).changes
-        if (count > 0) this.logger.debug(`Deleted ${count} old autocomplete entry`)
-      })()
+      if (count > 0) {
+        this.logger.debug(`Deleted ${count} old autocomplete entry`)
+        this.sqliteManager.enqueueTransaction('cleaning autocomplete entries', async (database) => {
+          await database.query('DELETE FROM "autocompleteUsernames" WHERE "timestamp" < $1', [oldestTimestamp])
+          await database.query('DELETE FROM "autocompleteRanks" WHERE "timestamp" < $1', [oldestTimestamp])
+        })
+      }
     })
+  }
+
+  public async load(): Promise<void> {
+    const [usernames, ranks] = await Promise.all([
+      this.sqliteManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteUsernames"'),
+      this.sqliteManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteRanks"')
+    ])
+
+    replaceAutocompleteEntries(this.usernames, usernames)
+    replaceAutocompleteEntries(this.ranks, ranks)
   }
 
   public username(query: string, limit: number): string[] {
-    return this.fetch('autocompleteUsernames', query, limit)
+    return this.fetch(this.usernames, query, limit)
   }
 
   public rank(query: string, limit: number): string[] {
-    return this.fetch('autocompleteRanks', query, limit)
+    return this.fetch(this.ranks, query, limit)
   }
 
-  private fetch(table: string, query: string, limit: number): string[] {
+  private fetch(entries: Map<string, AutocompleteEntry>, query: string, limit: number): string[] {
     assert.ok(limit >= 1, 'limit must be 1 or greater')
     limit = Math.floor(limit)
 
-    query = query.replaceAll(/[%_]/g, '')
+    query = query.replaceAll(/[%_]/g, '').toLowerCase()
 
-    const database = this.sqliteManager.getDatabase()
-    return database.transaction(() => {
-      const select = database.prepare(`SELECT content FROM "${table}" WHERE content LIKE ? LIMIT ?`)
-
-      const result: string[] = []
-      result.push(...(select.pluck(true).all(query + '%', limit) as string[]))
-
-      if (result.length >= limit) {
-        assert.strictEqual(result.length, limit)
-        return result
-      }
-
-      const restSelect = database.prepare(
-        `SELECT content FROM "${table}" WHERE content NOT IN (${result.map(() => '?').join(',')}) AND content LIKE ? LIMIT ?`
-      )
-
-      result.push(...(restSelect.pluck(true).all(...result, '%' + query + '%', limit - result.length) as string[]))
-
-      assert.ok(result.length <= limit)
+    const allEntries = [...entries.values()].map((entry) => entry.content)
+    const result = allEntries.filter((entry) => entry.toLowerCase().startsWith(query)).slice(0, limit)
+    if (result.length >= limit) {
       return result
-    })()
+    }
+
+    for (const entry of allEntries) {
+      if (result.includes(entry)) continue
+      if (!entry.toLowerCase().includes(query)) continue
+
+      result.push(entry)
+      if (result.length >= limit) break
+    }
+
+    return result
   }
 
   private addUsernames(usernames: string[]): void {
-    this.add('autocompleteUsernames', usernames)
+    this.add('autocompleteUsernames', this.usernames, usernames)
   }
 
   private addRanks(ranks: string[]): void {
-    this.add('autocompleteRanks', ranks)
+    this.add('autocompleteRanks', this.ranks, ranks)
   }
 
-  private add(table: string, entries: string[]): void {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const insert = database.prepare(
-        `INSERT OR REPLACE INTO "${table}" (loweredContent, content, timestamp) VALUES (?, ?, ?)`
-      )
-      for (const entry of entries) {
-        insert.run(entry.toLowerCase().trim(), entry.trim(), Math.floor(Date.now() / 1000))
+  private add(
+    table: 'autocompleteUsernames' | 'autocompleteRanks',
+    target: Map<string, AutocompleteEntry>,
+    entries: string[]
+  ): void {
+    const timestamp = Math.floor(Date.now() / 1000)
+    const preparedEntries: AutocompleteEntry[] = []
+
+    for (const entry of entries) {
+      const loweredContent = entry.toLowerCase().trim()
+      const normalizedEntry = { loweredContent, content: entry.trim(), timestamp }
+      target.set(loweredContent, normalizedEntry)
+      preparedEntries.push(normalizedEntry)
+    }
+
+    this.sqliteManager.enqueueTransaction(`saving autocomplete ${table}`, async (database) => {
+      for (const entry of preparedEntries) {
+        await database.query(
+          `INSERT INTO "${table}" ("loweredContent", "content", "timestamp") VALUES ($1, $2, $3)
+           ON CONFLICT ("loweredContent") DO UPDATE SET
+             "content" = EXCLUDED."content",
+             "timestamp" = EXCLUDED."timestamp"`,
+          [entry.loweredContent, entry.content, entry.timestamp]
+        )
       }
     })
-
-    transaction()
   }
 
   private async fetchGuildInfo(): Promise<void> {
@@ -177,5 +199,29 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
     }
 
     this.addRanks(ranks)
+  }
+}
+
+interface AutocompleteEntry {
+  loweredContent: string
+  content: string
+  timestamp: number
+}
+
+function removeOldAutocompleteEntries(entries: Map<string, AutocompleteEntry>, oldestTimestamp: number): number {
+  let deleted = 0
+  for (const [key, entry] of entries) {
+    if (entry.timestamp < oldestTimestamp) {
+      entries.delete(key)
+      deleted++
+    }
+  }
+  return deleted
+}
+
+function replaceAutocompleteEntries(target: Map<string, AutocompleteEntry>, entries: AutocompleteEntry[]): void {
+  target.clear()
+  for (const entry of entries) {
+    target.set(entry.loweredContent, entry)
   }
 }

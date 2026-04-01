@@ -5,13 +5,10 @@ import type { BridgeConfigurations } from '../discord/bridge-configurations'
 import { NotificationManager } from './notification-manager'
 import { PendingReviewManager } from './pending-review-manager'
 import { RulesEvaluator } from './rules-evaluator'
-import type { SqliteManager } from '../../common/sqlite-manager'
 
 import { MinecraftSendChatPriority } from '../../common/application-event'
 
 export class RankupManager {
-  private readonly pendingManager: PendingReviewManager
-
   private readonly rulesEvaluator: RulesEvaluator
 
   private readonly notificationManager: NotificationManager
@@ -23,12 +20,10 @@ export class RankupManager {
 
     private readonly bridgeConfig: BridgeConfigurations,
 
-    private readonly sqliteManager: SqliteManager,
+    private readonly pendingManager: PendingReviewManager,
 
     private readonly logger: Logger
   ) {
-    this.pendingManager = new PendingReviewManager(sqliteManager.getDatabase())
-
     this.rulesEvaluator = new RulesEvaluator()
 
     this.notificationManager = new NotificationManager(application)

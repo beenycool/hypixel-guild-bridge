@@ -1,4 +1,4 @@
-import type { Database } from 'better-sqlite3'
+import type { SqliteManager } from '../../common/sqlite-manager'
 
 export interface PendingReview {
   id: number
@@ -24,7 +24,31 @@ export interface RankupHistoryEntry {
 }
 
 export class PendingReviewManager {
-  constructor(private readonly database: Database) {}
+  private readonly reviews = new Map<number, PendingReview>()
+  private readonly history: RankupHistoryEntry[] = []
+  private nextReviewId = 1
+  private nextHistoryId = 1
+
+  constructor(private readonly sqliteManager: SqliteManager) {}
+
+  public async load(): Promise<void> {
+    const reviews = await this.sqliteManager.queryRows<PendingReview>(
+      'SELECT * FROM "rankupPendingReviews" ORDER BY "id" ASC'
+    )
+    const history = await this.sqliteManager.queryRows<RankupHistoryEntry>(
+      'SELECT * FROM "rankupHistory" ORDER BY "id" ASC'
+    )
+
+    this.reviews.clear()
+    for (const review of reviews) {
+      this.reviews.set(review.id, review)
+    }
+    this.nextReviewId = reviews.reduce((maxId, review) => Math.max(maxId, review.id), 0) + 1
+
+    this.history.length = 0
+    this.history.push(...history)
+    this.nextHistoryId = history.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
+  }
 
   public addReview(
     bridgeId: string,
@@ -34,58 +58,110 @@ export class PendingReviewManager {
     action: 'promote' | 'demote' | 'kick',
     reason: string
   ): void {
-    const stmt = this.database.prepare(`
-      INSERT INTO rankupPendingReviews (bridgeId, uuid, currentRank, proposedRank, action, reason)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON CONFLICT(bridgeId, uuid) DO UPDATE SET
-        currentRank = excluded.currentRank,
-        proposedRank = excluded.proposedRank,
-        action = excluded.action,
-        reason = excluded.reason,
-        createdAt = unixepoch(),
-        notifiedAt = NULL
-    `)
-    stmt.run(bridgeId, uuid, currentRank, proposedRank, action, reason)
+    const existing = [...this.reviews.values()].find((review) => review.bridgeId === bridgeId && review.uuid === uuid)
+    const review: PendingReview = {
+      id: existing?.id ?? this.nextReviewId++,
+      bridgeId,
+      uuid,
+      currentRank,
+      proposedRank,
+      action,
+      reason,
+      createdAt: Math.floor(Date.now() / 1000),
+      notifiedAt: null
+    }
+    this.reviews.set(review.id, review)
+
+    this.sqliteManager.enqueueWrite(`saving rankup review ${bridgeId}:${uuid}`, async (database) => {
+      await database.query(
+        `INSERT INTO "rankupPendingReviews"
+          ("id", "bridgeId", "uuid", "currentRank", "proposedRank", "action", "reason", "createdAt", "notifiedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT ("bridgeId", "uuid") DO UPDATE SET
+           "currentRank" = EXCLUDED."currentRank",
+           "proposedRank" = EXCLUDED."proposedRank",
+           "action" = EXCLUDED."action",
+           "reason" = EXCLUDED."reason",
+           "createdAt" = EXCLUDED."createdAt",
+           "notifiedAt" = EXCLUDED."notifiedAt"`,
+        [
+          review.id,
+          review.bridgeId,
+          review.uuid,
+          review.currentRank,
+          review.proposedRank,
+          review.action,
+          review.reason,
+          review.createdAt,
+          review.notifiedAt
+        ]
+      )
+    })
   }
 
   public getReviews(bridgeId: string): PendingReview[] {
-    const stmt = this.database.prepare(`
-      SELECT * FROM rankupPendingReviews WHERE bridgeId = ? ORDER BY createdAt ASC
-    `)
-    return stmt.all(bridgeId) as PendingReview[]
+    return [...this.reviews.values()]
+      .filter((review) => review.bridgeId === bridgeId)
+      .sort((a, b) => a.createdAt - b.createdAt)
+      .map((review) => ({ ...review }))
   }
 
   public getReview(id: number): PendingReview | undefined {
-    const stmt = this.database.prepare(`SELECT * FROM rankupPendingReviews WHERE id = ?`)
-    return stmt.get(id) as PendingReview | undefined
+    const review = this.reviews.get(id)
+    return review === undefined ? undefined : { ...review }
   }
 
   public removeReview(id: number): void {
-    const stmt = this.database.prepare(`DELETE FROM rankupPendingReviews WHERE id = ?`)
-    stmt.run(id)
+    this.reviews.delete(id)
+    this.sqliteManager.enqueueWrite(`removing rankup review ${id}`, async (database) => {
+      await database.query('DELETE FROM "rankupPendingReviews" WHERE "id" = $1', [id])
+    })
   }
 
   public removeReviewByUuid(bridgeId: string, uuid: string): void {
-    const stmt = this.database.prepare(`DELETE FROM rankupPendingReviews WHERE bridgeId = ? AND uuid = ?`)
-    stmt.run(bridgeId, uuid)
+    for (const review of this.reviews.values()) {
+      if (review.bridgeId === bridgeId && review.uuid === uuid) {
+        this.reviews.delete(review.id)
+      }
+    }
+
+    this.sqliteManager.enqueueWrite(`removing rankup review ${bridgeId}:${uuid}`, async (database) => {
+      await database.query('DELETE FROM "rankupPendingReviews" WHERE "bridgeId" = $1 AND "uuid" = $2', [bridgeId, uuid])
+    })
   }
 
   public clearReviewsNotInList(bridgeId: string, uuids: string[]): void {
-    if (uuids.length === 0) {
-      const stmt = this.database.prepare(`DELETE FROM rankupPendingReviews WHERE bridgeId = ?`)
-      stmt.run(bridgeId)
-      return
+    const keep = new Set(uuids)
+    for (const review of [...this.reviews.values()]) {
+      if (review.bridgeId === bridgeId && !keep.has(review.uuid)) {
+        this.reviews.delete(review.id)
+      }
     }
-    const placeholders = uuids.map(() => '?').join(',')
-    const stmt = this.database.prepare(
-      `DELETE FROM rankupPendingReviews WHERE bridgeId = ? AND uuid NOT IN (${placeholders})`
-    )
-    stmt.run(bridgeId, ...uuids)
+
+    this.sqliteManager.enqueueWrite(`clearing stale rankup reviews for ${bridgeId}`, async (database) => {
+      if (uuids.length === 0) {
+        await database.query('DELETE FROM "rankupPendingReviews" WHERE "bridgeId" = $1', [bridgeId])
+        return
+      }
+
+      await database.query(
+        'DELETE FROM "rankupPendingReviews" WHERE "bridgeId" = $1 AND NOT ("uuid" = ANY($2::text[]))',
+        [bridgeId, uuids]
+      )
+    })
   }
 
   public updateNotifiedAt(id: number): void {
-    const stmt = this.database.prepare(`UPDATE rankupPendingReviews SET notifiedAt = unixepoch() WHERE id = ?`)
-    stmt.run(id)
+    const review = this.reviews.get(id)
+    if (review === undefined) return
+
+    review.notifiedAt = Math.floor(Date.now() / 1000)
+    this.sqliteManager.enqueueWrite(`updating rankup notifiedAt ${id}`, async (database) => {
+      await database.query('UPDATE "rankupPendingReviews" SET "notifiedAt" = $1 WHERE "id" = $2', [
+        review.notifiedAt,
+        id
+      ])
+    })
   }
 
   public logHistory(
@@ -96,17 +172,41 @@ export class PendingReviewManager {
     toRank: string,
     triggeredBy: string
   ): void {
-    const stmt = this.database.prepare(`
-      INSERT INTO rankupHistory (bridgeId, uuid, action, fromRank, toRank, triggeredBy)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `)
-    stmt.run(bridgeId, uuid, action, fromRank, toRank, triggeredBy)
+    const entry: RankupHistoryEntry = {
+      id: this.nextHistoryId++,
+      bridgeId,
+      uuid,
+      action,
+      fromRank,
+      toRank,
+      triggeredBy,
+      createdAt: Math.floor(Date.now() / 1000)
+    }
+    this.history.push(entry)
+
+    this.sqliteManager.enqueueWrite(`saving rankup history ${bridgeId}:${uuid}`, async (database) => {
+      await database.query(
+        `INSERT INTO "rankupHistory" ("id", "bridgeId", "uuid", "action", "fromRank", "toRank", "triggeredBy", "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          entry.id,
+          entry.bridgeId,
+          entry.uuid,
+          entry.action,
+          entry.fromRank,
+          entry.toRank,
+          entry.triggeredBy,
+          entry.createdAt
+        ]
+      )
+    })
   }
 
   public getHistory(bridgeId: string, limit = 20): RankupHistoryEntry[] {
-    const stmt = this.database.prepare(`
-      SELECT * FROM rankupHistory WHERE bridgeId = ? ORDER BY createdAt DESC LIMIT ?
-    `)
-    return stmt.all(bridgeId, limit) as RankupHistoryEntry[]
+    return this.history
+      .filter((entry) => entry.bridgeId === bridgeId)
+      .toSorted((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit)
+      .map((entry) => ({ ...entry }))
   }
 }

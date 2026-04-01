@@ -17,6 +17,11 @@ export interface PrometheusConfig {
   prefix: string
 }
 
+export interface DatabaseConfig {
+  url?: string
+  ssl?: boolean
+}
+
 export interface WebConfig {
   enabled: boolean
   port: number
@@ -131,13 +136,14 @@ export interface BridgeConfig {
      */
     officerChannelIds: string[]
   }
-} 
+}
 
 export interface ApplicationConfig {
   version: 2 // typeof ApplicationConfigVersion
   general: GeneralConfig
   discord: StaticDiscordConfig
   prometheus: PrometheusConfig
+  database?: DatabaseConfig
   web?: WebConfig
   statsChannels?: StatsChannelsConfig
   verification?: VerificationConfig
