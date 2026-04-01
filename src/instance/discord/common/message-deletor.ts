@@ -1,5 +1,5 @@
 import type { Client } from 'discord.js'
-import { Routes } from 'discord.js'
+import { DiscordAPIError, Routes } from 'discord.js'
 import PromiseQueue from 'promise-queue'
 
 import type Application from '../../../application'
@@ -63,9 +63,7 @@ export default class MessageDeleter {
          * Right now, it doesn't make sense to create a complicated setup to ensure everything is working optimally.
          * So it is left for the future when it is needed.
          */
-        const task = this.client.rest
-          .delete(Routes.channelMessage(channelId, message))
-          .catch(this.errorHandler.promiseCatch(`deleting temporarily event channel=${channelId},message=${message}`))
+        const task = this.deleteMessage(channelId, message)
         tasks.push(task)
       }
     }
@@ -74,5 +72,17 @@ export default class MessageDeleter {
 
     const messages = expiredInteractions.map((message) => message.messageId)
     this.application.core.discordTemporarilyInteractions.remove(messages)
+  }
+
+  private async deleteMessage(channelId: string, messageId: string): Promise<void> {
+    try {
+      await this.client.rest.delete(Routes.channelMessage(channelId, messageId))
+    } catch (error) {
+      // Message cleanup is idempotent; Discord returns 10008 if it is already gone.
+      if (error instanceof DiscordAPIError && error.code === 10_008) return
+      await this.errorHandler.promiseCatch(`deleting temporarily event channel=${channelId},message=${messageId}`)(
+        error
+      )
+    }
   }
 }
