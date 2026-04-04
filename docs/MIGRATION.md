@@ -16,8 +16,8 @@ Most notable changes:
 - Move `discord.adminId` to `discord.adminIds` and make it into a list
 - Elements of `discord.adminIds` must be **strings** (quote them); numeric values will be coerced to strings at runtime
 - Remove all options in `discord` section except `key` and `adminIds`
-- Remove `profanity`, `commands`, `minecraft`, `loggers` sections since they have been moved out to an internal
-  configuration at `./config/` directory that is directly controlled by the application via discord command `/settings`
+- Remove `profanity`, `commands`, `minecraft`, `loggers` sections since they have been moved out to application-managed
+  runtime configuration stored in the internal database and controlled by the application via discord command `/settings`
 - Remove `socket` section entirely since the feature has been completely removed.
 - Remove `useIngameCommand` and `interval` in `metrics` section.
 - Remove `plugins` section entirely since it has been migrated to newer system.
@@ -32,9 +32,9 @@ Make sure to check the new settings and apply back all your old configurations.
 
 ### Internal Configurations
 
-All configurations are saved at `./config/` directory. Not all of them are directly exposed to users to modify.
+Runtime-managed configuration is stored in the application database. The `./config/` directory is still used for local runtime files and backups.
 
-- You only need to save `./config/` directory and `config.yaml` file for backups.
+- You should back up `config.yaml` and your PostgreSQL database. The `./config/` directory is only needed for local runtime files and backups.
 - If you change something, make sure all changes are **valid and will not break** the application in any unintentional.
 - You can safely delete any file there to reset a part of the application.
 

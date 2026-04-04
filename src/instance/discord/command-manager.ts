@@ -43,14 +43,22 @@ import PingCommand from './commands/ping.js'
 import ProfanityCommand from './commands/profanity.js'
 import PromoteCommand from './commands/promote.js'
 import PunishmentsCommand from './commands/punishments.js'
+import RankupCheckCommand from './commands/rankup-check.js'
+import RankupHistoryCommand from './commands/rankup-history.js'
+import RankupPendingCommand from './commands/rankup-pending.js'
 import ReconnectCommand from './commands/reconnect.js'
 import RequirementsCommand from './commands/requirements.js'
 import RestartCommand from './commands/restart.js'
 import SetrankCommand from './commands/setrank.js'
 import SettingsCommand from './commands/settings.js'
+import StatsCommand from './commands/stats.js'
 import SkyblockCommand from './commands/skyblock.js'
 import UnlinkCommand from './commands/unlink.js'
 import VerificationCommand from './commands/verification.js'
+import {
+  getBridgeMinecraftInstanceNames,
+  getConnectedBridgeMinecraftInstanceNames
+} from './common/bridge-minecraft-instances.js'
 import { DefaultCommandFooter } from './common/discord-config.js'
 import { translateNoPermission } from './common/discord-language'
 import type DiscordInstance from './discord-instance.js'
@@ -134,9 +142,13 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       ProfanityCommand,
       PromoteCommand,
       PunishmentsCommand,
+      RankupCheckCommand,
+      RankupHistoryCommand,
+      RankupPendingCommand,
       ReconnectCommand,
       RequirementsCommand,
       SetrankCommand,
+      StatsCommand,
       RestartCommand,
       UnlinkCommand,
       SkyblockCommand,
@@ -164,6 +176,29 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     })
     const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(interaction.channelId)
     const permission = user.permission(bridgeId)
+    const focusedOption = interaction.options.getFocused(true)
+
+    if (focusedOption.name === 'instance') {
+      const connectedInstances = new Set(getConnectedBridgeMinecraftInstanceNames(this.application, bridgeId))
+      const query = String(focusedOption.value).toLowerCase()
+      const response = getBridgeMinecraftInstanceNames(this.application, bridgeId)
+        .sort((left, right) => {
+          const leftConnected = connectedInstances.has(left)
+          const rightConnected = connectedInstances.has(right)
+          if (leftConnected !== rightConnected) {
+            return leftConnected ? -1 : 1
+          }
+
+          return left.localeCompare(right)
+        })
+        .filter((instanceName) => instanceName.toLowerCase().includes(query))
+        .slice(0, 25)
+        .map((instanceName) => ({ name: instanceName, value: instanceName }))
+
+      await interaction.respond(response)
+      return
+    }
+
     if (command.autoComplete) {
       const context: DiscordAutoCompleteContext = {
         application: this.application,
@@ -238,17 +273,31 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       }
 
       const instanceName = interaction.options.getString('instance')
-      if (
-        instanceName !== null &&
-        bridgeId !== undefined &&
-        !this.application.bridgeResolver.shouldProcessEvent(bridgeId, instanceName)
-      ) {
-        this.logger.debug(`instance ${instanceName} does not belong to bridge ${bridgeId}`)
-        await interaction.reply({
-          content: `The instance \`${instanceName}\` does not belong to this bridge!`,
-          flags: MessageFlags.Ephemeral
-        })
-        return
+      if (instanceName !== null) {
+        const existingInstanceName = this.application
+          .getInstancesNames(InstanceType.Minecraft)
+          .find((name) => name.toLowerCase() === instanceName.toLowerCase())
+
+        if (existingInstanceName === undefined) {
+          this.logger.debug(`instance ${instanceName} does not exist`)
+          await interaction.reply({
+            content: `The instance \`${escapeMarkdown(instanceName)}\` does not exist!`,
+            flags: MessageFlags.Ephemeral
+          })
+          return
+        }
+
+        if (
+          bridgeId !== undefined &&
+          !this.application.bridgeResolver.shouldProcessEvent(bridgeId, existingInstanceName)
+        ) {
+          this.logger.debug(`instance ${existingInstanceName} does not belong to bridge ${bridgeId}`)
+          await interaction.reply({
+            content: `The instance \`${existingInstanceName}\` does not belong to this bridge!`,
+            flags: MessageFlags.Ephemeral
+          })
+          return
+        }
       }
 
       if (
@@ -379,9 +428,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
 
   private getCommandsJson(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
     const commandsJson: RESTPostAPIChatInputApplicationCommandsJSONBody[] = []
-    const instanceChoices = this.application
-      .getInstancesNames(InstanceType.Minecraft)
-      .map((choice: string) => ({ name: choice, value: choice }))
 
     /*
     options are added after converting to json.
@@ -395,32 +441,30 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       const instanceCommandName = 'instance'
       const instanceCommandDescription = 'Which instance to send this command to'
 
-      if (instanceChoices.length > 0) {
-        const index = commandBuilder.options?.findIndex((option) => option.required) ?? -1
+      const index = commandBuilder.options?.findIndex((option) => option.required) ?? -1
 
-        switch (command.addMinecraftInstancesToOptions) {
-          case OptionToAddMinecraftInstances.Required: {
-            commandBuilder.options ??= []
+      switch (command.addMinecraftInstancesToOptions) {
+        case OptionToAddMinecraftInstances.Required: {
+          commandBuilder.options ??= []
 
-            // splice is just fancy push at certain index
-            commandBuilder.options.splice(index + 1, 0, {
-              type: 3,
-              name: instanceCommandName,
-              description: instanceCommandDescription,
-              choices: instanceChoices,
-              required: true
-            })
-            break
-          }
-          case OptionToAddMinecraftInstances.Optional: {
-            commandBuilder.options ??= []
-            commandBuilder.options.push({
-              type: 3,
-              name: instanceCommandName,
-              description: instanceCommandDescription,
-              choices: instanceChoices
-            })
-          }
+          commandBuilder.options.splice(index + 1, 0, {
+            type: 3,
+            name: instanceCommandName,
+            description: instanceCommandDescription,
+            autocomplete: true,
+            required: true
+          })
+          break
+        }
+        case OptionToAddMinecraftInstances.Optional: {
+          commandBuilder.options ??= []
+          commandBuilder.options.push({
+            type: 3,
+            name: instanceCommandName,
+            description: instanceCommandDescription,
+            autocomplete: true
+          })
+          break
         }
       }
 

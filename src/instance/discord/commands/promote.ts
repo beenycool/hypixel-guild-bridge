@@ -1,8 +1,12 @@
 import { escapeMarkdown, SlashCommandBuilder } from 'discord.js'
 
-import { InstanceType, Permission } from '../../../common/application-event.js'
+import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 import { checkChatTriggers, RankChat } from '../../../utility/chat-triggers.js'
+import {
+  getBridgeMinecraftInstanceError,
+  getFirstConnectedBridgeMinecraftInstanceName
+} from '../common/bridge-minecraft-instances.js'
 import { formatChatTriggerResponse } from '../common/chattrigger-format.js'
 
 export default {
@@ -13,20 +17,25 @@ export default {
       .addStringOption((option) =>
         option.setName('username').setDescription('Username of the player').setRequired(true).setAutocomplete(true)
       ),
-  permission: Permission.Helper,
+  permission: Permission.Owner,
 
   handler: async function (context) {
     await context.interaction.deferReply()
 
     const username: string = context.interaction.options.getString('username', true)
-    const instances = context.application.getInstancesNames(InstanceType.Minecraft)
+    const instance = getFirstConnectedBridgeMinecraftInstanceName(context.application, context.bridgeId)
+    if (instance === undefined) {
+      await context.interaction.editReply(getBridgeMinecraftInstanceError(context.application, context.bridgeId))
+      return
+    }
+
     const command = `/g promote ${username}`
 
     const result = await checkChatTriggers(
       context.application,
       context.eventHelper,
       RankChat,
-      instances,
+      [instance],
       command,
       username
     )

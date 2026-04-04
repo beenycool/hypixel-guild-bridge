@@ -15,12 +15,39 @@ export function translateNoPermission(
     case Permission.Helper: {
       roles.push(
         ...application.core.discordConfigurations.getHelperRoleIds(),
-        ...application.core.discordConfigurations.getOfficerRoleIds()
+        ...application.core.discordConfigurations.getOfficerRoleIds(),
+        ...application.core.discordConfigurations.getOwnerRoleIds()
       )
+      if (bridgeId) {
+        roles.push(
+          ...application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
+          ...application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
+          ...application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
+        )
+      }
       break
     }
     case Permission.Officer: {
-      roles.push(...application.core.discordConfigurations.getOfficerRoleIds())
+      roles.push(
+        ...application.core.discordConfigurations.getOfficerRoleIds(),
+        ...application.core.discordConfigurations.getOwnerRoleIds()
+      )
+      if (bridgeId) {
+        roles.push(
+          ...application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
+          ...application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
+        )
+      }
+      break
+    }
+    case Permission.Owner: {
+      roles.push(...application.core.discordConfigurations.getOwnerRoleIds())
+      if (bridgeId) {
+        roles.push(...application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId))
+      }
+      break
+    }
+    case Permission.Admin: {
       break
     }
   }

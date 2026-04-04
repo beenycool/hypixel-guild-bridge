@@ -3,22 +3,21 @@ import http from 'node:http'
 import { describe, it } from 'node:test'
 
 import PackageJson from '../package.json' with { type: 'json' }
+import type Application from '../src/application.js'
 import WebServer from '../src/instance/web-server.js'
-
-const makeFakeApp = () =>
-  ({
-    on: () => {},
-    onAny: () => {},
-    addShutdownListener: () => {},
-    sendMinecraft: async () => {},
-    getInstancesNames: () => [],
-    i18n: { t: () => '' }
-  }) as any
 
 void describe('web server /health', () => {
   void it('returns status ok, uptime number and version', async () => {
-    const app = makeFakeApp()
-    const server = new WebServer(app, { port: 0, token: 'test' })
+    const app = {
+      emit: () => {},
+      on: () => {},
+      onAny: () => {},
+      addShutdownListener: () => {},
+      sendMinecraft: async () => {},
+      getInstancesNames: () => [],
+      i18n: { t: () => '' }
+    } as unknown as Application
+    const server = new WebServer(app, { port: 0, token: 'test', enabled: true })
 
     // wait for server to bind to ephemeral port
     await new Promise<void>((resolve) => {

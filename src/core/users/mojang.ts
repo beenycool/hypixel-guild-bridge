@@ -18,6 +18,10 @@ export class MojangApi {
     this.mojangDatabase = new MojangDatabase(this.sqliteManager)
   }
 
+  public async load(): Promise<void> {
+    await this.mojangDatabase.load()
+  }
+
   async profileByUsername(username: string): Promise<MojangProfile> {
     const cachedResult = this.mojangDatabase.profileByUsername(username)
     if (cachedResult) return cachedResult
@@ -97,12 +101,12 @@ export class MojangApi {
           }
         })
         .catch(() => {
-          for (const username of usernames) {
+          for (const username of usernamesChunk) {
             result.set(username, undefined)
           }
         })
 
-    const chunkSize = 10 // Mojang only allow up to 10 usernames per lookup
+    const chunkSize = 10
     let chunk: string[] = []
     for (const username of usernames) {
       const cachedProfile = this.mojangDatabase.profileByUsername(username)
@@ -135,7 +139,7 @@ export class MojangApi {
         await this.rateLimit.wait()
         try {
           return await DefaultAxios.post<MojangProfile[]>(
-            `https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname`,
+            'https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname',
             usernames
           ).then((response) => response.data)
         } catch (error: unknown) {
@@ -157,41 +161,73 @@ export class MojangApi {
 class MojangDatabase {
   private static readonly MaxAge = 7 * 24 * 60 * 60 * 1000
 
+  private readonly profilesByLoweredName = new Map<string, CachedMojangProfile>()
+  private readonly profilesByUuid = new Map<string, CachedMojangProfile>()
+
   constructor(private readonly sqliteManager: SqliteManager) {}
 
-  public add(profiles: MojangProfile[]): void {
-    const database = this.sqliteManager.getDatabase()
-    const insert = database.prepare(
-      'INSERT OR REPLACE INTO "mojang" (uuid, username, loweredName) VALUES (@uuid, @username, @loweredName)'
+  public async load(): Promise<void> {
+    const rows = await this.sqliteManager.queryRows<CachedMojangProfile>(
+      'SELECT "uuid", "username", "loweredName", "createdAt" FROM "mojang"'
     )
 
-    const transaction = database.transaction(() => {
+    this.profilesByLoweredName.clear()
+    this.profilesByUuid.clear()
+    for (const row of rows) {
+      this.profilesByLoweredName.set(row.loweredName, row)
+      this.profilesByUuid.set(row.uuid, row)
+    }
+  }
+
+  public add(profiles: MojangProfile[]): void {
+    const createdAt = Math.floor(Date.now() / 1000)
+    for (const profile of profiles) {
+      const cachedProfile = {
+        uuid: profile.id,
+        username: profile.name,
+        loweredName: profile.name.toLowerCase(),
+        createdAt
+      }
+      this.profilesByLoweredName.set(cachedProfile.loweredName, cachedProfile)
+      this.profilesByUuid.set(cachedProfile.uuid, cachedProfile)
+    }
+
+    this.sqliteManager.enqueueTransaction('caching mojang profiles', async (database) => {
       for (const profile of profiles) {
-        insert.run({ uuid: profile.id, username: profile.name, loweredName: profile.name.toLowerCase() })
+        await database.query('DELETE FROM "mojang" WHERE "uuid" = $1 OR "loweredName" = $2', [
+          profile.id,
+          profile.name.toLowerCase()
+        ])
+        await database.query(
+          'INSERT INTO "mojang" ("uuid", "username", "loweredName", "createdAt") VALUES ($1, $2, $3, $4)',
+          [profile.id, profile.name, profile.name.toLowerCase(), createdAt]
+        )
       }
     })
-
-    transaction()
   }
 
   public profileByUsername(username: string): MojangProfile | undefined {
-    const database = this.sqliteManager.getDatabase()
-    const select = database.prepare(
-      'SELECT uuid as id, username as name FROM "mojang" WHERE loweredName = @loweredName AND createdAt > @createdAt'
-    )
-    return select.get({
-      loweredName: username.toLowerCase(),
-      createdAt: Math.floor((Date.now() - MojangDatabase.MaxAge) / 1000)
-    }) as MojangProfile | undefined
+    const cached = this.profilesByLoweredName.get(username.toLowerCase())
+    if (cached === undefined || cached.createdAt <= Math.floor((Date.now() - MojangDatabase.MaxAge) / 1000)) {
+      return undefined
+    }
+
+    return { id: cached.uuid, name: cached.username }
   }
 
   public profileByUuid(uuid: string): MojangProfile | undefined {
-    const database = this.sqliteManager.getDatabase()
-    const select = database.prepare(
-      'SELECT uuid as id, username as name FROM "mojang" WHERE uuid = @uuid AND createdAt > @createdAt'
-    )
-    return select.get({ uuid: uuid, createdAt: Math.floor((Date.now() - MojangDatabase.MaxAge) / 1000) }) as
-      | MojangProfile
-      | undefined
+    const cached = this.profilesByUuid.get(uuid)
+    if (cached === undefined || cached.createdAt <= Math.floor((Date.now() - MojangDatabase.MaxAge) / 1000)) {
+      return undefined
+    }
+
+    return { id: cached.uuid, name: cached.username }
   }
+}
+
+interface CachedMojangProfile {
+  uuid: string
+  username: string
+  loweredName: string
+  createdAt: number
 }

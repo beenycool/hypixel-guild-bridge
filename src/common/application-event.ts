@@ -218,6 +218,7 @@ export enum Permission {
   Anyone,
   Helper,
   Officer,
+  Owner,
   Admin
 }
 

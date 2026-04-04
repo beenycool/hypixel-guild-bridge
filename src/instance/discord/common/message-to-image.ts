@@ -4,15 +4,17 @@ import { type Canvas, createCanvas, loadImage, registerFont } from 'canvas'
 
 import type Application from '../../../application'
 
+type Canvas2DContext = NonNullable<ReturnType<Canvas['getContext']>>
+
 registerFont('./resources/fonts/MinecraftRegular-Bmg3.ttf', { family: 'Minecraft' })
 registerFont('./resources/fonts/unifont.ttf', { family: 'MinecraftUnicode' })
 
 export interface MessageImageOptions {
   /** Username for skin rendering when {skin} placeholder is used */
   username?: string
-  /** Whether to add a dark background gradient */
+  /** When true, draws a dark panel behind the text (PNG stays transparent if unset) */
   withBackground?: boolean
-  /** Background style: 'gradient', 'solid', or 'transparent' */
+  /** With `withBackground` or alone: `gradient`, `solid`, or `transparent` */
   backgroundStyle?: 'gradient' | 'solid' | 'transparent'
   /** Custom background color for solid style */
   backgroundColor?: string
@@ -36,13 +38,119 @@ export default class MessageToImage {
     c: 'rgba(255,85,85,1)',
     d: 'rgba(255,85,255,1)',
     e: 'rgba(255,255,85,1)',
-    f: 'rgba(255,255,255,1)'
+    f: 'rgba(255,255,255,1)',
+    /** Minecraft §r reset — same as default chat (white) */
+    r: 'rgba(255,255,255,1)'
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 
   // Exact margin match to source
   private static readonly WidthMargin = 5
   private static readonly SkinSize = 35
+  private static readonly CanvasWidth = 1000
+  /** Rightmost x for text (leave margin for shadow) */
+  private static readonly MaxLineX = MessageToImage.CanvasWidth - MessageToImage.WidthMargin
+  private static readonly LineAdvance = 40
+
+  /**
+   * Split on § / newlines without injecting §r per word (preserves Minecraft color carry-over).
+   * If the string does not start with §, prepend §f so the first run uses default white.
+   */
+  private static splitFormattedSegments(message: string): string[] {
+    if (message.length === 0) {
+      return []
+    }
+    const normalized = message.startsWith('§') ? message : `§f${message}`
+    const parts = normalized.split(/§|\n/g)
+    if (parts[0] === '') {
+      parts.shift()
+    } else {
+      parts[0] = `f${parts[0]}`
+    }
+    return parts
+  }
+
+  private static measureWords(
+    context: Canvas2DContext,
+    text: string,
+    x: number,
+    y: number
+  ): { x: number; y: number } {
+    if (text.length === 0) {
+      return { x, y }
+    }
+    const tokens = text.split(/(\s+)/).filter((t) => t.length > 0)
+    let cx = x
+    let cy = y
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLineX
+    const line = MessageToImage.LineAdvance
+    for (const token of tokens) {
+      const tw = context.measureText(token).width
+      if (cx + tw > maxX && cx > margin) {
+        cy += line
+        cx = margin
+      }
+      cx += tw
+    }
+    return { x: cx, y: cy }
+  }
+
+  private static drawWords(
+    context: Canvas2DContext,
+    text: string,
+    x: number,
+    y: number
+  ): { x: number; y: number } {
+    if (text.length === 0) {
+      return { x, y }
+    }
+    const tokens = text.split(/(\s+)/).filter((t) => t.length > 0)
+    let cx = x
+    let cy = y
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLineX
+    const line = MessageToImage.LineAdvance
+    for (const token of tokens) {
+      const tw = context.measureText(token).width
+      if (cx + tw > maxX && cx > margin) {
+        cy += line
+        cx = margin
+      }
+      context.fillText(token, cx, cy)
+      cx += tw
+    }
+    return { x: cx, y: cy }
+  }
+
+  private static measureWrappedSegmentBody(
+    context: Canvas2DContext,
+    currentMessage: string,
+    reserveSkin: boolean,
+    x: number,
+    y: number
+  ): { x: number; y: number } {
+    if (!currentMessage.includes('{skin}')) {
+      return MessageToImage.measureWords(context, currentMessage, x, y)
+    }
+    const parts = currentMessage.split('{skin}')
+    let pos = { x, y }
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLineX
+    const line = MessageToImage.LineAdvance
+    for (let i = 0; i < parts.length; i++) {
+      pos = MessageToImage.measureWords(context, parts[i] ?? '', pos.x, pos.y)
+      if (i < parts.length - 1) {
+        const skinW = reserveSkin ? MessageToImage.SkinSize + 20 : context.measureText('{skin}').width
+        if (pos.x + skinW > maxX && pos.x > margin) {
+          pos.y += line
+          pos.x = margin
+        }
+        pos.x += skinW
+      }
+    }
+    return pos
+  }
 
   constructor(private readonly application: Application) {}
 
@@ -59,89 +167,88 @@ export default class MessageToImage {
     return true
   }
 
+  private async drawWrappedSegmentBody(
+    context: Canvas2DContext,
+    x: number,
+    y: number,
+    currentMessage: string,
+    username: string | undefined
+  ): Promise<{ x: number; y: number }> {
+    if (!currentMessage.includes('{skin}')) {
+      return MessageToImage.drawWords(context, currentMessage, x, y)
+    }
+    if (username === undefined || username.length === 0) {
+      return MessageToImage.drawWords(context, currentMessage, x, y)
+    }
+    const parts = currentMessage.split('{skin}')
+    let pos = { x, y }
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLineX
+    const line = MessageToImage.LineAdvance
+    for (let i = 0; i < parts.length; i++) {
+      pos = MessageToImage.drawWords(context, parts[i] ?? '', pos.x, pos.y)
+      if (i < parts.length - 1) {
+        const skinW = MessageToImage.SkinSize + 20
+        if (pos.x + skinW > maxX && pos.x > margin) {
+          pos.y += line
+          pos.x = margin
+        }
+        try {
+          const skinImage = await loadImage(
+            `https://mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`
+          )
+          context.drawImage(skinImage, pos.x, pos.y - MessageToImage.SkinSize)
+          pos.x += skinW
+        } catch {
+          pos = MessageToImage.drawWords(context, '{skin}', pos.x, pos.y)
+        }
+      }
+    }
+    return pos
+  }
+
   /**
    * Generate an image from a Minecraft-formatted message
    * @param message The message with Minecraft color codes (§)
    * @param options Optional configuration for rendering
    */
   public async generateMessageImage(message: string, options?: MessageImageOptions): Promise<Buffer> {
-    // Delegate to the chat-bridge renderer for exact parity, falling back to the
-    // local renderer on error.
-    try {
-      const modulePath = new URL(
-        '../../../../hypixel-discord-chat-bridge/src/contracts/messageToImage.js',
-        import.meta.url
-      ).href
-      const module_ = await import(modulePath)
-      const generate = (module_.default ?? module_) as unknown as (
-        message: string,
-        username?: string
-      ) => Promise<Buffer>
-      return await generate(message, options?.username)
-    } catch {
-      // Fallback to local rendering if import fails
-      const canvasHeight = this.getHeight(message)
-      const canvas = createCanvas(1000, canvasHeight)
-      const context = canvas.getContext('2d')
+    const canvasHeight = this.getHeight(message, options?.username)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
+    const context = canvas.getContext('2d')
 
-      // Apply background if requested
-      if (options?.withBackground || options?.backgroundStyle) {
-        this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
+
+    // Matching source: 4px shadow, #131313, 40px font
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+    context.fillStyle = MessageToImage.RgbaColor.f
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of splitMessage) {
+      if (segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+      const colorCode = MessageToImage.RgbaColor[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
+
+      if (colorCode) {
+        context.fillStyle = colorCode
       }
 
-      const splitMessageSpace = message.split(' ')
-      for (let index = 0; index < splitMessageSpace.length; index++) {
-        const segment = splitMessageSpace[index]
-        if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
-      }
-
-      const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-      splitMessage.shift()
-
-      // Matching source: 4px shadow, #131313, 40px font
-      context.shadowOffsetX = 4
-      context.shadowOffsetY = 4
-      context.shadowColor = '#131313'
-      context.font = `40px Minecraft, MinecraftUnicode`
-
-      let width = MessageToImage.WidthMargin
-      let height = 35
-
-      for (const segment of splitMessage) {
-        const colorCode = MessageToImage.RgbaColor[segment.charAt(0)]
-        const currentMessage = segment.slice(1)
-
-        // Handle line wrapping
-        if (width + context.measureText(currentMessage).width > 1000 || segment.startsWith('n')) {
-          width = MessageToImage.WidthMargin
-          height += 40
-        }
-
-        // Handle {skin} placeholder - render player head
-        if (currentMessage.trim() === '{skin}' && options?.username) {
-          try {
-            const skinImage = await loadImage(
-              `https://mc-heads.net/avatar/${options.username}/${MessageToImage.SkinSize}`
-            )
-            context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
-            width += MessageToImage.SkinSize + 20 // Add some padding after skin
-            continue
-          } catch {
-            // If skin load fails, just skip the placeholder
-            continue
-          }
-        }
-
-        if (colorCode) {
-          context.fillStyle = colorCode
-        }
-
-        context.fillText(currentMessage, width, height)
-        width += context.measureText(currentMessage).width
-      }
-
-      return canvas.toBuffer()
+      const pos = await this.drawWrappedSegmentBody(context, width, height, currentMessage, options?.username)
+      width = pos.x
+      height = pos.y
     }
+
+    return canvas.toBuffer()
   }
 
   /**
@@ -149,50 +256,48 @@ export default class MessageToImage {
    */
   public generateMessageImageSync(message: string, options?: MessageImageOptions): Buffer {
     const canvasHeight = this.getHeight(message)
-    const canvas = createCanvas(1000, canvasHeight)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
     const context = canvas.getContext('2d')
 
-    // Apply background if requested
-    if (options?.withBackground || options?.backgroundStyle) {
-      this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
-    }
+    this.paintBackgroundIfNeeded(canvas, options)
 
-    const splitMessageSpace = message.split(' ')
-    for (let index = 0; index < splitMessageSpace.length; index++) {
-      const segment = splitMessageSpace[index]
-      if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
-    }
-
-    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-    splitMessage.shift()
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
 
     // Matching source: 4px shadow, #131313, 40px font
     context.shadowOffsetX = 4
     context.shadowOffsetY = 4
     context.shadowColor = '#131313'
     context.font = `40px Minecraft, MinecraftUnicode`
+    context.fillStyle = MessageToImage.RgbaColor.f
 
     let width = MessageToImage.WidthMargin
     let height = 35
 
     for (const segment of splitMessage) {
+      if (segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
       const colorCode = MessageToImage.RgbaColor[segment.charAt(0)]
       const currentMessage = segment.slice(1)
-
-      if (width + context.measureText(currentMessage).width > 1000 || segment.startsWith('n')) {
-        width = MessageToImage.WidthMargin
-        height += 40
-      }
 
       if (colorCode) {
         context.fillStyle = colorCode
       }
 
-      context.fillText(currentMessage, width, height)
-      width += context.measureText(currentMessage).width
+      const pos = MessageToImage.drawWords(context, currentMessage, width, height)
+      width = pos.x
+      height = pos.y
     }
 
     return canvas.toBuffer()
+  }
+
+  /** Background only when `withBackground` or `backgroundStyle` is set (default: transparent PNG). */
+  private paintBackgroundIfNeeded(canvas: Canvas, options?: MessageImageOptions): void {
+    if (options?.withBackground || options?.backgroundStyle) {
+      this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
+    }
   }
 
   /**
@@ -229,30 +334,30 @@ export default class MessageToImage {
     }
   }
 
-  private getHeight(message: string): number {
+  private getHeight(message: string, skinUsername?: string): number {
     const canvas = createCanvas(1, 1)
     const context = canvas.getContext('2d')
-    const splitMessageSpace = message.split(' ')
-    for (let index = 0; index < splitMessageSpace.length; index++) {
-      const segment = splitMessageSpace[index]
-      if (!segment.startsWith('§')) splitMessageSpace[index] = `§r${segment}`
-    }
-    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-    splitMessage.shift()
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
     context.font = `40px Minecraft, MinecraftUnicode`
+
+    const reserveSkin = skinUsername != undefined && skinUsername.length > 0
 
     let width = MessageToImage.WidthMargin
     let height = 35
 
     for (const segment of splitMessage) {
-      const currentMessage = segment.slice(1)
-      if (width + context.measureText(currentMessage).width > 1000 || segment.startsWith('n')) {
+      if (segment.startsWith('n')) {
         width = MessageToImage.WidthMargin
-        height += 40
+        height += MessageToImage.LineAdvance
       }
-      width += context.measureText(currentMessage).width
+      const currentMessage = segment.slice(1)
+      const pos = MessageToImage.measureWrappedSegmentBody(context, currentMessage, reserveSkin, width, height)
+      width = pos.x
+      height = pos.y
     }
-    if (width == 5) height -= 40
+    if (width == MessageToImage.WidthMargin && height === 35) {
+      height -= MessageToImage.LineAdvance
+    }
 
     return height + 10
   }

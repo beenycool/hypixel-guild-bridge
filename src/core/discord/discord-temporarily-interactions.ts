@@ -3,84 +3,90 @@ import type { SqliteManager } from '../../common/sqlite-manager'
 import type { DiscordConfigurations } from './discord-configurations'
 
 export class DiscordTemporarilyInteractions {
+  private readonly entries = new Map<string, DiscordMessage>()
+
   constructor(
     private readonly sqliteManager: SqliteManager,
     private readonly discordConfigurations: DiscordConfigurations
   ) {}
 
+  public async load(): Promise<void> {
+    const rows = await this.sqliteManager.queryRows<StoredDiscordMessage>('SELECT * FROM "discordTempInteractions"')
+    this.entries.clear()
+    for (const row of rows) {
+      this.entries.set(row.messageId, { ...row, createdAt: row.createdAt * 1000 })
+    }
+  }
+
   public add(entries: DiscordMessage[]): void {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const insert = database.prepare(
-        'INSERT OR REPLACE INTO "discordTempInteractions" (messageId, channelId,createdAt) VALUES (?, ?, ?)'
-      )
+    for (const entry of entries) {
+      this.entries.set(entry.messageId, entry)
+    }
+
+    this.sqliteManager.enqueueTransaction('saving temporary discord interactions', async (database) => {
       for (const entry of entries) {
-        insert.run(entry.messageId, entry.channelId, Math.floor(entry.createdAt / 1000))
+        await database.query(
+          `INSERT INTO "discordTempInteractions" ("messageId", "channelId", "createdAt") VALUES ($1, $2, $3)
+           ON CONFLICT ("messageId") DO UPDATE SET
+             "channelId" = EXCLUDED."channelId",
+             "createdAt" = EXCLUDED."createdAt"`,
+          [entry.messageId, entry.channelId, Math.floor(entry.createdAt / 1000)]
+        )
       }
     })
-
-    transaction()
   }
 
   public findToDelete(): DiscordMessage[] {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const currentTime = Date.now()
-      const maxInteractions = this.discordConfigurations.getMaxTemporarilyInteractions()
-      const duration = this.discordConfigurations.getDurationTemporarilyInteractions()
+    const currentTime = Date.now()
+    const maxInteractions = this.discordConfigurations.getMaxTemporarilyInteractions()
+    const duration = this.discordConfigurations.getDurationTemporarilyInteractions()
 
-      const select = database.prepare('SELECT * FROM "discordTempInteractions"')
-      const allInteractions = select.all() as DiscordMessage[]
+    const allInteractions = [...this.entries.values()].map((entry) => ({ ...entry }))
+    const toDelete: DiscordMessage[] = []
 
-      const toDelete: DiscordMessage[] = []
+    allInteractions.reverse().sort((a, b) => b.createdAt - a.createdAt)
 
-      allInteractions
-        // reversed to ease the sorting since the list is mostly created chronologically
-        // eslint-disable-next-line unicorn/no-array-reverse
-        .reverse()
-        .sort((a, b) => b.createdAt - a.createdAt)
-
-      const interactionsCount = new Map<string, number>()
-      for (const interaction of allInteractions) {
-        if (interaction.createdAt * 1000 + duration.toMilliseconds() < currentTime) {
-          toDelete.push(interaction)
-          continue
-        }
-
-        const currentInteractionsCount = interactionsCount.get(interaction.channelId) ?? 0
-        if (currentInteractionsCount >= maxInteractions) {
-          toDelete.push(interaction)
-          continue
-        }
-
-        interactionsCount.set(interaction.channelId, currentInteractionsCount + 1)
+    const interactionsCount = new Map<string, number>()
+    for (const interaction of allInteractions) {
+      if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
+        toDelete.push(interaction)
+        continue
       }
 
-      return toDelete
-    })
+      const currentInteractionsCount = interactionsCount.get(interaction.channelId) ?? 0
+      if (currentInteractionsCount >= maxInteractions) {
+        toDelete.push(interaction)
+        continue
+      }
 
-    return transaction()
+      interactionsCount.set(interaction.channelId, currentInteractionsCount + 1)
+    }
+
+    return toDelete
   }
 
   public remove(messagesIds: DiscordMessage['messageId'][]): number {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const update = database.prepare('DELETE FROM "discordTempInteractions" WHERE messageId = ?')
+    let count = 0
+    for (const messageId of messagesIds) {
+      if (this.entries.delete(messageId)) count++
+    }
 
-      let count = 0
-      for (const entry of messagesIds) {
-        count += update.run(entry).changes
+    this.sqliteManager.enqueueTransaction('removing temporary discord interactions', async (database) => {
+      for (const messageId of messagesIds) {
+        await database.query('DELETE FROM "discordTempInteractions" WHERE "messageId" = $1', [messageId])
       }
-
-      return count
     })
 
-    return transaction()
+    return count
   }
 }
 
 export interface DiscordMessage {
   channelId: string
   messageId: string
+  createdAt: number
+}
+
+interface StoredDiscordMessage extends Omit<DiscordMessage, 'createdAt'> {
   createdAt: number
 }

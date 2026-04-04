@@ -1,5 +1,3 @@
-import assert from 'node:assert'
-
 import type { Logger } from 'log4js'
 
 import type { InstanceIdentifier } from '../../common/application-event'
@@ -9,127 +7,144 @@ import Duration from '../../utility/duration'
 export class InstanceHistoryButton {
   private static readonly MaxLife = Duration.years(2)
 
+  private readonly buttons = new Map<string, DiscordPersistentInstance>()
+  private readonly lastButtons = new Map<string, string>()
+
   constructor(
     private readonly sqliteManager: SqliteManager,
     logger: Logger
   ) {
     this.sqliteManager.registerCleaner(() => {
-      const database = this.sqliteManager.getDatabase()
-      const transaction = database.transaction(() => {
-        const currentTime = Math.floor(Date.now() / 1000)
-        const statement = database.prepare('DELETE FROM "discordInstanceHistoryButton" WHERE createdAt < ?')
-        return statement.run(currentTime - InstanceHistoryButton.MaxLife.toSeconds()).changes
-      })
+      const cutoff = Date.now() - InstanceHistoryButton.MaxLife.toMilliseconds()
+      let deleted = 0
 
-      const count = transaction()
-      if (count > 0) {
-        logger.debug(`Deleted ${count} old entries in DiscordPersistentButtons.`)
+      for (const [messageId, button] of this.buttons) {
+        if (button.endTime < cutoff) {
+          this.buttons.delete(messageId)
+          this.lastButtons.delete(lastButtonKey(button.channelId, button.instanceName))
+          deleted++
+        }
+      }
+
+      if (deleted > 0) {
+        logger.debug(`Deleted ${deleted} old entries in DiscordPersistentButtons.`)
+        this.sqliteManager.enqueueWrite('cleaning old discord history buttons', async (database) => {
+          await database.query('DELETE FROM "discordInstanceHistoryButton" WHERE "createdAt" < $1', [
+            Math.floor(cutoff / 1000)
+          ])
+          await database.query('DELETE FROM "discordInstanceHistoryLastButton" WHERE "createdAt" < $1', [
+            Math.floor(cutoff / 1000)
+          ])
+        })
       }
     })
+  }
+
+  public async load(): Promise<void> {
+    const buttons = await this.sqliteManager.queryRows<StoredDiscordPersistentInstance>(
+      'SELECT * FROM "discordInstanceHistoryButton"'
+    )
+    const lastButtons = await this.sqliteManager.queryRows<StoredLastButton>(
+      'SELECT * FROM "discordInstanceHistoryLastButton"'
+    )
+
+    this.buttons.clear()
+    for (const button of buttons) {
+      this.buttons.set(button.messageId, {
+        ...button,
+        startTime: button.startTime * 1000,
+        endTime: button.endTime * 1000
+      })
+    }
+
+    this.lastButtons.clear()
+    for (const button of lastButtons) {
+      this.lastButtons.set(lastButtonKey(button.channelId, button.instanceName), button.messageId)
+    }
   }
 
   public add(entry: DiscordPersistentInstance): void {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const insert = database.prepare(
-        'INSERT INTO "discordInstanceHistoryButton" (messageId, channelId, instanceName, instanceType, type, startTime, endTime) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      )
-      const updateLastButton = database.prepare(
-        'INSERT OR REPLACE INTO "discordInstanceHistoryLastButton" (messageId, channelId, instanceName, createdAt) VALUES (?, ?, ?, ?)'
-      )
+    this.buttons.set(entry.messageId, { ...entry })
+    this.lastButtons.set(lastButtonKey(entry.channelId, entry.instanceName), entry.messageId)
 
-      const result = insert.run(
-        entry.messageId,
-        entry.channelId,
-        entry.instanceName,
-        entry.instanceType,
-        entry.type,
-        Math.floor(entry.startTime / 1000),
-        Math.floor(entry.endTime / 1000)
+    this.sqliteManager.enqueueTransaction(`saving discord history button ${entry.messageId}`, async (database) => {
+      await database.query(
+        `INSERT INTO "discordInstanceHistoryButton"
+          ("messageId", "channelId", "instanceName", "instanceType", "type", "startTime", "endTime", "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT ("messageId") DO UPDATE SET
+           "channelId" = EXCLUDED."channelId",
+           "instanceName" = EXCLUDED."instanceName",
+           "instanceType" = EXCLUDED."instanceType",
+           "type" = EXCLUDED."type",
+           "startTime" = EXCLUDED."startTime",
+           "endTime" = EXCLUDED."endTime",
+           "createdAt" = EXCLUDED."createdAt"`,
+        [
+          entry.messageId,
+          entry.channelId,
+          entry.instanceName,
+          entry.instanceType,
+          entry.type,
+          Math.floor(entry.startTime / 1000),
+          Math.floor(entry.endTime / 1000),
+          Math.floor(entry.endTime / 1000)
+        ]
       )
-      assert.strictEqual(result.changes, 1)
-
-      const updateResult = updateLastButton.run(
-        entry.messageId,
-        entry.channelId,
-        entry.instanceName,
-        Math.floor(entry.endTime / 1000)
+      await database.query(
+        `INSERT INTO "discordInstanceHistoryLastButton" ("messageId", "channelId", "instanceName", "createdAt") VALUES ($1, $2, $3, $4)
+         ON CONFLICT ("channelId", "instanceName") DO UPDATE SET
+           "messageId" = EXCLUDED."messageId",
+           "createdAt" = EXCLUDED."createdAt"`,
+        [entry.messageId, entry.channelId, entry.instanceName, Math.floor(entry.endTime / 1000)]
       )
-      assert.strictEqual(updateResult.changes, 1)
     })
-
-    transaction()
   }
 
   public getButton(messageId: string): DiscordPersistentInstance | undefined {
-    const database = this.sqliteManager.getDatabase()
-
-    const transaction = database.transaction(() => {
-      const select = database.prepare('SELECT * FROM "discordInstanceHistoryButton" WHERE messageId = ?')
-      const result = select.get(messageId) as DiscordPersistentInstance | undefined
-
-      if (result !== undefined) {
-        result.startTime = result.startTime * 1000
-        result.endTime = result.endTime * 1000
-      }
-
-      return result
-    })
-
-    return transaction()
+    const entry = this.buttons.get(messageId)
+    return entry === undefined ? undefined : { ...entry }
   }
 
   public lastButton(channelId: string, instanceName: string): DiscordPersistentInstance | undefined {
-    const database = this.sqliteManager.getDatabase()
+    const lastMessageId = this.lastButtons.get(lastButtonKey(channelId, instanceName))
+    if (!lastMessageId) return undefined
 
-    const transaction = database.transaction(() => {
-      const findLastMessage = database.prepare(
-        'SELECT messageId FROM "discordInstanceHistoryLastButton" WHERE channelId = ? AND instanceName = ?'
-      )
-      const selectLastMessage = database.prepare('SELECT * FROM "discordInstanceHistoryButton" WHERE messageId = ?')
-
-      const lastMessageId = findLastMessage.pluck(true).get(channelId, instanceName) as string | undefined
-      if (!lastMessageId) return
-
-      const result = selectLastMessage.get(lastMessageId) as DiscordPersistentInstance | undefined
-
-      if (result !== undefined) {
-        result.startTime = result.startTime * 1000
-        result.endTime = result.endTime * 1000
-      }
-
-      return result
-    })
-
-    return transaction()
+    const entry = this.buttons.get(lastMessageId)
+    return entry === undefined ? undefined : { ...entry }
   }
 
   public extendButtonEndTimestamp(messageId: string, endTimestamp: number): void {
-    const database = this.sqliteManager.getDatabase()
+    const entry = this.buttons.get(messageId)
+    if (entry === undefined) return
 
-    const transaction = database.transaction(() => {
-      const update = database.prepare('UPDATE "discordInstanceHistoryButton" SET endTime = ? WHERE messageId = ?')
-      const result = update.run(Math.floor(endTimestamp / 1000), messageId)
-      assert.strictEqual(result.changes, 1)
+    entry.endTime = endTimestamp
+    this.sqliteManager.enqueueWrite(`extending discord history button ${messageId}`, async (database) => {
+      await database.query('UPDATE "discordInstanceHistoryButton" SET "endTime" = $1 WHERE "messageId" = $2', [
+        Math.floor(endTimestamp / 1000),
+        messageId
+      ])
     })
-
-    transaction()
   }
 
   public remove(messagesIds: string[]): number {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const update = database.prepare('DELETE FROM "discordInstanceHistoryButton" WHERE messageId = ?')
-
-      let count = 0
-      for (const entry of messagesIds) {
-        count += update.run(entry).changes
+    let count = 0
+    for (const messageId of messagesIds) {
+      const entry = this.buttons.get(messageId)
+      if (entry !== undefined) {
+        this.lastButtons.delete(lastButtonKey(entry.channelId, entry.instanceName))
       }
+      if (this.buttons.delete(messageId)) count++
+    }
 
-      return count
+    this.sqliteManager.enqueueTransaction('removing discord history buttons', async (database) => {
+      for (const messageId of messagesIds) {
+        await database.query('DELETE FROM "discordInstanceHistoryButton" WHERE "messageId" = $1', [messageId])
+        await database.query('DELETE FROM "discordInstanceHistoryLastButton" WHERE "messageId" = $1', [messageId])
+      }
     })
 
-    return transaction()
+    return count
   }
 }
 
@@ -147,4 +162,19 @@ export enum DiscordInstanceHistoryButtonType {
   Failed = 'failed',
   Success = 'success',
   Notice = 'notice'
+}
+
+interface StoredDiscordPersistentInstance extends Omit<DiscordPersistentInstance, 'startTime' | 'endTime'> {
+  startTime: number
+  endTime: number
+}
+
+interface StoredLastButton {
+  messageId: string
+  channelId: string
+  instanceName: string
+}
+
+function lastButtonKey(channelId: string, instanceName: string): string {
+  return `${channelId}:${instanceName.toLowerCase()}`
 }

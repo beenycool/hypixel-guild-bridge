@@ -2,8 +2,11 @@ import { escapeMarkdown, SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
-import { OptionToAddMinecraftInstances } from '../../../common/commands.js'
 import { checkChatTriggers, InviteAcceptChat } from '../../../utility/chat-triggers.js'
+import {
+  getBridgeMinecraftInstanceError,
+  getFirstConnectedBridgeMinecraftInstanceName
+} from '../common/bridge-minecraft-instances.js'
 import { formatChatTriggerResponse } from '../common/chattrigger-format.js'
 
 export default {
@@ -14,7 +17,6 @@ export default {
       .addStringOption((option) =>
         option.setName('username').setDescription('Username of the player').setRequired(true).setAutocomplete(true)
       ),
-  addMinecraftInstancesToOptions: OptionToAddMinecraftInstances.Required,
   permission: Permission.Helper,
 
   handler: async function (context) {
@@ -22,8 +24,12 @@ export default {
 
     const username: string = context.interaction.options.getString('username', true)
     const command = `/g accept ${username}`
+    const instance = getFirstConnectedBridgeMinecraftInstanceName(context.application, context.bridgeId)
+    if (instance === undefined) {
+      await context.interaction.editReply(getBridgeMinecraftInstanceError(context.application, context.bridgeId))
+      return
+    }
 
-    const instance: string = context.interaction.options.getString('instance', true)
     const result = await checkChatTriggers(
       context.application,
       context.eventHelper,

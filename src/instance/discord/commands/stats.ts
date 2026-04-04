@@ -51,7 +51,8 @@ export default {
             { name: 'Skywars', value: 'skywars' },
             { name: 'Duels', value: 'duels' },
             { name: 'Murder Mystery', value: 'murdermystery' },
-            { name: 'TNT Games', value: 'tntgames' }
+            { name: 'TNT Games', value: 'tntgames' },
+            { name: 'Wool Wars', value: 'woolwars' }
           )
       )
       .addStringOption(
@@ -155,6 +156,23 @@ export default {
             coins: tnt.coins
           }
           gameTitle = 'TNT Games'
+          break
+        }
+        case 'woolwars': {
+          const wg = player.stats?.woolgames
+          const ww = wg?.woolWars
+          if (!ww || ww.gamesPlayed === 0) {
+            await context.interaction.editReply(`\`${username}\` has never played Wool Wars.`)
+            return
+          }
+          stats = {
+            level: wg?.level,
+            kills: ww.kills,
+            wins: ww.wins,
+            kdr: ww.KDRatio,
+            wlr: ww.gamesPlayed > 0 ? ww.wins / ww.gamesPlayed : 0
+          }
+          gameTitle = 'Wool Wars'
           break
         }
         default: {

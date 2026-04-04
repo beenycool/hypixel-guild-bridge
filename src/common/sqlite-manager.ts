@@ -1,149 +1,236 @@
 import assert from 'node:assert'
 import fs from 'node:fs'
 
-import Database from 'better-sqlite3'
+import { newDb } from 'pg-mem'
+import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 import type { Logger } from 'log4js'
 
 import type Application from '../application.js'
 
+type QueryValues = readonly unknown[]
+
+interface Queryable {
+  query<T extends QueryResultRow = QueryResultRow>(text: string, values?: QueryValues): Promise<QueryResult<T>>
+}
+
+interface PoolClientLike extends Queryable {
+  release(): void
+}
+
+interface PoolLike extends Queryable {
+  connect(): Promise<PoolClientLike>
+  end(): Promise<void>
+}
+
 export class SqliteManager {
   private static readonly CleanEvery = 3 * 60 * 60 * 1000
 
-  private readonly configFilePath: string
-  private readonly database: Database.Database
-  private readonly newlyCreated: boolean
+  private readonly cleanCallbacks: (() => void | Promise<void>)[] = []
+  private readonly readyPromise: Promise<void>
 
+  private pool: PoolLike | undefined
+  private cleanTimer: NodeJS.Timeout | undefined
+  private writeQueue: Promise<void> = Promise.resolve()
   private closed = false
-
-  private lastClean = -1
-  private cleanCallbacks: (() => void)[] = []
-
-  private readonly migrators = new Map<number, Migrator>()
-  private targetVersion = 0
 
   public constructor(
     private readonly application: Application,
-    private readonly logger: Logger,
-    filepath: string
+    private readonly logger: Logger
   ) {
-    this.configFilePath = filepath
-
-    application.applicationIntegrity.addConfigPath(this.configFilePath)
-    // temp files
-    application.applicationIntegrity.addConfigPath(this.configFilePath + '-shm')
-    application.applicationIntegrity.addConfigPath(this.configFilePath + '-wal')
-
-    application.addShutdownListener(() => {
-      this.close()
+    application.addShutdownListener(async () => {
+      await this.close()
     })
 
-    this.newlyCreated = !fs.existsSync(filepath)
-
-    this.database = new Database(filepath)
-    this.database.pragma('journal_mode = WAL')
+    this.readyPromise = this.initialize()
   }
 
-  public isNewlyCreated(): boolean {
-    return this.newlyCreated
+  public async awaitReady(): Promise<void> {
+    await this.readyPromise
   }
 
-  public registerCleaner(callback: () => void): void {
+  public registerCleaner(callback: () => void | Promise<void>): void {
     this.cleanCallbacks.push(callback)
   }
 
-  public registerMigrator(version: number, migrate: Migrator): this {
-    assert.ok(!this.migrators.has(version), `migration process for version ${version} already registered.`)
-    this.migrators.set(version, migrate)
-
-    return this
+  public async queryRows<T extends QueryResultRow = QueryResultRow>(
+    text: string,
+    values: QueryValues = []
+  ): Promise<T[]> {
+    return (await this.query(text, values)).rows as T[]
   }
 
-  public setTargetVersion(version: number): this {
-    this.targetVersion = version
-
-    return this
+  public async queryOne<T extends QueryResultRow = QueryResultRow>(
+    text: string,
+    values: QueryValues = []
+  ): Promise<T | undefined> {
+    return (await this.queryRows<T>(text, values))[0]
   }
 
-  public migrate(sqliteName: string): void {
-    const database = this.getDatabase()
-    const postCleanupActions: (() => void)[] = []
+  public async execute(text: string, values: QueryValues = []): Promise<number> {
+    return (await this.query(text, values)).rowCount ?? 0
+  }
 
-    const transaction = database.transaction(() => {
-      const newlyCreated = this.isNewlyCreated()
+  public enqueueWrite(description: string, callback: (database: Queryable) => Promise<void>): void {
+    if (this.closed) return
 
-      let finished = false
-      let changed = false
-      while (!finished) {
-        const currentVersion = database.pragma('user_version', { simple: true }) as number
-        const migrator = this.migrators.get(currentVersion)
-        if (migrator !== undefined) {
-          migrator(database, this.logger, postCleanupActions, newlyCreated)
-          changed = true
-          continue
+    this.writeQueue = this.writeQueue
+      .catch(() => undefined)
+      .then(async () => {
+        await this.awaitReady()
+        const pool = this.getPool()
+        await callback(pool)
+      })
+      .catch((error: unknown) => {
+        this.logger.error(`Database write failed during ${description}`)
+        this.logger.error(error)
+      })
+  }
+
+  public enqueueTransaction(description: string, callback: (database: Queryable) => Promise<void>): void {
+    if (this.closed) return
+
+    this.writeQueue = this.writeQueue
+      .catch(() => undefined)
+      .then(async () => {
+        await this.awaitReady()
+        const client = await this.getPool().connect()
+        try {
+          await client.query('BEGIN')
+          await callback(client)
+          await client.query('COMMIT')
+        } catch (error) {
+          await client.query('ROLLBACK').catch(() => undefined)
+          throw error
+        } finally {
+          client.release()
         }
+      })
+      .catch((error: unknown) => {
+        this.logger.error(`Database transaction failed during ${description}`)
+        this.logger.error(error)
+      })
+  }
 
-        assert.strictEqual(
-          currentVersion,
-          this.targetVersion,
-          'migration process failed to reach the target version somehow??'
-        )
-        if (changed && !newlyCreated) {
-          const backupPath = this.application.getBackupPath(sqliteName)
-          this.application.applicationIntegrity.addConfigPath(backupPath)
-          this.logger.debug(`Backing up old database before committing changes. backup path: ${backupPath}`)
-          this.backup(backupPath)
-        }
+  public async flushWrites(): Promise<void> {
+    await this.awaitReady()
+    await this.writeQueue
+  }
 
-        this.logger.info('Database schema is on latest version')
-        finished = true
-      }
-    })
+  public async transaction<T>(callback: (database: Queryable) => Promise<T>): Promise<T> {
+    await this.awaitReady()
+    const client = await this.getPool().connect()
 
-    transaction()
-    if (postCleanupActions.length > 0) {
-      this.logger.debug('Starting cleaning up...')
-
-      for (const postAction of postCleanupActions) {
-        postAction()
-      }
-
-      this.logger.debug('Finished all cleanups.')
+    try {
+      await client.query('BEGIN')
+      const result = await callback(client)
+      await client.query('COMMIT')
+      return result
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined)
+      throw error
+    } finally {
+      client.release()
     }
   }
 
-  public close(): void {
+  public async close(): Promise<void> {
+    if (this.closed) return
+
+    if (this.cleanTimer !== undefined) {
+      clearInterval(this.cleanTimer)
+      this.cleanTimer = undefined
+    }
+
+    await this.flushWrites().catch((error: unknown) => {
+      this.logger.error('Failed while flushing queued database writes during shutdown')
+      this.logger.error(error)
+    })
+
     this.closed = true
-    this.database.close()
+
+    const pool = this.pool
+    this.pool = undefined
+    if (pool !== undefined) {
+      await pool.end()
+    }
   }
 
-  public isClosed(): boolean {
-    return this.closed
+  private async initialize(): Promise<void> {
+    const databaseUrl = this.resolveDatabaseUrl()
+
+    if (databaseUrl.startsWith('memory://')) {
+      const memoryDatabase = newDb({ autoCreateForeignKeyIndices: true })
+      const adapter = memoryDatabase.adapters.createPg()
+      this.pool = new adapter.Pool() as unknown as PoolLike
+      this.logger.info(`Using in-memory PostgreSQL adapter (${databaseUrl})`)
+    } else {
+      const ssl = this.resolveSsl(databaseUrl)
+      this.pool = new Pool({
+        connectionString: databaseUrl,
+        ssl: ssl ? { rejectUnauthorized: false } : undefined
+      }) as unknown as PoolLike
+      this.logger.info('Using PostgreSQL database connection')
+    }
+
+    await this.query('SELECT 1')
+
+    this.cleanTimer = setInterval(() => {
+      void this.runCleaners()
+    }, SqliteManager.CleanEvery)
+    this.cleanTimer.unref?.()
   }
 
-  public getDatabase(): Database.Database {
-    assert.ok(!this.isClosed(), 'Database is closed')
-    this.tryClean()
-    return this.database
+  private resolveDatabaseUrl(): string {
+    const configured = this.application.getDatabaseConfig()?.url?.trim()
+    if (configured) return configured
+
+    const environment = process.env.DATABASE_URL?.trim()
+    if (environment) return environment
+
+    if (this.hasLegacySqliteDatabase()) {
+      throw new Error('A PostgreSQL DATABASE_URL is required before migrating legacy SQLite data')
+    }
+
+    if (process.env.NODE_ENV === 'production' || process.env.DYNO !== undefined) {
+      throw new Error('DATABASE_URL is required in production environments')
+    }
+
+    return 'memory://local'
   }
 
-  public backup(destination: string): void {
-    fs.copyFileSync(this.configFilePath, destination)
+  private hasLegacySqliteDatabase(): boolean {
+    return fs.existsSync(this.application.getConfigFilePath('users.sqlite'))
   }
 
-  private tryClean(): void {
-    const currentTime = Date.now()
+  private resolveSsl(databaseUrl: string): boolean {
+    const configured = this.application.getDatabaseConfig()?.ssl
+    if (configured !== undefined) return configured
 
-    if (this.lastClean + SqliteManager.CleanEvery > currentTime) return
-    this.lastClean = currentTime
-    for (const cleanCallback of this.cleanCallbacks) {
-      cleanCallback()
+    return !/localhost|127\.0\.0\.1/.test(databaseUrl) && databaseUrl.startsWith('postgres')
+  }
+
+  private async query<T extends QueryResultRow = QueryResultRow>(
+    text: string,
+    values: QueryValues = []
+  ): Promise<QueryResult<T>> {
+    assert.ok(!this.closed, 'Database is closed')
+    const pool = this.getPool()
+    return await pool.query<T>(text, values)
+  }
+
+  private getPool(): PoolLike {
+    assert.ok(this.pool !== undefined, 'Database is not initialized yet')
+    return this.pool
+  }
+
+  private async runCleaners(): Promise<void> {
+    for (const cleaner of this.cleanCallbacks) {
+      try {
+        await cleaner()
+      } catch (error) {
+        this.logger.error('Database cleaner failed')
+        this.logger.error(error)
+      }
     }
   }
 }
-
-export type Migrator = (
-  database: Database.Database,
-  logger: Logger,
-  postCleanupActions: (() => void)[],
-  newlyCreated: boolean
-) => void

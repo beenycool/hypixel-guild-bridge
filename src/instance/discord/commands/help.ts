@@ -61,6 +61,14 @@ export default {
       )
       embedBase.description += '\n'
     }
+    if (userPermission >= Permission.Owner) {
+      embedBase.description += '**Owner**\n'
+      embedBase.description += createField(
+        guildCommands,
+        allCommands.filter((command) => command.permission === Permission.Owner)
+      )
+      embedBase.description += '\n'
+    }
     if (userPermission >= Permission.Admin) {
       embedBase.description += '**Admin**\n'
       embedBase.description += createField(

@@ -70,6 +70,8 @@ git clone https://github.com/aidn3/hypixel-guild-discord-bridge
 If you are on linux, execute this command to auto download all libraries and start the application.
 It will also keep the application up to date:
 
+Set `DATABASE_URL` first when running a real install or migrating from `config/users.sqlite`. The in-memory fallback is only for fresh local/test runs.
+
 ```shell
 ./start.sh
 ```
@@ -89,15 +91,16 @@ Image is usually up to date.
 To start, first prepare the configuration as instructed in [this section](#configure). Then execute:
 
 ```shell
-sudo docker container run -it --rm -v ./config.yaml:/app/config.yaml ghcr.io/aidn3/hypixel-guild-discord-bridge:latest
+sudo docker container run -it --rm -e DATABASE_URL="$DATABASE_URL" -v ./config.yaml:/app/config.yaml ghcr.io/aidn3/hypixel-guild-discord-bridge:latest
 ```
 
 Note that the path of the configuration source file must either be relative (with the `./`) or absolute.
+The application now stores runtime state in PostgreSQL, so `DATABASE_URL` must point at your database. On Heroku this is usually provided automatically by the Postgres add-on.
 
 Alternatively, providing the path as an argument to the docker container is also possible:
 
 ```shell
-sudo docker container run -it --rm -v ./config.yaml:/config/config.yaml ghcr.io/aidn3/hypixel-guild-discord-bridge:latest /config/config.yaml
+sudo docker container run -it --rm -e DATABASE_URL="$DATABASE_URL" -v ./config.yaml:/config/config.yaml ghcr.io/aidn3/hypixel-guild-discord-bridge:latest /config/config.yaml
 ```
 
 ## Setup Via Discord
@@ -110,6 +113,7 @@ Use Discord slash command `/settings` to configure the application:
 - Check [How to prepare and add Minecraft account](docs/FAQ.md#how-to-prepare-a-minecraft-account-to-be-added).
 
 ## Credits
+
 - duckysolucky
 - The Project is inspired by [hypixel-discord-chat-bridge by Senither](https://github.com/Senither/hypixel-discord-chat-bridge).
 - [Soopyboo32](https://github.com/Soopyboo32) for providing [an awesome command API](https://soopy.dev/commands)

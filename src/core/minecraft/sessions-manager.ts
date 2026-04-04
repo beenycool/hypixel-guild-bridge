@@ -6,173 +6,255 @@ import type { Cache, CacheFactory } from 'prismarine-auth'
 import type { SqliteManager } from '../../common/sqlite-manager'
 
 export class SessionsManager {
+  private readonly proxies = new Map<number, ProxyConfig>()
+  private readonly instances = new Map<string, LoadedMinecraftInstance>()
+  private readonly sessions = new Map<string, Map<string, StoredSession>>()
+  private nextProxyId = 1
+
   constructor(
     private readonly sqliteManager: SqliteManager,
     private readonly logger: Logger
   ) {}
 
+  public async load(): Promise<void> {
+    const proxies = await this.sqliteManager.queryRows<ProxyConfig>('SELECT * FROM "proxies" ORDER BY "id" ASC')
+    const instances = await this.sqliteManager.queryRows<StoredMinecraftInstance>(
+      'SELECT * FROM "mojangInstances" ORDER BY "name" ASC'
+    )
+    const sessions = await this.sqliteManager.queryRows<StoredSession>(
+      'SELECT * FROM "mojangSessions" ORDER BY "name" ASC, "cacheName" ASC'
+    )
+
+    this.proxies.clear()
+    for (const proxy of proxies) {
+      this.proxies.set(proxy.id, { ...proxy, user: proxy.user ?? undefined, password: proxy.password ?? undefined })
+    }
+    this.nextProxyId = proxies.reduce((maxId, proxy) => Math.max(maxId, proxy.id), 0) + 1
+
+    this.instances.clear()
+    for (const instance of instances) {
+      this.instances.set(instanceKey(instance.name), {
+        name: instance.name,
+        proxyId: instance.proxyId ?? undefined,
+        connect: instance.connect !== 0
+      })
+    }
+
+    this.sessions.clear()
+    for (const session of sessions) {
+      const sessionMap = getOrCreate(this.sessions, sessionKey(session.name), () => new Map())
+      sessionMap.set(session.cacheName, { ...session })
+    }
+  }
+
   public getSessionsFactory(instanceName: string): CacheFactory {
     return (options: { username: string; cacheName: string }): Cache => {
-      return new Session(this, this.sqliteManager, this.logger, instanceName, options.username, options.cacheName)
+      return new Session(this, this.logger, instanceName, options.username, options.cacheName)
     }
   }
 
   public deleteSession(instanceName: string): number {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const statement = database.prepare('DELETE FROM "mojangSessions" WHERE name = ?')
-      const result = statement.run(instanceName).changes
-      if (result !== 0) {
-        this.logger.debug(`Deleted Minecraft instance with the name=${instanceName}`)
-      }
+    const key = sessionKey(instanceName)
+    const count = this.sessions.get(key)?.size ?? 0
+    this.sessions.delete(key)
 
-      return result
+    if (count !== 0) {
+      this.logger.debug(`Deleted Minecraft sessions for name=${instanceName} (changes=${count})`)
+    }
+    this.logger.debug(`Remaining mojangSessions for ${instanceName} = ${this.sessions.get(key)?.size ?? 0}`)
+
+    this.sqliteManager.enqueueWrite(`deleting sessions for ${instanceName}`, async (database) => {
+      await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1)', [instanceName])
     })
 
-    return transaction()
+    return count
   }
 
   public clearCachedSessions(instanceName: string): number {
-    const MainSessionName = 'live'
+    const mainSessionName = 'live'
+    const sessionMap = this.sessions.get(sessionKey(instanceName))
+    if (sessionMap === undefined) return 0
 
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const statement = database.prepare('DELETE FROM "mojangSessions" WHERE name = ? AND cacheName != ?')
-      const result = statement.run(instanceName, MainSessionName).changes
-      if (result !== 0) {
-        this.logger.debug(`Deleted ${result} Minecraft cached session files with the name=${instanceName}`)
+    let deleted = 0
+    for (const cacheName of [...sessionMap.keys()]) {
+      if (cacheName !== mainSessionName) {
+        sessionMap.delete(cacheName)
+        deleted++
       }
+    }
 
-      return result
-    })
+    if (deleted !== 0) {
+      this.logger.debug(`Deleted ${deleted} Minecraft cached session files with the name=${instanceName}`)
+      this.sqliteManager.enqueueWrite(`deleting cached sessions for ${instanceName}`, async (database) => {
+        await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" != $2', [
+          instanceName,
+          mainSessionName
+        ])
+      })
+    }
 
-    return transaction()
+    return deleted
   }
 
-  public setSession(instanceName: string, name: string, cacheName: string, value: Record<string, unknown>): void {
-    const database = this.sqliteManager.getDatabase()
-    const statement = database.prepare(
-      'INSERT OR REPLACE INTO "mojangSessions" (name, cacheName, value, createdAt) VALUES (?, ?, ?, ?)'
-    )
-    statement.run(name, cacheName, JSON.stringify(value), Math.floor(Date.now() / 1000))
+  public setSession(_instanceName: string, name: string, cacheName: string, value: Record<string, unknown>): void {
+    const createdAt = Math.floor(Date.now() / 1000)
+    const sessionMap = getOrCreate(this.sessions, sessionKey(name), () => new Map())
+    sessionMap.set(cacheName, { name, cacheName, value: JSON.stringify(value), createdAt })
+    this.logger.debug(`setSession: name=${name} cacheName=${cacheName}`)
+
+    this.sqliteManager.enqueueWrite(`saving session ${name}:${cacheName}`, async (database) => {
+      await database.query(
+        'DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" = $2 AND "name" != $1',
+        [name, cacheName]
+      )
+      await database.query(
+        `INSERT INTO "mojangSessions" ("name", "cacheName", "value", "createdAt") VALUES ($1, $2, $3, $4)
+         ON CONFLICT ("name", "cacheName") DO UPDATE SET
+           "value" = EXCLUDED."value",
+           "createdAt" = EXCLUDED."createdAt"`,
+        [name, cacheName, JSON.stringify(value), createdAt]
+      )
+    })
   }
 
   public setInstanceAutoConnect(instanceName: string, enabled: boolean): void {
-    const database = this.sqliteManager.getDatabase()
-    const statement = database.prepare('UPDATE "mojangInstances" SET connect = ? WHERE name = ?')
-    const result = statement.run(enabled ? '1' : '0', instanceName)
-    assert.strictEqual(result.changes, 1, 'Did not manage to change the instance auto-connect settings?')
+    const instance = this.instances.get(instanceKey(instanceName))
+    assert.ok(instance !== undefined, 'Did not manage to change the instance auto-connect settings?')
+    instance.connect = enabled
+
+    this.sqliteManager.enqueueWrite(`updating auto-connect for ${instanceName}`, async (database) => {
+      await database.query('UPDATE "mojangInstances" SET "connect" = $1 WHERE LOWER("name") = LOWER($2)', [
+        enabled ? 1 : 0,
+        instanceName
+      ])
+    })
   }
 
   public getInstanceAutoConnect(instanceName: string): boolean {
-    const database = this.sqliteManager.getDatabase()
-    const statement = database.prepare('SELECT "connect" FROM  "mojangInstances" WHERE name = ?')
-    const result = statement.pluck(true).get(instanceName) as number | undefined
-    return result === undefined ? true : result === 1
+    return this.instances.get(instanceKey(instanceName))?.connect ?? true
   }
 
   public getAllInstances(): readonly MinecraftInstanceConfig[] {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const selectInstance = database.prepare('SELECT * FROM "mojangInstances"')
-      const selectProxy = database.prepare('SELECT * FROM "proxies" WHERE id = ?')
-
-      const foundInstances = selectInstance.all() as MojangInstance[]
-
-      const instances = new Map<string, MinecraftInstanceConfig>()
-      for (const instance of foundInstances) {
-        const proxy = instance.proxyId === undefined ? undefined : (selectProxy.get(instance.proxyId) as ProxyConfig)
-        instances.set(instance.name, { name: instance.name, proxy: proxy })
-      }
-
-      return instances.values().toArray()
-    })
-
-    return transaction()
+    return [...this.instances.values()].map((instance) => ({
+      name: instance.name,
+      proxy: instance.proxyId === undefined ? undefined : this.proxies.get(instance.proxyId)
+    }))
   }
 
   public getInstance(instanceName: string): MinecraftInstanceConfig | undefined {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const selectInstance = database.prepare('SELECT * FROM "mojangInstances" WHERE name = ?')
-      const instance = selectInstance.get(instanceName) as MojangInstance | undefined
-      if (!instance) return
+    const instance = this.instances.get(instanceKey(instanceName))
+    if (instance === undefined) return undefined
 
-      let proxy: ProxyConfig | undefined
-      if (instance.proxyId !== undefined) {
-        const selectProxy = database.prepare('SELECT * FROM "proxies" WHERE id = ?')
-        proxy = selectProxy.get(instance.proxyId) as ProxyConfig | undefined
-      }
-
-      return { name: instance.name, proxy: proxy }
-    })
-
-    return transaction()
+    return {
+      name: instance.name,
+      proxy: instance.proxyId === undefined ? undefined : this.proxies.get(instance.proxyId)
+    }
   }
 
   public addInstance(options: MinecraftInstanceConfig): void {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const proxy = database.prepare(
-        'INSERT INTO "proxies" (protocol, host, port, user, password) VALUES (?, ?, ?, ?, ?)'
+    let proxyId: number | undefined
+    if (options.proxy !== undefined) {
+      proxyId = options.proxy.id || this.nextProxyId++
+      this.proxies.set(proxyId, { ...options.proxy, id: proxyId })
+    }
+
+    this.instances.set(instanceKey(options.name), { name: options.name, proxyId, connect: true })
+    this.logger.debug(`addInstance: inserted name=${options.name} proxyId=${String(proxyId)}`)
+    this.logger.debug(`addInstance: total mojangInstances=${this.instances.size}`)
+
+    this.sqliteManager.enqueueTransaction(`adding minecraft instance ${options.name}`, async (database) => {
+      const duplicateInstances = await database.query<{ name: string; proxyId: number | null }>(
+        'SELECT "name", "proxyId" FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1',
+        [options.name]
       )
-      let proxyId: number | bigint | undefined
-      if (options.proxy !== undefined) {
-        proxyId = proxy.run(
-          options.proxy.protocol,
-          options.proxy.host,
-          options.proxy.port,
-          options.proxy.user,
-          options.proxy.password
-        ).lastInsertRowid
-      }
 
-      const instance = database.prepare('INSERT INTO "mojangInstances" (name, proxyId) VALUES (?, ?)')
-      instance.run(options.name, proxyId)
-    })
-
-    transaction()
-  }
-
-  public deleteInstance(instanceName: string): number {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const instance = this.getInstance(instanceName)
-      if (instance == undefined) return 0
-
-      const statement = database.prepare('DELETE FROM "mojangInstances" WHERE name = ?')
-      const result = statement.run(instance.name).changes
-      if (result !== 0) {
-        this.logger.debug(`Deleted Minecraft instance with the name=${instanceName}`)
-      }
-
-      if (instance.proxy !== undefined) {
-        const statement = database.prepare('DELETE FROM "proxies" WHERE id = ?')
-        const result = statement.run(instance.proxy.id).changes
-        if (result !== 0) {
-          this.logger.debug(
-            `Deleted related proxy with the id=${instance.proxy.id} to the Minecraft instance with the name=${instanceName}`
-          )
+      if (duplicateInstances.rowCount !== 0) {
+        await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1', [
+          options.name
+        ])
+        for (const duplicate of duplicateInstances.rows) {
+          if (duplicate.proxyId !== null && duplicate.proxyId !== proxyId) {
+            await database.query('DELETE FROM "proxies" WHERE "id" = $1', [duplicate.proxyId])
+          }
         }
       }
 
-      return result
-    })
+      if (options.proxy !== undefined && proxyId !== undefined) {
+        await database.query(
+          `INSERT INTO "proxies" ("id", "protocol", "host", "port", "user", "password", "createdAt")
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT ("id") DO UPDATE SET
+             "protocol" = EXCLUDED."protocol",
+             "host" = EXCLUDED."host",
+             "port" = EXCLUDED."port",
+             "user" = EXCLUDED."user",
+             "password" = EXCLUDED."password"`,
+          [
+            proxyId,
+            options.proxy.protocol,
+            options.proxy.host,
+            options.proxy.port,
+            options.proxy.user ?? null,
+            options.proxy.password ?? null,
+            Math.floor(Date.now() / 1000)
+          ]
+        )
+      }
 
-    return transaction()
+      await database.query(
+        `INSERT INTO "mojangInstances" ("name", "proxyId", "connect") VALUES ($1, $2, $3)
+         ON CONFLICT ("name") DO UPDATE SET
+           "proxyId" = EXCLUDED."proxyId",
+           "connect" = EXCLUDED."connect"`,
+        [options.name, proxyId ?? null, 1]
+      )
+    })
   }
 
-  /**
-   * Import Microsoft authentication cache from JSON data.
-   * The JSON should be an object where keys are cache names (e.g., "token", "mca", "userToken", etc.)
-   * and values are the cache data objects.
-   * Also supports multiple JSON objects concatenated together (e.g., {"token":{...}}{"mca":{...}}).
-   *
-   * @param instanceName The Minecraft instance name
-   * @param username The username for the session (typically the instance name)
-   * @param jsonData JSON string or object containing cache data
-   * @returns Object with imported cache names and any errors
-   */
+  public deleteInstance(instanceName: string): number {
+    const key = instanceKey(instanceName)
+    const instance = this.instances.get(key)
+    if (instance === undefined) return 0
+
+    this.instances.delete(key)
+    if (instance.proxyId !== undefined) {
+      this.proxies.delete(instance.proxyId)
+      this.logger.debug(
+        `Deleted related proxy with the id=${instance.proxyId} to the Minecraft instance with the name=${instanceName} (changes=1)`
+      )
+    }
+    this.logger.debug(`Deleted Minecraft instance with the name=${instanceName} (changes=1)`)
+    this.logger.debug(`deleteInstance: remaining mojangInstances=${this.instances.size}`)
+
+    this.sqliteManager.enqueueTransaction(`deleting minecraft instance ${instanceName}`, async (database) => {
+      await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1)', [instance.name])
+      if (instance.proxyId !== undefined) {
+        await database.query('DELETE FROM "proxies" WHERE "id" = $1', [instance.proxyId])
+      }
+    })
+
+    return 1
+  }
+
+  public deleteSingleCache(name: string, cacheName: string): number {
+    const sessionMap = this.sessions.get(sessionKey(name))
+    const deleted = sessionMap?.delete(cacheName) ? 1 : 0
+
+    this.sqliteManager.enqueueWrite(`deleting session cache ${name}:${cacheName}`, async (database) => {
+      await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" = $2', [
+        name,
+        cacheName
+      ])
+    })
+
+    return deleted
+  }
+
+  public getCacheSync(name: string, cacheName: string): Record<string, unknown> {
+    const result = this.sessions.get(sessionKey(name))?.get(cacheName)?.value
+    return result === undefined ? {} : (JSON.parse(result) as Record<string, unknown>)
+  }
+
   public importAuthCache(
     instanceName: string,
     username: string,
@@ -185,20 +267,16 @@ export class SessionsManager {
       let parsedData: Record<string, unknown>
 
       if (typeof jsonData === 'string') {
-        // First, try parsing as a single JSON object
         try {
           parsedData = JSON.parse(jsonData) as Record<string, unknown>
         } catch (parseError) {
           const trimmed = jsonData.trim()
-          // Check if this looks like a single object (has top-level comma-separated keys)
-          // Pattern: starts with {, contains ","key": patterns which indicate multiple top-level keys
           const hasTopLevelCommas = trimmed.startsWith('{') && trimmed.match(/,"[^"]+":/g)
           const hasConcatenatedObjects = trimmed.match(/\}\s*\{/g)
           const isSingleObject =
-            hasTopLevelCommas !== null &&
+            hasTopLevelCommas &&
             (hasConcatenatedObjects === null || hasTopLevelCommas.length > hasConcatenatedObjects.length)
 
-          // If that fails, try to fix common issues and parse again
           let fixedParsed: Record<string, unknown> | undefined
           const fixedJson = this.tryFixJson(jsonData)
           if (fixedJson !== jsonData) {
@@ -206,62 +284,51 @@ export class SessionsManager {
               fixedParsed = JSON.parse(fixedJson) as Record<string, unknown>
               errors.push('Fixed JSON formatting issues (added missing closing braces)')
             } catch {
-              // Fixed version also failed, continue to alternative parsers
+              // ignore
             }
           }
 
-          // If single object parsing still failed, try more aggressive fixing
           if (!fixedParsed && (isSingleObject || trimmed.startsWith('{'))) {
-            // Try aggressive fixing for single object
             const moreFixedJson = this.tryFixJsonAggressive(trimmed)
             if (moreFixedJson !== trimmed) {
               try {
                 fixedParsed = JSON.parse(moreFixedJson) as Record<string, unknown>
                 errors.push('Fixed JSON formatting issues (added missing closing braces)')
               } catch {
-                // Still failed, will try concatenated parser below
+                // ignore
               }
             }
           }
 
-          // If single object parsing still failed, only try concatenated JSON objects
-          // if it doesn't look like a single object (has multiple complete objects)
           if (fixedParsed) {
             parsedData = fixedParsed
           } else if (!isSingleObject && hasConcatenatedObjects) {
-            // Only use concatenated parser if it looks like multiple objects
             parsedData = this.parseConcatenatedJsonObjects(jsonData, errors)
             if (Object.keys(parsedData).length === 0) {
-              // If we couldn't parse anything, return early
               return { imported, errors }
             }
           } else {
-            // It looks like a single object but we couldn't parse it
-            // Try one more normalization attempt: remove any BOM or zero-width characters
             if (isSingleObject) {
               const normalized = trimmed
-                .replace(/^\uFEFF/, '') // Remove BOM
-                .replaceAll(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
+                .replace(/^\uFEFF/, '')
+                .replace(/[\u200B-\u200D\uFEFF]/g, '')
                 .trim()
 
-              if (normalized === trimmed) {
-                // Report the original error
-                const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
-                errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
-                return { imported, errors }
-              } else {
+              if (normalized !== trimmed) {
                 try {
                   parsedData = JSON.parse(normalized) as Record<string, unknown>
                   errors.push('Fixed JSON formatting issues (removed invisible characters)')
                 } catch {
-                  // Still failed, report the original error
                   const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
                   errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
                   return { imported, errors }
                 }
+              } else {
+                const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+                errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
+                return { imported, errors }
               }
             } else {
-              // Report the original error
               const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
               errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
               return { imported, errors }
@@ -277,23 +344,15 @@ export class SessionsManager {
         return { imported, errors }
       }
 
-      // Import each cache entry
-      // Only import top-level keys that are objects (cache entries)
-      // Skip any nested properties that might have been incorrectly extracted
       for (const [cacheName, cacheValue] of Object.entries(parsedData)) {
         try {
-          // Skip if value is not an object (strings, numbers, etc. are not valid cache entries)
           if (typeof cacheValue !== 'object' || cacheValue === null || Array.isArray(cacheValue)) {
-            // Only report as error if it looks like it might have been a cache entry
-            // (i.e., has a reasonable name, not something like "IssueInstant" which is clearly nested)
-            if (cacheName.length > 2 && !/^(IssueInstant|NotAfter|Token|DisplayClaims)$/i.test(cacheName)) {
+            if (cacheName.length > 2 && !cacheName.match(/^(IssueInstant|NotAfter|Token|DisplayClaims)$/i)) {
               errors.push(`Skipping invalid cache entry "${cacheName}": value must be an object`)
             }
             continue
           }
 
-          // Additional validation: check if this looks like a nested property that was incorrectly extracted
-          // Common nested property names that shouldn't be top-level cache entries
           const nestedPropertyNames = [
             'IssueInstant',
             'NotAfter',
@@ -308,7 +367,6 @@ export class SessionsManager {
             'tid'
           ]
           if (nestedPropertyNames.includes(cacheName)) {
-            // This is likely a nested property, skip it
             this.logger.debug(`Skipping nested property "${cacheName}" that was incorrectly extracted as a cache entry`)
             continue
           }
@@ -337,22 +395,16 @@ export class SessionsManager {
     return { imported, errors }
   }
 
-  /**
-   * Check if a string looks like a single JSON object (not concatenated objects).
-   * A single object typically has multiple top-level keys separated by commas.
-   *
-   * @param jsonString The JSON string to check
-   * @returns True if it looks like a single object
-   */
   private looksLikeSingleObject(jsonString: string): boolean {
-    // Count top-level commas (not inside nested objects/arrays/strings)
     let depth = 0
     let inString = false
     let escapeNext = false
     let topLevelCommas = 0
     let hasMultipleKeys = false
 
-    for (const char of jsonString) {
+    for (let i = 0; i < jsonString.length; i++) {
+      const char = jsonString[i]
+
       if (escapeNext) {
         escapeNext = false
         continue
@@ -374,41 +426,33 @@ export class SessionsManager {
         } else if (char === '}' || char === ']') {
           depth--
         } else if (char === ',' && depth === 1) {
-          // Top-level comma (depth 1 because we're inside the outer object)
           topLevelCommas++
           hasMultipleKeys = true
         }
       }
     }
 
-    // If we have multiple top-level keys (commas at depth 1), it's likely a single object
     return hasMultipleKeys && topLevelCommas > 0
   }
 
-  /**
-   * More aggressive JSON fixing for single objects that are missing closing braces.
-   * This handles cases where the entire object structure is malformed.
-   *
-   * @param jsonString The potentially malformed JSON string
-   * @returns Fixed JSON string (or original if no fixes applied)
-   */
   private tryFixJsonAggressive(jsonString: string): string {
     const trimmed = jsonString.trim()
     if (!trimmed.startsWith('{')) {
       return jsonString
     }
 
-    // Count opening and closing braces to see if we're missing closing braces
     let depth = 0
     let inString = false
     let escapeNext = false
     let lastNonWhitespacePos = -1
 
-    for (const [index, char] of trimmed.entries()) {
+    for (let i = 0; i < trimmed.length; i++) {
+      const char = trimmed[i]
+
       if (escapeNext) {
         escapeNext = false
         if (!/\s/.test(char)) {
-          lastNonWhitespacePos = index
+          lastNonWhitespacePos = i
         }
         continue
       }
@@ -420,52 +464,41 @@ export class SessionsManager {
 
       if (char === '"') {
         inString = !inString
-        lastNonWhitespacePos = index
+        lastNonWhitespacePos = i
         continue
       }
 
-      if (inString) {
-        if (!/\s/.test(char)) {
-          lastNonWhitespacePos = index
-        }
-      } else {
+      if (!inString) {
         if (char === '{') {
           depth++
-          lastNonWhitespacePos = index
+          lastNonWhitespacePos = i
         } else if (char === '}') {
           depth--
-          lastNonWhitespacePos = index
+          lastNonWhitespacePos = i
         } else if (!/\s/.test(char)) {
-          lastNonWhitespacePos = index
+          lastNonWhitespacePos = i
         }
+      } else if (!/\s/.test(char)) {
+        lastNonWhitespacePos = i
       }
     }
 
-    // If we have unclosed braces, try to close them
-    if (
-      depth > 0 &&
-      depth <= 10 &&
-      lastNonWhitespacePos >= 0 && // Check if we're not in the middle of a string (which would be bad)
-      // If we're not in a string and depth > 0, we can try to close
-      !inString
-    ) {
-      // Check if the last non-whitespace character suggests we can safely close
+    if (depth > 0 && depth <= 10 && lastNonWhitespacePos >= 0 && !inString) {
       const lastChar = trimmed[lastNonWhitespacePos]
       const canClose =
         lastChar === '}' ||
         lastChar === '"' ||
         lastChar === ']' ||
-        (lastChar >= '0' && lastChar <= '9') || // number
+        (lastChar >= '0' && lastChar <= '9') ||
         lastChar === 'e' ||
-        lastChar === 'E' || // scientific notation end
-        /(true|false|null)$/.exec(trimmed.substring(Math.max(0, lastNonWhitespacePos - 4), lastNonWhitespacePos + 1)) ||
-        // If we end with a comma, we can close after removing it
+        lastChar === 'E' ||
+        trimmed
+          .substring(Math.max(0, lastNonWhitespacePos - 4), lastNonWhitespacePos + 1)
+          .match(/(true|false|null)$/) ||
         lastChar === ','
 
       if (canClose) {
-        // Remove any trailing commas/whitespace before adding closing braces
-        let fixed = trimmed.slice(0, Math.max(0, lastNonWhitespacePos + 1)).replace(/,\s*$/, '')
-        // Add missing closing braces
+        let fixed = trimmed.substring(0, lastNonWhitespacePos + 1).replace(/,\s*$/, '')
         fixed += '}'.repeat(depth)
         return fixed
       }
@@ -474,25 +507,19 @@ export class SessionsManager {
     return jsonString
   }
 
-  /**
-   * Try to fix common JSON issues like missing closing braces.
-   * This is a best-effort attempt to recover from truncated or malformed JSON.
-   *
-   * @param jsonString The potentially malformed JSON string
-   * @returns Fixed JSON string (or original if no fixes applied)
-   */
   private tryFixJson(jsonString: string): string {
     const trimmed = jsonString.trim()
     if (!trimmed.startsWith('{')) {
       return jsonString
     }
 
-    // Count opening and closing braces to see if we're missing closing braces
     let depth = 0
     let inString = false
     let escapeNext = false
 
-    for (const char of trimmed) {
+    for (let i = 0; i < trimmed.length; i++) {
+      const char = trimmed[i]
+
       if (escapeNext) {
         escapeNext = false
         continue
@@ -517,11 +544,8 @@ export class SessionsManager {
       }
     }
 
-    // If we have unclosed braces, try to close them
     if (depth > 0 && depth <= 10) {
-      // Remove any trailing commas before adding closing braces
       let fixed = trimmed.replace(/,\s*$/, '')
-      // Add missing closing braces
       fixed += '}'.repeat(depth)
       return fixed
     }
@@ -529,15 +553,6 @@ export class SessionsManager {
     return jsonString
   }
 
-  /**
-   * Parse multiple concatenated JSON objects from a string.
-   * Handles cases where multiple JSON objects are concatenated without separators (e.g., {"a":1}{"b":2}).
-   * Also handles objects separated by whitespace or newlines.
-   *
-   * @param jsonString The string containing concatenated JSON objects
-   * @param errors Array to append any parsing errors to
-   * @returns Merged object containing all parsed cache entries
-   */
   private parseConcatenatedJsonObjects(jsonString: string, errors: string[]): Record<string, unknown> {
     const merged: Record<string, unknown> = {}
     let position = 0
@@ -545,7 +560,6 @@ export class SessionsManager {
     let objectCount = 0
 
     while (position < trimmed.length) {
-      // Skip whitespace (including newlines, tabs, etc.)
       while (position < trimmed.length && /\s/.test(trimmed[position])) {
         position++
       }
@@ -554,37 +568,31 @@ export class SessionsManager {
         break
       }
 
-      // Find the start of a JSON object
       if (trimmed[position] !== '{') {
-        // Try to find the next '{' instead of giving up
         const nextBrace = trimmed.indexOf('{', position)
         if (nextBrace === -1) {
-          // No more JSON objects found
           if (objectCount === 0) {
             errors.push(`Unexpected character at position ${position}: expected '{'`)
           }
           break
         }
-        // Skip unexpected characters and try again
         const skipped = trimmed.substring(position, nextBrace).trim()
-        if (skipped.length > 0 && !/^[,:]\s*$/.test(skipped)) {
-          // Only report non-trivial skipped content (not just commas/colons)
+        if (skipped.length > 0 && !skipped.match(/^[,:]\s*$/)) {
           errors.push(
-            `Skipped unexpected content between JSON objects: "${skipped.slice(0, 50)}${skipped.length > 50 ? '...' : ''}"`
+            `Skipped unexpected content between JSON objects: "${skipped.substring(0, 50)}${skipped.length > 50 ? '...' : ''}"`
           )
         }
         position = nextBrace
       }
 
-      // Find the matching closing brace by tracking brace depth
       let depth = 0
       const startPos = position
       let inString = false
       let escapeNext = false
       let foundEnd = false
 
-      for (let index = position; index < trimmed.length; index++) {
-        const char = trimmed[index]
+      for (let i = position; i < trimmed.length; i++) {
+        const char = trimmed[i]
 
         if (escapeNext) {
           escapeNext = false
@@ -607,18 +615,16 @@ export class SessionsManager {
           } else if (char === '}') {
             depth--
             if (depth === 0) {
-              // Found the end of this JSON object
-              const jsonObjectString = trimmed.substring(startPos, index + 1)
+              const jsonObjectStr = trimmed.substring(startPos, i + 1)
               try {
-                const parsed = JSON.parse(jsonObjectString) as Record<string, unknown>
-                // Merge into the result object
+                const parsed = JSON.parse(jsonObjectStr) as Record<string, unknown>
                 Object.assign(merged, parsed)
                 objectCount++
               } catch (parseError) {
                 const errorMessage = parseError instanceof Error ? parseError.message : String(parseError)
                 errors.push(`Failed to parse JSON object at position ${startPos}: ${errorMessage}`)
               }
-              position = index + 1
+              position = i + 1
               foundEnd = true
               break
             }
@@ -626,22 +632,13 @@ export class SessionsManager {
         }
       }
 
-      // If we didn't find a matching closing brace, try to continue with next object
       if (!foundEnd) {
-        if (depth === 0) {
-          // Should not happen, but break to avoid infinite loop
-          break
-        } else {
-          // Try to extract more context for better error reporting
+        if (depth !== 0) {
           const endPos = Math.min(startPos + 200, trimmed.length)
           const partial = trimmed.substring(startPos, endPos)
-          const objectPreview = partial.slice(0, 100)
-
-          // Try to identify which cache entry this is
-          const cacheNameMatch = /"([^"]+)":\s*\{/.exec(partial)
+          const objectPreview = partial.substring(0, 100)
+          const cacheNameMatch = partial.match(/"([^"]+)":\s*\{/)
           const cacheName = cacheNameMatch ? cacheNameMatch[1] : 'unknown'
-
-          // Check if we're near the end of the string (likely truncated)
           const isNearEnd = position >= trimmed.length - 100
           const truncationWarning = isNearEnd
             ? " The JSON appears to be truncated (likely due to Discord's 4000 character limit). Consider splitting your cache entries into multiple imports."
@@ -652,32 +649,29 @@ export class SessionsManager {
               `Partial content: "${objectPreview}${objectPreview.length < 100 ? '' : '...'}"`
           )
 
-          // If we're at the end of the string and depth is reasonable, try to heal by closing braces
           if (isNearEnd && depth > 0 && depth <= 10) {
-            const healedJson = trimmed.slice(Math.max(0, startPos)) + '}'.repeat(depth)
+            const healedJson = trimmed.substring(startPos) + '}'.repeat(depth)
             try {
               const parsed = JSON.parse(healedJson) as Record<string, unknown>
               Object.assign(merged, parsed)
               objectCount++
-              // Replace the error with a warning about truncation
               errors.pop()
               errors.push(
-                `Recovered partial data for "${cacheName}" by closing ${depth} missing brace${depth > 1 ? 's' : ''}. ` +
-                  `Data may be incomplete due to truncation.`
+                `Recovered partial data for "${cacheName}" by closing ${depth} missing brace${depth > 1 ? 's' : ''}. Data may be incomplete due to truncation.`
               )
-              break // We've reached the end
+              break
             } catch {
-              // Healing failed, keep the original error
+              // ignore
             }
           } else {
-            // Try to find the next '{' to continue parsing other objects
             const nextBrace = trimmed.indexOf('{', position + 1)
             if (nextBrace === -1 || nextBrace === position) {
-              // No more objects to parse
               break
             }
             position = nextBrace
           }
+        } else {
+          break
         }
       }
     }
@@ -686,9 +680,23 @@ export class SessionsManager {
   }
 }
 
-interface MojangInstance {
+interface StoredMinecraftInstance {
+  name: string
+  proxyId: number | null
+  connect: number
+}
+
+interface LoadedMinecraftInstance {
   name: string
   proxyId: number | undefined
+  connect: boolean
+}
+
+interface StoredSession {
+  name: string
+  cacheName: string
+  value: string
+  createdAt: number
 }
 
 export interface MinecraftInstanceConfig {
@@ -697,7 +705,6 @@ export interface MinecraftInstanceConfig {
 }
 
 export interface ProxyConfig {
-  /** only set if fetched from database */
   id: number
   host: string
   port: number
@@ -714,7 +721,6 @@ export enum ProxyProtocol {
 class Session implements Cache {
   constructor(
     private readonly sessionsManager: SessionsManager,
-    private readonly sqliteManager: SqliteManager,
     private readonly logger: Logger,
     readonly instanceName: string,
     readonly name: string,
@@ -722,45 +728,45 @@ class Session implements Cache {
   ) {}
 
   async reset(): Promise<void> {
-    await Promise.resolve() // require async/await per interface definition
+    await Promise.resolve()
 
-    const database = this.sqliteManager.getDatabase()
-    const statement = database.prepare('DELETE FROM "mojangSessions" WHERE name = ? AND cacheName = ?')
-    const result = statement.run(this.name, this.cacheName).changes
+    const result = this.sessionsManager.deleteSingleCache(this.name, this.cacheName)
     if (result !== 0) {
       this.logger.debug(`Deleted sessions for name=${this.name} and cacheName=${this.cacheName}`)
     }
   }
 
   async getCached(): Promise<Record<string, unknown>> {
-    await Promise.resolve() // require async/await per interface definition
-    return this.getCacheSync()
-  }
-
-  private getCacheSync(): Record<string, unknown> {
-    const database = this.sqliteManager.getDatabase()
-    const statement = database.prepare('SELECT value FROM "mojangSessions" WHERE name = ? AND cacheName = ?')
-    const result = statement.pluck(true).get(this.name, this.cacheName) as string | undefined
-    return result === undefined ? {} : (JSON.parse(result) as Record<string, unknown>)
+    await Promise.resolve()
+    return this.sessionsManager.getCacheSync(this.name, this.cacheName)
   }
 
   async setCached(value: Record<string, unknown>): Promise<void> {
-    await Promise.resolve() // require async/await per interface definition
-    this.setCachedSync(value)
-  }
-
-  private setCachedSync(value: Record<string, unknown>): void {
+    await Promise.resolve()
     this.sessionsManager.setSession(this.instanceName, this.name, this.cacheName, value)
   }
 
   async setCachedPartial(value: Record<string, unknown>): Promise<void> {
-    await Promise.resolve() // require async/await per interface definition
+    await Promise.resolve()
 
-    const transaction = this.sqliteManager.getDatabase().transaction(() => {
-      const partial = this.getCacheSync()
-      this.setCachedSync({ partial, ...value })
-    })
-
-    transaction()
+    const partial = this.sessionsManager.getCacheSync(this.name, this.cacheName)
+    this.sessionsManager.setSession(this.instanceName, this.name, this.cacheName, { partial, ...value })
   }
+}
+
+function getOrCreate<K, V>(map: Map<K, V>, key: K, create: () => V): V {
+  const existing = map.get(key)
+  if (existing !== undefined) return existing
+
+  const value = create()
+  map.set(key, value)
+  return value
+}
+
+function instanceKey(name: string): string {
+  return name.toLowerCase()
+}
+
+function sessionKey(name: string): string {
+  return name.toLowerCase()
 }

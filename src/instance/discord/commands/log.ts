@@ -5,8 +5,11 @@ import type Application from '../../../application.js'
 import type { MinecraftRawChatEvent } from '../../../common/application-event.js'
 import { Color, MinecraftSendChatPriority, Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
-import { OptionToAddMinecraftInstances } from '../../../common/commands.js'
 import { Timeout } from '../../../utility/timeout'
+import {
+  getBridgeMinecraftInstanceError,
+  getFirstConnectedBridgeMinecraftInstanceName
+} from '../common/bridge-minecraft-instances.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 import { DefaultTimeout, interactivePaging } from '../utility/discord-pager.js'
 
@@ -49,14 +52,17 @@ export default {
         option.setName('username').setDescription('Username of the player').setAutocomplete(true)
       ),
   permission: Permission.Helper,
-  addMinecraftInstancesToOptions: OptionToAddMinecraftInstances.Required,
 
   handler: async function (context) {
     await context.interaction.deferReply()
 
     const currentPage: number = context.interaction.options.getNumber('page') ?? 1
     const selectedUsername = context.interaction.options.getString('username') ?? undefined
-    const targetInstanceName: string = context.interaction.options.getString('instance', true)
+    const targetInstanceName = getFirstConnectedBridgeMinecraftInstanceName(context.application, context.bridgeId)
+    if (targetInstanceName === undefined) {
+      await context.interaction.editReply(getBridgeMinecraftInstanceError(context.application, context.bridgeId))
+      return
+    }
 
     await interactivePaging(
       context.interaction,

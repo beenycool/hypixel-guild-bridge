@@ -124,13 +124,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   async onChat(event: ChatEvent): Promise<void> {
     const channels = this.resolveChannelsForEvent([event.channelType], event.bridgeId)
     const username = event.user.displayName()
+    const channelPrefix = this.getChannelPrefix(event.channelType)
 
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
       if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
-        const formattedMessage = this.removeGuildPrefix(event.rawMessage)
-        const image = await this.messageToImage.generateMessageImage(formattedMessage)
+        const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
+        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: event.user.displayName()
+        })
         await this.sendImageToChannels(event.eventId, [channelId], image)
       } else {
         const webhook = await this.getWebhook(channelId)
@@ -145,7 +149,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         }
 
         const message = await webhook.send({
-          content: escapeMarkdown(event.message),
+          content: channelPrefix + escapeMarkdown(event.message),
           username: displayUsername,
           avatarURL: event.user.avatar(),
           allowedMentions: { parse: [] }
@@ -187,19 +191,22 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     let messages: Message[]
     if (this.messageToImage.shouldRenderImage()) {
-      const formattedMessage = this.removeGuildPrefix(event.rawMessage)
+      const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(event.rawMessage)).replaceAll(/^-+/g, '')
+      const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
       messages = await this.sendImageToChannels(
         event.eventId,
         this.resolveChannelsForEvent(event.channels, event.bridgeId),
-        await this.messageToImage.generateMessageImage(formattedMessage)
+        await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: event.user.displayName()
+        })
       )
     } else {
       const clickableUsername = hyperlink(username, event.user.profileLink())
 
-      const withoutPrefix = event.message.replaceAll(/^-+/g, '').replaceAll('Guild > ', '')
+      const withoutPrefix = event.message.replaceAll(/^-+/g, '')
 
-      const newMessage = `**${escapeMarkdown(event.instanceName)} >** ${escapeMarkdown(withoutPrefix).replaceAll(escapeMarkdown(username), clickableUsername)}`
+      const newMessage = escapeMarkdown(withoutPrefix).replaceAll(escapeMarkdown(username), clickableUsername)
 
       const embed = {
         url: event.user.profileLink(),
@@ -215,13 +222,19 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     if (removeLater) {
-      const currentTime = Date.now()
-      const entries = messages.map((message) => ({
-        channelId: message.channelId,
-        messageId: message.id,
-        createdAt: currentTime
-      }))
-      await this.messageDeleter.add(entries)
+      const shouldPersist =
+        this.application.bridgeResolver.isMultiBridgeEnabled() && event.bridgeId !== undefined
+          ? this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(event.bridgeId)
+          : false
+      if (!shouldPersist) {
+        const currentTime = Date.now()
+        const entries = messages.map((message) => ({
+          channelId: message.channelId,
+          messageId: message.id,
+          createdAt: currentTime
+        }))
+        await this.messageDeleter.add(entries)
+      }
     }
   }
 
@@ -336,10 +349,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
   }
 
-  private formatRenderedImage(prefix: string, message: string): string {
-    return `§4§l[§c${prefix}§4§l]§f§r ${message}`
-  }
-
   private resolveChannels(channels: ChannelType[]): string[] {
     const config = this.application.core.discordConfigurations
 
@@ -389,6 +398,39 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     return finalMessage
+  }
+
+  private removePlainGuildPrefix(message: string): string {
+    const prefixes = ['Guild > ', 'Officer > ', '-'.repeat(53) + '\n']
+
+    let finalMessage = message
+    for (const prefix of prefixes) {
+      if (finalMessage.startsWith(prefix)) finalMessage = finalMessage.slice(prefix.length)
+    }
+
+    return finalMessage
+  }
+
+  private getChannelPrefix(channelType: ChannelType): string {
+    switch (channelType) {
+      case ChannelType.Officer:
+        return 'Officer > '
+      case ChannelType.Public:
+        return 'Guild > '
+      default:
+        return ''
+    }
+  }
+
+  private getRenderedChannelPrefix(channelType: ChannelType): string {
+    switch (channelType) {
+      case ChannelType.Officer:
+        return '§3Officer §3> '
+      case ChannelType.Public:
+        return '§2Guild §2> '
+      default:
+        return ''
+    }
   }
 
   private async generateEmbed(event: GenerateEmbedType, guildId: string | undefined): Promise<APIEmbed> {
@@ -521,8 +563,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     for (const replyId of replyIds) {
       try {
         if (this.messageToImage.shouldRenderImage()) {
-          const message = this.formatRenderedImage(feedback ? 'FEED' : 'COMMAND', event.commandResponse)
-          const image = this.messageToImage.generateMessageImageSync(message)
+          const image = await this.messageToImage.generateMessageImage(event.commandResponse)
           await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
         } else {
           await this.replyWithEmbed(event.eventId, replyId, replyEmbed)

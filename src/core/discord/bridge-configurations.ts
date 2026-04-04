@@ -1,4 +1,5 @@
 import type { SqliteManager } from '../../common/sqlite-manager'
+import { debugSessionLog } from '../../utility/debug-session-log.js'
 import Duration from '../../utility/duration'
 import type { Configuration, ConfigurationsManager } from '../configurations'
 
@@ -47,11 +48,14 @@ export class BridgeConfigurations {
     this.configuration.delete(`${bridgeId}_minecraftInstances`)
     this.configuration.delete(`${bridgeId}_helperRoleIds`)
     this.configuration.delete(`${bridgeId}_officerRoleIds`)
+    this.configuration.delete(`${bridgeId}_ownerRoleIds`)
+    this.configuration.delete(`${bridgeId}_adminRoleIds`) // legacy cleanup
     this.configuration.delete(`${bridgeId}_alwaysReplyReaction`)
     this.configuration.delete(`${bridgeId}_enforceVerification`)
     this.configuration.delete(`${bridgeId}_textToImage`)
     this.configuration.delete(`${bridgeId}_guildOnline`)
     this.configuration.delete(`${bridgeId}_guildOffline`)
+    this.configuration.delete(`${bridgeId}_persistGuildOnlineOffline`)
     this.configuration.delete(`${bridgeId}_temporarilyInteractionsCount`)
     this.configuration.delete(`${bridgeId}_temporarilyInteractionsDuration`)
     this.configuration.delete(`${bridgeId}_skyblockEventsEnabled`)
@@ -90,6 +94,15 @@ export class BridgeConfigurations {
     // Passthrough commands settings
     this.configuration.delete(`${bridgeId}_passthroughCommands`)
     this.configuration.delete(`${bridgeId}_passthroughPrefix`)
+    // Rankup automation settings
+    this.configuration.delete(`${bridgeId}_rankupEnabled`)
+    this.configuration.delete(`${bridgeId}_rankupManualReview`)
+    this.configuration.delete(`${bridgeId}_rankupNotificationCooldown`)
+    this.configuration.delete(`${bridgeId}_rankupNotificationChannelIds`)
+    this.configuration.delete(`${bridgeId}_rankupRules`)
+    this.configuration.delete(`${bridgeId}_rankupDemotionRules`)
+    this.configuration.delete(`${bridgeId}_rankupExcludedRanks`)
+    this.configuration.delete(`${bridgeId}_rankupExcludedPlayers`)
   }
 
   // ========== Channel Configurations ==========
@@ -189,6 +202,28 @@ export class BridgeConfigurations {
   }
 
   /**
+   * Get owner role IDs for a specific bridge
+   */
+  public getOwnerRoleIds(bridgeId: string): string[] {
+    const ownerRoleIds = this.configuration.getStringArray(`${bridgeId}_ownerRoleIds`, [])
+    if (ownerRoleIds.length === 0) {
+      const legacyAdminRoleIds = this.configuration.getStringArray(`${bridgeId}_adminRoleIds`, [])
+      if (legacyAdminRoleIds.length > 0) {
+        this.setOwnerRoleIds(bridgeId, legacyAdminRoleIds)
+        return legacyAdminRoleIds
+      }
+    }
+    return ownerRoleIds
+  }
+
+  /**
+   * Set owner role IDs for a specific bridge
+   */
+  public setOwnerRoleIds(bridgeId: string, roleIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_ownerRoleIds`, roleIds)
+  }
+
+  /**
    * Get officer role IDs for a specific bridge
    */
   public getOfficerRoleIds(bridgeId: string): string[] {
@@ -272,6 +307,20 @@ export class BridgeConfigurations {
    */
   public setGuildOffline(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_guildOffline`, enabled)
+  }
+
+  /**
+   * Get persist guild online/offline setting for a specific bridge
+   */
+  public getPersistGuildOnlineOffline(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_persistGuildOnlineOffline`, false)
+  }
+
+  /**
+   * Set persist guild online/offline setting for a specific bridge
+   */
+  public setPersistGuildOnlineOffline(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_persistGuildOnlineOffline`, enabled)
   }
 
   /**
@@ -726,5 +775,183 @@ export class BridgeConfigurations {
     } else {
       this.configuration.setString(`${bridgeId}_passthroughPrefix`, prefix)
     }
+  }
+
+  // ========== Rankup Automation Configurations ==========
+
+  /**
+   * Get whether rankup automation is enabled for a bridge
+   */
+  public getRankupEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_rankupEnabled`, false)
+  }
+
+  /**
+   * Set whether rankup automation is enabled for a bridge
+   */
+  public setRankupEnabled(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_rankupEnabled`, enabled)
+  }
+
+  /**
+   * Get whether manual review mode is enabled for rankup
+   */
+  public getRankupManualReview(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_rankupManualReview`, false)
+  }
+
+  /**
+   * Set whether manual review mode is enabled for rankup
+   */
+  public setRankupManualReview(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_rankupManualReview`, enabled)
+  }
+
+  /**
+   * Get notification cooldown in hours for rankup
+   */
+  public getRankupNotificationCooldown(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_rankupNotificationCooldown`, 24)
+  }
+
+  /**
+   * Set notification cooldown in hours for rankup
+   */
+  public setRankupNotificationCooldown(bridgeId: string, hours: number): void {
+    this.configuration.setNumber(`${bridgeId}_rankupNotificationCooldown`, hours)
+  }
+
+  /**
+   * Get notification channel IDs for rankup
+   */
+  public getRankupNotificationChannelIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_rankupNotificationChannelIds`, [])
+  }
+
+  /**
+   * Set notification channel IDs for rankup
+   */
+  public setRankupNotificationChannelIds(bridgeId: string, channelIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_rankupNotificationChannelIds`, channelIds)
+  }
+
+  /**
+   * Get promotion rules for rankup
+   */
+  public getRankupRules(bridgeId: string): Array<{
+    targetRank: string
+    minWeeklyGexp: number
+    minDaysInGuild: number
+    minOnlineHours: number
+  }> {
+    const raw = this.configuration.getString(`${bridgeId}_rankupRules`, '[]')
+    try {
+      return JSON.parse(raw) as Array<{
+        targetRank: string
+        minWeeklyGexp: number
+        minDaysInGuild: number
+        minOnlineHours: number
+      }>
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Set promotion rules for rankup
+   */
+  public setRankupRules(
+    bridgeId: string,
+    rules: Array<{
+      targetRank: string
+      minWeeklyGexp: number
+      minDaysInGuild: number
+      minOnlineHours: number
+    }>
+  ): void {
+    this.configuration.setString(`${bridgeId}_rankupRules`, JSON.stringify(rules))
+  }
+
+  /**
+   * Get demotion rules for rankup
+   */
+  public getRankupDemotionRules(bridgeId: string): Array<{
+    fromRank: string
+    action: 'demote' | 'kick' | 'notify'
+    targetRank?: string
+    maxWeeklyGexp: number
+    gracePeriod: number
+  }> {
+    const raw = this.configuration.getString(`${bridgeId}_rankupDemotionRules`, '[]')
+    try {
+      return JSON.parse(raw) as Array<{
+        fromRank: string
+        action: 'demote' | 'kick' | 'notify'
+        targetRank?: string
+        maxWeeklyGexp: number
+        gracePeriod: number
+      }>
+    } catch {
+      return []
+    }
+  }
+
+  /**
+   * Set demotion rules for rankup
+   */
+  public setRankupDemotionRules(
+    bridgeId: string,
+    rules: Array<{
+      fromRank: string
+      action: 'demote' | 'kick' | 'notify'
+      targetRank?: string
+      maxWeeklyGexp: number
+      gracePeriod: number
+    }>
+  ): void {
+    const prev = this.getRankupDemotionRules(bridgeId)
+    if (prev.length > 0 && rules.length === 0) {
+      // #region agent log
+      debugSessionLog({
+        hypothesisId: 'H8',
+        location: 'bridge-configurations.ts:setRankupDemotionRules',
+        message: 'Demotion rules cleared (non-empty to empty)',
+        data: {
+          bridgeId,
+          prevLen: prev.length,
+          stack: new Error().stack?.split('\n').slice(0, 12).join('\n')
+        }
+      })
+      // #endregion
+    }
+    this.configuration.setString(`${bridgeId}_rankupDemotionRules`, JSON.stringify(rules))
+  }
+
+  /**
+   * Get excluded ranks for rankup automation
+   */
+  public getRankupExcludedRanks(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_rankupExcludedRanks`, [])
+  }
+
+  /**
+   * Set excluded ranks for rankup automation
+   */
+  public setRankupExcludedRanks(bridgeId: string, ranks: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_rankupExcludedRanks`, ranks)
+  }
+
+  /**
+   * Get excluded players for rankup automation
+   */
+  public getRankupExcludedPlayers(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_rankupExcludedPlayers`, [])
+  }
+
+  /**
+   * Set excluded players for rankup automation
+   */
+  public setRankupExcludedPlayers(bridgeId: string, players: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_rankupExcludedPlayers`, players)
   }
 }

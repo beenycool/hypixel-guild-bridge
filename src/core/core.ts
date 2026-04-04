@@ -45,6 +45,8 @@ import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
 import { Inactivity } from './users/inactivity'
 import { MojangApi } from './users/mojang'
+import { RankupManager } from './rankup/rankup-manager'
+import { PendingReviewManager } from './rankup/pending-review-manager'
 import ScoresManager from './users/scores-manager'
 import { Verification } from './users/verification'
 
@@ -79,6 +81,8 @@ export class Core extends Instance<InstanceType.Core> {
 
   // instance
   public readonly statusHistory: StatusHistory
+  public readonly pendingReviewManager: PendingReviewManager
+  public readonly rankupManager: RankupManager
 
   // misc
   public readonly applicationConfigurations: ApplicationConfigurations
@@ -87,15 +91,15 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly spontaneousEventsConfigurations: SpontaneousEventsConfigurations
 
   // database
-  private readonly sqliteManager: SqliteManager
+  public readonly sqliteManager: SqliteManager
   private readonly configurationsManager: ConfigurationsManager
+  private readonly ready: Promise<void>
 
   public constructor(application: Application) {
     super(application, InternalInstancePrefix + 'core', InstanceType.Core)
 
     const sqliteName = 'users.sqlite'
-    this.sqliteManager = new SqliteManager(application, this.logger, application.getConfigFilePath(sqliteName))
-    initializeCoreDatabase(this.application, this.sqliteManager, sqliteName)
+    this.sqliteManager = new SqliteManager(application, this.logger)
 
     this.configurationsManager = new ConfigurationsManager(this.sqliteManager)
 
@@ -110,6 +114,7 @@ export class Core extends Instance<InstanceType.Core> {
     this.discordEmojis = new DiscordEmojis(this.sqliteManager)
 
     this.statusHistory = new StatusHistory(this.sqliteManager, this.logger)
+    this.pendingReviewManager = new PendingReviewManager(this.sqliteManager)
 
     this.applicationConfigurations = new ApplicationConfigurations(this.configurationsManager)
     this.languageConfigurations = new LanguageConfigurations(this.configurationsManager)
@@ -127,6 +132,13 @@ export class Core extends Instance<InstanceType.Core> {
     this.punishments = new Punishments(this.sqliteManager, application, this.logger)
     this.commandsHeat = new CommandsHeat(this.sqliteManager, this.moderationConfiguration, this.logger)
     this.enforcer = new PunishmentsEnforcer(application, this, this.eventHelper, this.logger, this.errorHandler)
+
+    this.rankupManager = new RankupManager(
+      application,
+      this.bridgeConfigurations,
+      this.pendingReviewManager,
+      this.logger
+    )
 
     this.guildManager = new GuildManager(application, this, this.eventHelper, this.logger, this.errorHandler)
     this.autoComplete = new Autocomplete(
@@ -148,6 +160,8 @@ export class Core extends Instance<InstanceType.Core> {
       this.errorHandler,
       this.sqliteManager
     )
+
+    this.ready = this.initialize(sqliteName)
   }
 
   public completeUsername(query: string, limit: number): string[] {
@@ -233,7 +247,26 @@ export class Core extends Instance<InstanceType.Core> {
   }
 
   public async awaitReady(): Promise<void> {
-    await this.punishments.ready
+    await this.ready
+  }
+
+  private async initialize(sqliteName: string): Promise<void> {
+    await initializeCoreDatabase(this.application, this.sqliteManager, sqliteName)
+    await this.configurationsManager.load()
+    await this.verification.load()
+    await this.mojangApi.load()
+    await this.minecraftAccounts.load()
+    await this.minecraftSessions.load()
+    await this.discordLeaderboards.load()
+    await this.discordTemporarilyInteractions.load()
+    await this.discordEmojis.load()
+    await this.statusHistory.load()
+    await this.pendingReviewManager.load()
+    await this.inactivity.load()
+    await this.commandsHeat.load()
+    await this.punishments.initialize()
+    await this.scoresManager.load()
+    await this.autoComplete.load()
   }
 
   /**
@@ -310,14 +343,9 @@ export class Core extends Instance<InstanceType.Core> {
   }
 
   public discordMessagesDeleted(messagesIds: string[]): void {
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      this.discordLeaderboards.remove(messagesIds)
-      this.discordTemporarilyInteractions.remove(messagesIds)
-      this.discordInstanceHistoryButton.remove(messagesIds)
-    })
-
-    transaction()
+    this.discordLeaderboards.remove(messagesIds)
+    this.discordTemporarilyInteractions.remove(messagesIds)
+    this.discordInstanceHistoryButton.remove(messagesIds)
   }
 
   private userContext(): ManagerContext {

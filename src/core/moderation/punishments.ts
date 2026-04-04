@@ -1,7 +1,5 @@
-import assert from 'node:assert'
 import fs from 'node:fs'
 
-import type Database from 'better-sqlite3'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application'
@@ -15,7 +13,8 @@ export type SavedPunishment = BasePunishment & UserIdentifier
 type DatabasePunishment = SavedPunishment & { id: number }
 
 export default class Punishments {
-  public readonly ready: Promise<void>
+  private readonly entries: DatabasePunishment[] = []
+  private nextId = 1
 
   constructor(
     private readonly sqliteManager: SqliteManager,
@@ -23,15 +22,43 @@ export default class Punishments {
     logger: Logger
   ) {
     sqliteManager.registerCleaner(() => {
-      const database = sqliteManager.getDatabase()
-      database.transaction(() => {
-        const deleteStatement = database.prepare('DELETE FROM "punishments" WHERE till < ?')
-        const result = deleteStatement.run(Math.floor(Date.now() / 1000)).changes
-        if (result > 0) logger.debug(`Deleted ${result} entry of expired punishments`)
-      })()
+      const cutoff = Math.floor(Date.now() / 1000)
+      const before = this.entries.length
+      for (let index = this.entries.length - 1; index >= 0; index--) {
+        if (this.entries[index].till <= cutoff * 1000) {
+          this.entries.splice(index, 1)
+        }
+      }
+
+      const deleted = before - this.entries.length
+      if (deleted > 0) {
+        logger.debug(`Deleted ${deleted} entry of expired punishments`)
+        this.sqliteManager.enqueueWrite('cleaning expired punishments', async (database) => {
+          await database.query('DELETE FROM "punishments" WHERE "till" < $1', [cutoff])
+        })
+      }
     })
 
-    this.ready = Promise.resolve().then(() => this.migrateAnyOldData(application, logger))
+    this.application = application
+    this.logger = logger
+  }
+
+  private readonly application: Application
+  private readonly logger: Logger
+
+  public async initialize(): Promise<void> {
+    await this.load()
+    await this.migrateAnyOldData(this.application, this.logger)
+  }
+
+  public async load(): Promise<void> {
+    const rows = await this.sqliteManager.queryRows<DatabasePunishment>('SELECT * FROM "punishments" ORDER BY "id" ASC')
+
+    this.entries.length = 0
+    for (const row of rows) {
+      this.entries.push({ ...row, createdAt: row.createdAt * 1000, till: row.till * 1000 })
+    }
+    this.nextId = this.entries.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
   }
 
   private async migrateAnyOldData(application: Application, logger: Logger): Promise<void> {
@@ -119,106 +146,72 @@ export default class Punishments {
   }
 
   private addEntries(punishments: SavedPunishment[]): void {
-    const database = this.sqliteManager.getDatabase()
-    const insert = database.prepare(
-      'INSERT INTO "punishments" (originInstance, userId, type, purpose, reason, createdAt, till) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    )
+    const records = punishments.map((punishment) => ({ ...punishment, id: this.nextId++ }))
+    this.entries.push(...records)
 
-    const transaction = database.transaction(() => {
-      for (const punishment of punishments) {
-        insert.run(
-          punishment.originInstance,
-          punishment.userId,
-          punishment.type,
-          punishment.purpose,
-          punishment.reason,
-          Math.floor(punishment.createdAt / 1000),
-          Math.floor(punishment.till / 1000)
+    this.sqliteManager.enqueueTransaction('saving punishments', async (database) => {
+      for (const punishment of records) {
+        await database.query(
+          `INSERT INTO "punishments" ("id", "originInstance", "userId", "type", "purpose", "reason", "createdAt", "till")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            punishment.id,
+            punishment.originInstance,
+            punishment.userId,
+            punishment.type,
+            punishment.purpose,
+            punishment.reason,
+            Math.floor(punishment.createdAt / 1000),
+            Math.floor(punishment.till / 1000)
+          ]
         )
       }
     })
-
-    transaction()
   }
 
   public remove(user: User): SavedPunishment[] {
     const currentTime = Date.now()
+    const foundEntries = this.getPunishments(user.allIdentifiers(), currentTime)
+    if (foundEntries.length === 0) return []
 
-    const database = this.sqliteManager.getDatabase()
-    const transaction = database.transaction(() => {
-      const foundEntries = this.getPunishments(database, user.allIdentifiers(), currentTime)
-      if (foundEntries.length === 0) return []
+    const ids = new Set(foundEntries.map((entry) => entry.id))
+    for (let index = this.entries.length - 1; index >= 0; index--) {
+      if (ids.has(this.entries[index].id)) {
+        this.entries.splice(index, 1)
+      }
+    }
 
-      let deleteQuery = `DELETE FROM "punishments" WHERE id IN (`
-      deleteQuery += foundEntries.map(() => '?').join(', ')
-      deleteQuery += ')'
-
-      const parameters = foundEntries.map((entry) => entry.id)
-
-      const deletedEntries = database.prepare(deleteQuery).run(...parameters).changes
-      assert.strictEqual(foundEntries.length, deletedEntries)
-
-      return this.convertDatabaseFields(foundEntries)
+    this.sqliteManager.enqueueWrite('removing punishments', async (database) => {
+      await database.query('DELETE FROM "punishments" WHERE "id" = ANY($1::int[])', [[...ids]])
     })
 
-    return transaction()
+    return this.convertDatabaseFields(foundEntries)
   }
 
   findByUser(user: User): SavedPunishment[] {
-    const current = Date.now()
-    const result = this.getPunishments(this.sqliteManager.getDatabase(), user.allIdentifiers(), current)
-    return this.convertDatabaseFields(result)
+    return this.convertDatabaseFields(this.getPunishments(user.allIdentifiers(), Date.now()))
   }
 
   all(): SavedPunishment[] {
-    const current = Date.now()
-    const result = this.getPunishments(this.sqliteManager.getDatabase(), [], current)
-    return this.convertDatabaseFields(result)
+    return this.convertDatabaseFields(this.getPunishments([], Date.now()))
   }
 
-  /*
-   * Get all punishments if no identifiers set, otherwise, get the user punishments with the supplied identifiers
-   */
-  private getPunishments(
-    database: Database.Database,
-    identifiers: UserIdentifier[],
-    currentTime: number
-  ): DatabasePunishment[] {
-    let query = 'SELECT * FROM "punishments" WHERE '
-    const parameters: unknown[] = []
+  private getPunishments(identifiers: UserIdentifier[], currentTime: number): DatabasePunishment[] {
+    const currentSeconds = Math.floor(currentTime / 1000)
+    const allowedIdentifiers = new Set(identifiers.map(identifierKey))
 
-    if (identifiers.length > 0) {
-      query += '('
-      for (let index = 0; index < identifiers.length; index++) {
-        const identifier = identifiers[index]
-
-        parameters.push(identifier.originInstance)
-        parameters.push(identifier.userId)
-
-        query += `(originInstance = ? AND userId = ?)`
-        if (index !== identifiers.length - 1) query += ' OR '
-      }
-      query += ') AND '
-    }
-
-    query += 'till > ?'
-    parameters.push(Math.floor(currentTime / 1000))
-
-    const get = database.prepare(query)
-    return get.all(...parameters) as (SavedPunishment & { id: number })[]
+    return this.entries.filter((entry) => {
+      if (entry.till <= currentSeconds * 1000) return false
+      if (allowedIdentifiers.size === 0) return true
+      return allowedIdentifiers.has(identifierKey(entry))
+    })
   }
 
-  private convertDatabaseFields(entries: Writeable<DatabasePunishment>[]): SavedPunishment[] {
-    const result: (SavedPunishment & { id?: number })[] = entries
-
-    for (const entry of result) {
-      delete entry.id
-
-      const writeableEntry = entry as Writeable<SavedPunishment>
-      writeableEntry.createdAt = entry.createdAt * 1000
-      writeableEntry.till = entry.till * 1000
-    }
-
-    return result as SavedPunishment[]
+  private convertDatabaseFields(entries: DatabasePunishment[]): SavedPunishment[] {
+    return entries.map(({ id: _id, ...entry }) => ({ ...entry }))
   }
+}
+
+function identifierKey(identifier: UserIdentifier): string {
+  return `${identifier.originInstance}:${identifier.userId}`
 }

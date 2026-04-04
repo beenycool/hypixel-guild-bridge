@@ -26,8 +26,9 @@ import {
 } from 'discord.js'
 
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
+import { debugSessionLog } from '../../../utility/debug-session-log.js'
 
-export const DEFAULT_PAGE_SIZE = 12
+export const DEFAULT_PAGE_SIZE = 6
 export const MAX_COMPONENTS = 39
 
 export enum OptionType {
@@ -212,6 +213,43 @@ export class OptionsHandler {
         }
       }
     }
+
+    // Cached getters (e.g. demotion/promotion rules) recreate option objects; drop stale id/path
+    // entries so Discord customIds cannot target orphaned handlers (e.g. Delete on wrong rule).
+    const live = new Set(allComponents)
+    for (const [id, entry] of [...this.ids.entries()]) {
+      if (!live.has(entry.item)) {
+        this.ids.delete(id)
+      }
+    }
+    this.sanitizeNavigationPath()
+  }
+
+  /** After dynamic subtrees are rebuilt, path segments may reference removed categories. */
+  private sanitizeNavigationPath(): void {
+    const prevLen = this.path.length
+    let current: CategoryOption | EmbedCategoryOption = this.mainCategory
+    const newPath: string[] = []
+    for (const seg of this.path) {
+      const entry = this.ids.get(seg)
+      if (entry === undefined) break
+      const item = entry.item
+      if (item.type !== OptionType.Category && item.type !== OptionType.EmbedCategory) break
+      if (!current.options.some((o) => o === item)) break
+      newPath.push(seg)
+      current = item as CategoryOption | EmbedCategoryOption
+    }
+    if (newPath.length !== prevLen) {
+      // #region agent log
+      debugSessionLog({
+        hypothesisId: 'H7',
+        location: 'options-handler.ts:sanitizeNavigationPath',
+        message: 'Navigation path trimmed after dynamic options rebuild',
+        data: { prevLen, nextLen: newPath.length }
+      })
+      // #endregion
+    }
+    this.path = newPath
   }
 
   public async forwardInteraction(interaction: ChatInputCommandInteraction, errorHandler: UnexpectedErrorHandler) {
@@ -294,23 +332,42 @@ export class OptionsHandler {
     // Rebuild IDs to pick up any dynamically added options
     this.rebuildIds()
 
+    const buildComponents = (): ContainerComponentData[] => [
+      new ViewBuilder(
+        this.mainCategory,
+        this.ids,
+        this.path,
+        this.enabled,
+        this.pages.get(this.getPathKey()) ?? 0,
+        DEFAULT_PAGE_SIZE
+      ).create()
+    ]
+
     if (interaction !== undefined) {
+      let refreshedMessage = false
       // Check if the modal interaction is still valid before updating
       if (!interaction.deferred && !interaction.replied) {
-        await interaction.update({
-          components: [
-            new ViewBuilder(
-              this.mainCategory,
-              this.ids,
-              this.path,
-              this.enabled,
-              this.pages.get(this.getPathKey()) ?? 0,
-              DEFAULT_PAGE_SIZE
-            ).create()
-          ],
-          flags: MessageFlags.IsComponentsV2,
-          allowedMentions: { parse: [] }
-        })
+        try {
+          await interaction.update({
+            components: buildComponents(),
+            flags: MessageFlags.IsComponentsV2,
+            allowedMentions: { parse: [] }
+          })
+          refreshedMessage = true
+        } catch {
+          // Fall through: sync parent message so customIds match this.ids
+        }
+      }
+      if (!refreshedMessage && this.originalReply) {
+        try {
+          await this.originalReply.edit({
+            components: buildComponents(),
+            flags: MessageFlags.IsComponentsV2,
+            allowedMentions: { parse: [] }
+          })
+        } catch {
+          // Message may have been deleted
+        }
       }
       return
     }
@@ -508,6 +565,18 @@ export class OptionsHandler {
     option: NumberOption
   ): Promise<boolean> {
     assert.ok(interaction.isButton())
+    // #region agent log
+    debugSessionLog({
+      hypothesisId: 'H1',
+      location: 'options-handler.ts:handleNumber:open',
+      message: 'Number modal opening',
+      data: {
+        optionName: option.name,
+        getOptionValue: option.getOption(),
+        customId: interaction.customId
+      }
+    })
+    // #endregion
     await interaction.showModal({
       customId: interaction.customId,
       title: `Setting ${option.name}`,
@@ -540,12 +609,39 @@ export class OptionsHandler {
 
         const value = modalInteraction.fields.getTextInputValue(interaction.customId).trim()
         const intValue = value.includes('.') ? Number.parseFloat(value) : Number.parseInt(value, 10)
+        const normalizedOk = value === intValue.toString(10)
+        const rangeOk = intValue >= option.min && intValue <= option.max
+        // #region agent log
+        debugSessionLog({
+          hypothesisId: 'H2_H3',
+          location: 'options-handler.ts:handleNumber:submit',
+          message: 'Number modal submit',
+          data: {
+            optionName: option.name,
+            raw: value,
+            intValue,
+            min: option.min,
+            max: option.max,
+            normalizedOk,
+            rangeOk,
+            willApply: rangeOk && normalizedOk
+          }
+        })
+        // #endregion
         if (intValue < option.min || intValue > option.max || value !== intValue.toString(10)) {
           await modalInteraction.reply({
             content: `**${option.name}** must be a number between ${option.min} and ${option.max}.\nGiven: ${escapeMarkdown(value)}`,
             flags: MessageFlags.Ephemeral
           })
         } else {
+          // #region agent log
+          debugSessionLog({
+            hypothesisId: 'H2',
+            location: 'options-handler.ts:handleNumber:beforeSetOption',
+            message: 'Calling setOption',
+            data: { optionName: option.name, intValue }
+          })
+          // #endregion
           option.setOption(intValue)
           await this.updateView(modalInteraction)
         }

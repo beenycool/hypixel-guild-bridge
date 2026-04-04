@@ -1,4 +1,10 @@
-
+| Name    | Description                                                                                                        |
+| ------- | ------------------------------------------------------------------------------------------------------------------ |
+| Anyone  | Anything that usually can be seen in-game guild chat<br> e.g. public chat, join/leave notification, etc            |
+| Helper  | Anything that requires special permission to see in-game guild chat<br> e.g. officer chat, mute notification, etc. |
+| Officer | Superset of **Helper** role. Given to trusted members                                                              |
+| Owner   | Given to senior staff who can execute destructive moderation commands such as `/ban` and `/kick`                   |
+| Admin   | Special permission that is used to administrate the service.<br> Note: Only ONE person can have this permission!   |
 
 ## Chat Commands
 
@@ -49,13 +55,13 @@
 | `hlevel`         | Returns a player's Hypixel common stats                                            |
 | `insult`         | insult a player                                                                    |
 | `iq`             | Returns a player's IQ (0-200)                                                      |
+| `kms`            | mute yourself for 5 minutes                                                        |
 | `kuudra`         | Returns a player's kuudra runs                                                     |
 | `level`          | Returns a player's skyblock level                                                  |
 | `list`           | List online members in a guild                                                     |
 | `magicalpower`   | Returns a player's highest recorded skyblock Magical Power                         |
 | `mayor`          | Show current Hypixel Skyblock Election                                             |
 | `megawalls`      | Returns a player's Megawalls stats                                                 |
-| `murdermystery`  | Returns a player's Murder Mystery stats                                            |
 | `mute`           | mute a random online person for 5 minutes for no good reason                       |
 | `name`           | Get a player's name history.                                                       |
 | `networth`       | Networth of specified user.                                                        |
@@ -136,6 +142,9 @@
 | `/profanity`          | Manage application profanity filter                              |
 | `/promote`            | promote guild member in-game                                     |
 | `/punishments`        | Manage active punishments                                        |
+| `/rankup-check`       | Check rankup status for a player (Dry Run)                       |
+| `/rankup-history`     | View rankup history                                              |
+| `/rankup-pending`     | View and manage pending rankup reviews                           |
 | `/reconnect`          | reconnect minecraft clients                                      |
 | `/requirements`       | Check if a player meets guild requirements                       |
 | `/restart`            | Send signal to restart the bridge                                |

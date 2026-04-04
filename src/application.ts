@@ -12,7 +12,7 @@ import type { i18n } from 'i18next'
 import type { Logger } from 'log4js'
 import Logger4js from 'log4js'
 
-import type { ApplicationConfig } from './application-config.js'
+import type { ApplicationConfig, DatabaseConfig } from './application-config.js'
 import type { ApplicationEvents, InstanceIdentifier, MinecraftSendChatPriority } from './common/application-event.js'
 import { InstanceSignalType, InstanceType } from './common/application-event.js'
 import { BridgeResolver } from './common/bridge-resolver.js'
@@ -54,6 +54,7 @@ export type AllInstances =
   | AutoRestart
   | MinecraftManager
   | PluginsManager
+  | AiChat
 
 export default class Application extends Emittery<ApplicationEvents> implements InstanceIdentifier {
   public readonly instanceName: string = InstanceType.Main
@@ -118,9 +119,13 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.config.web
   }
 
+  public getDatabaseConfig(): DatabaseConfig | undefined {
+    return this.config.database
+  }
+
   private readonly logger: Logger
   private readonly errorHandler: UnexpectedErrorHandler
-  private readonly shutdownListeners: (() => void)[] = []
+  private readonly shutdownListeners: (() => void | Promise<void>)[] = []
 
   private readonly rootDirectory
   private readonly configsDirectory
@@ -177,19 +182,9 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     // Connect bridge resolver to dynamic config from database
     this.bridgeResolver.setDynamicConfig(this.core.bridgeConfigurations)
 
-    let selectedLanguage = this.core.languageConfigurations.getLanguage()
-    if (!Object.values(ApplicationLanguages).includes(selectedLanguage)) {
-      this.logger.warn(`Saved language '${selectedLanguage}' is not supported.`)
-      this.logger.info(`Switching to default language '${LanguageConfigurations.DefaultLanguage}'.`)
-
-      selectedLanguage = LanguageConfigurations.DefaultLanguage
-    }
-    this.changeLanguage(selectedLanguage)
-
     this.discordInstance = new DiscordInstance(this, this.config.discord)
 
     this.minecraftManager = new MinecraftManager(this)
-    this.minecraftManager.loadInstances()
 
     this.pluginsManager = new PluginsManager(this)
 
@@ -231,7 +226,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     throw new Error(`could not find viable backup path for '${name}'.`)
   }
 
-  public addShutdownListener(listener: () => void): void {
+  public addShutdownListener(listener: () => void | Promise<void>): void {
     this.shutdownListeners.push(listener)
   }
 
@@ -275,6 +270,8 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   public async start(): Promise<void> {
     await this.core.awaitReady()
+    this.applyStoredLanguage()
+    this.minecraftManager.loadInstances()
     await this.pluginsManager.loadPlugins(this.rootDirectory)
 
     for (const instance of this.getAllInstances()) {
@@ -310,7 +307,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     await setImmediate()
 
     for (const shutdownListener of this.shutdownListeners.toReversed()) {
-      shutdownListener()
+      await shutdownListener()
     }
   }
 
@@ -425,6 +422,17 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   private instanceByName(name: string): AllInstances | undefined {
     return this.getAllInstances().find((instance) => instance.instanceName.toLowerCase() === name.toLowerCase())
+  }
+
+  private applyStoredLanguage(): void {
+    let selectedLanguage = this.core.languageConfigurations.getLanguage()
+    if (!Object.values(ApplicationLanguages).includes(selectedLanguage)) {
+      this.logger.warn(`Saved language '${selectedLanguage}' is not supported.`)
+      this.logger.info(`Switching to default language '${LanguageConfigurations.DefaultLanguage}'.`)
+      selectedLanguage = LanguageConfigurations.DefaultLanguage
+    }
+
+    this.changeLanguage(selectedLanguage)
   }
 
   private getAllInstances(): AllInstances[] {
