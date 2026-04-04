@@ -56,11 +56,14 @@ export class RulesEvaluator {
     // online hours calculation might be approximate if we only have join/quit logs,
     // but here we might rely on what's available or just ignore if not tracked perfectly yet.
     // For now, let's assume online hours is 0 if we don't have better data, or rely on other stats.
-    const onlineHours = 0 // Placeholder until we have robust online tracking
+    const onlineHours = 0 // Placeholder until we have robust online tracking; minOnlineHours > 0 blocks promote until implemented
 
     for (const rule of possiblePromotions) {
-      if (member.weeklyGexp >= rule.minWeeklyGexp && daysInGuild >= rule.minDaysInGuild) {
-        // && onlineHours >= rule.minOnlineHours (TODO: implement online tracking)
+      if (
+        member.weeklyGexp >= rule.minWeeklyGexp &&
+        daysInGuild >= rule.minDaysInGuild &&
+        onlineHours >= rule.minOnlineHours
+      ) {
         return {
           action: 'promote',
           targetRank: rule.targetRank,

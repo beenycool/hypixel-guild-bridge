@@ -188,7 +188,7 @@ export class RankupManager {
     })
 
     if (unnotified.length > 0 && notificationChannels.length > 0) {
-      await this.notificationManager.sendReviewNotification(bridgeId, notificationChannels, pending)
+      await this.notificationManager.sendReviewNotification(bridgeId, notificationChannels, unnotified)
 
       // Update notifiedAt only for the reviews that were just notified
 

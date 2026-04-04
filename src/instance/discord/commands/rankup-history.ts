@@ -42,7 +42,7 @@ export default {
         history
           .map((h) => {
             const name = uuidToName.get(h.uuid)
-            const time = `<t:${Math.floor(h.createdAt / 1000)}:R>`
+            const time = `<t:${h.createdAt}:R>`
             return `**${h.action.toUpperCase()}**: ${name} (${h.fromRank} -> ${h.toRank}) by ${h.triggeredBy} ${time}`
           })
           .join('\n')
