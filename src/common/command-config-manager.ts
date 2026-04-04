@@ -1,7 +1,9 @@
+import type { Logger } from 'log4js'
+
+import type Application from '../application.js'
+
 import type { Permission } from './application-event.js'
 import { ConfigManager } from './config-manager.js'
-import type Application from '../application.js'
-import type { Logger } from 'log4js'
 
 /**
  * Configuration for individual commands
@@ -105,6 +107,7 @@ export class CommandConfigManager {
 
   /**
    * Get configuration for a specific Discord command
+   * @param commandName
    */
   public getDiscordCommandConfig(commandName: string): CommandConfig | null {
     return this.configManager.data.discord[commandName] || null
@@ -112,6 +115,7 @@ export class CommandConfigManager {
 
   /**
    * Get configuration for a specific Minecraft command
+   * @param trigger
    */
   public getMinecraftCommandConfig(trigger: string): CommandConfig | null {
     return this.configManager.data.minecraft[trigger] || null
@@ -133,6 +137,9 @@ export class CommandConfigManager {
 
   /**
    * Update or create Discord command configuration
+   * @param commandName
+   * @param updates
+   * @param modifiedBy
    */
   public updateDiscordCommandConfig(
     commandName: string,
@@ -155,7 +162,7 @@ export class CommandConfigManager {
       this.configManager.data.discord[commandName] = {
         originalName: commandName,
         displayName: updates.displayName || commandName,
-        enabled: updates.enabled !== undefined ? updates.enabled : true,
+        enabled: updates.enabled === undefined ? true : updates.enabled,
         permission: updates.permission || 0, // Default to Anyone
         modifiedAt: now,
         modifiedBy
@@ -167,6 +174,9 @@ export class CommandConfigManager {
 
   /**
    * Update or create Minecraft command configuration
+   * @param trigger
+   * @param updates
+   * @param modifiedBy
    */
   public updateMinecraftCommandConfig(
     trigger: string,
@@ -189,7 +199,7 @@ export class CommandConfigManager {
       this.configManager.data.minecraft[trigger] = {
         originalName: trigger,
         displayName: updates.displayName || trigger,
-        enabled: updates.enabled !== undefined ? updates.enabled : true,
+        enabled: updates.enabled === undefined ? true : updates.enabled,
         permission: updates.permission || 0, // Default to Anyone
         modifiedAt: now,
         modifiedBy
@@ -201,6 +211,7 @@ export class CommandConfigManager {
 
   /**
    * Add an audit log entry
+   * @param entry
    */
   public addAuditLogEntry(entry: Omit<CommandAuditLogEntry, 'id' | 'timestamp'>): void {
     const auditEntry: CommandAuditLogEntry = {
@@ -221,15 +232,21 @@ export class CommandConfigManager {
 
   /**
    * Get audit log entries for a specific command
+   * @param commandType
+   * @param commandIdentifier
    */
-  public getAuditLogForCommand(commandType: 'discord' | 'minecraft', commandIdentifier: string): CommandAuditLogEntry[] {
-    return this.configManager.data.auditLog.filter(
-      entry => entry.commandType === commandType && entry.commandIdentifier === commandIdentifier
-    ).slice(-50) // Last 50 entries for this command
+  public getAuditLogForCommand(
+    commandType: 'discord' | 'minecraft',
+    commandIdentifier: string
+  ): CommandAuditLogEntry[] {
+    return this.configManager.data.auditLog
+      .filter((entry) => entry.commandType === commandType && entry.commandIdentifier === commandIdentifier)
+      .slice(-50) // Last 50 entries for this command
   }
 
   /**
    * Get recent audit log entries
+   * @param limit
    */
   public getRecentAuditLog(limit = 100): CommandAuditLogEntry[] {
     return this.configManager.data.auditLog.slice(-limit)
@@ -237,40 +254,49 @@ export class CommandConfigManager {
 
   /**
    * Check if a command is enabled (considering custom configuration)
+   * @param commandType
+   * @param commandIdentifier
    */
   public isCommandEnabled(commandType: 'discord' | 'minecraft', commandIdentifier: string): boolean {
-    const config = commandType === 'discord' 
-      ? this.getDiscordCommandConfig(commandIdentifier)
-      : this.getMinecraftCommandConfig(commandIdentifier)
-    
+    const config =
+      commandType === 'discord'
+        ? this.getDiscordCommandConfig(commandIdentifier)
+        : this.getMinecraftCommandConfig(commandIdentifier)
+
     return config ? config.enabled : true // Default to enabled if no custom config
   }
 
   /**
    * Get the display name for a command (considering custom configuration)
+   * @param commandType
+   * @param commandIdentifier
    */
   public getCommandDisplayName(commandType: 'discord' | 'minecraft', commandIdentifier: string): string {
-    const config = commandType === 'discord' 
-      ? this.getDiscordCommandConfig(commandIdentifier)
-      : this.getMinecraftCommandConfig(commandIdentifier)
-    
+    const config =
+      commandType === 'discord'
+        ? this.getDiscordCommandConfig(commandIdentifier)
+        : this.getMinecraftCommandConfig(commandIdentifier)
+
     return config ? config.displayName : commandIdentifier
   }
 
   /**
    * Get commands that should be filtered out for non-admin users
+   * @param commandType
+   * @param commands
+   * @param userPermission
    */
   public getFilteredCommandsForPermission(
     commandType: 'discord' | 'minecraft',
-    commands: Array<{ name: string; permission?: Permission }>,
+    commands: { name: string; permission?: Permission }[],
     userPermission: Permission
-  ): Array<{ name: string; permission?: Permission }> {
-    return commands.filter(cmd => {
+  ): { name: string; permission?: Permission }[] {
+    return commands.filter((cmd) => {
       // Check if command is disabled in config
       if (!this.isCommandEnabled(commandType, cmd.name)) {
         return false
       }
-      
+
       // Apply permission filtering based on command's required permission vs user's permission
       const commandPermission = cmd.permission || 0 // Default to Anyone
       return userPermission >= commandPermission
@@ -279,11 +305,15 @@ export class CommandConfigManager {
 
   /**
    * Check if a command is protected (core admin commands that cannot be modified)
+   * @param commandType
+   * @param commandIdentifier
    */
   public isCommandProtected(commandType: 'discord' | 'minecraft', commandIdentifier: string): boolean {
     const protectedCommands = [
       // Core Discord admin commands
-      'settings', 'commands', 'restart',
+      'settings',
+      'commands',
+      'restart'
       // Core Minecraft admin commands (if any)
     ]
 
@@ -294,7 +324,7 @@ export class CommandConfigManager {
    * Generate a unique audit ID
    */
   private generateAuditId(): string {
-    return `audit_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+    return `audit_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
   }
 
   /**

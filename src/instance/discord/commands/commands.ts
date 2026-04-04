@@ -10,21 +10,13 @@ import type {
   InteractionResponse,
   ModalMessageModalSubmitInteraction
 } from 'discord.js'
-import {
-  bold,
-  ButtonStyle,
-  ComponentType,
-  italic,
-  MessageFlags,
-  SlashCommandBuilder,
-  TextInputStyle
-} from 'discord.js'
+import { bold, ButtonStyle, ComponentType, italic, MessageFlags, SlashCommandBuilder, TextInputStyle } from 'discord.js'
 
 import type Application from '../../../application.js'
 import { Color, Permission } from '../../../common/application-event.js'
+import { CommandConfigManager } from '../../../common/command-config-manager.js'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
-import { CommandConfigManager } from '../../../common/command-config-manager.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 
 // Session state management for command custom IDs
@@ -55,9 +47,7 @@ interface SessionState {
 
 export default {
   getCommandBuilder: () =>
-    new SlashCommandBuilder()
-      .setName('commands')
-      .setDescription('Browse all available Discord and Minecraft commands'),
+    new SlashCommandBuilder().setName('commands').setDescription('Browse all available Discord and Minecraft commands'),
   permission: Permission.Anyone,
 
   handler: async function (context: Readonly<DiscordCommandContext>) {
@@ -66,7 +56,6 @@ export default {
     try {
       // Get command configuration manager
       const commandConfigManager = new CommandConfigManager(application)
-      
       // Check admin permissions
       const isAdmin = context.permission === Permission.Admin
       const bridgeId = context.bridgeId
@@ -83,13 +72,12 @@ export default {
 
       // Discover all commands
       const commands = await discoverAllCommands(application, commandConfigManager, isAdmin)
-      
+
       // Send initial response with tabs
       const reply = await sendInitialResponse(interaction, commands, sessionState, sessionToken, application)
-      
+
       // Set up component collector
       await setupComponentCollector(interaction, reply, commands, sessionState, sessionToken, application, errorHandler)
-      
     } catch (error) {
       errorHandler.promiseCatch('commands handler')(error)
       await interaction.reply({
@@ -117,26 +105,28 @@ async function discoverAllCommands(
   try {
     // Discover Discord commands
     const discordCommandsDir = path.join(process.cwd(), 'src/instance/discord/commands/')
-    const discordFiles = fs.readdirSync(discordCommandsDir).filter(file => file.endsWith('.ts') && file !== 'commands.ts')
-    
+    const discordFiles = fs
+      .readdirSync(discordCommandsDir)
+      .filter((file) => file.endsWith('.ts') && file !== 'commands.ts')
+
     for (const file of discordFiles) {
       try {
         const resolvedPath = path.join('../', discordCommandsDir, file.replaceAll('.ts', '.js'))
-        const importedModule = await import(resolvedPath) as { default: any }
+        const importedModule = (await import(resolvedPath)) as { default: any }
         const module = importedModule.default
 
         if (module?.getCommandBuilder) {
           const builder = module.getCommandBuilder()
           const commandName = builder.name
-          
+
           // Check if command is disabled (for non-admins)
           if (!isAdmin && !commandConfigManager.isCommandEnabled('discord', commandName)) {
             continue
           }
-          
+
           // Get custom display name if configured
           const displayName = commandConfigManager.getCommandDisplayName('discord', commandName)
-          
+
           const commandInfo: CommandInfo = {
             name: displayName,
             originalName: commandName,
@@ -154,12 +144,12 @@ async function discoverAllCommands(
 
     // Discover Minecraft commands
     const minecraftCommandsDir = path.join(process.cwd(), 'src/instance/commands/triggers/')
-    const minecraftFiles = fs.readdirSync(minecraftCommandsDir).filter(file => file.endsWith('.ts'))
-    
+    const minecraftFiles = fs.readdirSync(minecraftCommandsDir).filter((file) => file.endsWith('.ts'))
+
     for (const file of minecraftFiles) {
       try {
         const resolvedPath = path.join('../', minecraftCommandsDir, file.replaceAll('.ts', '.js'))
-        const importedModule = await import(resolvedPath) as { default: any }
+        const importedModule = (await import(resolvedPath)) as { default: any }
         const module = importedModule.default
 
         if (module?.triggers) {
@@ -168,15 +158,15 @@ async function discoverAllCommands(
             const resolvedCommands = module.resolveCommands()
             for (const resolvedCommand of resolvedCommands) {
               const commandTrigger = resolvedCommand.triggers[0]
-              
+
               // Check if command is disabled (for non-admins)
               if (!isAdmin && !commandConfigManager.isCommandEnabled('minecraft', commandTrigger)) {
                 continue
               }
-              
+
               // Get custom display name if configured
               const displayName = commandConfigManager.getCommandDisplayName('minecraft', commandTrigger)
-              
+
               const commandInfo: CommandInfo = {
                 name: displayName,
                 originalName: commandTrigger,
@@ -190,15 +180,15 @@ async function discoverAllCommands(
           } else {
             // Regular ChatCommandHandler
             const commandTrigger = module.triggers[0]
-            
+
             // Check if command is disabled (for non-admins)
             if (!isAdmin && !commandConfigManager.isCommandEnabled('minecraft', commandTrigger)) {
               continue
             }
-            
+
             // Get custom display name if configured
             const displayName = commandConfigManager.getCommandDisplayName('minecraft', commandTrigger)
-            
+
             const commandInfo: CommandInfo = {
               name: displayName,
               originalName: commandTrigger,
@@ -214,7 +204,6 @@ async function discoverAllCommands(
         console.warn(`Failed to load Minecraft command from ${file}:`, error)
       }
     }
-
   } catch (error) {
     console.error('Error discovering commands:', error)
   }
@@ -227,11 +216,72 @@ async function discoverAllCommands(
  */
 function categorizeMinecraftCommand(trigger: string): string {
   const categories: Record<string, string[]> = {
-    'Skyblock': ['skyblock', 'collection', 'bestiary', 'skills', 'slayer', 'networth', 'purse', 'weight', 'sblevel', 'catacomb', 'kuudra', 'trophyfish', 'fairysouls', 'garden', 'essence', 'magicalpower', 'secrets'],
-    'Guild': ['guild', 'guildexp', 'promote', 'demote', 'kick', 'invite', 'requirements', 'join', 'leave', 'online', 'offline', 'officer'],
-    'Games': ['bedwars', 'duels', 'skywars', 'uhc', 'blitz', 'buildbattle', 'murdermystery', 'paintball', 'tntgames', 'smash', 'megawalls', 'speeduhc', 'woolwars', 'party'],
-    'Utility': ['calculate', 'rng', '8ball', 'unscramble', 'quickmath', 'level', 'status', 'timecharms', 'starfall', 'mayor', 'election', 'special-mayors', 'dojo', 'crimson'],
-    'Other': []
+    Skyblock: [
+      'skyblock',
+      'collection',
+      'bestiary',
+      'skills',
+      'slayer',
+      'networth',
+      'purse',
+      'weight',
+      'sblevel',
+      'catacomb',
+      'kuudra',
+      'trophyfish',
+      'fairysouls',
+      'garden',
+      'essence',
+      'magicalpower',
+      'secrets'
+    ],
+    Guild: [
+      'guild',
+      'guildexp',
+      'promote',
+      'demote',
+      'kick',
+      'invite',
+      'requirements',
+      'join',
+      'leave',
+      'online',
+      'offline',
+      'officer'
+    ],
+    Games: [
+      'bedwars',
+      'duels',
+      'skywars',
+      'uhc',
+      'blitz',
+      'buildbattle',
+      'murdermystery',
+      'paintball',
+      'tntgames',
+      'smash',
+      'megawalls',
+      'speeduhc',
+      'woolwars',
+      'party'
+    ],
+    Utility: [
+      'calculate',
+      'rng',
+      '8ball',
+      'unscramble',
+      'quickmath',
+      'level',
+      'status',
+      'timecharms',
+      'starfall',
+      'mayor',
+      'election',
+      'special-mayors',
+      'dojo',
+      'crimson'
+    ],
+    Other: []
   }
 
   for (const [category, triggers] of Object.entries(categories)) {
@@ -253,7 +303,7 @@ async function sendInitialResponse(
   application: Application
 ): Promise<InteractionResponse> {
   const i18n = application.i18n
-  
+
   const embed: APIEmbed = {
     title: i18n.t(($) => $['discord.commands.commands.title']),
     description: i18n.t(($) => $['discord.commands.commands.description']),
@@ -318,7 +368,7 @@ async function sendInitialResponse(
  * Generate a unique session token
  */
 function generateSessionToken(): string {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+  return Math.random().toString(36).slice(2, 15) + Math.random().toString(36).slice(2, 15)
 }
 
 /**
@@ -328,12 +378,12 @@ function parseSessionData(customId: string): { sessionToken: string; action: str
   if (!customId.startsWith(SESSION_PREFIX)) {
     return null
   }
-  
-  const parts = customId.substring(SESSION_PREFIX.length).split(':')
+
+  const parts = customId.slice(SESSION_PREFIX.length).split(':')
   if (parts.length < 2) {
     return null
   }
-  
+
   return {
     sessionToken: parts[0],
     action: parts[1],
@@ -350,16 +400,17 @@ function filterCommands(commands: CommandInfo[], sessionState: SessionState): Co
   // Apply search filter
   if (sessionState.searchQuery) {
     const query = sessionState.searchQuery.toLowerCase()
-    filtered = filtered.filter(cmd => 
-      cmd.name.toLowerCase().includes(query) || 
-      cmd.description.toLowerCase().includes(query) ||
-      cmd.triggers?.some(trigger => trigger.toLowerCase().includes(query))
+    filtered = filtered.filter(
+      (cmd) =>
+        cmd.name.toLowerCase().includes(query) ||
+        cmd.description.toLowerCase().includes(query) ||
+        cmd.triggers?.some((trigger) => trigger.toLowerCase().includes(query))
     )
   }
 
   // Apply category filter
   if (sessionState.selectedCategory) {
-    filtered = filtered.filter(cmd => cmd.category === sessionState.selectedCategory)
+    filtered = filtered.filter((cmd) => cmd.category === sessionState.selectedCategory)
   }
 
   return filtered
@@ -370,12 +421,12 @@ function filterCommands(commands: CommandInfo[], sessionState: SessionState): Co
  */
 function getCategories(commands: CommandInfo[]): string[] {
   const categories = new Set<string>()
-  commands.forEach(cmd => {
+  for (const cmd of commands) {
     if (cmd.category) {
       categories.add(cmd.category)
     }
-  })
-  return Array.from(categories).sort()
+  }
+  return [...categories].sort()
 }
 
 /**
@@ -390,7 +441,7 @@ async function setupComponentCollector(
   application: Application,
   errorHandler: UnexpectedErrorHandler
 ) {
-  const replyId = await reply.fetch().then(message => message.id)
+  const replyId = await reply.fetch().then((message) => message.id)
   const collector = reply.createMessageComponentCollector({
     filter: (messageInteraction) =>
       messageInteraction.user.id === interaction.user.id && messageInteraction.message.id === replyId,
@@ -400,7 +451,7 @@ async function setupComponentCollector(
   collector.on('collect', async (messageInteraction) => {
     try {
       const sessionData = parseSessionData(messageInteraction.customId)
-      if (!sessionData || sessionData.sessionToken !== sessionToken) {
+      if (sessionData?.sessionToken !== sessionToken) {
         return
       }
 
@@ -415,14 +466,7 @@ async function setupComponentCollector(
           errorHandler
         )
       } else if (messageInteraction.isModalSubmit()) {
-        await handleModalSubmit(
-          messageInteraction,
-          commands,
-          sessionState,
-          sessionToken,
-          application,
-          errorHandler
-        )
+        await handleModalSubmit(messageInteraction, commands, sessionState, sessionToken, application, errorHandler)
       }
     } catch (error) {
       errorHandler.promiseCatch('commands component interaction')(error)
@@ -451,23 +495,26 @@ async function handleButtonInteraction(
 
   const i18n = application.i18n
   switch (sessionData.action) {
-    case 'tab':
+    case 'tab': {
       if (sessionData.data === 'discord' || sessionData.data === 'minecraft') {
         sessionState.currentTab = sessionData.data
         sessionState.currentPage = 0
         await updateCommandList(interaction, commands, sessionState, sessionToken, application)
       }
       break
+    }
 
-    case 'search':
+    case 'search': {
       await showSearchModal(interaction, sessionState, sessionToken, application)
       break
+    }
 
-    case 'categories':
+    case 'categories': {
       await showCategorySelector(interaction, commands, sessionState, sessionToken, application)
       break
+    }
 
-    case 'page':
+    case 'page': {
       if (sessionData.data === 'prev') {
         sessionState.currentPage = Math.max(0, sessionState.currentPage - 1)
       } else if (sessionData.data === 'next') {
@@ -475,66 +522,76 @@ async function handleButtonInteraction(
       }
       await updateCommandList(interaction, commands, sessionState, sessionToken, application)
       break
+    }
 
-    case 'command':
+    case 'command': {
       if (sessionData.data) {
-        const commandIndex = parseInt(sessionData.data, 10)
+        const commandIndex = Number.parseInt(sessionData.data, 10)
         await showCommandDetails(interaction, commands, sessionState, sessionToken, commandIndex, application)
       }
       break
+    }
 
-    case 'clear-search':
+    case 'clear-search': {
       sessionState.searchQuery = undefined
       sessionState.currentPage = 0
       await updateCommandList(interaction, commands, sessionState, sessionToken, application)
       break
+    }
 
-    case 'clear-category':
+    case 'clear-category': {
       sessionState.selectedCategory = undefined
       sessionState.currentPage = 0
       await updateCommandList(interaction, commands, sessionState, sessionToken, application)
       break
+    }
 
-    case 'category':
+    case 'category': {
       if (sessionData.data) {
         sessionState.selectedCategory = sessionData.data
         sessionState.currentPage = 0
         await updateCommandList(interaction, commands, sessionState, sessionToken, application)
       }
       break
+    }
 
-    case 'back-to-list':
+    case 'back-to-list': {
       await updateCommandList(interaction, commands, sessionState, sessionToken, application)
       break
+    }
 
     // Admin actions
-    case 'admin-rename':
+    case 'admin-rename': {
       if (sessionState.isAdmin && sessionData.data) {
-        const commandIndex = parseInt(sessionData.data, 10)
+        const commandIndex = Number.parseInt(sessionData.data, 10)
         await showRenameModal(interaction, commands, sessionState, sessionToken, commandIndex, application)
       }
       break
+    }
 
-    case 'admin-toggle':
+    case 'admin-toggle': {
       if (sessionState.isAdmin && sessionData.data) {
-        const commandIndex = parseInt(sessionData.data, 10)
+        const commandIndex = Number.parseInt(sessionData.data, 10)
         await toggleCommand(interaction, commands, sessionState, sessionToken, commandIndex, application)
       }
       break
+    }
 
-    case 'admin-audit':
+    case 'admin-audit': {
       if (sessionState.isAdmin && sessionData.data) {
-        const commandIndex = parseInt(sessionData.data, 10)
+        const commandIndex = Number.parseInt(sessionData.data, 10)
         await showAuditLog(interaction, commands, sessionState, sessionToken, commandIndex, application)
       }
       break
+    }
 
-    case 'admin-confirm-disable':
+    case 'admin-confirm-disable': {
       if (sessionState.isAdmin && sessionData.data) {
-        const commandIndex = parseInt(sessionData.data, 10)
+        const commandIndex = Number.parseInt(sessionData.data, 10)
         await confirmDisableCommand(interaction, commands, sessionState, sessionToken, commandIndex, application)
       }
       break
+    }
   }
 }
 
@@ -551,7 +608,7 @@ async function updateCommandList(
   const i18n = application.i18n
   const currentCommands = sessionState.currentTab === 'discord' ? commands.discord : commands.minecraft
   const filteredCommands = filterCommands(currentCommands, sessionState)
-  
+
   const pageSize = 8
   const totalPages = Math.max(1, Math.ceil(filteredCommands.length / pageSize))
   const startIndex = sessionState.currentPage * pageSize
@@ -559,27 +616,39 @@ async function updateCommandList(
   const currentPageCommands = filteredCommands.slice(startIndex, endIndex)
 
   const embed: APIEmbed = {
-    title: i18n.t(($) => $['discord.commands.commands.title'] + 
-      ` - ${i18n.t(($) => (sessionState.currentTab === 'discord' ? $['discord.commands.commands.tabs.discord'] : $['discord.commands.commands.tabs.minecraft']))}`
+    title: i18n.t(
+      ($) =>
+        $['discord.commands.commands.title'] +
+        ` - ${i18n.t(
+          ($) =>
+            sessionState.currentTab === 'discord'
+              ? $['discord.commands.commands.tabs.discord']
+              : $['discord.commands.commands.tabs.minecraft']
+        )}`
     ),
-    description: i18n.t(($) => $['discord.commands.commands.description']) +
-      (sessionState.searchQuery ? `\n\n${i18n.t(($) => $['discord.commands.commands.filters.search'])}: **${sessionState.searchQuery}**` : '') +
-      (sessionState.selectedCategory ? `\n${i18n.t(($) => $['discord.commands.commands.filters.category'])}: **${sessionState.selectedCategory}**` : ''),
+    description:
+      i18n.t(($) => $['discord.commands.commands.description']) +
+      (sessionState.searchQuery
+        ? `\n\n${i18n.t(($) => $['discord.commands.commands.filters.search'])}: **${sessionState.searchQuery}**`
+        : '') +
+      (sessionState.selectedCategory
+        ? `\n${i18n.t(($) => $['discord.commands.commands.filters.category'])}: **${sessionState.selectedCategory}**`
+        : ''),
     color: Color.Default,
     fields: [],
     footer: { text: DefaultCommandFooter }
   }
 
   // Add commands to embed
-  currentPageCommands.forEach((cmd, index) => {
+  for (const [index, cmd] of currentPageCommands.entries()) {
     const actualIndex = startIndex + index
     const displayName = sessionState.currentTab === 'discord' ? `/${cmd.name}` : `!${cmd.name}`
     embed.fields!.push({
       name: `${displayName} ${cmd.category ? `(${cmd.category})` : ''}`,
-      value: cmd.description.substring(0, 100) + (cmd.description.length > 100 ? '...' : ''),
+      value: cmd.description.slice(0, 100) + (cmd.description.length > 100 ? '...' : ''),
       inline: false
     })
-  })
+  }
 
   if (filteredCommands.length === 0) {
     embed.fields!.push({
@@ -641,7 +710,7 @@ async function updateCommandList(
   // Command buttons (for detail view)
   if (currentPageCommands.length > 0) {
     const commandButtons: any[] = []
-    currentPageCommands.forEach((_, index) => {
+    for (const [index, _] of currentPageCommands.entries()) {
       const actualIndex = startIndex + index
       commandButtons.push({
         type: ComponentType.Button,
@@ -650,13 +719,13 @@ async function updateCommandList(
         style: ButtonStyle.Secondary,
         emoji: '📋'
       })
-    })
+    }
 
     // Split into rows of 5 buttons max
-    for (let i = 0; i < commandButtons.length; i += 5) {
+    for (let index = 0; index < commandButtons.length; index += 5) {
       components.push({
         type: ComponentType.ActionRow,
-        components: commandButtons.slice(i, i + 5)
+        components: commandButtons.slice(index, index + 5)
       })
     }
   }
@@ -801,16 +870,16 @@ async function showCategorySelector(
     footer: { text: DefaultCommandFooter }
   }
 
-  categories.forEach(category => {
-    const count = currentCommands.filter(cmd => cmd.category === category).length
+  for (const category of categories) {
+    const count = currentCommands.filter((cmd) => cmd.category === category).length
     embed.fields!.push({
       name: `${category} (${count})`,
       value: i18n.t(($) => $['discord.commands.commands.categories.select'], { category }),
       inline: false
     })
-  })
+  }
 
-  const categoryButtons = categories.map(category => ({
+  const categoryButtons = categories.map((category) => ({
     type: ComponentType.Button,
     customId: `${SESSION_PREFIX}${sessionToken}:category:${category}`,
     label: category,
@@ -819,10 +888,10 @@ async function showCategorySelector(
 
   // Split into rows of 3 buttons max
   const components: any[] = []
-  for (let i = 0; i < categoryButtons.length; i += 3) {
+  for (let index = 0; index < categoryButtons.length; index += 3) {
     components.push({
       type: ComponentType.ActionRow,
-      components: categoryButtons.slice(i, i + 3)
+      components: categoryButtons.slice(index, index + 3)
     })
   }
 
@@ -876,7 +945,10 @@ async function showCommandDetails(
   if (command.triggers && command.triggers.length > 1) {
     embed.fields!.push({
       name: i18n.t(($) => $['discord.commands.commands.details.aliases']),
-      value: command.triggers.slice(1).map(t => `!${t}`).join(', '),
+      value: command.triggers
+        .slice(1)
+        .map((t) => `!${t}`)
+        .join(', '),
       inline: true
     })
   }
@@ -899,7 +971,7 @@ async function showCommandDetails(
 
     embed.fields!.push({
       name: i18n.t(($) => $['discord.commands.commands.details.status']),
-      value: isEnabled 
+      value: isEnabled
         ? i18n.t(($) => $['discord.commands.commands.details.enabled'])
         : i18n.t(($) => $['discord.commands.commands.details.disabled']),
       inline: true
@@ -950,7 +1022,7 @@ async function showCommandDetails(
     adminButtons.push({
       type: ComponentType.Button,
       customId: `${SESSION_PREFIX}${sessionToken}:admin-toggle:${commandIndex}`,
-      label: isEnabled 
+      label: isEnabled
         ? i18n.t(($) => $['discord.commands.commands.admin.toggle.disable'])
         : i18n.t(($) => $['discord.commands.commands.admin.toggle.enable']),
       style: isEnabled ? ButtonStyle.Danger : ButtonStyle.Success,
@@ -967,10 +1039,10 @@ async function showCommandDetails(
     })
 
     // Split admin buttons into rows of 3
-    for (let i = 0; i < adminButtons.length; i += 3) {
+    for (let index = 0; index < adminButtons.length; index += 3) {
       components.push({
         type: ComponentType.ActionRow,
-        components: adminButtons.slice(i, i + 3)
+        components: adminButtons.slice(index, index + 3)
       })
     }
   }

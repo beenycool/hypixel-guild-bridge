@@ -1,8 +1,9 @@
 import assert from 'node:assert'
+
 import { roleMention, userMention } from 'discord.js'
 
-import { translateNoPermission } from '../src/instance/discord/common/discord-language'
 import { Permission } from '../src/common/application-event'
+import { translateNoPermission } from '../src/instance/discord/common/discord-language'
 
 // Setup a fake application that returns a translator capturing options
 function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: string[], admins: string[]) {
@@ -20,8 +21,8 @@ function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: 
         getOwnerRoleIds: () => []
       }
     },
-    getTranslatorForBridge: () => (key: any, opts?: any) =>
-      `translated:${(opts?.roles ?? []).length}:${(opts?.admins ?? []).length}`
+    getTranslatorForBridge: () => (key: any, options?: any) =>
+      `translated:${(options?.roles ?? []).length}:${(options?.admins ?? []).length}`
   }
   return app
 }

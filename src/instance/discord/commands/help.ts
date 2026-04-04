@@ -9,10 +9,10 @@ import type {
 } from 'discord.js'
 import { ApplicationCommandOptionType, MessageFlags, SlashCommandBuilder } from 'discord.js'
 
-import { Permission, Color } from '../../../common/application-event.js'
+import { Color, Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
-import { pageMessage } from '../utility/discord-pager.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
+import { pageMessage } from '../utility/discord-pager.js'
 import { splitToEmbeds } from '../utility/embed-utils.js'
 
 export default {
@@ -79,11 +79,9 @@ export default {
     }
 
     const pages = splitToEmbeds(embedBase, embedBase.description)
-    if (pages.length <= 1) {
-      await context.interaction.editReply({ embeds: [pages[0] ?? embedBase] })
-    } else {
-      await pageMessage(context.interaction, pages, context.errorHandler)
-    }
+    await (pages.length <= 1
+      ? context.interaction.editReply({ embeds: [pages[0] ?? embedBase] })
+      : pageMessage(context.interaction, pages, context.errorHandler))
   }
 } satisfies DiscordCommandHandler
 

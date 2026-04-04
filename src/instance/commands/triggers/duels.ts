@@ -1,6 +1,13 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
-import { calculateDuelsDivision, getUuidIfExists, playerNeverPlayedHypixel, shortenNumber, usernameNotExists } from '../common/utility'
+import {
+  calculateDuelsDivision,
+  type DuelsDivisionMode,
+  getUuidIfExists,
+  playerNeverPlayedHypixel,
+  shortenNumber,
+  usernameNotExists
+} from '../common/utility'
 
 type DuelType =
   | 'blitz'
@@ -21,6 +28,10 @@ type DuelType =
   | 'skywars'
   | 'quake'
   | 'bedwars'
+
+// Bridge, Boxing, MegaWalls, NoDebuff, and Parkour use halved win thresholds
+// compared to short modes — see: https://hypixel.fandom.com/wiki/Duels
+const LongModeDuelTypes: readonly DuelType[] = ['bridge', 'boxing', 'megawalls', 'nodebuff', 'parkour']
 
 export default class Duels extends ChatCommandHandler {
   private static readonly ValidDuelTypes: readonly DuelType[] = [
@@ -100,7 +111,7 @@ export default class Duels extends ChatCommandHandler {
       const winstreak = stats.winstreak
       const bestWinstreak = stats.bestWinstreak
       const wlRatio = stats.WLRatio
-      const division = calculateDuelsDivision(wins, true)
+      const division = calculateDuelsDivision(wins, 'overall')
 
       return (
         `[Duels] [${this.formatDivision(division)}] ${givenUsername} ` +
@@ -121,12 +132,12 @@ export default class Duels extends ChatCommandHandler {
       unknown
     >
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive for dynamic data
     const wins = dataObject.wins as number
     const winstreak = dataObject.winstreak as number
     const bestWinstreak = dataObject.bestWinstreak as number
     const wlRatio = dataObject.WLRatio as number
-    const division = calculateDuelsDivision(wins, false)
+    const divisionMode: DuelsDivisionMode = LongModeDuelTypes.includes(duelType) ? 'long' : 'short'
+    const division = calculateDuelsDivision(wins, divisionMode)
 
     return (
       `[${Duels.DuelDisplayNames[duelType]}] [${this.formatDivision(division)}] ${givenUsername} ` +

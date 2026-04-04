@@ -1,5 +1,3 @@
-# Permissions
-
 | Name    | Description                                                                                                        |
 | ------- | ------------------------------------------------------------------------------------------------------------------ |
 | Anyone  | Anything that usually can be seen in-game guild chat<br> e.g. public chat, join/leave notification, etc            |
@@ -10,11 +8,7 @@
 
 ## Chat Commands
 
-These commands can be executed from any chat channel the application can see.
-This includes guild/officer chat as well as private `/msg` and Discord direct messaging channels.
 
-Most [Soopy commands](https://soopy.dev/commands) are supported and can be used by executing `!soopy rtca`.
-A shorter version can also be used: `!- rtca`
 
 | Command          | Description                                                                        |
 | ---------------- | ---------------------------------------------------------------------------------- |
@@ -55,7 +49,7 @@ A shorter version can also be used: `!- rtca`
 | `forge`          | Returns a player's forge items                                                     |
 | `garden`         | Returns a player's garden stats                                                    |
 | `guild`          | Returns a player's guild, if they're in one                                        |
-| `guildexp`       | Guild experience of user. Usage: gexp [daily/weekly/monthly] [username]            |
+| `guildexp`       | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]  |
 | `help`           | Shows a command description and an example about its usage                         |
 | `hotm`           | Returns a player's hotm and powder                                                 |
 | `hlevel`         | Returns a player's Hypixel common stats                                            |
@@ -69,7 +63,7 @@ A shorter version can also be used: `!- rtca`
 | `mayor`          | Show current Hypixel Skyblock Election                                             |
 | `megawalls`      | Returns a player's Megawalls stats                                                 |
 | `mute`           | mute a random online person for 5 minutes for no good reason                       |
-| `name`           | Returns a player's name history                                                    |
+| `name`           | Get a player's name history.                                                       |
 | `networth`       | Networth of specified user.                                                        |
 | `paintball`      | Returns a player's Paintball stats                                                 |
 | `parties`        | List all active parties in guild                                                   |
@@ -124,6 +118,7 @@ A shorter version can also be used: `!- rtca`
 | `/about`              | Display basic info about the client.                             |
 | `/accept`             | accept a player to the guild if they have a join request in-game |
 | `/blacklist`          | Add or remove a player from the ignore list                      |
+| `/commands`           | Browse all available Discord and Minecraft commands              |
 | `/connectivity`       | Check connectivity to Minecraft instances                        |
 | `/create-leaderboard` | Create a leaderboard message in this channel                     |
 | `/demote`             | demote guild member in-game                                      |
@@ -141,7 +136,7 @@ A shorter version can also be used: `!- rtca`
 | `/list-leaderboard`   | List all existing leaderboards                                   |
 | `/list`               | List players in your guild(s)                                    |
 | `/log`                | View guild activity logs                                         |
-| `/names`              | Returns a player's name history                                  |
+| `/names`              | View a player's name history                                     |
 | `/ping`               | Discord Ping                                                     |
 | `/player`             | View a player's Hypixel profile                                  |
 | `/profanity`          | Manage application profanity filter                              |

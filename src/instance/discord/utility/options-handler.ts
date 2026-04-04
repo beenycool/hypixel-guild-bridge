@@ -208,7 +208,7 @@ export class OptionsHandler {
       if (component.type === OptionType.List) {
         this.ids.set(`component-${currentId++}`, { action: 'add', item: component })
         // Only create delete action if the option allows it (default is to allow delete)
-        if ((component as ListOption).showDelete !== false) {
+        if (component.showDelete !== false) {
           this.ids.set(`component-${currentId++}`, { action: 'delete', item: component })
         }
       }
@@ -427,8 +427,6 @@ export class OptionsHandler {
       this.pages.set(key, nextPage)
       return false
     }
-
-
 
     if (interaction.customId === OptionsHandler.BackButton) {
       this.path.pop()
@@ -786,8 +784,6 @@ class ViewBuilder {
     if (this.hasCreated) throw new Error('This instance has already been used to create a view.')
     this.hasCreated = true
 
-
-
     this.createCategoryView(this.getOption())
     return { type: ComponentType.Container, components: this.components } satisfies ContainerComponentData
   }
@@ -884,7 +880,7 @@ class ViewBuilder {
             }
           })
 
-          if ((option as ListOption).showDelete === false) {
+          if (option.showDelete === false) {
             // Deletion disabled for this list; do not render delete controls.
           } else {
             const deleteAction = [...this.ids.entries()].find(
@@ -1198,8 +1194,6 @@ class ViewBuilder {
           }
         })
       }
-
-
 
       if ('header' in currentCategory && currentCategory.header !== undefined) {
         this.append({ type: ComponentType.TextDisplay, content: currentCategory.header })

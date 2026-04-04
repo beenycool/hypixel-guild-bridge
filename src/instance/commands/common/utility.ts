@@ -169,10 +169,12 @@ const DuelsDivisionThresholds: readonly DivisionThreshold[] = [
   { tier: 'Grandmaster', maxLevel: 5, increment: 1000 },
   { tier: 'Godlike', maxLevel: 5, increment: 3000 },
   { tier: 'Celestial', maxLevel: 5, increment: 5000 },
-  { tier: 'Divine', maxLevel: 5, increment: 10000 },
-  { tier: 'Ascended', maxLevel: 50, increment: 10000 }
+  { tier: 'Divine', maxLevel: 5, increment: 10_000 },
+  { tier: 'Ascended', maxLevel: 50, increment: 10_000 }
 ] as const
 
+// Short mode start wins (used as the canonical baseline).
+// Long mode = short / 2, Overall = short * 2.
 const DivisionStartWins: readonly number[] = [
   50, // Rookie I
   100, // Iron I
@@ -181,13 +183,37 @@ const DivisionStartWins: readonly number[] = [
   1000, // Master I
   2000, // Legend I
   5000, // Grandmaster I
-  10000, // Godlike I
-  25000, // Celestial I
-  50000, // Divine I
-  100000 // Ascended I
+  10_000, // Godlike I
+  25_000, // Celestial I
+  50_000, // Divine I
+  100_000 // Ascended I
 ] as const
 
-function romanNumeral(num: number): string {
+// Short mode increments per level (used as the canonical baseline).
+// Long mode increments = short / 2, Overall increments = short * 2.
+const DivisionIncrements: readonly number[] = [
+  10, // Rookie
+  30, // Iron
+  50, // Gold
+  100, // Diamond
+  200, // Master
+  600, // Legend
+  1000, // Grandmaster
+  3000, // Godlike
+  5000, // Celestial
+  10_000, // Divine
+  10_000 // Ascended
+] as const
+
+/**
+ * The three distinct win-threshold sets Hypixel uses for Duels divisions:
+ * - short:   standard modes (Sumo, Classic, Skywars, etc.)
+ * - long:    Bridge, Boxing, MegaWalls, NoDebuff, Parkour (thresholds = short / 2)
+ * - overall: all-mode combined stats (thresholds = short * 2)
+ */
+export type DuelsDivisionMode = 'short' | 'long' | 'overall'
+
+function romanNumeral(number_: number): string {
   const numerals: Record<number, string> = {
     1: 'I',
     2: 'II',
@@ -240,34 +266,35 @@ function romanNumeral(num: number): string {
     49: 'XLIX',
     50: 'L'
   }
-  return numerals[num] ?? num.toString()
+  return numerals[number_] ?? number_.toString()
 }
 
-export function calculateDuelsDivision(wins: number, isOverall: boolean): string {
-  let effectiveWins = wins
-
-  // For overall stats, divide by 2 to match individual thresholds
-  if (isOverall) {
+export function calculateDuelsDivision(wins: number, mode: DuelsDivisionMode): string {
+  // Normalise wins to short-mode equivalents so we can use a single threshold table.
+  // long = short / 2  =>  effectiveWins = wins * 2
+  // overall = short * 2  =>  effectiveWins = wins / 2
+  let effectiveWins: number
+  if (mode === 'long') {
+    effectiveWins = wins * 2
+  } else if (mode === 'overall') {
     effectiveWins = Math.floor(wins / 2)
+  } else {
+    effectiveWins = wins
   }
 
-  // Find the appropriate tier
   for (let tierIndex = 0; tierIndex < DuelsDivisionThresholds.length; tierIndex++) {
     const threshold = DuelsDivisionThresholds[tierIndex]
     const startWins = DivisionStartWins[tierIndex]
     const maxIndex = DuelsDivisionThresholds.length - 1
-
-    // If this is the last tier or wins are below the next tier's start
     const nextTierStart = tierIndex < maxIndex ? DivisionStartWins[tierIndex + 1] : Infinity
 
     if (effectiveWins >= startWins && effectiveWins < nextTierStart) {
       const levelWins = effectiveWins - startWins
-      const levelNumber = Math.floor(levelWins / threshold.increment)
+      const levelNumber = Math.floor(levelWins / DivisionIncrements[tierIndex])
       const actualLevel = Math.min(levelNumber + 1, threshold.maxLevel)
       return `${threshold.tier} ${romanNumeral(actualLevel)}`
     }
   }
 
-  // Player has wins below Rookie I (50 for individual, 100 for overall)
   return 'Unranked'
 }
