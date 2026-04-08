@@ -81,27 +81,75 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
   /**
    * Resolve channels for an event based on its bridgeId.
-   * If multi-bridge is enabled and the event has a bridgeId, use bridge-specific channels.
-   * Otherwise, fall back to legacy global channel configuration.
+   * Uses event.bridgeId, or resolves from the Minecraft instance name when the event omits it.
+   * In multi-bridge mode, routed guild-surface traffic fails closed when no bridge applies,
+   * while global broadcasts fan out across all configured bridges.
    */
-  private resolveChannelsForEvent(channels: ChannelType[], bridgeId: string | undefined): string[] {
+  private resolveChannelsForEvent(
+    channels: ChannelType[],
+    bridgeId: string | undefined,
+    routingHint?: { kind: string; instanceName: string }
+  ): string[] {
     const bridgeResolver = this.application.bridgeResolver
-    const legacyConfig = this.application.core.discordConfigurations
 
-    // If multi-bridge is enabled and we have a bridgeId, use bridge-specific channels
-    if (bridgeResolver.isMultiBridgeEnabled() && bridgeId !== undefined) {
-      const results: string[] = []
-      if (channels.includes(ChannelType.Public)) {
-        results.push(...bridgeResolver.getPublicChannelIds(bridgeId))
+    const effectiveBridgeId =
+      bridgeId ??
+      (routingHint !== undefined ? bridgeResolver.getBridgeIdForInstance(routingHint.instanceName) : undefined)
+
+    let results: string[]
+    if (bridgeResolver.isMultiBridgeEnabled()) {
+      if (effectiveBridgeId !== undefined) {
+        results = this.resolveBridgeScopedChannels(channels, effectiveBridgeId)
+      } else if (routingHint?.kind === 'broadcast') {
+        results = this.resolveAllBridgeChannels(channels)
+      } else if (routingHint !== undefined) {
+        results = []
+      } else {
+        results = this.resolveChannels(channels)
       }
-      if (channels.includes(ChannelType.Officer)) {
-        results.push(...bridgeResolver.getOfficerChannelIds(bridgeId))
-      }
-      return results
+    } else {
+      results = this.resolveChannels(channels)
     }
 
-    // Fall back to legacy global configuration
-    return this.resolveChannels(channels)
+    const targetsGuildSurface = channels.includes(ChannelType.Public) || channels.includes(ChannelType.Officer)
+    if (targetsGuildSurface && results.length === 0 && routingHint !== undefined) {
+      this.logger.warn(
+        `Discord routing (${routingHint.kind}): no target channels for instance="${routingHint.instanceName}" ` +
+          `(event.bridgeId=${bridgeId ?? 'undefined'}, effectiveBridgeId=${effectiveBridgeId ?? 'undefined'}, ` +
+          `multiBridge=${String(bridgeResolver.isMultiBridgeEnabled())}). ` +
+          `Configure this Minecraft instance on a bridge and set public/officer channel IDs in /settings.`
+      )
+    }
+
+    return results
+  }
+
+  private resolveBridgeScopedChannels(channels: ChannelType[], bridgeId: string): string[] {
+    const results: string[] = []
+    if (channels.includes(ChannelType.Public)) {
+      results.push(...this.application.bridgeResolver.getPublicChannelIds(bridgeId))
+    }
+    if (channels.includes(ChannelType.Officer)) {
+      results.push(...this.application.bridgeResolver.getOfficerChannelIds(bridgeId))
+    }
+
+    return [...new Set(results)]
+  }
+
+  private resolveAllBridgeChannels(channels: ChannelType[]): string[] {
+    const results = new Set<string>()
+
+    for (const bridge of this.application.bridgeResolver.getAllBridges()) {
+      if (channels.includes(ChannelType.Public)) {
+        for (const channelId of bridge.publicChannelIds) results.add(channelId)
+      }
+
+      if (channels.includes(ChannelType.Officer)) {
+        for (const channelId of bridge.officerChannelIds) results.add(channelId)
+      }
+    }
+
+    return [...results]
   }
 
   async onInstance(event: InstanceStatus): Promise<void> {
@@ -122,7 +170,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   async onChat(event: ChatEvent): Promise<void> {
-    const channels = this.resolveChannelsForEvent([event.channelType], event.bridgeId)
+    const channels = this.resolveChannelsForEvent([event.channelType], event.bridgeId, {
+      kind: 'chat',
+      instanceName: event.instanceName
+    })
     const username = event.user.displayName()
     const channelPrefix = this.getChannelPrefix(event.channelType)
 
@@ -196,7 +247,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
       messages = await this.sendImageToChannels(
         event.eventId,
-        this.resolveChannelsForEvent(event.channels, event.bridgeId),
+        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+          kind: 'guildPlayer',
+          instanceName: event.instanceName
+        }),
         await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
         })
@@ -216,7 +270,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
       messages = await this.sendEmbedToChannels(
         { ...event, type: undefined },
-        this.resolveChannelsForEvent(event.channels, event.bridgeId),
+        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+          kind: 'guildPlayer',
+          instanceName: event.instanceName
+        }),
         embed
       )
     }
@@ -247,11 +304,21 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     if (this.messageToImage.shouldRenderImage()) {
       const image = this.messageToImage.generateMessageImageSync(event.rawMessage)
-      await this.sendImageToChannels(event.eventId, this.resolveChannelsForEvent(event.channels, event.bridgeId), image)
+      await this.sendImageToChannels(
+        event.eventId,
+        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+          kind: 'guildGeneral',
+          instanceName: event.instanceName
+        }),
+        image
+      )
     } else {
       await this.sendEmbedToChannels(
         { ...event, type: undefined },
-        this.resolveChannelsForEvent(event.channels, event.bridgeId),
+        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+          kind: 'guildGeneral',
+          instanceName: event.instanceName
+        }),
         undefined
       )
     }
@@ -316,7 +383,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     )
       return
 
-    const channels = this.resolveChannelsForEvent(event.channels, event.bridgeId)
+    const channels = this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+      kind: 'broadcast',
+      instanceName: event.instanceName
+    })
     if (this.messageToImage.shouldRenderImage()) {
       let formatted: string
       switch (event.color) {

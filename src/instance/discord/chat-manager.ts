@@ -62,6 +62,11 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     } else if (config.getOfficerChannelIds().includes(event.channel.id)) {
       channelType = ChannelType.Officer
     } else if (event.guildId) {
+      if (bridgeResolver.isMultiBridgeEnabled()) {
+        this.logger.warn(
+          `Ignoring guild message in unmapped channel ${event.channel.id} while multi-bridge routing is enabled`
+        )
+      }
       return
     } else {
       channelType = ChannelType.Private
@@ -264,6 +269,13 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     // Check if command is in passthrough list
     const isPassthroughCommand = passthroughCommands.some((cmd) => cmd.toLowerCase() === commandName)
     if (!isPassthroughCommand) return false
+
+    if (this.application.bridgeResolver.isMultiBridgeEnabled() && bridgeId === undefined) {
+      this.logger.warn(
+        `Dropping passthrough command from unmapped channel ${event.channel.id} while multi-bridge routing is enabled`
+      )
+      return true
+    }
 
     // Get instances to send to (based on bridge if applicable)
     const instances = this.application

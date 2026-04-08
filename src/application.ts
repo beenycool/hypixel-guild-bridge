@@ -270,6 +270,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   public async start(): Promise<void> {
     await this.core.awaitReady()
+    this.bridgeResolver.rebuildLookupMaps()
     this.applyStoredLanguage()
     this.minecraftManager.loadInstances()
     await this.pluginsManager.loadPlugins(this.rootDirectory)

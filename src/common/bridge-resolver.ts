@@ -254,11 +254,11 @@ export class BridgeResolver {
 
     const instanceBridgeId = this.getBridgeIdForInstance(instanceName)
 
-    // If the instance is not part of any bridge, it processes all events (legacy behavior)
-    if (instanceBridgeId === undefined) return true
-
     // If the event has no bridge ID, it's a global event - process it
     if (eventBridgeId === undefined) return true
+
+    // If the instance is not part of any bridge in multi-bridge mode, it shouldn't process bridge-specific events
+    if (instanceBridgeId === undefined) return false
 
     // Otherwise, only process if bridges match
     return instanceBridgeId === eventBridgeId
