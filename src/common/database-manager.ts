@@ -1,5 +1,4 @@
 import assert from 'node:assert'
-import fs from 'node:fs'
 
 import { newDb } from 'pg-mem'
 import { Pool, type QueryResult, type QueryResultRow } from 'pg'
@@ -22,7 +21,7 @@ interface PoolLike extends Queryable {
   end(): Promise<void>
 }
 
-export class SqliteManager {
+export class DatabaseManager {
   private static readonly CleanEvery = 3 * 60 * 60 * 1000
 
   private readonly cleanCallbacks: (() => void | Promise<void>)[] = []
@@ -176,7 +175,7 @@ export class SqliteManager {
 
     this.cleanTimer = setInterval(() => {
       void this.runCleaners()
-    }, SqliteManager.CleanEvery)
+    }, DatabaseManager.CleanEvery)
     this.cleanTimer.unref?.()
   }
 
@@ -187,19 +186,17 @@ export class SqliteManager {
     const environment = process.env.DATABASE_URL?.trim()
     if (environment) return environment
 
-    if (this.hasLegacySqliteDatabase()) {
-      throw new Error('A PostgreSQL DATABASE_URL is required before migrating legacy SQLite data')
-    }
-
     if (process.env.NODE_ENV === 'production' || process.env.DYNO !== undefined) {
       throw new Error('DATABASE_URL is required in production environments')
     }
 
-    return 'memory://local'
-  }
+    if (process.env.NODE_ENV === 'test') {
+      return 'memory://local'
+    }
 
-  private hasLegacySqliteDatabase(): boolean {
-    return fs.existsSync(this.application.getConfigFilePath('users.sqlite'))
+    throw new Error(
+      'No database configured. Set config.database.url or DATABASE_URL. Use memory://local only for explicit test or ephemeral runs.'
+    )
   }
 
   private resolveSsl(databaseUrl: string): boolean {

@@ -143,6 +143,12 @@ export class RankupManager {
       )
 
       if (result.action !== 'none') {
+        if ((result.action === 'promote' || result.action === 'demote') && (result.targetRank === undefined || result.targetRank.length === 0)) {
+          this.logger.warn(`Skipping ${result.action} for ${member.uuid} in ${bridgeId}: missing target rank`)
+          this.pendingManager.removeReviewByUuid(bridgeId, member.uuid)
+          continue
+        }
+
         if (manualReview) {
           this.pendingManager.addReview(
             bridgeId,
@@ -151,7 +157,7 @@ export class RankupManager {
 
             member.rank,
 
-            result.targetRank ?? 'Kick',
+            result.action === 'kick' ? 'Kick' : (result.targetRank ?? 'Unknown'),
 
             result.action as any,
 
@@ -215,14 +221,17 @@ export class RankupManager {
 
     let actionLog = ''
 
-    if (result.action === 'promote') {
-      command = `/g promote ${name}`
+    if (result.action === 'promote' || result.action === 'demote') {
+      if (result.targetRank === undefined || result.targetRank.length === 0) {
+        this.logger.warn(`Cannot execute ${result.action} for ${uuid}: missing target rank`)
+        return
+      }
 
+      command = `/g setrank ${name} ${result.targetRank}`
       actionLog = 'promote'
-    } else if (result.action === 'demote') {
-      command = `/g demote ${name}`
-
-      actionLog = 'demote'
+      if (result.action === 'demote') {
+        actionLog = 'demote'
+      }
     } else if (result.action === 'kick') {
       command = `/g kick ${name} ${result.reason}`
 

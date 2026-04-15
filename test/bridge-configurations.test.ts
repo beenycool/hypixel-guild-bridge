@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 
-import { SqliteManager } from '../src/common/sqlite-manager'
+import { DatabaseManager } from '../src/common/database-manager'
 import { ConfigurationsManager } from '../src/core/configurations'
 import { BridgeConfigurations } from '../src/core/discord/bridge-configurations'
 import { initializeCoreDatabase } from '../src/core/initialize-database'
@@ -11,9 +11,9 @@ const logger = {
   info: () => {},
   warn: () => {},
   error: () => {}
-} as unknown as ConstructorParameters<typeof SqliteManager>[1]
+} as unknown as ConstructorParameters<typeof DatabaseManager>[1]
 
-// Minimal fake application with expected hooks used by SqliteManager and migrations
+// Minimal fake application with expected hooks used by DatabaseManager
 const fakeApp: any = {
   applicationIntegrity: { addConfigPath: () => {} },
   addShutdownListener: () => {},
@@ -21,12 +21,15 @@ const fakeApp: any = {
   getConfigFilePath: (name: string) => `/tmp/nonexistent-${name}`
 }
 
-const sqliteManager = new SqliteManager(fakeApp, logger)
+const databaseManager = new DatabaseManager(fakeApp, logger)
 
-await initializeCoreDatabase(fakeApp, sqliteManager, 'test')
+await initializeCoreDatabase(databaseManager)
 
-const configs = new ConfigurationsManager(sqliteManager)
-const bridgeCfg = new BridgeConfigurations(configs)
+const configs = new ConfigurationsManager(databaseManager)
+const changeEvents: Array<{ bridgeId: string; key: string; value: unknown }> = []
+const bridgeCfg = new BridgeConfigurations(configs, (event) => {
+  changeEvents.push(event)
+})
 await configs.load()
 
 const bridgeId = 'bridge-test'
@@ -95,7 +98,55 @@ assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
 // And owner/admin roles
 assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), [])
 
-await sqliteManager.flushWrites()
-await sqliteManager.close()
+// Guild chaos blob getter/setter + cleanup + event callback
+assert.deepStrictEqual(bridgeCfg.getGuildChaos(bridgeId), {
+  enabled: false,
+  randomEnabled: true,
+  randomMinMinutes: 45,
+  randomMaxMinutes: 180,
+  playerEnabled: false,
+  playerMinMinutes: 120,
+  playerMaxMinutes: 360,
+  reactionsEnabled: true,
+  reactionChancePercent: 2
+})
+
+bridgeCfg.setGuildChaos(bridgeId, {
+  enabled: true,
+  playerEnabled: true,
+  reactionChancePercent: 7,
+  randomLinesOverride: ['meow']
+})
+
+assert.deepStrictEqual(bridgeCfg.getGuildChaos(bridgeId), {
+  enabled: true,
+  randomEnabled: true,
+  randomMinMinutes: 45,
+  randomMaxMinutes: 180,
+  playerEnabled: true,
+  playerMinMinutes: 120,
+  playerMaxMinutes: 360,
+  reactionsEnabled: true,
+  reactionChancePercent: 7,
+  randomLinesOverride: ['meow']
+})
+assert.strictEqual(changeEvents.at(-1)?.key, `${bridgeId}_guildChaos`)
+
+bridgeCfg.addBridgeId(bridgeId)
+bridgeCfg.removeBridgeId(bridgeId)
+assert.deepStrictEqual(bridgeCfg.getGuildChaos(bridgeId), {
+  enabled: false,
+  randomEnabled: true,
+  randomMinMinutes: 45,
+  randomMaxMinutes: 180,
+  playerEnabled: false,
+  playerMinMinutes: 120,
+  playerMaxMinutes: 360,
+  reactionsEnabled: true,
+  reactionChancePercent: 2
+})
+
+await databaseManager.flushWrites()
+await databaseManager.close()
 
 console.log('PASS: BridgeConfigurations DB getters/setters')

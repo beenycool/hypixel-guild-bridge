@@ -148,9 +148,16 @@ export default {
                 .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
               if (instance) {
                 let command = ''
-                if (review.action === 'promote') command = `/g promote ${name}`
-                else if (review.action === 'demote') command = `/g demote ${name}`
-                else if (review.action === 'kick') command = `/g kick ${name} ${review.reason}`
+                if (review.action === 'promote' || review.action === 'demote') {
+                  if (review.proposedRank.length === 0) {
+                    await btn.update({ content: 'Error: pending review is missing a target rank.', components: [] })
+                    return
+                  }
+
+                  command = `/g setrank ${name} ${review.proposedRank}`
+                } else if (review.action === 'kick') {
+                  command = `/g kick ${name} ${review.reason}`
+                }
 
                 instance.send(command, MinecraftSendChatPriority.High, undefined)
 

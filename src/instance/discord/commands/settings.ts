@@ -244,6 +244,7 @@ async function createBridgeOptionAsync(
             getOption: () => bridgeConfig.getLoggerChannelIds(bridgeId),
             setOption: (values) => {
               bridgeConfig.setLoggerChannelIds(bridgeId, values)
+              application.bridgeResolver.rebuildLookupMaps()
             }
           }
         ]
@@ -261,6 +262,167 @@ async function createBridgeOptionAsync(
           bridgeConfig.setMinecraftInstances(bridgeId, values)
           application.bridgeResolver.rebuildLookupMaps()
         }
+      },
+      {
+        type: OptionType.Category,
+        name: 'Guild chaos messages',
+        description: 'Configure random guild chaos lines, player lines, and keyword reactions for this bridge.',
+        header:
+          `**Guild Chaos Messages for ${bridgeId}**\n\n` +
+          'All default phrases are loaded from `message.json` in the application root. ' +
+          'Override lists only apply to this bridge and replace the file values when they are non-empty.',
+        options: [
+          {
+            type: OptionType.Boolean,
+            name: 'Enable chaos messages',
+            description: 'Master toggle for all guild chaos features on this bridge.',
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).enabled,
+            toggleOption: () => {
+              const current = bridgeConfig.getGuildChaos(bridgeId)
+              bridgeConfig.setGuildChaos(bridgeId, { enabled: !current.enabled })
+            }
+          },
+          {
+            type: OptionType.Boolean,
+            name: 'Random lines enabled',
+            description: 'Send random lines from message.json on a timer.',
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomEnabled,
+            toggleOption: () => {
+              const current = bridgeConfig.getGuildChaos(bridgeId)
+              bridgeConfig.setGuildChaos(bridgeId, { randomEnabled: !current.randomEnabled })
+            }
+          },
+          {
+            type: OptionType.Number,
+            name: 'Min minutes between random lines',
+            description: 'Minimum delay before a random guild chaos line is sent.',
+            min: 1,
+            max: 1440,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomMinMinutes,
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { randomMinMinutes: value })
+            }
+          },
+          {
+            type: OptionType.Number,
+            name: 'Max minutes between random lines',
+            description: 'Maximum delay before a random guild chaos line is sent.',
+            min: 1,
+            max: 1440,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomMaxMinutes,
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { randomMaxMinutes: value })
+            }
+          },
+          {
+            type: OptionType.Boolean,
+            name: 'Player-targeted lines enabled',
+            description: 'Send random player lines using a random online guild member for {player}.',
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerEnabled,
+            toggleOption: () => {
+              const current = bridgeConfig.getGuildChaos(bridgeId)
+              bridgeConfig.setGuildChaos(bridgeId, { playerEnabled: !current.playerEnabled })
+            }
+          },
+          {
+            type: OptionType.Number,
+            name: 'Min minutes between player lines',
+            description: 'Minimum delay before a player-targeted line is sent.',
+            min: 1,
+            max: 1440,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerMinMinutes,
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { playerMinMinutes: value })
+            }
+          },
+          {
+            type: OptionType.Number,
+            name: 'Max minutes between player lines',
+            description: 'Maximum delay before a player-targeted line is sent.',
+            min: 1,
+            max: 1440,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerMaxMinutes,
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { playerMaxMinutes: value })
+            }
+          },
+          {
+            type: OptionType.Boolean,
+            name: 'Keyword reactions enabled',
+            description: 'Reply to matching in-game guild chat trigger words using reactionLines from message.json.',
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).reactionsEnabled,
+            toggleOption: () => {
+              const current = bridgeConfig.getGuildChaos(bridgeId)
+              bridgeConfig.setGuildChaos(bridgeId, { reactionsEnabled: !current.reactionsEnabled })
+            }
+          },
+          {
+            type: OptionType.Number,
+            name: 'Keyword reaction chance (%)',
+            description: 'Chance to reply when a trigger word matches.',
+            min: 0,
+            max: 100,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).reactionChancePercent,
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { reactionChancePercent: value })
+            }
+          },
+          {
+            type: OptionType.List,
+            name: 'Random lines override',
+            description: 'When non-empty, replaces randomLines from message.json for this bridge only.',
+            style: InputStyle.Long,
+            min: 0,
+            max: 50,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomLinesOverride ?? [],
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { randomLinesOverride: value })
+            }
+          },
+          {
+            type: OptionType.List,
+            name: 'Player lines override',
+            description: 'When non-empty, replaces playerLines from message.json for this bridge only.',
+            style: InputStyle.Long,
+            min: 0,
+            max: 50,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerLinesOverride ?? [],
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { playerLinesOverride: value })
+            }
+          },
+          {
+            type: OptionType.List,
+            name: 'Reaction lines override',
+            description: 'When non-empty, replaces reactionLines from message.json for this bridge only.',
+            style: InputStyle.Long,
+            min: 0,
+            max: 50,
+            getOption: () => bridgeConfig.getGuildChaos(bridgeId).reactionLinesOverride ?? [],
+            setOption: (value) => {
+              bridgeConfig.setGuildChaos(bridgeId, { reactionLinesOverride: value })
+            }
+          },
+          {
+            type: OptionType.Action,
+            name: 'Reload message.json',
+            description: 'Re-read the root message.json file without restarting the process.',
+            label: 'Reload',
+            style: ButtonStyle.Secondary,
+            onInteraction: async (interaction) => {
+              await application.emit('bridgeConfigChanged', {
+                bridgeId,
+                key: `${bridgeId}_guildChaosReload`,
+                value: Date.now()
+              })
+              await interaction.reply({
+                content: 'message.json reload requested. Check application logs if the file is invalid.',
+                flags: MessageFlags.Ephemeral
+              })
+              return true
+            }
+          }
+        ]
       },
       // ========== Roles Category ==========
       {
@@ -2711,6 +2873,7 @@ async function minecraftInstanceAdd(
         ;(application as any).logger?.debug?.(
           `ADD_FLOW: bridge=${bridgeId} minecraftInstances=${JSON.stringify(instances)}`
         )
+        application.bridgeResolver.rebuildLookupMaps()
       }
     }
   } catch (error: unknown) {

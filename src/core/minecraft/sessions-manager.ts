@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import type { Logger } from 'log4js'
 import type { Cache, CacheFactory } from 'prismarine-auth'
 
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 export class SessionsManager {
   private readonly proxies = new Map<number, ProxyConfig>()
@@ -12,16 +12,16 @@ export class SessionsManager {
   private nextProxyId = 1
 
   constructor(
-    private readonly sqliteManager: SqliteManager,
+    private readonly databaseManager: DatabaseManager,
     private readonly logger: Logger
   ) {}
 
   public async load(): Promise<void> {
-    const proxies = await this.sqliteManager.queryRows<ProxyConfig>('SELECT * FROM "proxies" ORDER BY "id" ASC')
-    const instances = await this.sqliteManager.queryRows<StoredMinecraftInstance>(
+    const proxies = await this.databaseManager.queryRows<ProxyConfig>('SELECT * FROM "proxies" ORDER BY "id" ASC')
+    const instances = await this.databaseManager.queryRows<StoredMinecraftInstance>(
       'SELECT * FROM "mojangInstances" ORDER BY "name" ASC'
     )
-    const sessions = await this.sqliteManager.queryRows<StoredSession>(
+    const sessions = await this.databaseManager.queryRows<StoredSession>(
       'SELECT * FROM "mojangSessions" ORDER BY "name" ASC, "cacheName" ASC'
     )
 
@@ -63,7 +63,7 @@ export class SessionsManager {
     }
     this.logger.debug(`Remaining mojangSessions for ${instanceName} = ${this.sessions.get(key)?.size ?? 0}`)
 
-    this.sqliteManager.enqueueWrite(`deleting sessions for ${instanceName}`, async (database) => {
+    this.databaseManager.enqueueWrite(`deleting sessions for ${instanceName}`, async (database) => {
       await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1)', [instanceName])
     })
 
@@ -85,7 +85,7 @@ export class SessionsManager {
 
     if (deleted !== 0) {
       this.logger.debug(`Deleted ${deleted} Minecraft cached session files with the name=${instanceName}`)
-      this.sqliteManager.enqueueWrite(`deleting cached sessions for ${instanceName}`, async (database) => {
+      this.databaseManager.enqueueWrite(`deleting cached sessions for ${instanceName}`, async (database) => {
         await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" != $2', [
           instanceName,
           mainSessionName
@@ -102,7 +102,7 @@ export class SessionsManager {
     sessionMap.set(cacheName, { name, cacheName, value: JSON.stringify(value), createdAt })
     this.logger.debug(`setSession: name=${name} cacheName=${cacheName}`)
 
-    this.sqliteManager.enqueueWrite(`saving session ${name}:${cacheName}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving session ${name}:${cacheName}`, async (database) => {
       await database.query(
         'DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" = $2 AND "name" != $1',
         [name, cacheName]
@@ -122,7 +122,7 @@ export class SessionsManager {
     assert.ok(instance !== undefined, 'Did not manage to change the instance auto-connect settings?')
     instance.connect = enabled
 
-    this.sqliteManager.enqueueWrite(`updating auto-connect for ${instanceName}`, async (database) => {
+    this.databaseManager.enqueueWrite(`updating auto-connect for ${instanceName}`, async (database) => {
       await database.query('UPDATE "mojangInstances" SET "connect" = $1 WHERE LOWER("name") = LOWER($2)', [
         enabled ? 1 : 0,
         instanceName
@@ -162,7 +162,7 @@ export class SessionsManager {
     this.logger.debug(`addInstance: inserted name=${options.name} proxyId=${String(proxyId)}`)
     this.logger.debug(`addInstance: total mojangInstances=${this.instances.size}`)
 
-    this.sqliteManager.enqueueTransaction(`adding minecraft instance ${options.name}`, async (database) => {
+    this.databaseManager.enqueueTransaction(`adding minecraft instance ${options.name}`, async (database) => {
       const duplicateInstances = await database.query<{ name: string; proxyId: number | null }>(
         'SELECT "name", "proxyId" FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1',
         [options.name]
@@ -226,7 +226,7 @@ export class SessionsManager {
     this.logger.debug(`Deleted Minecraft instance with the name=${instanceName} (changes=1)`)
     this.logger.debug(`deleteInstance: remaining mojangInstances=${this.instances.size}`)
 
-    this.sqliteManager.enqueueTransaction(`deleting minecraft instance ${instanceName}`, async (database) => {
+    this.databaseManager.enqueueTransaction(`deleting minecraft instance ${instanceName}`, async (database) => {
       await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1)', [instance.name])
       if (instance.proxyId !== undefined) {
         await database.query('DELETE FROM "proxies" WHERE "id" = $1', [instance.proxyId])
@@ -240,7 +240,7 @@ export class SessionsManager {
     const sessionMap = this.sessions.get(sessionKey(name))
     const deleted = sessionMap?.delete(cacheName) ? 1 : 0
 
-    this.sqliteManager.enqueueWrite(`deleting session cache ${name}:${cacheName}`, async (database) => {
+    this.databaseManager.enqueueWrite(`deleting session cache ${name}:${cacheName}`, async (database) => {
       await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" = $2', [
         name,
         cacheName

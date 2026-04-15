@@ -8,7 +8,6 @@ import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import Duration from '../../../utility/duration'
-import { logDisconnect } from '../../../utility/disconnect-logger.js'
 import { setTimeoutAsync } from '../../../utility/scheduling'
 import { formatTime } from '../../../utility/shared-utility'
 import type ClientSession from '../client-session.js'
@@ -142,7 +141,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async onEnd(clientSession: ClientSession, reason: string): Promise<void> {
-    logDisconnect(this.clientInstance.instanceName, `end: ${reason}`)
+    this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'end', reason)
 
     if (this.clientInstance.currentStatus() === Status.Failed) {
       this.logger.warn(reason)
@@ -170,7 +169,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async onKicked(reason: string): Promise<void> {
-    logDisconnect(this.clientInstance.instanceName, `kicked: ${reason}`)
+    this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'kicked', reason)
     this.logger.error(`Minecraft bot was kicked from the server for: ${reason}`)
 
     this.loginAttempts++
@@ -209,7 +208,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async onError(error: Error & { code?: string }): Promise<void> {
-    logDisconnect(this.clientInstance.instanceName, `error: ${error.message}`)
+    this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'error', error.message)
     this.logger.error('Minecraft Bot Error: ', error)
     this.loginAttempts++
 

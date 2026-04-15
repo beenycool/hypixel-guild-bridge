@@ -33,9 +33,9 @@ const ConfigsDirectory = process.env.CONFIG_DIR
   ? path.resolve(process.env.CONFIG_DIR)
   : path.resolve(RootDirectory, 'config')
 
-// Azure App Service compatibility: default to port 80 if no port is provided.
+// Default to port 80 if no port is provided (common in containers).
 // We also export INTERNAL_PORT so the application config can use ${INTERNAL_PORT}.
-const externalPort = Number(process.env.WEBSITES_PORT ?? process.env.PORT ?? 80)
+const externalPort = Number(process.env.PORT ?? 80)
 const internalPort = Number(process.env.INTERNAL_PORT ?? 9091)
 const prometheusPort = Number(process.env.PROMETHEUS_PORT ?? 9090)
 process.env.INTERNAL_PORT = String(internalPort)
@@ -44,7 +44,6 @@ console.log(`Starting application...`)
 console.log(`Root Directory: ${RootDirectory}`)
 console.log(`Config Directory: ${ConfigsDirectory}`)
 console.log(`Environment:`)
-console.log(`WEBSITES_PORT: ${process.env.WEBSITES_PORT}`)
 console.log(`PORT: ${process.env.PORT}`)
 console.log(`INTERNAL_PORT: ${process.env.INTERNAL_PORT}`)
 
@@ -58,8 +57,8 @@ try {
   // Don't exit, let it try to continue or fail later with better logs
 }
 
-// Start a lightweight health/proxy server immediately to satisfy Azure startup probes.
-// It listens on the external port (WEBSITES_PORT) and responds 200 on `/uptime` quickly.
+// Start a lightweight health/proxy server immediately so load balancers get fast `/health`/`/uptime`.
+// It listens on the external port (PORT) and responds 200 on `/uptime` quickly.
 // All other requests are proxied to the internal application port (INTERNAL_PORT) so
 // the real web server can boot on the internal port without exposing the slow startup window.
 const processStartTime = Date.now()

@@ -1,12 +1,12 @@
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 export class DiscordLeaderboards {
   private readonly entries = new Map<string, LeaderboardEntry>()
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<StoredLeaderboardEntry>('SELECT * FROM "discordLeaderboards"')
+    const rows = await this.databaseManager.queryRows<StoredLeaderboardEntry>('SELECT * FROM "discordLeaderboards"')
     this.entries.clear()
     for (const row of rows) {
       this.entries.set(row.messageId, fromStoredEntry(row))
@@ -28,7 +28,7 @@ export class DiscordLeaderboards {
     }
     this.entries.set(entry.messageId, stored)
 
-    this.sqliteManager.enqueueWrite(`saving discord leaderboard ${entry.messageId}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving discord leaderboard ${entry.messageId}`, async (database) => {
       await database.query(
         `INSERT INTO "discordLeaderboards" ("messageId", "type", "channelId", "guildId", "updatedAt", "createdAt")
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -57,7 +57,7 @@ export class DiscordLeaderboards {
       }
     }
 
-    this.sqliteManager.enqueueTransaction('updating discord leaderboard timestamps', async (database) => {
+    this.databaseManager.enqueueTransaction('updating discord leaderboard timestamps', async (database) => {
       for (const entry of entries) {
         await database.query('UPDATE "discordLeaderboards" SET "updatedAt" = $1 WHERE "messageId" = $2', [
           Math.floor(entry.updatedAt / 1000),
@@ -73,7 +73,7 @@ export class DiscordLeaderboards {
       if (this.entries.delete(messageId)) count++
     }
 
-    this.sqliteManager.enqueueTransaction('removing discord leaderboards', async (database) => {
+    this.databaseManager.enqueueTransaction('removing discord leaderboards', async (database) => {
       for (const messageId of messagesIds) {
         await database.query('DELETE FROM "discordLeaderboards" WHERE "messageId" = $1', [messageId])
       }

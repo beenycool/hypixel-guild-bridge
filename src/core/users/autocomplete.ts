@@ -6,7 +6,7 @@ import type Application from '../../application'
 import { InstanceType } from '../../common/application-event'
 import { Status } from '../../common/connectable-instance'
 import type EventHelper from '../../common/event-helper'
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 import SubInstance from '../../common/sub-instance'
 import type UnexpectedErrorHandler from '../../common/unexpected-error-handler'
 import Duration from '../../utility/duration'
@@ -25,7 +25,7 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
     eventHelper: EventHelper<InstanceType.Core>,
     logger: Logger,
     errorHandler: UnexpectedErrorHandler,
-    private readonly sqliteManager: SqliteManager
+    private readonly databaseManager: DatabaseManager
   ) {
     super(application, clientInstance, eventHelper, logger, errorHandler)
 
@@ -60,7 +60,7 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
       }
     })
 
-    this.sqliteManager.registerCleaner(() => {
+    this.databaseManager.registerCleaner(() => {
       const oldestTimestamp = Math.floor((Date.now() - Autocomplete.MaxLife.toMilliseconds()) / 1000)
       const usernamesDeleted = removeOldAutocompleteEntries(this.usernames, oldestTimestamp)
       const ranksDeleted = removeOldAutocompleteEntries(this.ranks, oldestTimestamp)
@@ -68,7 +68,7 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
 
       if (count > 0) {
         this.logger.debug(`Deleted ${count} old autocomplete entry`)
-        this.sqliteManager.enqueueTransaction('cleaning autocomplete entries', async (database) => {
+        this.databaseManager.enqueueTransaction('cleaning autocomplete entries', async (database) => {
           await database.query('DELETE FROM "autocompleteUsernames" WHERE "timestamp" < $1', [oldestTimestamp])
           await database.query('DELETE FROM "autocompleteRanks" WHERE "timestamp" < $1', [oldestTimestamp])
         })
@@ -78,8 +78,8 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
 
   public async load(): Promise<void> {
     const [usernames, ranks] = await Promise.all([
-      this.sqliteManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteUsernames"'),
-      this.sqliteManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteRanks"')
+      this.databaseManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteUsernames"'),
+      this.databaseManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteRanks"')
     ])
 
     replaceAutocompleteEntries(this.usernames, usernames)
@@ -140,7 +140,7 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
       preparedEntries.push(normalizedEntry)
     }
 
-    this.sqliteManager.enqueueTransaction(`saving autocomplete ${table}`, async (database) => {
+    this.databaseManager.enqueueTransaction(`saving autocomplete ${table}`, async (database) => {
       for (const entry of preparedEntries) {
         await database.query(
           `INSERT INTO "${table}" ("loweredContent", "content", "timestamp") VALUES ($1, $2, $3)

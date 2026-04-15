@@ -70,7 +70,8 @@ git clone https://github.com/aidn3/hypixel-guild-discord-bridge
 If you are on linux, execute this command to auto download all libraries and start the application.
 It will also keep the application up to date:
 
-Set `DATABASE_URL` first when running a real install or migrating from `config/users.sqlite`. The in-memory fallback is only for fresh local/test runs.
+Set `database.url` in `config.yaml` or export `DATABASE_URL` before running a real install.
+`memory://local` is only supported when you opt into it explicitly for tests or ephemeral local runs.
 
 ```shell
 ./start.sh
@@ -95,7 +96,7 @@ sudo docker container run -it --rm -e DATABASE_URL="$DATABASE_URL" -v ./config.y
 ```
 
 Note that the path of the configuration source file must either be relative (with the `./`) or absolute.
-The application now stores runtime state in PostgreSQL, so `DATABASE_URL` must point at your database. On Heroku this is usually provided automatically by the Postgres add-on.
+The application now stores runtime state in PostgreSQL, so `database.url` / `DATABASE_URL` must point at your database. On Heroku this is usually provided automatically by the Postgres add-on.
 
 Alternatively, providing the path as an argument to the docker container is also possible:
 

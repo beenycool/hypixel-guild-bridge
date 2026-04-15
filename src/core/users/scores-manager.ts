@@ -7,7 +7,7 @@ import type Application from '../../application'
 import { ChannelType, InstanceType } from '../../common/application-event'
 import { Status } from '../../common/connectable-instance'
 import type EventHelper from '../../common/event-helper'
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 import SubInstance from '../../common/sub-instance'
 import type UnexpectedErrorHandler from '../../common/unexpected-error-handler'
 import Duration from '../../utility/duration'
@@ -39,11 +39,11 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
     eventHelper: EventHelper<InstanceType.Core>,
     logger: Logger,
     errorHandler: UnexpectedErrorHandler,
-    sqliteManager: SqliteManager
+    databaseManager: DatabaseManager
   ) {
     super(application, clientInstance, eventHelper, logger, errorHandler)
 
-    this.database = new ScoreDatabase(this, application, sqliteManager)
+    this.database = new ScoreDatabase(this, application, databaseManager)
 
     this.application.on('minecraftSelfBroadcast', (event) => {
       this.database.addBotUuid(event.uuid)
@@ -299,9 +299,9 @@ class ScoreDatabase {
   constructor(
     private readonly scoresManager: ScoresManager,
     private readonly application: Application,
-    private readonly sqliteManager: SqliteManager
+    private readonly databaseManager: DatabaseManager
   ) {
-    sqliteManager.registerCleaner(() => {
+    databaseManager.registerCleaner(() => {
       this.clean()
     })
   }
@@ -316,13 +316,13 @@ class ScoreDatabase {
       onlineMembers,
       minecraftBots
     ] = await Promise.all([
-      this.sqliteManager.queryRows<CountEntry>('SELECT * FROM "MinecraftCommands"'),
-      this.sqliteManager.queryRows<CountEntry>('SELECT * FROM "DiscordCommands"'),
-      this.sqliteManager.queryRows<CountEntry>('SELECT * FROM "MinecraftMessages"'),
-      this.sqliteManager.queryRows<CountEntry>('SELECT * FROM "DiscordMessages"'),
-      this.sqliteManager.queryRows<TimeframeRecord>('SELECT * FROM "AllMembers" ORDER BY "id" ASC'),
-      this.sqliteManager.queryRows<TimeframeRecord>('SELECT * FROM "OnlineMembers" ORDER BY "id" ASC'),
-      this.sqliteManager.queryRows<{ uuid: string; updatedAt: number; createdAt: number }>(
+      this.databaseManager.queryRows<CountEntry>('SELECT * FROM "MinecraftCommands"'),
+      this.databaseManager.queryRows<CountEntry>('SELECT * FROM "DiscordCommands"'),
+      this.databaseManager.queryRows<CountEntry>('SELECT * FROM "MinecraftMessages"'),
+      this.databaseManager.queryRows<CountEntry>('SELECT * FROM "DiscordMessages"'),
+      this.databaseManager.queryRows<TimeframeRecord>('SELECT * FROM "AllMembers" ORDER BY "id" ASC'),
+      this.databaseManager.queryRows<TimeframeRecord>('SELECT * FROM "OnlineMembers" ORDER BY "id" ASC'),
+      this.databaseManager.queryRows<{ uuid: string; updatedAt: number; createdAt: number }>(
         'SELECT * FROM "minecraftBots"'
       )
     ])
@@ -505,7 +505,7 @@ class ScoreDatabase {
       target.push(inserted)
     }
 
-    this.sqliteManager.enqueueTransaction(`saving ${tableName} timeframes`, async (database) => {
+    this.databaseManager.enqueueTransaction(`saving ${tableName} timeframes`, async (database) => {
       for (const operation of operations) {
         if (operation.deletedIds.length > 0) {
           await database.query(`DELETE FROM "${tableName}" WHERE "id" = ANY($1::int[])`, [operation.deletedIds])
@@ -707,7 +707,7 @@ class ScoreDatabase {
 
     if (count > 0) {
       const upserts = [...affected].map((key) => this.minecraftMessages.get(key)).filter((entry) => entry !== undefined)
-      this.sqliteManager.enqueueTransaction('migrating legacy minecraft usernames', async (database) => {
+      this.databaseManager.enqueueTransaction('migrating legacy minecraft usernames', async (database) => {
         for (const username of usernamesToDelete) {
           await database.query('DELETE FROM "MinecraftMessages" WHERE "user" = $1 AND "timestamp" > $2', [
             username,
@@ -736,7 +736,7 @@ class ScoreDatabase {
     const existing = this.minecraftBots.get(uuid)
     this.minecraftBots.set(uuid, { uuid, updatedAt: now, createdAt: existing?.createdAt ?? now })
 
-    this.sqliteManager.enqueueWrite(`saving minecraft bot ${uuid}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving minecraft bot ${uuid}`, async (database) => {
       await database.query(
         `INSERT INTO "minecraftBots" ("uuid", "updatedAt", "createdAt") VALUES ($1, $2, $3)
          ON CONFLICT ("uuid") DO UPDATE SET "updatedAt" = EXCLUDED."updatedAt"`,
@@ -759,7 +759,7 @@ class ScoreDatabase {
     count += removeOldTimeframes(this.onlineMembers, oldestMemberTimestamp)
 
     if (count > 0) {
-      this.sqliteManager.enqueueTransaction('cleaning scores data', async (database) => {
+      this.databaseManager.enqueueTransaction('cleaning scores data', async (database) => {
         await database.query('DELETE FROM "MinecraftMessages" WHERE "timestamp" < $1', [oldestMessageTimestamp])
         await database.query('DELETE FROM "DiscordMessages" WHERE "timestamp" < $1', [oldestMessageTimestamp])
         await database.query('DELETE FROM "MinecraftCommands" WHERE "timestamp" < $1', [oldestMessageTimestamp])
@@ -787,7 +787,7 @@ class ScoreDatabase {
       entry.count++
     }
 
-    this.sqliteManager.enqueueWrite(`incrementing ${tableName} for ${user}`, async (database) => {
+    this.databaseManager.enqueueWrite(`incrementing ${tableName} for ${user}`, async (database) => {
       await database.query(
         `INSERT INTO "${tableName}" ("timestamp", "user", "count") VALUES ($1, $2, 1)
          ON CONFLICT ("timestamp", "user") DO UPDATE SET "count" = "${tableName}"."count" + 1`,

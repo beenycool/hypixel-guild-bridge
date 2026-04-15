@@ -1,4 +1,4 @@
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 export interface InactivityEntry {
   uuid: string
@@ -11,10 +11,10 @@ export interface InactivityEntry {
 export class Inactivity {
   private readonly entries = new Map<string, InactivityEntry>()
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<InactivityEntry>('SELECT * FROM "inactivity"')
+    const rows = await this.databaseManager.queryRows<InactivityEntry>('SELECT * FROM "inactivity"')
     this.entries.clear()
     for (const row of rows) {
       this.entries.set(row.uuid, row)
@@ -44,7 +44,7 @@ export class Inactivity {
     const completeEntry = { ...entry, createdAt: nowSeconds() }
     this.entries.set(completeEntry.uuid, completeEntry)
 
-    this.sqliteManager.enqueueWrite(`saving inactivity ${completeEntry.uuid}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving inactivity ${completeEntry.uuid}`, async (database) => {
       await database.query(
         `INSERT INTO "inactivity" ("uuid", "discordId", "reason", "createdAt", "expiresAt") VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT ("uuid") DO UPDATE SET
@@ -66,7 +66,7 @@ export class Inactivity {
   public removeByUuid(uuid: string): number {
     const existed = this.entries.delete(uuid) ? 1 : 0
 
-    this.sqliteManager.enqueueWrite(`deleting inactivity ${uuid}`, async (database) => {
+    this.databaseManager.enqueueWrite(`deleting inactivity ${uuid}`, async (database) => {
       await database.query('DELETE FROM "inactivity" WHERE "uuid" = $1', [uuid])
     })
 
@@ -82,7 +82,7 @@ export class Inactivity {
     }
 
     if (expiredUuids.length > 0) {
-      this.sqliteManager.enqueueWrite('purging expired inactivity entries', async (database) => {
+      this.databaseManager.enqueueWrite('purging expired inactivity entries', async (database) => {
         await database.query('DELETE FROM "inactivity" WHERE "expiresAt" <= $1', [now])
       })
     }

@@ -7,7 +7,7 @@ import assert from 'node:assert'
 import type Application from '../application'
 import { InstanceType } from '../common/application-event'
 import { Instance, InternalInstancePrefix } from '../common/instance'
-import { SqliteManager } from '../common/sqlite-manager'
+import { DatabaseManager } from '../common/database-manager'
 import type {
   DiscordProfile,
   DiscordUser,
@@ -29,6 +29,7 @@ import { DiscordLeaderboards } from './discord/discord-leaderboards'
 import { DiscordTemporarilyInteractions } from './discord/discord-temporarily-interactions'
 import { InstanceHistoryButton } from './discord/instance-history-button'
 import { initializeCoreDatabase } from './initialize-database'
+import { DisconnectLogger } from './instance/disconnect-logger'
 import { StatusHistory } from './instance/status-history'
 import { LanguageConfigurations } from './language-configurations'
 import { MinecraftAccounts } from './minecraft/minecraft-accounts'
@@ -80,6 +81,7 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly minecraftAccounts: MinecraftAccounts
 
   // instance
+  public readonly disconnectLogger: DisconnectLogger
   public readonly statusHistory: StatusHistory
   public readonly pendingReviewManager: PendingReviewManager
   public readonly rankupManager: RankupManager
@@ -91,30 +93,32 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly spontaneousEventsConfigurations: SpontaneousEventsConfigurations
 
   // database
-  public readonly sqliteManager: SqliteManager
+  public readonly databaseManager: DatabaseManager
   private readonly configurationsManager: ConfigurationsManager
   private readonly ready: Promise<void>
 
   public constructor(application: Application) {
     super(application, InternalInstancePrefix + 'core', InstanceType.Core)
 
-    const sqliteName = 'users.sqlite'
-    this.sqliteManager = new SqliteManager(application, this.logger)
+    this.databaseManager = new DatabaseManager(application, this.logger)
 
-    this.configurationsManager = new ConfigurationsManager(this.sqliteManager)
+    this.configurationsManager = new ConfigurationsManager(this.databaseManager)
 
-    this.bridgeConfigurations = new BridgeConfigurations(this.configurationsManager)
+    this.bridgeConfigurations = new BridgeConfigurations(this.configurationsManager, (event) => {
+      void application.emit('bridgeConfigChanged', event)
+    })
     this.discordConfigurations = new DiscordConfigurations(this.configurationsManager)
-    this.discordLeaderboards = new DiscordLeaderboards(this.sqliteManager)
+    this.discordLeaderboards = new DiscordLeaderboards(this.databaseManager)
     this.discordTemporarilyInteractions = new DiscordTemporarilyInteractions(
-      this.sqliteManager,
+      this.databaseManager,
       this.discordConfigurations
     )
-    this.discordInstanceHistoryButton = new InstanceHistoryButton(this.sqliteManager, this.logger)
-    this.discordEmojis = new DiscordEmojis(this.sqliteManager)
+    this.discordInstanceHistoryButton = new InstanceHistoryButton(this.databaseManager, this.logger)
+    this.discordEmojis = new DiscordEmojis(this.databaseManager)
 
-    this.statusHistory = new StatusHistory(this.sqliteManager, this.logger)
-    this.pendingReviewManager = new PendingReviewManager(this.sqliteManager)
+    this.disconnectLogger = new DisconnectLogger(this.databaseManager)
+    this.statusHistory = new StatusHistory(this.databaseManager, this.logger)
+    this.pendingReviewManager = new PendingReviewManager(this.databaseManager)
 
     this.applicationConfigurations = new ApplicationConfigurations(this.configurationsManager)
     this.languageConfigurations = new LanguageConfigurations(this.configurationsManager)
@@ -122,15 +126,15 @@ export class Core extends Instance<InstanceType.Core> {
     this.spontaneousEventsConfigurations = new SpontaneousEventsConfigurations(this.configurationsManager)
 
     this.minecraftConfigurations = new MinecraftConfigurations(this.configurationsManager)
-    this.minecraftSessions = new SessionsManager(this.sqliteManager, this.logger)
-    this.minecraftAccounts = new MinecraftAccounts(this.sqliteManager)
+    this.minecraftSessions = new SessionsManager(this.databaseManager, this.logger)
+    this.minecraftAccounts = new MinecraftAccounts(this.databaseManager)
 
     this.moderationConfiguration = new ModerationConfigurations(this.configurationsManager)
-    this.mojangApi = new MojangApi(this.sqliteManager)
+    this.mojangApi = new MojangApi(this.databaseManager)
 
     this.profanity = new Profanity(this.moderationConfiguration)
-    this.punishments = new Punishments(this.sqliteManager, application, this.logger)
-    this.commandsHeat = new CommandsHeat(this.sqliteManager, this.moderationConfiguration, this.logger)
+    this.punishments = new Punishments(this.databaseManager, application, this.logger)
+    this.commandsHeat = new CommandsHeat(this.databaseManager, this.moderationConfiguration, this.logger)
     this.enforcer = new PunishmentsEnforcer(application, this, this.eventHelper, this.logger, this.errorHandler)
 
     this.rankupManager = new RankupManager(
@@ -147,21 +151,21 @@ export class Core extends Instance<InstanceType.Core> {
       this.eventHelper,
       this.logger,
       this.errorHandler,
-      this.sqliteManager
+      this.databaseManager
     )
 
-    this.verification = new Verification(this.sqliteManager)
-    this.inactivity = new Inactivity(this.sqliteManager)
+    this.verification = new Verification(this.databaseManager)
+    this.inactivity = new Inactivity(this.databaseManager)
     this.scoresManager = new ScoresManager(
       application,
       this,
       this.eventHelper,
       this.logger,
       this.errorHandler,
-      this.sqliteManager
+      this.databaseManager
     )
 
-    this.ready = this.initialize(sqliteName)
+    this.ready = this.initialize()
   }
 
   public completeUsername(query: string, limit: number): string[] {
@@ -250,8 +254,8 @@ export class Core extends Instance<InstanceType.Core> {
     await this.ready
   }
 
-  private async initialize(sqliteName: string): Promise<void> {
-    await initializeCoreDatabase(this.application, this.sqliteManager, sqliteName)
+  private async initialize(): Promise<void> {
+    await initializeCoreDatabase(this.databaseManager)
     await this.configurationsManager.load()
     await this.verification.load()
     await this.mojangApi.load()

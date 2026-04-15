@@ -1,14 +1,14 @@
 import type { UserLink } from '../../common/application-event'
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 export class Verification {
   private readonly linksByUuid = new Map<string, UserLink>()
   private readonly linksByDiscordId = new Map<string, UserLink>()
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public async load(): Promise<void> {
-    const links = await this.sqliteManager.queryRows<UserLink>('SELECT "uuid", "discordId" FROM "links"')
+    const links = await this.databaseManager.queryRows<UserLink>('SELECT "uuid", "discordId" FROM "links"')
 
     this.linksByUuid.clear()
     this.linksByDiscordId.clear()
@@ -43,7 +43,7 @@ export class Verification {
     this.linksByUuid.set(uuid, link)
     this.linksByDiscordId.set(discordId, link)
 
-    this.sqliteManager.enqueueTransaction(`saving verification link ${uuid}`, async (database) => {
+    this.databaseManager.enqueueTransaction(`saving verification link ${uuid}`, async (database) => {
       await database.query('DELETE FROM "links" WHERE "uuid" = $1 OR "discordId" = $2', [uuid, discordId])
       await database.query('INSERT INTO "links" ("uuid", "discordId") VALUES ($1, $2)', [uuid, discordId])
     })
@@ -64,7 +64,7 @@ export class Verification {
         count++
       }
 
-      this.sqliteManager.enqueueWrite(`invalidating verification uuid ${options.uuid}`, async (database) => {
+      this.databaseManager.enqueueWrite(`invalidating verification uuid ${options.uuid}`, async (database) => {
         await database.query('DELETE FROM "links" WHERE "uuid" = $1', [options.uuid])
       })
     }
@@ -77,7 +77,7 @@ export class Verification {
         count++
       }
 
-      this.sqliteManager.enqueueWrite(`invalidating verification discord ${options.discordId}`, async (database) => {
+      this.databaseManager.enqueueWrite(`invalidating verification discord ${options.discordId}`, async (database) => {
         await database.query('DELETE FROM "links" WHERE "discordId" = $1', [options.discordId])
       })
     }

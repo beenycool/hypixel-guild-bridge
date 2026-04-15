@@ -1,4 +1,3 @@
-
 export interface MemberStats {
   uuid: string
   rank: string
@@ -67,7 +66,7 @@ export class RulesEvaluator {
         return {
           action: 'promote',
           targetRank: rule.targetRank,
-          reason: `Met requirements: ${member.weeklyGexp} GEXP, ${daysInGuild.toFixed(1)} days in guild.`,
+          reason: `Met requirements: ${member.weeklyGexp} GEXP, ${daysInGuild.toFixed(1)} days in guild.`
         }
       }
     }
@@ -76,10 +75,14 @@ export class RulesEvaluator {
     const applicableDemotion = demotionRules.find((r) => r.fromRank.toLowerCase() === member.rank.toLowerCase())
     if (applicableDemotion) {
       if (daysInGuild > applicableDemotion.gracePeriod && member.weeklyGexp < applicableDemotion.maxWeeklyGexp) {
+        if (applicableDemotion.action === 'demote' && applicableDemotion.targetRank === undefined) {
+          return { action: 'none' }
+        }
+
         return {
           action: applicableDemotion.action === 'notify' ? 'none' : applicableDemotion.action, // 'notify' might be handled differently later, treating as 'none' for automation for now or maybe 'demote' if config implies
           targetRank: applicableDemotion.targetRank,
-          reason: `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`,
+          reason: `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`
         }
       }
     }

@@ -1,4 +1,4 @@
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 export interface PendingReview {
   id: number
@@ -29,13 +29,13 @@ export class PendingReviewManager {
   private nextReviewId = 1
   private nextHistoryId = 1
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public async load(): Promise<void> {
-    const reviews = await this.sqliteManager.queryRows<PendingReview>(
+    const reviews = await this.databaseManager.queryRows<PendingReview>(
       'SELECT * FROM "rankupPendingReviews" ORDER BY "id" ASC'
     )
-    const history = await this.sqliteManager.queryRows<RankupHistoryEntry>(
+    const history = await this.databaseManager.queryRows<RankupHistoryEntry>(
       'SELECT * FROM "rankupHistory" ORDER BY "id" ASC'
     )
 
@@ -72,7 +72,7 @@ export class PendingReviewManager {
     }
     this.reviews.set(review.id, review)
 
-    this.sqliteManager.enqueueWrite(`saving rankup review ${bridgeId}:${uuid}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving rankup review ${bridgeId}:${uuid}`, async (database) => {
       await database.query(
         `INSERT INTO "rankupPendingReviews"
           ("id", "bridgeId", "uuid", "currentRank", "proposedRank", "action", "reason", "createdAt", "notifiedAt")
@@ -113,7 +113,7 @@ export class PendingReviewManager {
 
   public removeReview(id: number): void {
     this.reviews.delete(id)
-    this.sqliteManager.enqueueWrite(`removing rankup review ${id}`, async (database) => {
+    this.databaseManager.enqueueWrite(`removing rankup review ${id}`, async (database) => {
       await database.query('DELETE FROM "rankupPendingReviews" WHERE "id" = $1', [id])
     })
   }
@@ -125,7 +125,7 @@ export class PendingReviewManager {
       }
     }
 
-    this.sqliteManager.enqueueWrite(`removing rankup review ${bridgeId}:${uuid}`, async (database) => {
+    this.databaseManager.enqueueWrite(`removing rankup review ${bridgeId}:${uuid}`, async (database) => {
       await database.query('DELETE FROM "rankupPendingReviews" WHERE "bridgeId" = $1 AND "uuid" = $2', [bridgeId, uuid])
     })
   }
@@ -138,7 +138,7 @@ export class PendingReviewManager {
       }
     }
 
-    this.sqliteManager.enqueueWrite(`clearing stale rankup reviews for ${bridgeId}`, async (database) => {
+    this.databaseManager.enqueueWrite(`clearing stale rankup reviews for ${bridgeId}`, async (database) => {
       if (uuids.length === 0) {
         await database.query('DELETE FROM "rankupPendingReviews" WHERE "bridgeId" = $1', [bridgeId])
         return
@@ -156,7 +156,7 @@ export class PendingReviewManager {
     if (review === undefined) return
 
     review.notifiedAt = Math.floor(Date.now() / 1000)
-    this.sqliteManager.enqueueWrite(`updating rankup notifiedAt ${id}`, async (database) => {
+    this.databaseManager.enqueueWrite(`updating rankup notifiedAt ${id}`, async (database) => {
       await database.query('UPDATE "rankupPendingReviews" SET "notifiedAt" = $1 WHERE "id" = $2', [
         review.notifiedAt,
         id
@@ -184,7 +184,7 @@ export class PendingReviewManager {
     }
     this.history.push(entry)
 
-    this.sqliteManager.enqueueWrite(`saving rankup history ${bridgeId}:${uuid}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving rankup history ${bridgeId}:${uuid}`, async (database) => {
       await database.query(
         `INSERT INTO "rankupHistory" ("id", "bridgeId", "uuid", "action", "fromRank", "toRank", "triggeredBy", "createdAt")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,

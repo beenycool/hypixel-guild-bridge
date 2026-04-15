@@ -55,6 +55,7 @@ export default {
         ...event,
 
         channelType: ChannelType.Public,
+        bridgeId: bridgeId,
 
         user: user,
         hypixelRank: hypixelRank,

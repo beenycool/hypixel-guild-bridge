@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import DefaultAxios, { AxiosError, HttpStatusCode } from 'axios'
 import PromiseQueue from 'promise-queue'
 
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 import type { MojangProfile } from '../../common/user'
 import RateLimiter from '../../utility/rate-limiter'
 
@@ -14,8 +14,8 @@ export class MojangApi {
 
   private readonly mojangDatabase: MojangDatabase
 
-  constructor(private readonly sqliteManager: SqliteManager) {
-    this.mojangDatabase = new MojangDatabase(this.sqliteManager)
+  constructor(private readonly databaseManager: DatabaseManager) {
+    this.mojangDatabase = new MojangDatabase(this.databaseManager)
   }
 
   public async load(): Promise<void> {
@@ -164,10 +164,10 @@ class MojangDatabase {
   private readonly profilesByLoweredName = new Map<string, CachedMojangProfile>()
   private readonly profilesByUuid = new Map<string, CachedMojangProfile>()
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<CachedMojangProfile>(
+    const rows = await this.databaseManager.queryRows<CachedMojangProfile>(
       'SELECT "uuid", "username", "loweredName", "createdAt" FROM "mojang"'
     )
 
@@ -192,7 +192,7 @@ class MojangDatabase {
       this.profilesByUuid.set(cachedProfile.uuid, cachedProfile)
     }
 
-    this.sqliteManager.enqueueTransaction('caching mojang profiles', async (database) => {
+    this.databaseManager.enqueueTransaction('caching mojang profiles', async (database) => {
       for (const profile of profiles) {
         await database.query('DELETE FROM "mojang" WHERE "uuid" = $1 OR "loweredName" = $2', [
           profile.id,

@@ -35,6 +35,7 @@ Make sure to check the new settings and apply back all your old configurations.
 Runtime-managed configuration is stored in the application database. The `./config/` directory is still used for local runtime files and backups.
 
 - You should back up `config.yaml` and your PostgreSQL database. The `./config/` directory is only needed for local runtime files and backups.
+- New installs must configure `database.url` or `DATABASE_URL` before runtime-managed state can be saved. If you still have data only in a legacy `config/users.sqlite` file from an older release, migrate that data to PostgreSQL using a **previous** bridge version that included SQLite migration tooling, then upgrade to this version.
 - If you change something, make sure all changes are **valid and will not break** the application in any unintentional.
 - You can safely delete any file there to reset a part of the application.
 

@@ -1,12 +1,12 @@
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 export class DiscordEmojis {
   private readonly entries = new Map<string, EmojiConfig>()
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<EmojiConfig>('SELECT "name", "hash" FROM "discordEmojis"')
+    const rows = await this.databaseManager.queryRows<EmojiConfig>('SELECT "name", "hash" FROM "discordEmojis"')
     this.entries.clear()
     for (const row of rows) {
       this.entries.set(row.name.toLowerCase(), row)
@@ -23,7 +23,7 @@ export class DiscordEmojis {
       this.entries.set(key, value)
     }
 
-    this.sqliteManager.enqueueTransaction('replacing discord emojis', async (database) => {
+    this.databaseManager.enqueueTransaction('replacing discord emojis', async (database) => {
       await database.query('DELETE FROM "discordEmojis"')
       for (const entry of entries) {
         await database.query('INSERT INTO "discordEmojis" ("name", "hash") VALUES ($1, $2)', [entry.name, entry.hash])

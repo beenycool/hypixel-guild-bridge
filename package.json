@@ -12,7 +12,6 @@
     "start": "node --import tsx/esm index.ts",
     "generate-code": "npx ts-interface-builder src/application-config.ts",
     "generate-docs": "node --import tsx/esm scripts/generate-documentation.ts",
-    "script:migrate-sqlite-postgres": "node --import tsx/esm scripts/migrate-sqlite-to-postgres.ts",
     "script:message-image-compare": "node --import tsx/esm scripts/message-image-before-after.ts",
     "script:message-image-preview": "node --import tsx/esm scripts/message-image-preview.ts",
     "lint:fix": "npx eslint . --fix && npx prettier . \"!**/*.ts\" --write",
@@ -42,7 +41,6 @@
     "@types/pg": "^8.20.0",
     "axios": "^1.12.0",
     "bad-words": "3.0.4",
-    "better-sqlite3": "^12.8.0",
     "bufferutil": "^4.0.1",
     "canvas": "^3.1.0",
     "compare-versions": "^6.1.1",
@@ -76,7 +74,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/esrever": "^0.2.3",
     "@types/promise-queue": "^2.2.3",
     "@typescript-eslint/eslint-plugin": "^8.3.0",

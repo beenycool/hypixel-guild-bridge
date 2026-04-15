@@ -1,13 +1,13 @@
 import assert from 'node:assert'
 
-import type { SqliteManager } from '../common/sqlite-manager'
+import type { DatabaseManager } from '../common/database-manager'
 
 export class ConfigurationsManager {
   private static readonly Tablename = 'configurations'
   private readonly createdCategories = new Set<string>()
   private readonly configurations = new Set<Configuration>()
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public create(category: string): Configuration {
     assert.ok(
@@ -16,7 +16,7 @@ export class ConfigurationsManager {
     )
 
     this.createdCategories.add(category)
-    const configuration = new Configuration(this.sqliteManager, ConfigurationsManager.Tablename, category)
+    const configuration = new Configuration(this.databaseManager, ConfigurationsManager.Tablename, category)
     this.configurations.add(configuration)
     return configuration
   }
@@ -30,13 +30,13 @@ export class Configuration {
   private readonly cache = new Map<string, unknown>()
 
   constructor(
-    private readonly sqliteManager: SqliteManager,
+    private readonly databaseManager: DatabaseManager,
     private readonly tablename: string,
     private readonly category: string
   ) {}
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<{ name: string; value: string }>(
+    const rows = await this.databaseManager.queryRows<{ name: string; value: string }>(
       `SELECT "name", "value" FROM "${this.tablename}" WHERE "category" = $1`,
       [this.category]
     )
@@ -84,7 +84,7 @@ export class Configuration {
   public delete(name: string): boolean {
     const existed = this.cache.delete(name)
 
-    this.sqliteManager.enqueueWrite(`deleting configuration ${this.category}.${name}`, async (database) => {
+    this.databaseManager.enqueueWrite(`deleting configuration ${this.category}.${name}`, async (database) => {
       await database.query(`DELETE FROM "${this.tablename}" WHERE "category" = $1 AND "name" = $2`, [
         this.category,
         name
@@ -110,7 +110,7 @@ export class Configuration {
     const serializedValue = serialize === undefined ? String(value) : serialize(value)
     this.cache.set(name, serializedValue)
 
-    this.sqliteManager.enqueueWrite(`saving configuration ${this.category}.${name}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving configuration ${this.category}.${name}`, async (database) => {
       await database.query(
         `INSERT INTO "${this.tablename}" ("category", "name", "value", "lastUpdatedAt") VALUES ($1, $2, $3, $4)
          ON CONFLICT ("category", "name") DO UPDATE SET

@@ -2,7 +2,7 @@ import type { Logger } from 'log4js'
 
 import type { InstanceIdentifier, InstanceMessage, InstanceStatus } from '../../common/application-event'
 import type { Status } from '../../common/connectable-instance'
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 import Duration from '../../utility/duration'
 
 export class StatusHistory {
@@ -14,10 +14,10 @@ export class StatusHistory {
   private nextMessageId = 1
 
   constructor(
-    private readonly sqliteManager: SqliteManager,
+    private readonly databaseManager: DatabaseManager,
     logger: Logger
   ) {
-    this.sqliteManager.registerCleaner(() => {
+    this.databaseManager.registerCleaner(() => {
       const cutoff = Date.now() - StatusHistory.MaxLife.toMilliseconds()
       const statusDeleted = removeExpiredEntries(this.statusEntries, cutoff)
       const messageDeleted = removeExpiredEntries(this.messageEntries, cutoff)
@@ -30,7 +30,7 @@ export class StatusHistory {
       }
 
       if (statusDeleted + messageDeleted > 0) {
-        this.sqliteManager.enqueueTransaction('cleaning status history', async (database) => {
+        this.databaseManager.enqueueTransaction('cleaning status history', async (database) => {
           await database.query('DELETE FROM "instanceStatusHistory" WHERE "createdAt" < $1', [
             Math.floor(cutoff / 1000)
           ])
@@ -43,10 +43,10 @@ export class StatusHistory {
   }
 
   public async load(): Promise<void> {
-    const statusEntries = await this.sqliteManager.queryRows<StoredStatusHistoryChange>(
+    const statusEntries = await this.databaseManager.queryRows<StoredStatusHistoryChange>(
       'SELECT * FROM "instanceStatusHistory" ORDER BY "id" ASC'
     )
-    const messageEntries = await this.sqliteManager.queryRows<StoredStatusHistoryMessage>(
+    const messageEntries = await this.databaseManager.queryRows<StoredStatusHistoryMessage>(
       'SELECT * FROM "instanceMessageHistory" ORDER BY "id" ASC'
     )
 
@@ -92,7 +92,7 @@ export class StatusHistory {
       }
       this.statusEntries.push(statusEntry)
 
-      this.sqliteManager.enqueueWrite(`saving status history for ${entry.instanceName}`, async (database) => {
+      this.databaseManager.enqueueWrite(`saving status history for ${entry.instanceName}`, async (database) => {
         await database.query(
           `INSERT INTO "instanceStatusHistory" ("id", "instanceName", "instanceType", "createdAt", "fromStatus", "toStatus")
            VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -120,7 +120,7 @@ export class StatusHistory {
       }
       this.messageEntries.push(messageEntry)
 
-      this.sqliteManager.enqueueWrite(`saving message history for ${entry.instanceName}`, async (database) => {
+      this.databaseManager.enqueueWrite(`saving message history for ${entry.instanceName}`, async (database) => {
         await database.query(
           `INSERT INTO "instanceMessageHistory" ("id", "instanceName", "instanceType", "createdAt", "type", "value")
            VALUES ($1, $2, $3, $4, $5, $6)`,

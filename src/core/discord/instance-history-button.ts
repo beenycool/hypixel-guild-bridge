@@ -1,7 +1,7 @@
 import type { Logger } from 'log4js'
 
 import type { InstanceIdentifier } from '../../common/application-event'
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 import Duration from '../../utility/duration'
 
 export class InstanceHistoryButton {
@@ -11,10 +11,10 @@ export class InstanceHistoryButton {
   private readonly lastButtons = new Map<string, string>()
 
   constructor(
-    private readonly sqliteManager: SqliteManager,
+    private readonly databaseManager: DatabaseManager,
     logger: Logger
   ) {
-    this.sqliteManager.registerCleaner(() => {
+    this.databaseManager.registerCleaner(() => {
       const cutoff = Date.now() - InstanceHistoryButton.MaxLife.toMilliseconds()
       let deleted = 0
 
@@ -28,7 +28,7 @@ export class InstanceHistoryButton {
 
       if (deleted > 0) {
         logger.debug(`Deleted ${deleted} old entries in DiscordPersistentButtons.`)
-        this.sqliteManager.enqueueWrite('cleaning old discord history buttons', async (database) => {
+        this.databaseManager.enqueueWrite('cleaning old discord history buttons', async (database) => {
           await database.query('DELETE FROM "discordInstanceHistoryButton" WHERE "createdAt" < $1', [
             Math.floor(cutoff / 1000)
           ])
@@ -41,10 +41,10 @@ export class InstanceHistoryButton {
   }
 
   public async load(): Promise<void> {
-    const buttons = await this.sqliteManager.queryRows<StoredDiscordPersistentInstance>(
+    const buttons = await this.databaseManager.queryRows<StoredDiscordPersistentInstance>(
       'SELECT * FROM "discordInstanceHistoryButton"'
     )
-    const lastButtons = await this.sqliteManager.queryRows<StoredLastButton>(
+    const lastButtons = await this.databaseManager.queryRows<StoredLastButton>(
       'SELECT * FROM "discordInstanceHistoryLastButton"'
     )
 
@@ -67,7 +67,7 @@ export class InstanceHistoryButton {
     this.buttons.set(entry.messageId, { ...entry })
     this.lastButtons.set(lastButtonKey(entry.channelId, entry.instanceName), entry.messageId)
 
-    this.sqliteManager.enqueueTransaction(`saving discord history button ${entry.messageId}`, async (database) => {
+    this.databaseManager.enqueueTransaction(`saving discord history button ${entry.messageId}`, async (database) => {
       await database.query(
         `INSERT INTO "discordInstanceHistoryButton"
           ("messageId", "channelId", "instanceName", "instanceType", "type", "startTime", "endTime", "createdAt")
@@ -119,7 +119,7 @@ export class InstanceHistoryButton {
     if (entry === undefined) return
 
     entry.endTime = endTimestamp
-    this.sqliteManager.enqueueWrite(`extending discord history button ${messageId}`, async (database) => {
+    this.databaseManager.enqueueWrite(`extending discord history button ${messageId}`, async (database) => {
       await database.query('UPDATE "discordInstanceHistoryButton" SET "endTime" = $1 WHERE "messageId" = $2', [
         Math.floor(endTimestamp / 1000),
         messageId
@@ -137,7 +137,7 @@ export class InstanceHistoryButton {
       if (this.buttons.delete(messageId)) count++
     }
 
-    this.sqliteManager.enqueueTransaction('removing discord history buttons', async (database) => {
+    this.databaseManager.enqueueTransaction('removing discord history buttons', async (database) => {
       for (const messageId of messagesIds) {
         await database.query('DELETE FROM "discordInstanceHistoryButton" WHERE "messageId" = $1', [messageId])
         await database.query('DELETE FROM "discordInstanceHistoryLastButton" WHERE "messageId" = $1', [messageId])

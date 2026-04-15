@@ -5,7 +5,7 @@ import type { Logger } from 'log4js'
 import type Application from '../../application'
 import type { BasePunishment } from '../../common/application-event'
 import { InstanceType, PunishmentPurpose, PunishmentType } from '../../common/application-event'
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 import type { User, UserIdentifier } from '../../common/user'
 
 export type SavedPunishment = BasePunishment & UserIdentifier
@@ -17,11 +17,11 @@ export default class Punishments {
   private nextId = 1
 
   constructor(
-    private readonly sqliteManager: SqliteManager,
+    private readonly databaseManager: DatabaseManager,
     application: Application,
     logger: Logger
   ) {
-    sqliteManager.registerCleaner(() => {
+    databaseManager.registerCleaner(() => {
       const cutoff = Math.floor(Date.now() / 1000)
       const before = this.entries.length
       for (let index = this.entries.length - 1; index >= 0; index--) {
@@ -33,7 +33,7 @@ export default class Punishments {
       const deleted = before - this.entries.length
       if (deleted > 0) {
         logger.debug(`Deleted ${deleted} entry of expired punishments`)
-        this.sqliteManager.enqueueWrite('cleaning expired punishments', async (database) => {
+        this.databaseManager.enqueueWrite('cleaning expired punishments', async (database) => {
           await database.query('DELETE FROM "punishments" WHERE "till" < $1', [cutoff])
         })
       }
@@ -52,7 +52,7 @@ export default class Punishments {
   }
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<DatabasePunishment>('SELECT * FROM "punishments" ORDER BY "id" ASC')
+    const rows = await this.databaseManager.queryRows<DatabasePunishment>('SELECT * FROM "punishments" ORDER BY "id" ASC')
 
     this.entries.length = 0
     for (const row of rows) {
@@ -149,7 +149,7 @@ export default class Punishments {
     const records = punishments.map((punishment) => ({ ...punishment, id: this.nextId++ }))
     this.entries.push(...records)
 
-    this.sqliteManager.enqueueTransaction('saving punishments', async (database) => {
+    this.databaseManager.enqueueTransaction('saving punishments', async (database) => {
       for (const punishment of records) {
         await database.query(
           `INSERT INTO "punishments" ("id", "originInstance", "userId", "type", "purpose", "reason", "createdAt", "till")
@@ -181,7 +181,7 @@ export default class Punishments {
       }
     }
 
-    this.sqliteManager.enqueueWrite('removing punishments', async (database) => {
+    this.databaseManager.enqueueWrite('removing punishments', async (database) => {
       await database.query('DELETE FROM "punishments" WHERE "id" = ANY($1::int[])', [[...ids]])
     })
 

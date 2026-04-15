@@ -1,7 +1,7 @@
 # Stage 1: Build native dependencies
 FROM node:22-bookworm-slim AS builder
 
-# Install build dependencies for native modules (canvas, better-sqlite3)
+# Install build dependencies for native modules (canvas)
 RUN apt-get update && apt-get install -y \
     python3 \
     make \

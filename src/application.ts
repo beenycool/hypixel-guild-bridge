@@ -26,7 +26,6 @@ import ApplicationIntegrity from './instance/application-integrity.js'
 import AutoRestart from './instance/auto-restart'
 import { CommandsInstance } from './instance/commands/commands-instance.js'
 import DiscordInstance from './instance/discord/discord-instance.js'
-import { AiChat } from './instance/features/ai-chat.js'
 import { PluginsManager } from './instance/features/plugins-manager.js'
 import HypixelUpdates from './instance/hypixel-updates'
 import MetricsInstance from './instance/metrics/metrics-instance.js'
@@ -54,7 +53,6 @@ export type AllInstances =
   | AutoRestart
   | MinecraftManager
   | PluginsManager
-  | AiChat
 
 export default class Application extends Emittery<ApplicationEvents> implements InstanceIdentifier {
   public readonly instanceName: string = InstanceType.Main
@@ -123,6 +121,10 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.config.database
   }
 
+  public getRootDirectory(): string {
+    return this.rootDirectory
+  }
+
   private readonly logger: Logger
   private readonly errorHandler: UnexpectedErrorHandler
   private readonly shutdownListeners: (() => void | Promise<void>)[] = []
@@ -145,7 +147,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly skyblockReminders: SkyblockReminders
   private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
-  private readonly aiChat: AiChat
   private readonly autoRestart: AutoRestart
 
   public constructor(
@@ -198,7 +199,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.skyblockReminders = new SkyblockReminders(this)
     this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
-    this.aiChat = new AiChat(this)
     this.autoRestart = new AutoRestart(this)
   }
 
@@ -452,7 +452,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.skyblockReminders,
       this.hypixelUpdates,
       this.spontaneousEvents,
-      this.aiChat,
       this.autoRestart
     ].filter((instance) => instance != undefined)
 

@@ -1,6 +1,6 @@
 import type { Logger } from 'log4js'
 
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 import type { User, UserIdentifier } from '../../common/user'
 import Duration from '../../utility/duration'
 
@@ -16,13 +16,13 @@ export class CommandsHeat {
   private readonly warnings = new Map<string, number>()
 
   constructor(
-    private readonly sqliteManager: SqliteManager,
+    private readonly databaseManager: DatabaseManager,
     config: ModerationConfigurations,
     logger: Logger
   ) {
     this.moderationConfig = config
 
-    sqliteManager.registerCleaner(() => {
+    databaseManager.registerCleaner(() => {
       const oldestTimestamp = Math.floor((Date.now() - CommandsHeat.ActionExpiresAfter.toMilliseconds()) / 1000)
       let deleted = 0
 
@@ -35,7 +35,7 @@ export class CommandsHeat {
 
       if (deleted > 0) {
         logger.debug(`Deleted ${deleted} entry of expired heats-commands`)
-        this.sqliteManager.enqueueWrite('cleaning expired command heats', async (database) => {
+        this.databaseManager.enqueueWrite('cleaning expired command heats', async (database) => {
           await database.query('DELETE FROM "heatsCommands" WHERE "createdAt" < $1', [oldestTimestamp])
         })
       }
@@ -43,10 +43,10 @@ export class CommandsHeat {
   }
 
   public async load(): Promise<void> {
-    const actions = await this.sqliteManager.queryRows<HeatActionRow>(
+    const actions = await this.databaseManager.queryRows<HeatActionRow>(
       'SELECT "originInstance", "userId", "type", "createdAt" FROM "heatsCommands" ORDER BY "id" ASC'
     )
-    const warnings = await this.sqliteManager.queryRows<HeatWarningRow>('SELECT * FROM "heatsCommandsWarnings"')
+    const warnings = await this.databaseManager.queryRows<HeatWarningRow>('SELECT * FROM "heatsCommandsWarnings"')
 
     this.actions.length = 0
     this.actions.push(...actions.map((action) => ({ ...action, identifier: toIdentifier(action) })))
@@ -116,7 +116,7 @@ export class CommandsHeat {
     }))
 
     this.actions.push(...createdAt.map((entry) => ({ ...entry, identifier: toIdentifier(entry) })))
-    this.sqliteManager.enqueueTransaction('saving command heats', async (database) => {
+    this.databaseManager.enqueueTransaction('saving command heats', async (database) => {
       for (const heatAction of createdAt) {
         await database.query(
           'INSERT INTO "heatsCommands" ("originInstance", "userId", "type", "createdAt") VALUES ($1, $2, $3, $4)',
@@ -152,7 +152,7 @@ export class CommandsHeat {
     const warnedAt = Math.floor(timestamp / 1000)
     this.warnings.set(warningKey(identifier, type), warnedAt)
 
-    this.sqliteManager.enqueueWrite(`saving command heat warning ${identifier.userId}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving command heat warning ${identifier.userId}`, async (database) => {
       await database.query(
         `INSERT INTO "heatsCommandsWarnings" ("originInstance", "userId", "type", "warnedAt") VALUES ($1, $2, $3, $4)
          ON CONFLICT ("originInstance", "userId", "type") DO UPDATE SET

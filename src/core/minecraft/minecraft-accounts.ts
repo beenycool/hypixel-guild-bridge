@@ -1,12 +1,12 @@
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 export class MinecraftAccounts {
   private readonly accounts = new Map<string, GameToggleConfig>()
 
-  constructor(private readonly sqliteManager: SqliteManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {}
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<StoredGameToggleConfig>('SELECT * FROM "mojangProfileSettings"')
+    const rows = await this.databaseManager.queryRows<StoredGameToggleConfig>('SELECT * FROM "mojangProfileSettings"')
 
     this.accounts.clear()
     for (const row of rows) {
@@ -17,7 +17,7 @@ export class MinecraftAccounts {
   public set(uuid: string, options: GameToggleConfig): void {
     this.accounts.set(uuid.toLowerCase(), options)
 
-    this.sqliteManager.enqueueWrite(`saving minecraft account settings ${uuid}`, async (database) => {
+    this.databaseManager.enqueueWrite(`saving minecraft account settings ${uuid}`, async (database) => {
       await database.query(
         `INSERT INTO "mojangProfileSettings"
           ("id", "playerOnlineStatusEnabled", "guildAllEnabled", "guildChatEnabled", "guildNotificationsEnabled", "selectedEnglish")

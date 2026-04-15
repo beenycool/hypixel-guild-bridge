@@ -33,6 +33,8 @@ import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.j
 import type { User } from '../../common/user'
 import { beautifyInstanceName } from '../../utility/shared-utility'
 
+import type { ResolvedDiscordMentions } from './common/minecraft-discord-mentions.js'
+import { resolveDiscordMentionsInMessage } from './common/minecraft-discord-mentions.js'
 import { BlockReaction, GuildMutedReaction, RepeatReaction } from './common/discord-config.js'
 import { InstanceStatusManager } from './common/instance-status-manager'
 import type MessageAssociation from './common/message-association.js'
@@ -181,14 +183,28 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
       if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
+        const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
         const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
         const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
         })
         await this.sendImageToChannels(event.eventId, [channelId], image)
+        if (mentions !== undefined && mentions.userIds.length > 0) {
+          const channel = this.clientInstance.getClient().channels.cache.get(channelId)
+          if (channel !== undefined && channel.isSendable()) {
+            await channel.send({
+              content: mentions.userIds.map((id) => `<@${id}>`).join(' '),
+              allowedMentions: { parse: [], users: mentions.userIds }
+            })
+          }
+        }
       } else {
         const webhook = await this.getWebhook(channelId)
+        const mentions =
+          event.instanceType === InstanceType.Minecraft
+            ? await this.resolveMinecraftMentionsForChannel(channelId, event.message)
+            : undefined
 
         let displayUsername =
           event.instanceType === InstanceType.Discord && event.replyUsername !== undefined
@@ -200,10 +216,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         }
 
         const message = await webhook.send({
-          content: channelPrefix + escapeMarkdown(event.message),
+          content: channelPrefix + (mentions?.content ?? escapeMarkdown(event.message)),
           username: displayUsername,
           avatarURL: event.user.avatar(),
-          allowedMentions: { parse: [] }
+          allowedMentions: { parse: [], users: mentions?.userIds ?? [] }
         })
         this.messageAssociation.addMessageId(event.eventId, {
           guildId: message.guildId,
@@ -211,6 +227,21 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           messageId: message.id
         })
       }
+    }
+  }
+
+  private async resolveMinecraftMentionsForChannel(
+    channelId: string,
+    message: string
+  ): Promise<ResolvedDiscordMentions | undefined> {
+    const channel = this.clientInstance.getClient().channels.cache.get(channelId)
+    if (channel === undefined) return undefined
+    if (channel.type !== DiscordChannelType.GuildText) return undefined
+    try {
+      return await resolveDiscordMentionsInMessage(message, channel.guild)
+    } catch (error) {
+      this.logger.warn('Failed to resolve Discord mentions for Minecraft chat', error)
+      return undefined
     }
   }
 

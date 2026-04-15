@@ -1,4 +1,4 @@
-import type { SqliteManager } from '../../common/sqlite-manager'
+import type { DatabaseManager } from '../../common/database-manager'
 
 import type { DiscordConfigurations } from './discord-configurations'
 
@@ -6,12 +6,12 @@ export class DiscordTemporarilyInteractions {
   private readonly entries = new Map<string, DiscordMessage>()
 
   constructor(
-    private readonly sqliteManager: SqliteManager,
+    private readonly databaseManager: DatabaseManager,
     private readonly discordConfigurations: DiscordConfigurations
   ) {}
 
   public async load(): Promise<void> {
-    const rows = await this.sqliteManager.queryRows<StoredDiscordMessage>('SELECT * FROM "discordTempInteractions"')
+    const rows = await this.databaseManager.queryRows<StoredDiscordMessage>('SELECT * FROM "discordTempInteractions"')
     this.entries.clear()
     for (const row of rows) {
       this.entries.set(row.messageId, { ...row, createdAt: row.createdAt * 1000 })
@@ -23,7 +23,7 @@ export class DiscordTemporarilyInteractions {
       this.entries.set(entry.messageId, entry)
     }
 
-    this.sqliteManager.enqueueTransaction('saving temporary discord interactions', async (database) => {
+    this.databaseManager.enqueueTransaction('saving temporary discord interactions', async (database) => {
       for (const entry of entries) {
         await database.query(
           `INSERT INTO "discordTempInteractions" ("messageId", "channelId", "createdAt") VALUES ($1, $2, $3)
@@ -71,7 +71,7 @@ export class DiscordTemporarilyInteractions {
       if (this.entries.delete(messageId)) count++
     }
 
-    this.sqliteManager.enqueueTransaction('removing temporary discord interactions', async (database) => {
+    this.databaseManager.enqueueTransaction('removing temporary discord interactions', async (database) => {
       for (const messageId of messagesIds) {
         await database.query('DELETE FROM "discordTempInteractions" WHERE "messageId" = $1', [messageId])
       }

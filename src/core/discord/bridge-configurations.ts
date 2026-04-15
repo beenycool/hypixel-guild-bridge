@@ -1,7 +1,33 @@
-import type { SqliteManager } from '../../common/sqlite-manager'
 import { debugSessionLog } from '../../utility/debug-session-log.js'
 import Duration from '../../utility/duration'
 import type { Configuration, ConfigurationsManager } from '../configurations'
+
+export interface GuildChaosConfiguration {
+  enabled: boolean
+  randomEnabled: boolean
+  randomMinMinutes: number
+  randomMaxMinutes: number
+  playerEnabled: boolean
+  playerMinMinutes: number
+  playerMaxMinutes: number
+  reactionsEnabled: boolean
+  reactionChancePercent: number
+  randomLinesOverride?: string[]
+  playerLinesOverride?: string[]
+  reactionLinesOverride?: string[]
+}
+
+const DefaultGuildChaosConfiguration: GuildChaosConfiguration = {
+  enabled: false,
+  randomEnabled: true,
+  randomMinMinutes: 45,
+  randomMaxMinutes: 180,
+  playerEnabled: false,
+  playerMinMinutes: 120,
+  playerMaxMinutes: 360,
+  reactionsEnabled: true,
+  reactionChancePercent: 2
+}
 
 /**
  * Configuration for bridge channel mappings stored in the database.
@@ -10,9 +36,14 @@ import type { Configuration, ConfigurationsManager } from '../configurations'
  */
 export class BridgeConfigurations {
   private readonly configuration: Configuration
+  private readonly onChange?: (event: { bridgeId: string; key: string; value: unknown }) => void
 
-  constructor(manager: ConfigurationsManager) {
+  constructor(
+    manager: ConfigurationsManager,
+    onChange?: (event: { bridgeId: string; key: string; value: unknown }) => void
+  ) {
     this.configuration = manager.create('bridges')
+    this.onChange = onChange
   }
 
   /**
@@ -103,6 +134,7 @@ export class BridgeConfigurations {
     this.configuration.delete(`${bridgeId}_rankupDemotionRules`)
     this.configuration.delete(`${bridgeId}_rankupExcludedRanks`)
     this.configuration.delete(`${bridgeId}_rankupExcludedPlayers`)
+    this.configuration.delete(`${bridgeId}_guildChaos`)
   }
 
   // ========== Channel Configurations ==========
@@ -353,6 +385,87 @@ export class BridgeConfigurations {
    */
   public setDurationTemporarilyInteractions(bridgeId: string, value: Duration): void {
     this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsDuration`, value.toSeconds())
+  }
+
+  // ========== Guild Chaos ==========
+
+  public getGuildChaos(bridgeId: string): GuildChaosConfiguration {
+    const raw = this.configuration.getString(`${bridgeId}_guildChaos`, '{}')
+    try {
+      return this.normalizeGuildChaos(JSON.parse(raw) as Partial<GuildChaosConfiguration>)
+    } catch {
+      return { ...DefaultGuildChaosConfiguration }
+    }
+  }
+
+  public setGuildChaos(bridgeId: string, value: Partial<GuildChaosConfiguration>): void {
+    const current = this.getGuildChaos(bridgeId)
+    const next = this.normalizeGuildChaos({ ...current, ...value })
+    this.configuration.setString(`${bridgeId}_guildChaos`, JSON.stringify(next))
+    this.onChange?.({
+      bridgeId,
+      key: `${bridgeId}_guildChaos`,
+      value: next
+    })
+  }
+
+  private normalizeGuildChaos(value: Partial<GuildChaosConfiguration>): GuildChaosConfiguration {
+    const randomLinesOverride = this.normalizeOptionalStringArray(value.randomLinesOverride)
+    const playerLinesOverride = this.normalizeOptionalStringArray(value.playerLinesOverride)
+    const reactionLinesOverride = this.normalizeOptionalStringArray(value.reactionLinesOverride)
+
+    return {
+      enabled: typeof value.enabled === 'boolean' ? value.enabled : DefaultGuildChaosConfiguration.enabled,
+      randomEnabled:
+        typeof value.randomEnabled === 'boolean' ? value.randomEnabled : DefaultGuildChaosConfiguration.randomEnabled,
+      randomMinMinutes: this.normalizePositiveNumber(
+        value.randomMinMinutes,
+        DefaultGuildChaosConfiguration.randomMinMinutes
+      ),
+      randomMaxMinutes: this.normalizePositiveNumber(
+        value.randomMaxMinutes,
+        DefaultGuildChaosConfiguration.randomMaxMinutes
+      ),
+      playerEnabled:
+        typeof value.playerEnabled === 'boolean' ? value.playerEnabled : DefaultGuildChaosConfiguration.playerEnabled,
+      playerMinMinutes: this.normalizePositiveNumber(
+        value.playerMinMinutes,
+        DefaultGuildChaosConfiguration.playerMinMinutes
+      ),
+      playerMaxMinutes: this.normalizePositiveNumber(
+        value.playerMaxMinutes,
+        DefaultGuildChaosConfiguration.playerMaxMinutes
+      ),
+      reactionsEnabled:
+        typeof value.reactionsEnabled === 'boolean'
+          ? value.reactionsEnabled
+          : DefaultGuildChaosConfiguration.reactionsEnabled,
+      reactionChancePercent: this.normalizeRangeNumber(
+        value.reactionChancePercent,
+        DefaultGuildChaosConfiguration.reactionChancePercent,
+        0,
+        100
+      ),
+      ...(randomLinesOverride !== undefined ? { randomLinesOverride } : {}),
+      ...(playerLinesOverride !== undefined ? { playerLinesOverride } : {}),
+      ...(reactionLinesOverride !== undefined ? { reactionLinesOverride } : {})
+    }
+  }
+
+  private normalizePositiveNumber(value: number | undefined, fallback: number): number {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 1) return fallback
+    return Math.floor(value)
+  }
+
+  private normalizeRangeNumber(value: number | undefined, fallback: number, min: number, max: number): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return fallback
+    return Math.min(max, Math.max(min, Math.floor(value)))
+  }
+
+  private normalizeOptionalStringArray(values: string[] | undefined): string[] | undefined {
+    if (!Array.isArray(values)) return undefined
+    const sanitized = values.map((value) => value.trim()).filter((value) => value.length > 0)
+    return sanitized.length > 0 ? sanitized : undefined
   }
 
   // ========== Skyblock Event Configurations ==========
