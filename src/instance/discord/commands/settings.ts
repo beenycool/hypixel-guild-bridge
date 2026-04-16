@@ -12,11 +12,11 @@ import {
 } from 'discord.js'
 
 import type Application from '../../../application.js'
-import { Color, InstanceType, Permission } from '../../../common/application-event.js'
+import { Color, InstanceMessageType, InstanceType, Permission } from '../../../common/application-event.js'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
+import { Status } from '../../../common/connectable-instance.js'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
-import { translateInstanceMessage, translateInstanceStatus } from '../../../core/instance/instance-language'
-import { ApplicationLanguages, LanguageConfigurations } from '../../../core/language-configurations'
+import { ApplicationLanguages } from '../../../core/language-configurations'
 import type { ProxyConfig } from '../../../core/minecraft/sessions-manager'
 import { ProxyProtocol } from '../../../core/minecraft/sessions-manager'
 import { SpontaneousEventsNames } from '../../../core/spontanmous-events-configurations'
@@ -30,6 +30,8 @@ import type {
   BooleanOption,
   CategoryOption,
   EmbedCategoryOption,
+  LabelOption,
+  OptionItem,
   TextOption
 } from '../utility/options-handler.js'
 import { InputStyle, OptionsHandler, OptionType } from '../utility/options-handler.js'
@@ -43,6 +45,388 @@ const CategoryLabel =
   `Options marked with ${Recommended} are recommended for quality of life.\n` +
   `Options marked with ${Warning} should only be messed with if you know what you are doing.\n` +
   `Check [the documentations](https://github.com/aidn3/hypixel-guild-discord-bridge/blob/master/docs/FAQ.md) for more information.`
+
+const GuildReactionMessageInputId = 'guild-reaction-message-input'
+const GuildReactionMessageLimit = 20
+
+interface GuildReactionMessageEditorConfig {
+  key: 'join' | 'leave' | 'kick'
+  name: string
+  description: string
+  fallbackMessages: string[]
+  getMessages: () => string[]
+  setMessages: (messages: string[]) => void
+}
+
+function createGuildReactionMessageListOption(config: GuildReactionMessageEditorConfig): CategoryOption {
+  return {
+    type: OptionType.Category,
+    name: config.name,
+    description: config.description,
+    header:
+      `**${config.name}**\n\n` +
+      `View existing messages and manage this list.\n` +
+      `Use \`{username}\` for the player name.`,
+    get options() {
+      const messages = config.getMessages()
+      const options: CategoryOption['options'] = []
+
+      if (messages.length === 0) {
+        options.push({
+          type: OptionType.Label,
+          name: 'Current Messages',
+          description: 'Preview of all current messages in this list.',
+          getOption: () => formatGuildReactionMessageList(messages)
+        } satisfies LabelOption)
+      } else {
+        // For each message, expose a label and explicit Edit / Delete actions
+        for (let index = 0; index < messages.length; index++) {
+          const index_ = index
+          const raw = messages[index_]
+
+          options.push({
+            type: OptionType.Label,
+            name: `#${index_ + 1} ${formatGuildReactionMessagePreview(raw)}`,
+            description: 'Message preview',
+            getOption: undefined
+          } satisfies LabelOption)
+
+          options.push({
+            type: OptionType.Action,
+            name: `Edit Message #${index_ + 1}`,
+            description: `Edit message #${index_ + 1}`,
+            label: 'Edit',
+            style: ButtonStyle.Primary,
+            onInteraction: async (interaction: ButtonInteraction) =>
+              handleGuildReactionMessageEdit(interaction, config, index_)
+          } satisfies ActionOption)
+
+          options.push({
+            type: OptionType.Action,
+            name: `Delete Message #${index_ + 1}`,
+            description: `Delete message #${index_ + 1}`,
+            label: 'Delete',
+            style: ButtonStyle.Danger,
+            onInteraction: async (interaction: ButtonInteraction) =>
+              handleGuildReactionMessageDelete(interaction, config, index_)
+          } satisfies ActionOption)
+        }
+      }
+
+      options.push({
+        type: OptionType.Action,
+        name: 'Add Message',
+        description: `Add a new custom ${config.key} message.`,
+        label: 'Add',
+        style: ButtonStyle.Success,
+        onInteraction: async (interaction: ButtonInteraction) => addGuildReactionMessage(interaction, config)
+      } satisfies ActionOption)
+
+      return options
+    }
+  }
+}
+
+async function handleGuildReactionMessageDelete(
+  interaction: ButtonInteraction,
+  config: GuildReactionMessageEditorConfig,
+  index: number
+): Promise<boolean> {
+  const allMessages = getGuildReactionMessagesForMutation(config)
+
+  if (index < 0 || index >= allMessages.length) {
+    await interaction.reply({ content: 'Message not found.', flags: MessageFlags.Ephemeral })
+    return true
+  }
+
+  const removed = allMessages[index]
+  const newMessages = [...allMessages.slice(0, index), ...allMessages.slice(index + 1)]
+  config.setMessages(newMessages)
+
+  await interaction.reply({
+    content: `Deleted message: **${formatGuildReactionMessagePreview(removed)}**`,
+    flags: MessageFlags.Ephemeral
+  })
+
+  return true
+}
+
+async function handleGuildReactionMessageEdit(
+  interaction: ButtonInteraction,
+  config: GuildReactionMessageEditorConfig,
+  index: number
+): Promise<boolean> {
+  const allMessagesBeforeModal = getGuildReactionMessagesForMutation(config)
+
+  if (index < 0 || index >= allMessagesBeforeModal.length) {
+    await interaction.reply({ content: 'Message not found.', flags: MessageFlags.Ephemeral })
+    return true
+  }
+
+  const modalCustomId = `guild-reaction-edit-${config.key}-${index}`
+  const current = allMessagesBeforeModal[index]
+
+  await interaction.showModal({
+    customId: modalCustomId,
+    title: `Edit Message #${index + 1}`,
+    components: [
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.TextInput,
+            customId: GuildReactionMessageInputId,
+            style: TextInputStyle.Paragraph,
+            label: config.name,
+            minLength: 1,
+            required: true,
+            value: current
+          }
+        ]
+      }
+    ]
+  })
+
+  const modalInteraction = await interaction.awaitModalSubmit({
+    time: 300_000,
+    filter: (submittedInteraction) =>
+      submittedInteraction.user.id === interaction.user.id && submittedInteraction.customId === modalCustomId
+  })
+
+  const value = modalInteraction.fields.getTextInputValue(GuildReactionMessageInputId).trim()
+
+  if (value.length === 0) {
+    await modalInteraction.reply({ content: 'Message cannot be empty.', flags: MessageFlags.Ephemeral })
+    return true
+  }
+
+  const allMessages = getGuildReactionMessagesForMutation(config)
+  if (index < 0 || index >= allMessages.length) {
+    await modalInteraction.reply({ content: 'Message not found.', flags: MessageFlags.Ephemeral })
+    return true
+  }
+
+  // Prevent duplicates (allow replacing same index with same value)
+  if (allMessages.some((message_, index_) => index_ !== index && message_ === value)) {
+    await modalInteraction.reply({
+      content: `This message already exists in **${config.name}**.`,
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  const newMessages = [...allMessages]
+  newMessages[index] = value
+  config.setMessages(newMessages)
+
+  await modalInteraction.reply({ content: `Updated message #${index + 1}.`, flags: MessageFlags.Ephemeral })
+  return true
+}
+
+async function addGuildReactionMessage(
+  interaction: ButtonInteraction,
+  config: GuildReactionMessageEditorConfig
+): Promise<boolean> {
+  const modalCustomId = `guild-reaction-add-${config.key}`
+  const beforeMessages = config.getMessages()
+  if (beforeMessages.length >= GuildReactionMessageLimit) {
+    await interaction.reply({
+      content: `You can only store up to ${GuildReactionMessageLimit} messages in this list.`,
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  await interaction.showModal({
+    customId: modalCustomId,
+    title: `Add To ${config.name}`,
+    components: [
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.TextInput,
+            customId: GuildReactionMessageInputId,
+            style: TextInputStyle.Paragraph,
+            label: config.name,
+            minLength: 1,
+            required: true
+          }
+        ]
+      }
+    ]
+  })
+
+  const modalInteraction = await interaction.awaitModalSubmit({
+    time: 300_000,
+    filter: (submittedInteraction) =>
+      submittedInteraction.user.id === interaction.user.id && submittedInteraction.customId === modalCustomId
+  })
+
+  const value = modalInteraction.fields.getTextInputValue(GuildReactionMessageInputId).trim()
+  const allMessages = getGuildReactionMessagesForMutation(config)
+
+  if (value.length === 0) {
+    await modalInteraction.reply({
+      content: 'Message cannot be empty.',
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  if (allMessages.includes(value)) {
+    await modalInteraction.reply({
+      content: `This message already exists in **${config.name}**.`,
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  if (allMessages.length >= GuildReactionMessageLimit) {
+    await modalInteraction.reply({
+      content: `You can only store up to ${GuildReactionMessageLimit} messages in this list.`,
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  config.setMessages([...allMessages, value])
+  await modalInteraction.reply({
+    content: `Added a new message to **${config.name}**.`,
+    flags: MessageFlags.Ephemeral
+  })
+
+  return true
+}
+
+function formatGuildReactionMessagePreview(message: string): string {
+  const trimmed = message.replaceAll(/\s+/g, ' ').trim()
+  if (trimmed.length === 0) return '(empty message)'
+
+  const maxLength = 120
+  if (trimmed.length <= maxLength) return trimmed
+  return `${trimmed.slice(0, maxLength - 3)}...`
+}
+
+function formatGuildReactionMessageList(messages: string[]): string {
+  if (messages.length === 0) return '(empty)'
+  return messages.map((message, index) => `${index + 1}. ${formatGuildReactionMessagePreview(message)}`).join('\n')
+}
+
+function ensureGuildReactionMessagesWritable(config: GuildReactionMessageEditorConfig): string[] {
+  const currentMessages = config.getMessages()
+  if (areMessageListsEqual(currentMessages, config.fallbackMessages)) {
+    config.setMessages([...currentMessages])
+    return config.getMessages()
+  }
+
+  return currentMessages
+}
+
+/** Writable guild reaction message list; call after any await before mutating config. */
+function getGuildReactionMessagesForMutation(config: GuildReactionMessageEditorConfig): string[] {
+  return ensureGuildReactionMessagesWritable(config)
+}
+
+function areMessageListsEqual(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false
+  return left.every((value, index) => value === right[index])
+}
+
+function translateStatusForBridge(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  status: Status
+): string {
+  switch (status) {
+    case Status.Fresh: {
+      return t('instance.status.fresh')
+    }
+    case Status.Connecting: {
+      return t('instance.status.connecting')
+    }
+    case Status.Connected: {
+      return t('instance.status.connected')
+    }
+    case Status.Disconnected: {
+      return t('instance.status.disconnected')
+    }
+    case Status.Ended: {
+      return t('instance.status.ended')
+    }
+    case Status.Failed: {
+      return t('instance.status.failed')
+    }
+    default: {
+      throw new Error(`Unknown status: ${JSON.stringify(status)}`)
+    }
+  }
+}
+
+function translateInstanceStatusForBridge(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  status: { from: Status; to: Status }
+): string {
+  return t('instance.status.change', {
+    from: translateStatusForBridge(t, status.from),
+    to: translateStatusForBridge(t, status.to)
+  })
+}
+
+function translateInstanceMessageForBridge(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  key: InstanceMessageType
+): string {
+  switch (key) {
+    case InstanceMessageType.MinecraftAuthenticationCode: {
+      return t('instance.message.authentication-code')
+    }
+    case InstanceMessageType.MinecraftInstanceNotAutoConnect: {
+      return t('instance.message.no-autoconnect')
+    }
+    case InstanceMessageType.MinecraftKicked: {
+      return t('instance.message.minecraft-kicked')
+    }
+    case InstanceMessageType.MinecraftBanned: {
+      return t('instance.message.minecraft-banned')
+    }
+    case InstanceMessageType.MinecraftInternetProblems: {
+      return t('instance.message.internet-problems')
+    }
+    case InstanceMessageType.MinecraftFailedTooManyTimes: {
+      return t('instance.message.failed-too-many-times')
+    }
+    case InstanceMessageType.MinecraftEnded: {
+      return t('instance.message.minecraft-ended')
+    }
+    case InstanceMessageType.MinecraftIncompatible: {
+      return t('instance.message.version-incompatible')
+    }
+    case InstanceMessageType.MinecraftKickedLoggedFromAnotherLocation: {
+      return t('instance.message.logged-from-another-location')
+    }
+    case InstanceMessageType.MinecraftXboxDown: {
+      return t('instance.message.xbox-down')
+    }
+    case InstanceMessageType.MinecraftXboxThrottled: {
+      return t('instance.message.xbox-throttled')
+    }
+    case InstanceMessageType.MinecraftNoAccount: {
+      return t('instance.message.no-account')
+    }
+    case InstanceMessageType.MinecraftProxyBroken: {
+      return t('instance.message.proxy-problem')
+    }
+    case InstanceMessageType.MinecraftRestarting: {
+      return t('instance.message.restarting')
+    }
+    case InstanceMessageType.MinecraftGuildKicked: {
+      return t('instance.message.guild-kicked')
+    }
+    default: {
+      throw new Error(`Unknown instance message type: ${JSON.stringify(key)}`)
+    }
+  }
+}
 
 export default {
   getCommandBuilder: () =>
@@ -63,6 +447,36 @@ export default {
 
     const bridgeOptions = await fetchBridgeOptions(context.application, context)
 
+    const optionsList: Exclude<OptionItem, EmbedCategoryOption>[] = [
+      ...(isGlobalAdmin
+        ? [
+            {
+              type: OptionType.Label,
+              name: 'Admins',
+              description:
+                'Users who have admin permission on the application. Check `/help` for all commands available to you.',
+              getOption: () =>
+                context.application.discordInstance
+                  .getStaticConfig()
+                  .adminIds.map((adminId) => `<@${adminId}>`)
+                  .join(', ')
+            } satisfies LabelOption,
+            fetchGeneralOptions(context.application)
+          ]
+        : []),
+      bridgeOptions,
+      fetchMinecraftOptions(context.application, context),
+      ...(isGlobalAdmin
+        ? [
+            fetchDiscordOptions(context.application),
+            fetchModerationOptions(context.application),
+            fetchQualityOptions(context.application),
+            fetchCommandsOptions(context.application),
+            fetchLanguageOptions(context.application)
+          ]
+        : [])
+    ]
+
     const options: EmbedCategoryOption = {
       type: OptionType.EmbedCategory,
       get name() {
@@ -72,35 +486,7 @@ export default {
         return context.application.i18n.t(($) => $['discord.commands.settings.main.description'])
       },
 
-      options: [
-        ...(isGlobalAdmin
-          ? [
-              {
-                type: OptionType.Label,
-                name: 'Admins',
-                description:
-                  'Users who have admin permission on the application. Check `/help` for all commands available to you.',
-                getOption: () =>
-                  context.application.discordInstance
-                    .getStaticConfig()
-                    .adminIds.map((adminId) => `<@${adminId}>`)
-                    .join(', ')
-              } as any,
-              fetchGeneralOptions(context.application)
-            ]
-          : []),
-        bridgeOptions,
-        fetchMinecraftOptions(context.application, context),
-        ...(isGlobalAdmin
-          ? [
-              fetchDiscordOptions(context.application),
-              fetchModerationOptions(context.application),
-              fetchQualityOptions(context.application),
-              fetchCommandsOptions(context.application),
-              fetchLanguageOptions(context.application)
-            ]
-          : [])
-      ] as any
+      options: optionsList
     }
 
     const optionsHandler = new OptionsHandler(options)
@@ -168,29 +554,42 @@ async function createBridgeOptionAsync(
       }
     }
   } catch (error) {
-    ;(application as any).logger.warn(`Failed to fetch guild ranks for bridge ${bridgeId}: ${error}`)
+    debugSessionLog({
+      hypothesisId: 'H9',
+      location: 'settings.ts:createBridgeOptionAsync:guildRanks',
+      message: `Failed to fetch guild ranks for bridge ${bridgeId}`,
+      data: { bridgeId, error: errorMessage(error) }
+    })
   }
 
-  let cachedPromotionOptions: CategoryOption['options'] | null = null
-  let cachedDemotionOptions: CategoryOption['options'] | null = null
+  let cachedPromotionOptions: CategoryOption['options'] | undefined
+  let cachedDemotionOptions: CategoryOption['options'] | undefined
 
   // Dynamic Skyblock options for per-event toggling
   const skyblockEventOptions = SkyblockEventKeys.map(
     (key) =>
       ({
         type: OptionType.Boolean,
-        // name typed as any to satisfy Option typing (key is a constant string union)
-        name: key as any,
+        name: key,
         description: `Enable notifications for ${key}`,
         getOption: () => bridgeConfig.getSkyblockEventNotifiers(bridgeId)?.[key] ?? true,
         toggleOption: () => {
           const current = bridgeConfig.getSkyblockEventNotifiers(bridgeId) ?? {}
           bridgeConfig.setSkyblockEventNotifier(bridgeId, key, !(current[key] ?? true))
-          application.emit('bridgeConfigChanged', {
-            bridgeId,
-            key: `${bridgeId}_skyblockNotifiers`,
-            value: { [key]: !(current[key] ?? true) }
-          })
+          application
+            .emit('bridgeConfigChanged', {
+              bridgeId,
+              key: `${bridgeId}_skyblockNotifiers`,
+              value: { [key]: !(current[key] ?? true) }
+            })
+            .catch((error: unknown) => {
+              debugSessionLog({
+                hypothesisId: 'H9',
+                location: 'settings.ts:skyblockNotifier:emit',
+                message: 'Failed to emit bridgeConfigChanged for skyblock notifier',
+                data: { bridgeId, key, error: errorMessage(error) }
+              })
+            })
         }
       }) satisfies BooleanOption as BooleanOption
   )
@@ -439,11 +838,20 @@ async function createBridgeOptionAsync(
             toggleOption: () => {
               const newValue = !bridgeConfig.getSkyblockEventsEnabled(bridgeId)
               bridgeConfig.setSkyblockEventsEnabled(bridgeId, newValue)
-              application.emit('bridgeConfigChanged', {
-                bridgeId,
-                key: `${bridgeId}_skyblockEventsEnabled`,
-                value: newValue
-              })
+              application
+                .emit('bridgeConfigChanged', {
+                  bridgeId,
+                  key: `${bridgeId}_skyblockEventsEnabled`,
+                  value: newValue
+                })
+                .catch((error: unknown) => {
+                  debugSessionLog({
+                    hypothesisId: 'H9',
+                    location: 'settings.ts:skyblockEvents:emit',
+                    message: 'Failed to emit bridgeConfigChanged for skyblock events enabled',
+                    data: { bridgeId, error: errorMessage(error) }
+                  })
+                })
             }
           },
           {
@@ -539,58 +947,48 @@ async function createBridgeOptionAsync(
             name: 'Guild Reaction Messages',
             description: 'Custom messages for guild join/leave/kick events.',
             options: [
-              {
-                type: OptionType.List,
+              createGuildReactionMessageListOption({
+                key: 'join',
                 name: 'Join Message List',
-                description: 'Messages sent when a member joins the guild. Use {username} for the player name.',
-                style: InputStyle.Long,
-                min: 0,
-                max: 20,
-                showDelete: false,
-                getOption: () =>
+                description: 'Messages sent when a member joins the guild.',
+                fallbackMessages: application.core.languageConfigurations.getGuildJoinReaction(),
+                getMessages: () =>
                   bridgeConfig.getGuildJoinReactionMessages(
                     bridgeId,
                     application.core.languageConfigurations.getGuildJoinReaction()
                   ),
-                setOption: (values) => {
+                setMessages: (values) => {
                   bridgeConfig.setGuildJoinReactionMessages(bridgeId, values)
                 }
-              },
-              {
-                type: OptionType.List,
+              }),
+              createGuildReactionMessageListOption({
+                key: 'leave',
                 name: 'Leave Message List',
-                description: 'Messages sent when a member leaves the guild. Use {username} for the player name.',
-                style: InputStyle.Long,
-                min: 0,
-                max: 20,
-                showDelete: false,
-                getOption: () =>
+                description: 'Messages sent when a member leaves the guild.',
+                fallbackMessages: application.core.languageConfigurations.getGuildLeaveReaction(),
+                getMessages: () =>
                   bridgeConfig.getGuildLeaveReactionMessages(
                     bridgeId,
                     application.core.languageConfigurations.getGuildLeaveReaction()
                   ),
-                setOption: (values) => {
+                setMessages: (values) => {
                   bridgeConfig.setGuildLeaveReactionMessages(bridgeId, values)
                 }
-              },
-              {
-                type: OptionType.List,
+              }),
+              createGuildReactionMessageListOption({
+                key: 'kick',
                 name: 'Kick Message List',
-                description:
-                  'Messages sent when a member is kicked from the guild. Use {username} for the player name.',
-                style: InputStyle.Long,
-                min: 0,
-                max: 20,
-                showDelete: false,
-                getOption: () =>
+                description: 'Messages sent when a member is kicked from the guild.',
+                fallbackMessages: application.core.languageConfigurations.getGuildKickReaction(),
+                getMessages: () =>
                   bridgeConfig.getGuildKickReactionMessages(
                     bridgeId,
                     application.core.languageConfigurations.getGuildKickReaction()
                   ),
-                setOption: (values) => {
+                setMessages: (values) => {
                   bridgeConfig.setGuildKickReactionMessages(bridgeId, values)
                 }
-              }
+              })
             ]
           },
           {
@@ -923,8 +1321,7 @@ async function createBridgeOptionAsync(
             description: 'Manually trigger the rankup check for this bridge.',
             label: 'Run Check',
             style: ButtonStyle.Primary,
-            onInteraction: async (interaction: any) => {
-              const { RankupManager } = await import('../../../core/rankup/rankup-manager.js')
+            onInteraction: async (interaction: ButtonInteraction) => {
               await application.core.rankupManager.runTaskForBridge(bridgeId)
               await interaction.reply({
                 content: 'Rankup check triggered for this bridge.',
@@ -940,44 +1337,52 @@ async function createBridgeOptionAsync(
             description: 'Configure rules for automatically promoting guild members.',
             header: `**Promotion Rules for ${bridgeId}**\n\nConfigure automatic promotion rules based on GEXP, time in guild, and online time.`,
             get options() {
-              if (cachedPromotionOptions) return cachedPromotionOptions
+              if (cachedPromotionOptions !== undefined) return cachedPromotionOptions
 
               cachedPromotionOptions = []
               const promoRules = bridgeConfig.getRankupRules(bridgeId)
 
               for (const [index, rule] of promoRules.entries()) {
+                const targetRankOption: OptionItem =
+                  guildRanks.length > 0
+                    ? {
+                        type: OptionType.PresetList,
+                        name: 'Target Rank',
+                        description: 'The rank to promote the member to.',
+                        min: 1,
+                        max: 1,
+                        options: guildRanks.map((r) => ({ label: r, value: r })),
+                        getOption: () => [bridgeConfig.getRankupRules(bridgeId)[index].targetRank],
+                        setOption: (value) => {
+                          const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
+                          newRules[index] = { ...newRules[index], targetRank: value[0] }
+                          bridgeConfig.setRankupRules(bridgeId, newRules)
+                          cachedPromotionOptions = undefined
+                        }
+                      }
+                    : {
+                        type: OptionType.Text,
+                        name: 'Target Rank',
+                        description: 'The rank to promote the member to.',
+                        style: InputStyle.Short,
+                        min: 1,
+                        max: 32,
+                        getOption: () => bridgeConfig.getRankupRules(bridgeId)[index].targetRank,
+                        setOption: (value) => {
+                          const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
+                          newRules[index] = { ...newRules[index], targetRank: value }
+                          bridgeConfig.setRankupRules(bridgeId, newRules)
+                          cachedPromotionOptions = undefined
+                        }
+                      }
+
                 cachedPromotionOptions.push({
                   type: OptionType.Category,
                   name: `Rule #${index + 1}: ${rule.targetRank}`,
                   description: `Promote to ${rule.targetRank}`,
                   header: `**Promotion Rule #${index + 1}: ${rule.targetRank}**\n\nConfigure criteria for promoting members to ${rule.targetRank}.`,
                   options: [
-                    {
-                      type: guildRanks.length > 0 ? OptionType.PresetList : OptionType.Text,
-                      name: 'Target Rank',
-                      description: 'The rank to promote the member to.',
-                      ...(guildRanks.length > 0
-                        ? {
-                            min: 1,
-                            max: 1,
-                            options: guildRanks.map((r) => ({ label: r, value: r }))
-                          }
-                        : {
-                            style: InputStyle.Short,
-                            min: 1,
-                            max: 32
-                          }),
-                      getOption: () => {
-                        const r = bridgeConfig.getRankupRules(bridgeId)[index]
-                        return guildRanks.length > 0 ? [r?.targetRank ?? ''] : (r?.targetRank ?? '')
-                      },
-                      setOption: (value: any) => {
-                        const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], targetRank: Array.isArray(value) ? value[0] : value }
-                        bridgeConfig.setRankupRules(bridgeId, newRules)
-                        cachedPromotionOptions = null
-                      }
-                    } as any,
+                    targetRankOption,
                     {
                       type: OptionType.Number,
                       name: 'Minimum Weekly GEXP',
@@ -989,7 +1394,7 @@ async function createBridgeOptionAsync(
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                         newRules[index] = { ...newRules[index], minWeeklyGexp: value }
                         bridgeConfig.setRankupRules(bridgeId, newRules)
-                        cachedPromotionOptions = null
+                        cachedPromotionOptions = undefined
                       }
                     },
                     {
@@ -1003,7 +1408,7 @@ async function createBridgeOptionAsync(
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                         newRules[index] = { ...newRules[index], minDaysInGuild: value }
                         bridgeConfig.setRankupRules(bridgeId, newRules)
-                        cachedPromotionOptions = null
+                        cachedPromotionOptions = undefined
                       }
                     },
                     {
@@ -1017,7 +1422,7 @@ async function createBridgeOptionAsync(
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                         newRules[index] = { ...newRules[index], minOnlineHours: value }
                         bridgeConfig.setRankupRules(bridgeId, newRules)
-                        cachedPromotionOptions = null
+                        cachedPromotionOptions = undefined
                       }
                     },
                     {
@@ -1025,7 +1430,7 @@ async function createBridgeOptionAsync(
                       name: 'Delete Rule',
                       label: 'Delete',
                       style: ButtonStyle.Danger,
-                      onInteraction: async (interaction: any) => {
+                      onInteraction: async (interaction: ButtonInteraction) => {
                         const previous = bridgeConfig.getRankupRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
@@ -1038,7 +1443,7 @@ async function createBridgeOptionAsync(
                         const newRules = [...previous]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupRules(bridgeId, newRules)
-                        cachedPromotionOptions = null
+                        cachedPromotionOptions = undefined
                         await interaction.reply({
                           content: 'Rule deleted.',
                           flags: MessageFlags.Ephemeral
@@ -1047,7 +1452,7 @@ async function createBridgeOptionAsync(
                       }
                     }
                   ]
-                } as any)
+                })
               }
 
               cachedPromotionOptions.push({
@@ -1055,7 +1460,7 @@ async function createBridgeOptionAsync(
                 name: 'Add Promotion Rule',
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
-                onInteraction: async (interaction: any) => {
+                onInteraction: async (interaction: ButtonInteraction) => {
                   const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                   newRules.push({
                     targetRank: guildRanks.length > 0 ? guildRanks[0] : 'Member',
@@ -1064,14 +1469,14 @@ async function createBridgeOptionAsync(
                     minOnlineHours: 0
                   })
                   bridgeConfig.setRankupRules(bridgeId, newRules)
-                  cachedPromotionOptions = null
+                  cachedPromotionOptions = undefined
                   await interaction.reply({
                     content: 'New promotion rule added.',
                     flags: MessageFlags.Ephemeral
                   })
                   return true
                 }
-              } as any)
+              })
 
               return cachedPromotionOptions
             }
@@ -1083,7 +1488,7 @@ async function createBridgeOptionAsync(
             description: 'Configure rules for automatically demoting or kicking guild members.',
             header: `**Demotion Rules for ${bridgeId}**\n\nConfigure automatic demotion/kick rules based on GEXP and other criteria.`,
             get options() {
-              if (cachedDemotionOptions) return cachedDemotionOptions
+              if (cachedDemotionOptions !== undefined) return cachedDemotionOptions
 
               cachedDemotionOptions = []
               const demoRules = bridgeConfig.getRankupDemotionRules(bridgeId)
@@ -1107,38 +1512,119 @@ async function createBridgeOptionAsync(
               // #endregion
 
               for (const [index, rule] of demoRules.entries()) {
+                const fromRankOption: OptionItem =
+                  guildRanks.length > 0
+                    ? {
+                        type: OptionType.PresetList,
+                        name: 'From Rank',
+                        description: 'The rank to evaluate for demotion.',
+                        min: 1,
+                        max: 1,
+                        options: guildRanks.map((r) => ({ label: r, value: r })),
+                        getOption: () => [bridgeConfig.getRankupDemotionRules(bridgeId)[index].fromRank],
+                        setOption: (value) => {
+                          const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
+                          newRules[index] = { ...newRules[index], fromRank: value[0] }
+                          bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
+                          cachedDemotionOptions = undefined
+                        }
+                      }
+                    : {
+                        type: OptionType.Text,
+                        name: 'From Rank',
+                        description: 'The rank to evaluate for demotion.',
+                        style: InputStyle.Short,
+                        min: 1,
+                        max: 32,
+                        getOption: () => bridgeConfig.getRankupDemotionRules(bridgeId)[index].fromRank,
+                        setOption: (value) => {
+                          const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
+                          newRules[index] = { ...newRules[index], fromRank: value }
+                          bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
+                          cachedDemotionOptions = undefined
+                        }
+                      }
+
+                const targetRankDemotionOption: OptionItem[] =
+                  rule.action === 'demote'
+                    ? [
+                        guildRanks.length > 0
+                          ? {
+                              type: OptionType.PresetList,
+                              name: 'Target Rank',
+                              description: 'The rank to demote to.',
+                              min: 1,
+                              max: 1,
+                              options: guildRanks.map((r) => ({ label: r, value: r })),
+                              getOption: () => [bridgeConfig.getRankupDemotionRules(bridgeId)[index].targetRank ?? ''],
+                              setOption: (value) => {
+                                const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
+                                const targetRank = value[0]
+                                // #region agent log
+                                debugSessionLog({
+                                  hypothesisId: 'H5',
+                                  location: 'settings.ts:demotion:targetRank:setOption',
+                                  message: 'Demotion targetRank set',
+                                  data: {
+                                    bridgeId,
+                                    index,
+                                    prevTarget: previous[index]?.targetRank,
+                                    nextTarget: targetRank
+                                  }
+                                })
+                                // #endregion
+                                const newRules = [...previous]
+                                newRules[index] = {
+                                  ...newRules[index],
+                                  targetRank
+                                }
+                                bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
+                                cachedDemotionOptions = undefined
+                              }
+                            }
+                          : {
+                              type: OptionType.Text,
+                              name: 'Target Rank',
+                              description: 'The rank to demote to.',
+                              style: InputStyle.Short,
+                              min: 1,
+                              max: 32,
+                              getOption: () => bridgeConfig.getRankupDemotionRules(bridgeId)[index].targetRank ?? '',
+                              setOption: (value) => {
+                                const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
+                                const targetRank = value
+                                // #region agent log
+                                debugSessionLog({
+                                  hypothesisId: 'H5',
+                                  location: 'settings.ts:demotion:targetRank:setOption',
+                                  message: 'Demotion targetRank set',
+                                  data: {
+                                    bridgeId,
+                                    index,
+                                    prevTarget: previous[index]?.targetRank,
+                                    nextTarget: targetRank
+                                  }
+                                })
+                                // #endregion
+                                const newRules = [...previous]
+                                newRules[index] = {
+                                  ...newRules[index],
+                                  targetRank
+                                }
+                                bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
+                                cachedDemotionOptions = undefined
+                              }
+                            }
+                      ]
+                    : []
+
                 cachedDemotionOptions.push({
                   type: OptionType.Category,
                   name: `Rule #${index + 1}: ${rule.fromRank}`,
                   description: `${rule.action === 'kick' ? 'Kick' : 'Demote'} from ${rule.fromRank}`,
                   header: `**Demotion Rule #${index + 1}: ${rule.fromRank}**\n\nConfigure criteria for ${rule.action === 'kick' ? 'kicking' : 'demoting from'} ${rule.fromRank}.`,
                   options: [
-                    {
-                      type: guildRanks.length > 0 ? OptionType.PresetList : OptionType.Text,
-                      name: 'From Rank',
-                      description: 'The rank to evaluate for demotion.',
-                      ...(guildRanks.length > 0
-                        ? {
-                            min: 1,
-                            max: 1,
-                            options: guildRanks.map((r) => ({ label: r, value: r }))
-                          }
-                        : {
-                            style: InputStyle.Short,
-                            min: 1,
-                            max: 32
-                          }),
-                      getOption: () => {
-                        const r = bridgeConfig.getRankupDemotionRules(bridgeId)[index]
-                        return guildRanks.length > 0 ? [r?.fromRank ?? ''] : (r?.fromRank ?? '')
-                      },
-                      setOption: (value: any) => {
-                        const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], fromRank: Array.isArray(value) ? value[0] : value }
-                        bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
-                        cachedDemotionOptions = null
-                      }
-                    } as any,
+                    fromRankOption,
                     {
                       type: OptionType.PresetList,
                       name: 'Action',
@@ -1153,63 +1639,19 @@ async function createBridgeOptionAsync(
                       getOption: () => [bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.action ?? 'demote'],
                       setOption: (value: string[]) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
+                        const action = value[0]
+                        if (action !== 'demote' && action !== 'kick' && action !== 'notify') {
+                          return
+                        }
                         newRules[index] = {
                           ...newRules[index],
-                          action: value[0] as 'demote' | 'kick' | 'notify'
+                          action
                         }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
-                        cachedDemotionOptions = null
+                        cachedDemotionOptions = undefined
                       }
                     },
-                    // Target Rank only if action is demote
-                    ...(rule.action === 'demote' || !rule.action
-                      ? [
-                          {
-                            type: guildRanks.length > 0 ? OptionType.PresetList : OptionType.Text,
-                            name: 'Target Rank',
-                            description: 'The rank to demote to.',
-                            ...(guildRanks.length > 0
-                              ? {
-                                  min: 1,
-                                  max: 1,
-                                  options: guildRanks.map((r) => ({ label: r, value: r }))
-                                }
-                              : {
-                                  style: InputStyle.Short,
-                                  min: 1,
-                                  max: 32
-                                }),
-                            getOption: () => {
-                              const r = bridgeConfig.getRankupDemotionRules(bridgeId)[index]
-                              return guildRanks.length > 0 ? [r?.targetRank ?? ''] : (r?.targetRank ?? '')
-                            },
-                            setOption: (value: any) => {
-                              const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
-                              const targetRank = Array.isArray(value) ? value[0] : value
-                              // #region agent log
-                              debugSessionLog({
-                                hypothesisId: 'H5',
-                                location: 'settings.ts:demotion:targetRank:setOption',
-                                message: 'Demotion targetRank set',
-                                data: {
-                                  bridgeId,
-                                  index,
-                                  prevTarget: previous[index]?.targetRank,
-                                  nextTarget: targetRank
-                                }
-                              })
-                              // #endregion
-                              const newRules = [...previous]
-                              newRules[index] = {
-                                ...newRules[index],
-                                targetRank
-                              }
-                              bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
-                              cachedDemotionOptions = null
-                            }
-                          } as any
-                        ]
-                      : []),
+                    ...targetRankDemotionOption,
                     {
                       type: OptionType.Number,
                       name: 'Maximum Weekly GEXP',
@@ -1236,7 +1678,7 @@ async function createBridgeOptionAsync(
                         const newRules = [...previous]
                         newRules[index] = { ...newRules[index], maxWeeklyGexp: value }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
-                        cachedDemotionOptions = null
+                        cachedDemotionOptions = undefined
                       }
                     },
                     {
@@ -1250,7 +1692,7 @@ async function createBridgeOptionAsync(
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
                         newRules[index] = { ...newRules[index], gracePeriod: value }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
-                        cachedDemotionOptions = null
+                        cachedDemotionOptions = undefined
                       }
                     },
                     {
@@ -1258,7 +1700,7 @@ async function createBridgeOptionAsync(
                       name: 'Delete Rule',
                       label: 'Delete',
                       style: ButtonStyle.Danger,
-                      onInteraction: async (interaction: any) => {
+                      onInteraction: async (interaction: ButtonInteraction) => {
                         const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
@@ -1271,7 +1713,7 @@ async function createBridgeOptionAsync(
                         const newRules = [...previous]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
-                        cachedDemotionOptions = null // Invalidate cache
+                        cachedDemotionOptions = undefined
                         await interaction.reply({
                           content: 'Rule deleted.',
                           flags: MessageFlags.Ephemeral
@@ -1279,8 +1721,8 @@ async function createBridgeOptionAsync(
                         return true
                       }
                     }
-                  ] as any
-                } as any)
+                  ]
+                })
               }
 
               cachedDemotionOptions.push({
@@ -1288,7 +1730,7 @@ async function createBridgeOptionAsync(
                 name: 'Add Demotion Rule',
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
-                onInteraction: async (interaction: any) => {
+                onInteraction: async (interaction: ButtonInteraction) => {
                   const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                   const newRules = [...previous]
                   newRules.push({
@@ -1307,38 +1749,49 @@ async function createBridgeOptionAsync(
                   })
                   // #endregion
                   bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
-                  cachedDemotionOptions = null // Invalidate cache
+                  cachedDemotionOptions = undefined
                   await interaction.reply({
                     content: 'New demotion rule added.',
                     flags: MessageFlags.Ephemeral
                   })
                   return true
                 }
-              } as any)
+              })
 
               return cachedDemotionOptions
             }
           },
-          {
-            type: guildRanks.length > 0 ? OptionType.PresetList : OptionType.List,
-            name: 'Excluded Ranks',
-            description: 'Ranks that should never be touched by the auto-rankup system (e.g. Guild Master, Officer).',
-            ...(guildRanks.length > 0
-              ? {
+          ...(guildRanks.length > 0
+            ? [
+                {
+                  type: OptionType.PresetList,
+                  name: 'Excluded Ranks',
+                  description:
+                    'Ranks that should never be touched by the auto-rankup system (e.g. Guild Master, Officer).',
                   options: guildRanks.map((r) => ({ label: r, value: r })),
                   min: 0,
-                  max: guildRanks.length
-                }
-              : {
+                  max: guildRanks.length,
+                  getOption: () => bridgeConfig.getRankupExcludedRanks(bridgeId),
+                  setOption: (values: string[]) => {
+                    bridgeConfig.setRankupExcludedRanks(bridgeId, values)
+                  }
+                } satisfies OptionItem
+              ]
+            : [
+                {
+                  type: OptionType.List,
+                  name: 'Excluded Ranks',
+                  description:
+                    'Ranks that should never be touched by the auto-rankup system (e.g. Guild Master, Officer).',
                   style: InputStyle.Short,
                   min: 0,
-                  max: 20
-                }),
-            getOption: () => bridgeConfig.getRankupExcludedRanks(bridgeId),
-            setOption: (values: string[]) => {
-              bridgeConfig.setRankupExcludedRanks(bridgeId, values)
-            }
-          } as any,
+                  max: 20,
+                  getOption: () => bridgeConfig.getRankupExcludedRanks(bridgeId),
+                  setOption: (values: string[]) => {
+                    bridgeConfig.setRankupExcludedRanks(bridgeId, values)
+                  }
+                } satisfies OptionItem
+              ]),
           {
             type: OptionType.List,
             name: 'Excluded Players',
@@ -2396,13 +2849,19 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             description: 'Fetch Minecraft instances status.',
             label: 'fetch',
             style: ButtonStyle.Primary,
-            onInteraction: (interaction: ButtonInteraction, _errorHandler: UnexpectedErrorHandler) =>
-              minecraftInstancesStatus(
-                application,
-                interaction,
-                context.bridgeId,
-                context.permission === Permission.Admin
-              )
+            onInteraction: async (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) => {
+              try {
+                return await minecraftInstancesStatus(
+                  application,
+                  interaction,
+                  context.bridgeId,
+                  context.permission === Permission.Admin
+                )
+              } catch (error: unknown) {
+                errorHandler.error('fetching minecraft instance status', error)
+                return true
+              }
+            }
           },
           {
             type: OptionType.Action,
@@ -2456,7 +2915,13 @@ async function minecraftInstancesStatus(
 
   const bridgeConfig = application.core.bridgeConfigurations
   const bridgeInstances = bridgeId ? bridgeConfig.getMinecraftInstances(bridgeId) : []
-  const includeInstance = (instanceName: string) => isAdmin || !bridgeId || bridgeInstances.includes(instanceName)
+  const includeInstance =
+    bridgeId === undefined
+      ? (instanceName: string) => {
+          void instanceName
+          return isAdmin ?? true
+        }
+      : (instanceName: string) => (isAdmin ?? false) || bridgeInstances.includes(instanceName)
 
   const embed: APIEmbed = {
     title: 'Minecraft Status',
@@ -2654,10 +3119,10 @@ async function minecraftInstanceAdd(
       assert.ok(embed.description)
       const t = application.getTranslatorForBridge(event.bridgeId)
       if (event.status !== undefined) {
-        embed.description += `- ${translateInstanceStatus(t, event.status)}\n`
+        embed.description += `- ${translateInstanceStatusForBridge(t, event.status)}\n`
       }
       if (event.message !== undefined) {
-        embed.description += `- ${translateInstanceMessage(t, event.message.type)}`
+        embed.description += `- ${translateInstanceMessageForBridge(t, event.message.type)}`
         embed.description += event.message.value === undefined ? '\n' : `: ${event.message.value}\n`
       }
 
@@ -2698,14 +3163,15 @@ async function minecraftInstanceAdd(
     // Persist settings to DB and log current DB state
     application.core.minecraftSessions.addInstance({ name: instanceName, proxy: proxy })
     // Also log a quick DB snapshot for debugging
-    ;(application as any).logger?.debug?.(
-      `ADD_FLOW: snapshot mojangInstances=${JSON.stringify(application.core.minecraftSessions.getAllInstances().map((index) => index.name))}`
-    )
-    ;(application as any).logger?.debug?.(
-      `ADD_FLOW: after addInstance -> mojangInstances=${JSON.stringify(
-        application.core.minecraftSessions.getAllInstances().map((index) => index.name)
-      )}`
-    )
+    debugSessionLog({
+      hypothesisId: 'H9',
+      location: 'settings.ts:minecraftInstanceAdd:afterAdd',
+      message: 'Instance added and persisted',
+      data: {
+        instanceName,
+        configuredInstances: application.core.minecraftSessions.getAllInstances().map((index) => index.name)
+      }
+    })
     embed.description += `- Instance has been added to settings for future reboot\n`
 
     if (bridgeId) {
@@ -2714,9 +3180,12 @@ async function minecraftInstanceAdd(
         instances.push(instanceName)
         application.core.bridgeConfigurations.setMinecraftInstances(bridgeId, instances)
         embed.description += `- Instance has been associated with this bridge\n`
-        ;(application as any).logger?.debug?.(
-          `ADD_FLOW: bridge=${bridgeId} minecraftInstances=${JSON.stringify(instances)}`
-        )
+        debugSessionLog({
+          hypothesisId: 'H9',
+          location: 'settings.ts:minecraftInstanceAdd:bridgeAssociation',
+          message: 'Instance associated to bridge after add',
+          data: { bridgeId, instanceName, instances }
+        })
         application.bridgeResolver.rebuildLookupMaps()
       }
     }
@@ -2798,7 +3267,7 @@ async function minecraftInstanceRemove(
     } else if (results.instanceRemoved === 1) {
       embed.description += '- Active instance has been successfully removed.'
     } else {
-      embed.description += `- More than one instance have been detected and removed (total: \`${results.instanceRemoved}\`)\`.`
+      embed.description += `- More than one instance have been detected and removed (total: \`${results.instanceRemoved}\`).`
       embed.color = Color.Info
     }
     embed.description += '\n'
@@ -2808,7 +3277,7 @@ async function minecraftInstanceRemove(
     } else if (results.deletedConfig === 1) {
       embed.description += '- Relevant configuration has been detected and deleted.'
     } else {
-      embed.description += `- More than one configuration has been detected and removed (total: \`${results.deletedConfig}\`)\`.`
+      embed.description += `- More than one configuration has been detected and removed (total: \`${results.deletedConfig}\`).`
       embed.color = Color.Info
     }
     embed.description += '\n'
@@ -2829,12 +3298,22 @@ async function minecraftInstanceRemove(
     }
     // Log bridge configuration change for debugging
     if (affectedBridges.length > 0) {
-      ;(application as any).logger?.debug?.(
-        `REMOVE_FLOW: removed=${instanceName} affectedBridges=${JSON.stringify(affectedBridges)}`
-      )
-      ;(application as any).logger?.debug?.(
-        `REMOVE_FLOW: currentBridgeConfigs=${JSON.stringify(bridgeConfig.getAllBridgeIds().map((b) => ({ bridge: b, instances: bridgeConfig.getMinecraftInstances(b) })))}`
-      )
+      debugSessionLog({
+        hypothesisId: 'H9',
+        location: 'settings.ts:minecraftInstanceRemove:affectedBridges',
+        message: 'Instance removed from one or more bridges',
+        data: { instanceName, affectedBridges }
+      })
+      debugSessionLog({
+        hypothesisId: 'H9',
+        location: 'settings.ts:minecraftInstanceRemove:bridgeSnapshot',
+        message: 'Bridge snapshot after instance removal',
+        data: {
+          bridges: bridgeConfig
+            .getAllBridgeIds()
+            .map((b) => ({ bridge: b, instances: bridgeConfig.getMinecraftInstances(b) }))
+        }
+      })
     }
     if (affectedBridges.length > 0) {
       application.bridgeResolver.rebuildLookupMaps()
@@ -2958,7 +3437,7 @@ async function minecraftInstanceImportAuthCache(
   let modalInteraction: Awaited<ReturnType<typeof currentInteraction.awaitModalSubmit>>
   let depth = 0
 
-  while (true) {
+  for (;;) {
     modalInteraction = await currentInteraction.awaitModalSubmit({
       time: 300_000,
       filter: (modalInteraction) => modalInteraction.user.id === interaction.user.id
@@ -3027,7 +3506,7 @@ async function minecraftInstanceImportAuthCache(
     } else {
       // JSON is incomplete, ask for more
       partNumber++
-      const followUpMessage = await modalInteraction.reply({
+      await modalInteraction.reply({
         embeds: [
           {
             title: 'Import Microsoft Auth Cache',
@@ -3049,16 +3528,16 @@ async function minecraftInstanceImportAuthCache(
             ]
           }
         ],
-        flags: MessageFlags.Ephemeral,
-        fetchReply: true
+        flags: MessageFlags.Ephemeral
       })
+      const followUpMessage = await modalInteraction.fetchReply()
 
       // Wait for button click to continue
       try {
         const buttonInteraction = await followUpMessage.awaitMessageComponent({
           time: 300_000,
-          filter: (buttonInteraction_) =>
-            buttonInteraction_.user.id === interaction.user.id && buttonInteraction_.isButton()
+          filter: (buttonInteraction) =>
+            buttonInteraction.user.id === interaction.user.id && buttonInteraction.isButton()
         })
 
         if (buttonInteraction.isButton()) {
@@ -3194,22 +3673,24 @@ async function minecraftInstanceImportAuthCache(
     color: result.errors.length > 0 ? (result.imported.length > 0 ? Color.Info : Color.Error) : Color.Good,
     footer: { text: DefaultCommandFooter }
   }
+  let embedDescription = ''
 
   if (result.imported.length > 0) {
-    embed.description += `**Successfully imported ${result.imported.length} cache entries:**\n`
-    embed.description += result.imported.map((name) => `- \`${escapeMarkdown(name)}\``).join('\n')
-    embed.description += '\n\n'
+    embedDescription += `**Successfully imported ${result.imported.length} cache entries:**\n`
+    embedDescription += result.imported.map((name) => `- \`${escapeMarkdown(name)}\``).join('\n')
+    embedDescription += '\n\n'
   }
 
   if (result.errors.length > 0) {
-    embed.description += `**Errors (${result.errors.length}):**\n`
-    embed.description += result.errors.map((error) => `- ${escapeMarkdown(error)}`).join('\n')
+    embedDescription += `**Errors (${result.errors.length}):**\n`
+    embedDescription += result.errors.map((error) => `- ${escapeMarkdown(error)}`).join('\n')
   }
 
   if (result.imported.length === 0 && result.errors.length === 0) {
-    embed.description = 'No cache entries found in the JSON data.'
+    embedDescription = 'No cache entries found in the JSON data.'
     embed.color = Color.Info
   }
+  embed.description = embedDescription
 
   try {
     // Check if interaction was already replied to (e.g., during multi-part import)
