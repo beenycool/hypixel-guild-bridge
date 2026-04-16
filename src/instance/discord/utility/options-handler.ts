@@ -1596,9 +1596,22 @@ class ViewBuilder {
   }
 
   private getId(option: OptionItem): string {
+    // First try strict object identity (fast path)
     for (const [id, optionEntry] of this.ids.entries()) {
       if (option === optionEntry.item) return id
     }
+
+    // Fallback: option objects may be recreated by dynamic getters — match by stable properties
+    // Prefer matching both name and type to reduce accidental collisions.
+    for (const [id, optionEntry] of this.ids.entries()) {
+      if (option.name === optionEntry.item.name && option.type === optionEntry.item.type) return id
+    }
+
+    // Last resort: match by name only
+    for (const [id, optionEntry] of this.ids.entries()) {
+      if (option.name === optionEntry.item.name) return id
+    }
+
     throw new Error(`could not find id for option name ${option.name}`)
   }
 
