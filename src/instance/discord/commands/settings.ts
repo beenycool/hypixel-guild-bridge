@@ -132,8 +132,7 @@ async function handleGuildReactionMessageDelete(
   config: GuildReactionMessageEditorConfig,
   index: number
 ): Promise<boolean> {
-  // Ensure we have a writable copy
-  const allMessages = ensureGuildReactionMessagesWritable(config)
+  const allMessages = getGuildReactionMessagesForMutation(config)
 
   if (index < 0 || index >= allMessages.length) {
     await interaction.reply({ content: 'Message not found.', flags: MessageFlags.Ephemeral })
@@ -157,15 +156,15 @@ async function handleGuildReactionMessageEdit(
   config: GuildReactionMessageEditorConfig,
   index: number
 ): Promise<boolean> {
-  const allMessages = ensureGuildReactionMessagesWritable(config)
+  const allMessagesBeforeModal = getGuildReactionMessagesForMutation(config)
 
-  if (index < 0 || index >= allMessages.length) {
+  if (index < 0 || index >= allMessagesBeforeModal.length) {
     await interaction.reply({ content: 'Message not found.', flags: MessageFlags.Ephemeral })
     return true
   }
 
   const modalCustomId = `guild-reaction-edit-${config.key}-${index}`
-  const current = allMessages[index]
+  const current = allMessagesBeforeModal[index]
 
   await interaction.showModal({
     customId: modalCustomId,
@@ -201,9 +200,14 @@ async function handleGuildReactionMessageEdit(
     return true
   }
 
+  const allMessages = getGuildReactionMessagesForMutation(config)
+  if (index < 0 || index >= allMessages.length) {
+    await modalInteraction.reply({ content: 'Message not found.', flags: MessageFlags.Ephemeral })
+    return true
+  }
+
   // Prevent duplicates (allow replacing same index with same value)
-  const others = allMessages.filter((_, index_) => index_ !== index)
-  if (others.includes(value)) {
+  if (allMessages.some((message_, index_) => index_ !== index && message_ === value)) {
     await modalInteraction.reply({
       content: `This message already exists in **${config.name}**.`,
       flags: MessageFlags.Ephemeral
@@ -260,7 +264,7 @@ async function addGuildReactionMessage(
   })
 
   const value = modalInteraction.fields.getTextInputValue(GuildReactionMessageInputId).trim()
-  const allMessages = ensureGuildReactionMessagesWritable(config)
+  const allMessages = getGuildReactionMessagesForMutation(config)
 
   if (value.length === 0) {
     await modalInteraction.reply({
@@ -317,6 +321,11 @@ function ensureGuildReactionMessagesWritable(config: GuildReactionMessageEditorC
   }
 
   return currentMessages
+}
+
+/** Writable guild reaction message list; call after any await before mutating config. */
+function getGuildReactionMessagesForMutation(config: GuildReactionMessageEditorConfig): string[] {
+  return ensureGuildReactionMessagesWritable(config)
 }
 
 function areMessageListsEqual(left: string[], right: string[]): boolean {
@@ -408,7 +417,7 @@ function translateInstanceMessageForBridge(
       return t('instance.message.proxy-problem')
     }
     case InstanceMessageType.MinecraftRestarting: {
-      return t('instance.message.no-autoconnect')
+      return t('instance.message.restarting')
     }
     case InstanceMessageType.MinecraftGuildKicked: {
       return t('instance.message.guild-kicked')
@@ -3258,7 +3267,7 @@ async function minecraftInstanceRemove(
     } else if (results.instanceRemoved === 1) {
       embed.description += '- Active instance has been successfully removed.'
     } else {
-      embed.description += `- More than one instance have been detected and removed (total: \`${results.instanceRemoved}\`)\`.`
+      embed.description += `- More than one instance have been detected and removed (total: \`${results.instanceRemoved}\`).`
       embed.color = Color.Info
     }
     embed.description += '\n'
@@ -3268,7 +3277,7 @@ async function minecraftInstanceRemove(
     } else if (results.deletedConfig === 1) {
       embed.description += '- Relevant configuration has been detected and deleted.'
     } else {
-      embed.description += `- More than one configuration has been detected and removed (total: \`${results.deletedConfig}\`)\`.`
+      embed.description += `- More than one configuration has been detected and removed (total: \`${results.deletedConfig}\`).`
       embed.color = Color.Info
     }
     embed.description += '\n'
