@@ -26,10 +26,7 @@ const databaseManager = new DatabaseManager(fakeApp, logger)
 await initializeCoreDatabase(databaseManager)
 
 const configs = new ConfigurationsManager(databaseManager)
-const changeEvents: Array<{ bridgeId: string; key: string; value: unknown }> = []
-const bridgeCfg = new BridgeConfigurations(configs, (event) => {
-  changeEvents.push(event)
-})
+const bridgeCfg = new BridgeConfigurations(configs)
 await configs.load()
 
 const bridgeId = 'bridge-test'
@@ -82,7 +79,7 @@ assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), ['owner1'])
 
 const bridgeIdMigrate = 'bridge-migrate'
 // Directly set legacy adminRoleIds in the configuration to test migration
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 ;(bridgeCfg as any).configuration.setStringArray(`${bridgeIdMigrate}_adminRoleIds`, ['legacyAdmin'])
 
 // getOwnerRoleIds should migrate it
@@ -97,54 +94,6 @@ bridgeCfg.removeBridgeId(bridgeId)
 assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
 // And owner/admin roles
 assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), [])
-
-// Guild chaos blob getter/setter + cleanup + event callback
-assert.deepStrictEqual(bridgeCfg.getGuildChaos(bridgeId), {
-  enabled: false,
-  randomEnabled: true,
-  randomMinMinutes: 45,
-  randomMaxMinutes: 180,
-  playerEnabled: false,
-  playerMinMinutes: 120,
-  playerMaxMinutes: 360,
-  reactionsEnabled: true,
-  reactionChancePercent: 2
-})
-
-bridgeCfg.setGuildChaos(bridgeId, {
-  enabled: true,
-  playerEnabled: true,
-  reactionChancePercent: 7,
-  randomLinesOverride: ['meow']
-})
-
-assert.deepStrictEqual(bridgeCfg.getGuildChaos(bridgeId), {
-  enabled: true,
-  randomEnabled: true,
-  randomMinMinutes: 45,
-  randomMaxMinutes: 180,
-  playerEnabled: true,
-  playerMinMinutes: 120,
-  playerMaxMinutes: 360,
-  reactionsEnabled: true,
-  reactionChancePercent: 7,
-  randomLinesOverride: ['meow']
-})
-assert.strictEqual(changeEvents.at(-1)?.key, `${bridgeId}_guildChaos`)
-
-bridgeCfg.addBridgeId(bridgeId)
-bridgeCfg.removeBridgeId(bridgeId)
-assert.deepStrictEqual(bridgeCfg.getGuildChaos(bridgeId), {
-  enabled: false,
-  randomEnabled: true,
-  randomMinMinutes: 45,
-  randomMaxMinutes: 180,
-  playerEnabled: false,
-  playerMinMinutes: 120,
-  playerMaxMinutes: 360,
-  reactionsEnabled: true,
-  reactionChancePercent: 2
-})
 
 await databaseManager.flushWrites()
 await databaseManager.close()

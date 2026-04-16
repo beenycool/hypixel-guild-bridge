@@ -20,8 +20,8 @@ import { ApplicationLanguages, LanguageConfigurations } from '../../../core/lang
 import type { ProxyConfig } from '../../../core/minecraft/sessions-manager'
 import { ProxyProtocol } from '../../../core/minecraft/sessions-manager'
 import { SpontaneousEventsNames } from '../../../core/spontanmous-events-configurations'
-import Duration from '../../../utility/duration'
 import { debugSessionLog } from '../../../utility/debug-session-log.js'
+import Duration from '../../../utility/duration'
 import { SkyblockEventKeys } from '../../../utility/skyblock-calendar'
 import { Timeout } from '../../../utility/timeout.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
@@ -262,167 +262,6 @@ async function createBridgeOptionAsync(
           bridgeConfig.setMinecraftInstances(bridgeId, values)
           application.bridgeResolver.rebuildLookupMaps()
         }
-      },
-      {
-        type: OptionType.Category,
-        name: 'Guild chaos messages',
-        description: 'Configure random guild chaos lines, player lines, and keyword reactions for this bridge.',
-        header:
-          `**Guild Chaos Messages for ${bridgeId}**\n\n` +
-          'All default phrases are loaded from `message.json` in the application root. ' +
-          'Override lists only apply to this bridge and replace the file values when they are non-empty.',
-        options: [
-          {
-            type: OptionType.Boolean,
-            name: 'Enable chaos messages',
-            description: 'Master toggle for all guild chaos features on this bridge.',
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).enabled,
-            toggleOption: () => {
-              const current = bridgeConfig.getGuildChaos(bridgeId)
-              bridgeConfig.setGuildChaos(bridgeId, { enabled: !current.enabled })
-            }
-          },
-          {
-            type: OptionType.Boolean,
-            name: 'Random lines enabled',
-            description: 'Send random lines from message.json on a timer.',
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomEnabled,
-            toggleOption: () => {
-              const current = bridgeConfig.getGuildChaos(bridgeId)
-              bridgeConfig.setGuildChaos(bridgeId, { randomEnabled: !current.randomEnabled })
-            }
-          },
-          {
-            type: OptionType.Number,
-            name: 'Min minutes between random lines',
-            description: 'Minimum delay before a random guild chaos line is sent.',
-            min: 1,
-            max: 1440,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomMinMinutes,
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { randomMinMinutes: value })
-            }
-          },
-          {
-            type: OptionType.Number,
-            name: 'Max minutes between random lines',
-            description: 'Maximum delay before a random guild chaos line is sent.',
-            min: 1,
-            max: 1440,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomMaxMinutes,
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { randomMaxMinutes: value })
-            }
-          },
-          {
-            type: OptionType.Boolean,
-            name: 'Player-targeted lines enabled',
-            description: 'Send random player lines using a random online guild member for {player}.',
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerEnabled,
-            toggleOption: () => {
-              const current = bridgeConfig.getGuildChaos(bridgeId)
-              bridgeConfig.setGuildChaos(bridgeId, { playerEnabled: !current.playerEnabled })
-            }
-          },
-          {
-            type: OptionType.Number,
-            name: 'Min minutes between player lines',
-            description: 'Minimum delay before a player-targeted line is sent.',
-            min: 1,
-            max: 1440,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerMinMinutes,
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { playerMinMinutes: value })
-            }
-          },
-          {
-            type: OptionType.Number,
-            name: 'Max minutes between player lines',
-            description: 'Maximum delay before a player-targeted line is sent.',
-            min: 1,
-            max: 1440,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerMaxMinutes,
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { playerMaxMinutes: value })
-            }
-          },
-          {
-            type: OptionType.Boolean,
-            name: 'Keyword reactions enabled',
-            description: 'Reply to matching in-game guild chat trigger words using reactionLines from message.json.',
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).reactionsEnabled,
-            toggleOption: () => {
-              const current = bridgeConfig.getGuildChaos(bridgeId)
-              bridgeConfig.setGuildChaos(bridgeId, { reactionsEnabled: !current.reactionsEnabled })
-            }
-          },
-          {
-            type: OptionType.Number,
-            name: 'Keyword reaction chance (%)',
-            description: 'Chance to reply when a trigger word matches.',
-            min: 0,
-            max: 100,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).reactionChancePercent,
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { reactionChancePercent: value })
-            }
-          },
-          {
-            type: OptionType.List,
-            name: 'Random lines override',
-            description: 'When non-empty, replaces randomLines from message.json for this bridge only.',
-            style: InputStyle.Long,
-            min: 0,
-            max: 50,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).randomLinesOverride ?? [],
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { randomLinesOverride: value })
-            }
-          },
-          {
-            type: OptionType.List,
-            name: 'Player lines override',
-            description: 'When non-empty, replaces playerLines from message.json for this bridge only.',
-            style: InputStyle.Long,
-            min: 0,
-            max: 50,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).playerLinesOverride ?? [],
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { playerLinesOverride: value })
-            }
-          },
-          {
-            type: OptionType.List,
-            name: 'Reaction lines override',
-            description: 'When non-empty, replaces reactionLines from message.json for this bridge only.',
-            style: InputStyle.Long,
-            min: 0,
-            max: 50,
-            getOption: () => bridgeConfig.getGuildChaos(bridgeId).reactionLinesOverride ?? [],
-            setOption: (value) => {
-              bridgeConfig.setGuildChaos(bridgeId, { reactionLinesOverride: value })
-            }
-          },
-          {
-            type: OptionType.Action,
-            name: 'Reload message.json',
-            description: 'Re-read the root message.json file without restarting the process.',
-            label: 'Reload',
-            style: ButtonStyle.Secondary,
-            onInteraction: async (interaction) => {
-              await application.emit('bridgeConfigChanged', {
-                bridgeId,
-                key: `${bridgeId}_guildChaosReload`,
-                value: Date.now()
-              })
-              await interaction.reply({
-                content: 'message.json reload requested. Check application logs if the file is invalid.',
-                flags: MessageFlags.Ephemeral
-              })
-              return true
-            }
-          }
-        ]
       },
       // ========== Roles Category ==========
       {
@@ -1132,9 +971,9 @@ async function createBridgeOptionAsync(
                         const r = bridgeConfig.getRankupRules(bridgeId)[index]
                         return guildRanks.length > 0 ? [r?.targetRank ?? ''] : (r?.targetRank ?? '')
                       },
-                      setOption: (val: any) => {
+                      setOption: (value: any) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], targetRank: Array.isArray(val) ? val[0] : val }
+                        newRules[index] = { ...newRules[index], targetRank: Array.isArray(value) ? value[0] : value }
                         bridgeConfig.setRankupRules(bridgeId, newRules)
                         cachedPromotionOptions = null
                       }
@@ -1146,9 +985,9 @@ async function createBridgeOptionAsync(
                       min: 0,
                       max: 10_000_000,
                       getOption: () => bridgeConfig.getRankupRules(bridgeId)[index]?.minWeeklyGexp ?? 0,
-                      setOption: (val: number) => {
+                      setOption: (value: number) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], minWeeklyGexp: val }
+                        newRules[index] = { ...newRules[index], minWeeklyGexp: value }
                         bridgeConfig.setRankupRules(bridgeId, newRules)
                         cachedPromotionOptions = null
                       }
@@ -1160,9 +999,9 @@ async function createBridgeOptionAsync(
                       min: 0,
                       max: 3650,
                       getOption: () => bridgeConfig.getRankupRules(bridgeId)[index]?.minDaysInGuild ?? 0,
-                      setOption: (val: number) => {
+                      setOption: (value: number) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], minDaysInGuild: val }
+                        newRules[index] = { ...newRules[index], minDaysInGuild: value }
                         bridgeConfig.setRankupRules(bridgeId, newRules)
                         cachedPromotionOptions = null
                       }
@@ -1174,9 +1013,9 @@ async function createBridgeOptionAsync(
                       min: 0,
                       max: 100_000,
                       getOption: () => bridgeConfig.getRankupRules(bridgeId)[index]?.minOnlineHours ?? 0,
-                      setOption: (val: number) => {
+                      setOption: (value: number) => {
                         const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], minOnlineHours: val }
+                        newRules[index] = { ...newRules[index], minOnlineHours: value }
                         bridgeConfig.setRankupRules(bridgeId, newRules)
                         cachedPromotionOptions = null
                       }
@@ -1187,16 +1026,16 @@ async function createBridgeOptionAsync(
                       label: 'Delete',
                       style: ButtonStyle.Danger,
                       onInteraction: async (interaction: any) => {
-                        const prev = bridgeConfig.getRankupRules(bridgeId)
+                        const previous = bridgeConfig.getRankupRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
                           hypothesisId: 'H6',
                           location: 'settings.ts:promotion:deleteRule',
                           message: 'Delete promotion rule',
-                          data: { bridgeId, index, prevLen: prev.length }
+                          data: { bridgeId, index, prevLen: previous.length }
                         })
                         // #endregion
-                        const newRules = [...prev]
+                        const newRules = [...previous]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupRules(bridgeId, newRules)
                         cachedPromotionOptions = null
@@ -1293,9 +1132,9 @@ async function createBridgeOptionAsync(
                         const r = bridgeConfig.getRankupDemotionRules(bridgeId)[index]
                         return guildRanks.length > 0 ? [r?.fromRank ?? ''] : (r?.fromRank ?? '')
                       },
-                      setOption: (val: any) => {
+                      setOption: (value: any) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], fromRank: Array.isArray(val) ? val[0] : val }
+                        newRules[index] = { ...newRules[index], fromRank: Array.isArray(value) ? value[0] : value }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                         cachedDemotionOptions = null
                       }
@@ -1312,11 +1151,11 @@ async function createBridgeOptionAsync(
                         { label: 'Notify Only', value: 'notify' }
                       ],
                       getOption: () => [bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.action ?? 'demote'],
-                      setOption: (val: string[]) => {
+                      setOption: (value: string[]) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
                         newRules[index] = {
                           ...newRules[index],
-                          action: val[0] as 'demote' | 'kick' | 'notify'
+                          action: value[0] as 'demote' | 'kick' | 'notify'
                         }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                         cachedDemotionOptions = null
@@ -1344,18 +1183,23 @@ async function createBridgeOptionAsync(
                               const r = bridgeConfig.getRankupDemotionRules(bridgeId)[index]
                               return guildRanks.length > 0 ? [r?.targetRank ?? ''] : (r?.targetRank ?? '')
                             },
-                            setOption: (val: any) => {
-                              const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
-                              const targetRank = Array.isArray(val) ? val[0] : val
+                            setOption: (value: any) => {
+                              const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
+                              const targetRank = Array.isArray(value) ? value[0] : value
                               // #region agent log
                               debugSessionLog({
                                 hypothesisId: 'H5',
                                 location: 'settings.ts:demotion:targetRank:setOption',
                                 message: 'Demotion targetRank set',
-                                data: { bridgeId, index, prevTarget: prev[index]?.targetRank, nextTarget: targetRank }
+                                data: {
+                                  bridgeId,
+                                  index,
+                                  prevTarget: previous[index]?.targetRank,
+                                  nextTarget: targetRank
+                                }
                               })
                               // #endregion
-                              const newRules = [...prev]
+                              const newRules = [...previous]
                               newRules[index] = {
                                 ...newRules[index],
                                 targetRank
@@ -1373,8 +1217,8 @@ async function createBridgeOptionAsync(
                       min: 0,
                       max: 10_000_000,
                       getOption: () => bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.maxWeeklyGexp ?? 0,
-                      setOption: (val: number) => {
-                        const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
+                      setOption: (value: number) => {
+                        const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
                           hypothesisId: 'H4_H5',
@@ -1383,14 +1227,14 @@ async function createBridgeOptionAsync(
                           data: {
                             bridgeId,
                             index,
-                            prevMax: prev[index]?.maxWeeklyGexp,
-                            nextVal: val,
-                            prevRulesLen: prev.length
+                            prevMax: previous[index]?.maxWeeklyGexp,
+                            nextVal: value,
+                            prevRulesLen: previous.length
                           }
                         })
                         // #endregion
-                        const newRules = [...prev]
-                        newRules[index] = { ...newRules[index], maxWeeklyGexp: val }
+                        const newRules = [...previous]
+                        newRules[index] = { ...newRules[index], maxWeeklyGexp: value }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                         cachedDemotionOptions = null
                       }
@@ -1402,9 +1246,9 @@ async function createBridgeOptionAsync(
                       min: 0,
                       max: 365,
                       getOption: () => bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.gracePeriod ?? 0,
-                      setOption: (val: number) => {
+                      setOption: (value: number) => {
                         const newRules = [...bridgeConfig.getRankupDemotionRules(bridgeId)]
-                        newRules[index] = { ...newRules[index], gracePeriod: val }
+                        newRules[index] = { ...newRules[index], gracePeriod: value }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                         cachedDemotionOptions = null
                       }
@@ -1415,16 +1259,16 @@ async function createBridgeOptionAsync(
                       label: 'Delete',
                       style: ButtonStyle.Danger,
                       onInteraction: async (interaction: any) => {
-                        const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
+                        const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
                           hypothesisId: 'H6',
                           location: 'settings.ts:demotion:deleteRule',
                           message: 'Delete demotion rule',
-                          data: { bridgeId, index, prevLen: prev.length }
+                          data: { bridgeId, index, prevLen: previous.length }
                         })
                         // #endregion
-                        const newRules = [...prev]
+                        const newRules = [...previous]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                         cachedDemotionOptions = null // Invalidate cache
@@ -1445,8 +1289,8 @@ async function createBridgeOptionAsync(
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
                 onInteraction: async (interaction: any) => {
-                  const prev = bridgeConfig.getRankupDemotionRules(bridgeId)
-                  const newRules = [...prev]
+                  const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
+                  const newRules = [...previous]
                   newRules.push({
                     fromRank: guildRanks.length > 0 ? guildRanks[0] : 'Member',
                     action: 'demote' as const,
@@ -1459,7 +1303,7 @@ async function createBridgeOptionAsync(
                     hypothesisId: 'H4',
                     location: 'settings.ts:demotion:addRule',
                     message: 'Add demotion rule',
-                    data: { bridgeId, prevLen: prev.length, nextLen: newRules.length }
+                    data: { bridgeId, prevLen: previous.length, nextLen: newRules.length }
                   })
                   // #endregion
                   bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
@@ -2855,11 +2699,11 @@ async function minecraftInstanceAdd(
     application.core.minecraftSessions.addInstance({ name: instanceName, proxy: proxy })
     // Also log a quick DB snapshot for debugging
     ;(application as any).logger?.debug?.(
-      `ADD_FLOW: snapshot mojangInstances=${JSON.stringify(application.core.minecraftSessions.getAllInstances().map((i) => i.name))}`
+      `ADD_FLOW: snapshot mojangInstances=${JSON.stringify(application.core.minecraftSessions.getAllInstances().map((index) => index.name))}`
     )
     ;(application as any).logger?.debug?.(
       `ADD_FLOW: after addInstance -> mojangInstances=${JSON.stringify(
-        application.core.minecraftSessions.getAllInstances().map((i) => i.name)
+        application.core.minecraftSessions.getAllInstances().map((index) => index.name)
       )}`
     )
     embed.description += `- Instance has been added to settings for future reboot\n`
@@ -2994,11 +2838,10 @@ async function minecraftInstanceRemove(
     }
     if (affectedBridges.length > 0) {
       application.bridgeResolver.rebuildLookupMaps()
-      if (affectedBridges.length === 1) {
-        embed.description += '- Instance has been removed from bridge association.\n'
-      } else {
-        embed.description += `- Instance has been removed from ${affectedBridges.length} bridge associations.\n`
-      }
+      embed.description +=
+        affectedBridges.length === 1
+          ? '- Instance has been removed from bridge association.\n'
+          : `- Instance has been removed from ${affectedBridges.length} bridge associations.\n`
     }
   } catch (error: unknown) {
     errorHandler.error('removing minecraft instance', error)
