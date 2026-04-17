@@ -70,10 +70,9 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
       `View existing messages and manage this list.\n` +
       `Use \`{username}\` for the player name.`,
     get options() {
-      const messages = config.getMessages()
       const options: CategoryOption['options'] = []
 
-      if (messages.length === 0) {
+      if (config.getMessages().length === 0) {
         options.push({
           type: OptionType.Label,
           name: 'Current Messages',
@@ -81,6 +80,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
           getOption: () => formatGuildReactionMessageList(config.getMessages())
         } satisfies LabelOption)
       } else {
+        const messages = config.getMessages()
         // For each message, expose a label and explicit Edit / Delete actions
         for (let index = 0; index < messages.length; index++) {
           const index_ = index
@@ -109,8 +109,8 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             description: `Delete message #${index_ + 1}`,
             label: 'Delete',
             style: ButtonStyle.Danger,
-            onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) =>
-              handleGuildReactionMessageDelete(interaction, config, index_)
+            onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
+              handleGuildReactionMessageDelete(interaction, config, index_, helpers)
           } satisfies ActionOption)
         }
       }
@@ -133,7 +133,8 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
 async function handleGuildReactionMessageDelete(
   interaction: ButtonInteraction,
   config: GuildReactionMessageEditorConfig,
-  index: number
+  index: number,
+  helpers?: ActionInteractionHelpers
 ): Promise<boolean> {
   const allMessages = getGuildReactionMessagesForMutation(config)
 
@@ -150,6 +151,15 @@ async function handleGuildReactionMessageDelete(
     content: `Deleted message: **${formatGuildReactionMessagePreview(removed)}**`,
     flags: MessageFlags.Ephemeral
   })
+
+  if (helpers) {
+    // If called from the OptionsHandler flow, refresh the view so the deleted item disappears
+    try {
+      await helpers.updateView()
+    } catch {
+      // ignore update failures
+    }
+  }
 
   return true
 }

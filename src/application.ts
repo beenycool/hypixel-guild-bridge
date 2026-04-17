@@ -296,6 +296,13 @@ export default class Application extends Emittery<ApplicationEvents> implements 
         await instance.onReady()
       }
     }
+
+    // Start background utilities that require instances/core to be ready
+    try {
+      this.randomChatter.start()
+    } catch (error: unknown) {
+      this.errorHandler.promiseCatch('starting random chatter')(error)
+    }
   }
 
   public async shutdown(): Promise<void> {
