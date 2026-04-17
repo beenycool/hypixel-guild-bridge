@@ -18,8 +18,14 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
   public start(): void {
     if (this.started) return
     this.started = true
+<<<<<<< HEAD
     this.intervalHandle = setIntervalAsync(
       async () => {
+=======
+
+    this.intervalHandle = setInterval(() => {
+      void (async () => {
+>>>>>>> 873b12d (feat(random-chatter): add RandomChatter utility and per-bridge settings)
         try {
           const bridgeConfig = this.application.core.bridgeConfigurations
 
@@ -34,9 +40,14 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
         } catch (error: unknown) {
           this.logger.warn('random-chatter periodic check failed', error)
         }
+<<<<<<< HEAD
       },
       { errorHandler: this.errorHandler.promiseCatch('random chatter check'), delay: Duration.minutes(1) }
     )
+=======
+      })().catch(this.errorHandler.promiseCatch('random chatter check'))
+    }, Duration.minutes(1).toMilliseconds())
+>>>>>>> 873b12d (feat(random-chatter): add RandomChatter utility and per-bridge settings)
 
     this.application.addShutdownListener(() => this.stop())
   }
@@ -57,10 +68,14 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     if (!enabled) return
 
     const intervalMinutes = bridgeConfig.getRandomChatterIntervalMinutes(bridgeId)
+<<<<<<< HEAD
     assert.ok(
       Number.isFinite(intervalMinutes) && intervalMinutes > 0,
       `invalid random chatter interval for bridge ${bridgeId}: ${String(intervalMinutes)}`
     )
+=======
+    assert.ok(Number.isFinite(intervalMinutes) && intervalMinutes >= 0)
+>>>>>>> 873b12d (feat(random-chatter): add RandomChatter utility and per-bridge settings)
 
     const now = Date.now()
     const last = this.lastSentAt.get(bridgeId) ?? 0
@@ -99,6 +114,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       message = raw.replaceAll('{username}', name)
     }
 
+<<<<<<< HEAD
     // Ensure message length is acceptable for Discord
     if (message.length > 2000) {
       this.logger.warn(
@@ -107,6 +123,8 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       message = message.slice(0, 2000)
     }
 
+=======
+>>>>>>> 873b12d (feat(random-chatter): add RandomChatter utility and per-bridge settings)
     await this.application.emit('broadcast', {
       ...this.eventHelper.fillBaseEvent(),
       channels: [ChannelType.Public],

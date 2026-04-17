@@ -736,7 +736,8 @@ export class BridgeConfigurations {
   }
 
   public setRandomChatterMinimumOnlinePlayers(bridgeId: string, count: number): void {
-    const normalized = Number.isFinite(count) && count >= 0 ? Math.floor(count) : 1
+    // Enforce a minimum of 1 so zero cannot bypass the online-members check
+    const normalized = Number.isFinite(count) && count >= 1 ? Math.floor(count) : 1
     this.configuration.setNumber(`${bridgeId}_randomChatterMinimumOnlinePlayers`, normalized)
   }
 

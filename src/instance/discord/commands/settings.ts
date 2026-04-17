@@ -78,7 +78,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
           type: OptionType.Label,
           name: 'Current Messages',
           description: 'Preview of all current messages in this list.',
-          getOption: () => formatGuildReactionMessageList(messages)
+          getOption: () => formatGuildReactionMessageList(config.getMessages())
         } satisfies LabelOption)
       } else {
         // For each message, expose a label and explicit Edit / Delete actions
