@@ -146,7 +146,15 @@ export interface ActionOption extends BaseOption {
   type: OptionType.Action
   label: string
   style: ButtonStyle.Primary | ButtonStyle.Secondary | ButtonStyle.Success | ButtonStyle.Danger
-  onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) => Promise<boolean>
+  onInteraction: (
+    interaction: ButtonInteraction,
+    errorHandler: UnexpectedErrorHandler,
+    helpers: ActionInteractionHelpers
+  ) => Promise<boolean>
+}
+
+export interface ActionInteractionHelpers {
+  updateView: (interaction?: ModalMessageModalSubmitInteraction) => Promise<void>
 }
 
 interface OptionId {
@@ -657,7 +665,9 @@ export class OptionsHandler {
     option: ActionOption
   ): Promise<boolean> {
     assert.ok(interaction.isButton())
-    return await option.onInteraction(interaction, errorHandler)
+    return await option.onInteraction(interaction, errorHandler, {
+      updateView: async (modalInteraction?: ModalMessageModalSubmitInteraction) => this.updateView(modalInteraction)
+    })
   }
 
   private async handleListAdd(interaction: CollectedInteraction, option: ListOption): Promise<boolean> {

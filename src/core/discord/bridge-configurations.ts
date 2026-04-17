@@ -87,6 +87,11 @@ export class BridgeConfigurations {
     this.configuration.delete(`${bridgeId}_guildJoinReactionMessages`)
     this.configuration.delete(`${bridgeId}_guildLeaveReactionMessages`)
     this.configuration.delete(`${bridgeId}_guildKickReactionMessages`)
+    this.configuration.delete(`${bridgeId}_randomChatterEnabled`)
+    this.configuration.delete(`${bridgeId}_randomChatterMessages`)
+    this.configuration.delete(`${bridgeId}_randomChatterIntervalMinutes`)
+    this.configuration.delete(`${bridgeId}_randomChatterMinimumOnlinePlayers`)
+    this.configuration.delete(`${bridgeId}_randomChatterIncludePlayerName`)
     this.configuration.delete(`${bridgeId}_darkAuctionReminder`)
     this.configuration.delete(`${bridgeId}_starfallCultReminder`)
     this.configuration.delete(`${bridgeId}_announceMutedPlayer`)
@@ -696,6 +701,51 @@ export class BridgeConfigurations {
 
   public setGuildKickReactionMessages(bridgeId: string, messages: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_guildKickReactionMessages`, messages)
+  }
+
+  // ========== Random Chatter Configurations ==========
+
+  public getRandomChatterEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_randomChatterEnabled`, false)
+  }
+
+  public setRandomChatterEnabled(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_randomChatterEnabled`, enabled)
+  }
+
+  public getRandomChatterMessages(bridgeId: string, defaultMessages: string[]): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_randomChatterMessages`, defaultMessages)
+  }
+
+  public setRandomChatterMessages(bridgeId: string, messages: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_randomChatterMessages`, messages)
+  }
+
+  public getRandomChatterIntervalMinutes(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_randomChatterIntervalMinutes`, 15)
+  }
+
+  public setRandomChatterIntervalMinutes(bridgeId: string, minutes: number): void {
+    // Clamp and validate to avoid non-sensical values
+    const normalized = Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : 15
+    this.configuration.setNumber(`${bridgeId}_randomChatterIntervalMinutes`, normalized)
+  }
+
+  public getRandomChatterMinimumOnlinePlayers(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_randomChatterMinimumOnlinePlayers`, 1)
+  }
+
+  public setRandomChatterMinimumOnlinePlayers(bridgeId: string, count: number): void {
+    const normalized = Number.isFinite(count) && count >= 0 ? Math.floor(count) : 1
+    this.configuration.setNumber(`${bridgeId}_randomChatterMinimumOnlinePlayers`, normalized)
+  }
+
+  public getRandomChatterIncludePlayerName(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_randomChatterIncludePlayerName`, true)
+  }
+
+  public setRandomChatterIncludePlayerName(bridgeId: string, include: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_randomChatterIncludePlayerName`, include)
   }
 
   public getDarkAuctionReminder(bridgeId: string): boolean {

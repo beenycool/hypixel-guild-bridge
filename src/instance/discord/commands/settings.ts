@@ -26,6 +26,7 @@ import { SkyblockEventKeys } from '../../../utility/skyblock-calendar'
 import { Timeout } from '../../../utility/timeout.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 import type {
+  ActionInteractionHelpers,
   ActionOption,
   BooleanOption,
   CategoryOption,
@@ -50,7 +51,8 @@ const GuildReactionMessageInputId = 'guild-reaction-message-input'
 const GuildReactionMessageLimit = 20
 
 interface GuildReactionMessageEditorConfig {
-  key: 'join' | 'leave' | 'kick'
+  // key is intentionally a string to allow reuse across different message lists
+  key: string
   name: string
   description: string
   fallbackMessages: string[]
@@ -97,8 +99,8 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             description: `Edit message #${index_ + 1}`,
             label: 'Edit',
             style: ButtonStyle.Primary,
-            onInteraction: async (interaction: ButtonInteraction) =>
-              handleGuildReactionMessageEdit(interaction, config, index_)
+            onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
+              handleGuildReactionMessageEdit(interaction, config, index_, helpers)
           } satisfies ActionOption)
 
           options.push({
@@ -107,7 +109,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             description: `Delete message #${index_ + 1}`,
             label: 'Delete',
             style: ButtonStyle.Danger,
-            onInteraction: async (interaction: ButtonInteraction) =>
+            onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) =>
               handleGuildReactionMessageDelete(interaction, config, index_)
           } satisfies ActionOption)
         }
@@ -119,7 +121,8 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
         description: `Add a new custom ${config.key} message.`,
         label: 'Add',
         style: ButtonStyle.Success,
-        onInteraction: async (interaction: ButtonInteraction) => addGuildReactionMessage(interaction, config)
+        onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
+          addGuildReactionMessage(interaction, config, helpers)
       } satisfies ActionOption)
 
       return options
@@ -154,7 +157,8 @@ async function handleGuildReactionMessageDelete(
 async function handleGuildReactionMessageEdit(
   interaction: ButtonInteraction,
   config: GuildReactionMessageEditorConfig,
-  index: number
+  index: number,
+  helpers: ActionInteractionHelpers
 ): Promise<boolean> {
   const allMessagesBeforeModal = getGuildReactionMessagesForMutation(config)
 
@@ -219,13 +223,15 @@ async function handleGuildReactionMessageEdit(
   newMessages[index] = value
   config.setMessages(newMessages)
 
-  await modalInteraction.reply({ content: `Updated message #${index + 1}.`, flags: MessageFlags.Ephemeral })
+  assert.ok(modalInteraction.isFromMessage())
+  await helpers.updateView(modalInteraction)
   return true
 }
 
 async function addGuildReactionMessage(
   interaction: ButtonInteraction,
-  config: GuildReactionMessageEditorConfig
+  config: GuildReactionMessageEditorConfig,
+  helpers: ActionInteractionHelpers
 ): Promise<boolean> {
   const modalCustomId = `guild-reaction-add-${config.key}`
   const beforeMessages = config.getMessages()
@@ -291,10 +297,8 @@ async function addGuildReactionMessage(
   }
 
   config.setMessages([...allMessages, value])
-  await modalInteraction.reply({
-    content: `Added a new message to **${config.name}**.`,
-    flags: MessageFlags.Ephemeral
-  })
+  assert.ok(modalInteraction.isFromMessage())
+  await helpers.updateView(modalInteraction)
 
   return true
 }
@@ -820,6 +824,62 @@ async function createBridgeOptionAsync(
                 }
               }
             ]
+          },
+          // Random Chatter
+          {
+            type: OptionType.Category,
+            name: 'Random Chatter',
+            description:
+              'Periodic random messages the bot will say in guild chat. Use {username} to include a random online player name.',
+            options: [
+              {
+                type: OptionType.Boolean,
+                name: 'Enable Random Chatter',
+                description: 'Enable periodic random messages for this bridge.',
+                getOption: () => bridgeConfig.getRandomChatterEnabled(bridgeId),
+                toggleOption: () => {
+                  bridgeConfig.setRandomChatterEnabled(bridgeId, !bridgeConfig.getRandomChatterEnabled(bridgeId))
+                }
+              },
+              {
+                type: OptionType.Number,
+                name: 'Interval Minutes',
+                description: 'How many minutes between each random message.',
+                min: 1,
+                max: 1440,
+                getOption: () => bridgeConfig.getRandomChatterIntervalMinutes(bridgeId),
+                setOption: (value) => bridgeConfig.setRandomChatterIntervalMinutes(bridgeId, value)
+              },
+              {
+                type: OptionType.Number,
+                name: 'Minimum Online Players',
+                description: 'How many online members must be present for the bot to send a message.',
+                min: 1,
+                max: 100,
+                getOption: () => bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId),
+                setOption: (value) => bridgeConfig.setRandomChatterMinimumOnlinePlayers(bridgeId, value)
+              },
+              {
+                type: OptionType.Boolean,
+                name: 'Include Player Name',
+                description: 'Allow replacement of {username} with a random online player when present.',
+                getOption: () => bridgeConfig.getRandomChatterIncludePlayerName(bridgeId),
+                toggleOption: () =>
+                  bridgeConfig.setRandomChatterIncludePlayerName(
+                    bridgeId,
+                    !bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
+                  )
+              },
+              createGuildReactionMessageListOption({
+                key: 'randomChatter',
+                name: 'Random Chatter Messages',
+                description:
+                  'Messages the bot will randomly say. Use {username} to insert a random online player name.',
+                fallbackMessages: [],
+                getMessages: () => bridgeConfig.getRandomChatterMessages(bridgeId, []),
+                setMessages: (values) => bridgeConfig.setRandomChatterMessages(bridgeId, values)
+              })
+            ]
           }
         ]
       },
@@ -1321,7 +1381,7 @@ async function createBridgeOptionAsync(
             description: 'Manually trigger the rankup check for this bridge.',
             label: 'Run Check',
             style: ButtonStyle.Primary,
-            onInteraction: async (interaction: ButtonInteraction) => {
+            onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
               await application.core.rankupManager.runTaskForBridge(bridgeId)
               await interaction.reply({
                 content: 'Rankup check triggered for this bridge.',
@@ -1430,7 +1490,7 @@ async function createBridgeOptionAsync(
                       name: 'Delete Rule',
                       label: 'Delete',
                       style: ButtonStyle.Danger,
-                      onInteraction: async (interaction: ButtonInteraction) => {
+                      onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
                         const previous = bridgeConfig.getRankupRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
@@ -1460,7 +1520,7 @@ async function createBridgeOptionAsync(
                 name: 'Add Promotion Rule',
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
-                onInteraction: async (interaction: ButtonInteraction) => {
+                onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
                   const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                   newRules.push({
                     targetRank: guildRanks.length > 0 ? guildRanks[0] : 'Member',
@@ -1700,7 +1760,7 @@ async function createBridgeOptionAsync(
                       name: 'Delete Rule',
                       label: 'Delete',
                       style: ButtonStyle.Danger,
-                      onInteraction: async (interaction: ButtonInteraction) => {
+                      onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
                         const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
@@ -1730,7 +1790,7 @@ async function createBridgeOptionAsync(
                 name: 'Add Demotion Rule',
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
-                onInteraction: async (interaction: ButtonInteraction) => {
+                onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
                   const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                   const newRules = [...previous]
                   newRules.push({
@@ -1819,7 +1879,7 @@ async function createBridgeOptionAsync(
             description: `Permanently delete bridge "${bridgeId}" and all its configurations.`,
             label: 'delete',
             style: ButtonStyle.Danger,
-            onInteraction: async (interaction) => {
+            onInteraction: async (interaction, _errorHandler, _helpers) => {
               bridgeConfig.removeBridgeId(bridgeId)
               application.bridgeResolver.rebuildLookupMaps()
 
@@ -1865,7 +1925,7 @@ async function fetchBridgeOptions(application: Application, context: DiscordComm
       description: 'Create a new bridge to connect Minecraft instances to specific Discord channels.',
       label: 'create',
       style: ButtonStyle.Success,
-      onInteraction: async (interaction) => {
+      onInteraction: async (interaction, _errorHandler, _helpers) => {
         await interaction.showModal({
           customId: 'bridge-create',
           title: 'Create New Bridge',
@@ -2849,7 +2909,7 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             description: 'Fetch Minecraft instances status.',
             label: 'fetch',
             style: ButtonStyle.Primary,
-            onInteraction: async (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) => {
+            onInteraction: async (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) => {
               try {
                 return await minecraftInstancesStatus(
                   application,
@@ -2869,7 +2929,7 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             description: 'Add a Minecraft instance.',
             label: 'add',
             style: ButtonStyle.Success,
-            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) =>
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) =>
               minecraftInstanceAdd(application, interaction, errorHandler, context.bridgeId)
           },
           {
@@ -2878,7 +2938,7 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             description: 'Remove a Minecraft instance.',
             label: 'remove',
             style: ButtonStyle.Danger,
-            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) =>
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) =>
               minecraftInstanceRemove(
                 application,
                 interaction,
@@ -2894,7 +2954,7 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
               'Import Microsoft authentication cache from JSON. Paste the JSON content from your auth-cache files.',
             label: 'import',
             style: ButtonStyle.Secondary,
-            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler) =>
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) =>
               minecraftInstanceImportAuthCache(application, interaction, errorHandler, context.bridgeId)
           }
         ] as ActionOption[]

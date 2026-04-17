@@ -35,6 +35,7 @@ import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
 import { SkyblockReminders } from './instance/skyblock-reminders'
 import { SpontaneousEvents } from './instance/spontaneous-events'
 import WebServer from './instance/web-server'
+import { RandomChatter } from './instance/random-chatter'
 import { gracefullyExitProcess, sleep } from './utility/shared-utility'
 
 export type AllInstances =
@@ -53,6 +54,7 @@ export type AllInstances =
   | AutoRestart
   | MinecraftManager
   | PluginsManager
+  | RandomChatter
 
 export default class Application extends Emittery<ApplicationEvents> implements InstanceIdentifier {
   public readonly instanceName: string = InstanceType.Main
@@ -147,6 +149,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly skyblockReminders: SkyblockReminders
   private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
+  public readonly randomChatter: RandomChatter
   private readonly autoRestart: AutoRestart
 
   public constructor(
@@ -199,6 +202,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.skyblockReminders = new SkyblockReminders(this)
     this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
+    this.randomChatter = new RandomChatter(this)
     this.autoRestart = new AutoRestart(this)
   }
 
@@ -452,6 +456,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.skyblockReminders,
       this.hypixelUpdates,
       this.spontaneousEvents,
+      this.randomChatter,
       this.autoRestart
     ].filter((instance) => instance != undefined)
 
