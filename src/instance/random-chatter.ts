@@ -102,19 +102,32 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     }
     if (!chosenInstance) return
 
+    const mc = this.application.minecraftManager
+      .getAllInstances()
+      .find((i) => i.instanceName.toLowerCase() === chosenInstance.toLowerCase())
+    if (mc === undefined) return
+
+    const botIgn = mc.username()
+    if (botIgn === undefined) {
+      this.logger.debug(
+        `random-chatter: skip bridge ${bridgeId}: minecraft username not available for instance ${chosenInstance}`
+      )
+      return
+    }
+
     const guild = await this.application.core.guildManager.list(chosenInstance)
     const onlineMembers = guild.members.filter((m) => m.online)
     if (onlineMembers.length < minOnline) return
 
-    // pick a message; with includeName, replace {username} or prefix "Name: " like bridged guild chat
+    // pick a message; with includeName, use bot IGN (same as skin) — not random online members
     const raw = messages[Math.floor(Math.random() * messages.length)]
     let message = raw
     let pickedName: string | undefined
     if (includeName && raw.includes('{username}')) {
-      pickedName = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
+      pickedName = botIgn
       message = raw.replaceAll('{username}', pickedName)
     } else if (includeName) {
-      pickedName = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
+      pickedName = botIgn
       message = `${pickedName}: ${raw}`
     }
 
@@ -126,8 +139,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       message = message.slice(0, 2000)
     }
 
-    const skinUsername =
-      pickedName ?? onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
+    const skinUsername = botIgn
 
     let imageBodyFormatted: string | undefined
     if (includeName && pickedName !== undefined && !raw.includes('{username}')) {
