@@ -51,6 +51,8 @@ const GuildReactionMessageInputId = 'guild-reaction-message-input'
 const GuildReactionMessageLimit = 20
 
 interface GuildReactionMessageEditorConfig {
+  /** Disambiguates stableIds across bridges (multi-bridge); must match the bridge this list belongs to. */
+  scopeId: string
   // key is intentionally a string to allow reuse across different message lists
   key: string
   name: string
@@ -84,7 +86,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
     type: OptionType.Category,
     name: config.name,
     description: config.description,
-    stableId: `guild-reaction:${config.key}:root`,
+    stableId: `guild-reaction:${config.scopeId}:${config.key}:root`,
     header:
       `**${config.name}**\n\n` +
       `View existing messages and manage this list.\n` +
@@ -97,7 +99,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
           type: OptionType.Label,
           name: 'Current Messages',
           description: 'Preview of all current messages in this list.',
-          stableId: `guild-reaction:${config.key}:label:empty`,
+          stableId: `guild-reaction:${config.scopeId}:${config.key}:label:empty`,
           getOption: () => formatGuildReactionMessageList(config.getMessages())
         } satisfies LabelOption)
       } else {
@@ -111,7 +113,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             type: OptionType.Label,
             name: `#${index_ + 1} ${formatGuildReactionMessagePreview(raw)}`,
             description: 'Message preview',
-            stableId: `guild-reaction:${config.key}:label:${index_}`,
+            stableId: `guild-reaction:${config.scopeId}:${config.key}:label:${index_}`,
             getOption: undefined
           } satisfies LabelOption)
 
@@ -119,7 +121,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             type: OptionType.Action,
             name: `Edit Message #${index_ + 1}`,
             description: `Edit message #${index_ + 1}`,
-            stableId: `guild-reaction:${config.key}:edit:${index_}`,
+            stableId: `guild-reaction:${config.scopeId}:${config.key}:edit:${index_}`,
             label: 'Edit',
             style: ButtonStyle.Primary,
             onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
@@ -130,7 +132,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             type: OptionType.Action,
             name: `Delete Message #${index_ + 1}`,
             description: `Delete message #${index_ + 1}`,
-            stableId: `guild-reaction:${config.key}:delete:${index_}`,
+            stableId: `guild-reaction:${config.scopeId}:${config.key}:delete:${index_}`,
             label: 'Delete',
             style: ButtonStyle.Danger,
             onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
@@ -143,7 +145,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
         type: OptionType.Action,
         name: 'Add Message',
         description: `Add a new custom ${config.key} message.`,
-        stableId: `guild-reaction:${config.key}:add`,
+        stableId: `guild-reaction:${config.scopeId}:${config.key}:add`,
         label: 'Add',
         style: ButtonStyle.Success,
         onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
@@ -232,7 +234,7 @@ async function handleGuildReactionMessageEdit(
     return true
   }
 
-  const modalCustomId = `guild-reaction-edit-${config.key}-${index}`
+  const modalCustomId = `guild-reaction-edit-${config.scopeId}-${config.key}-${index}`
   const current = allMessagesBeforeModal[index]
 
   await interaction.showModal({
@@ -326,7 +328,7 @@ async function addGuildReactionMessage(
   config: GuildReactionMessageEditorConfig,
   helpers: ActionInteractionHelpers
 ): Promise<boolean> {
-  const modalCustomId = `guild-reaction-add-${config.key}`
+  const modalCustomId = `guild-reaction-add-${config.scopeId}-${config.key}`
   const beforeMessages = config.getMessages()
   if (beforeMessages.length >= GuildReactionMessageLimit) {
     await interaction.reply({
@@ -994,6 +996,7 @@ async function createBridgeOptionAsync(
                   )
               },
               createGuildReactionMessageListOption({
+                scopeId: bridgeId,
                 key: 'randomChatter',
                 name: 'Random Chatter Messages',
                 description:
@@ -1132,6 +1135,7 @@ async function createBridgeOptionAsync(
             description: 'Custom messages for guild join/leave/kick events.',
             options: [
               createGuildReactionMessageListOption({
+                scopeId: bridgeId,
                 key: 'join',
                 name: 'Join Message List',
                 description: 'Messages sent when a member joins the guild.',
@@ -1147,6 +1151,7 @@ async function createBridgeOptionAsync(
                 debugContext: { bridgeId }
               }),
               createGuildReactionMessageListOption({
+                scopeId: bridgeId,
                 key: 'leave',
                 name: 'Leave Message List',
                 description: 'Messages sent when a member leaves the guild.',
@@ -1162,6 +1167,7 @@ async function createBridgeOptionAsync(
                 debugContext: { bridgeId }
               }),
               createGuildReactionMessageListOption({
+                scopeId: bridgeId,
                 key: 'kick',
                 name: 'Kick Message List',
                 description: 'Messages sent when a member is kicked from the guild.',
