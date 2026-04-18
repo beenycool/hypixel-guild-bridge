@@ -106,12 +106,15 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     const onlineMembers = guild.members.filter((m) => m.online)
     if (onlineMembers.length < minOnline) return
 
-    // pick a message and replace {username} if requested
+    // pick a message; with includeName, replace {username} or prefix "Name: " like bridged guild chat
     const raw = messages[Math.floor(Math.random() * messages.length)]
     let message = raw
     if (includeName && raw.includes('{username}')) {
       const name = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
       message = raw.replaceAll('{username}', name)
+    } else if (includeName) {
+      const name = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
+      message = `${name}: ${raw}`
     }
 
     // Ensure message length is acceptable for Discord

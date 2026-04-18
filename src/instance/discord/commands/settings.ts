@@ -955,7 +955,7 @@ async function createBridgeOptionAsync(
             type: OptionType.Category,
             name: 'Random Chatter',
             description:
-              'Periodic random messages the bot will say in guild chat. Use {username} to include a random online player name.',
+              'Periodic random messages the bot will say in guild chat. With Include Player Name on, messages without {username} get a random online member prefixed as Name: …; use {username} inside a line to place a name yourself.',
             options: [
               {
                 type: OptionType.Boolean,
@@ -987,7 +987,8 @@ async function createBridgeOptionAsync(
               {
                 type: OptionType.Boolean,
                 name: 'Include Player Name',
-                description: 'Allow replacement of {username} with a random online player when present.',
+                description:
+                  'When on: replace {username} in a line with a random online player, or prefix plain lines as "Username: message" (guild-chat style). When off: send templates exactly as written.',
                 getOption: () => bridgeConfig.getRandomChatterIncludePlayerName(bridgeId),
                 toggleOption: () =>
                   bridgeConfig.setRandomChatterIncludePlayerName(
@@ -1000,7 +1001,7 @@ async function createBridgeOptionAsync(
                 key: 'randomChatter',
                 name: 'Random Chatter Messages',
                 description:
-                  'Messages the bot will randomly say. Use {username} to insert a random online player name.',
+                  'One message per line. Use {username} where you want a random online player name. If Include Player Name is on and a line has no {username}, the bot prefixes a random online player as Username: …',
                 fallbackMessages: [],
                 getMessages: () => bridgeConfig.getRandomChatterMessages(bridgeId, []),
                 setMessages: (values) => bridgeConfig.setRandomChatterMessages(bridgeId, values),
