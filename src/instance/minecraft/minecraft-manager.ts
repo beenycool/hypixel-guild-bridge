@@ -13,6 +13,7 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
 
   private readonly instances = new Set<MinecraftInstance>()
   private readonly minecraftBots = new Map<string, MinecraftSelfBroadcast>()
+  private readonly botRankCache = new Map<string, string>()
 
   constructor(application: Application) {
     super(application, InternalInstancePrefix + 'MinecraftManager', InstanceType.Utility)
@@ -34,6 +35,14 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
 
   public getMinecraftBots(): MinecraftSelfBroadcast[] {
     return Array.from(this.minecraftBots, ([, value]) => value)
+  }
+
+  public setBotRank(instanceName: string, rankFormatted: string): void {
+    this.botRankCache.set(instanceName.toLowerCase(), rankFormatted)
+  }
+
+  public getBotRank(instanceName: string): string | undefined {
+    return this.botRankCache.get(instanceName.toLowerCase())
   }
 
   public loadInstances(): void {
@@ -99,6 +108,7 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
     for (const instance of instances) {
       assert.ok(this.instances.delete(instance))
       this.minecraftBots.delete(instance.instanceName)
+      this.botRankCache.delete(instance.instanceName.toLowerCase())
     }
     result.instanceRemoved += instances.length
 

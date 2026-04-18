@@ -140,15 +140,18 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     }
 
     const skinUsername = botIgn
+    const botRank = this.application.minecraftManager.getBotRank(chosenInstance)
 
     let imageBodyFormatted: string | undefined
     if (includeName && pickedName !== undefined && !raw.includes('{username}')) {
       const colon = message.indexOf(': ')
       if (colon !== -1 && message.slice(0, colon) === pickedName) {
-        imageBodyFormatted = `§a${pickedName}§f: §f${message.slice(colon + 2)}`
+        const namePart = botRank !== undefined ? `${botRank}§f` : `§a${pickedName}§f`
+        imageBodyFormatted = `${namePart}: §f${message.slice(colon + 2)}`
       }
     } else if (includeName && pickedName !== undefined && raw.includes('{username}')) {
-      imageBodyFormatted = raw.replaceAll('{username}', `§a${pickedName}§f`)
+      const namePart = botRank !== undefined ? `${botRank}§f` : `§a${pickedName}§f`
+      imageBodyFormatted = raw.replaceAll('{username}', namePart)
     }
 
     await this.application.emit('broadcast', {
