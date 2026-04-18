@@ -109,12 +109,13 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     // pick a message; with includeName, replace {username} or prefix "Name: " like bridged guild chat
     const raw = messages[Math.floor(Math.random() * messages.length)]
     let message = raw
+    let pickedName: string | undefined
     if (includeName && raw.includes('{username}')) {
-      const name = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
-      message = raw.replaceAll('{username}', name)
+      pickedName = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
+      message = raw.replaceAll('{username}', pickedName)
     } else if (includeName) {
-      const name = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
-      message = `${name}: ${raw}`
+      pickedName = onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
+      message = `${pickedName}: ${raw}`
     }
 
     // Ensure message length is acceptable for Discord
@@ -125,13 +126,31 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       message = message.slice(0, 2000)
     }
 
+    const skinUsername =
+      pickedName ?? onlineMembers[Math.floor(Math.random() * onlineMembers.length)].username
+
+    let imageBodyFormatted: string | undefined
+    if (includeName && pickedName !== undefined && !raw.includes('{username}')) {
+      const colon = message.indexOf(': ')
+      if (colon !== -1 && message.slice(0, colon) === pickedName) {
+        imageBodyFormatted = `§a${pickedName}§f: §f${message.slice(colon + 2)}`
+      }
+    } else if (includeName && pickedName !== undefined && raw.includes('{username}')) {
+      imageBodyFormatted = raw.replaceAll('{username}', `§a${pickedName}§f`)
+    }
+
     await this.application.emit('broadcast', {
       ...this.eventHelper.fillBaseEvent(),
       channels: [ChannelType.Public],
-      color: Color.Info,
+      color: Color.Default,
       user: undefined,
       message: message,
-      bridgeId: bridgeId
+      bridgeId: bridgeId,
+      guildChatImageStyle: {
+        channelType: ChannelType.Public,
+        skinUsername,
+        ...(imageBodyFormatted !== undefined ? { imageBodyFormatted } : {})
+      }
     })
 
     this.lastSentAt.set(bridgeId, Date.now())

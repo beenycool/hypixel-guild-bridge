@@ -592,6 +592,20 @@ export interface MinecraftReactiveEvent extends ReplyEvent, MinecraftRawMessage 
 }
 
 /**
+ * When set on a {@link BroadcastEvent}, Discord text-to-image uses the same layout as bridged guild chat
+ * (channel prefix + skin + body). `imageBodyFormatted` uses Minecraft § codes for Discord only; keep
+ * {@link BroadcastEvent.message} plain for in-game `/gc` and sanitizers.
+ */
+export interface BroadcastGuildChatImageStyle {
+  readonly channelType: ChannelType.Public | ChannelType.Officer
+  readonly skinUsername: string
+  /**
+   * Line body after prefix and `{skin}`; Minecraft formatting. If omitted, `message` is used with an implicit leading `§f` when it does not start with `§`.
+   */
+  readonly imageBodyFormatted?: string
+}
+
+/**
  * When a plugin or a component wishes to broadcast a message to all instances.
  */
 export interface BroadcastEvent extends InformEvent {
@@ -613,6 +627,10 @@ export interface BroadcastEvent extends InformEvent {
    * @see ChannelType
    */
   readonly channels: (ChannelType.Public | ChannelType.Officer)[]
+  /**
+   * Discord image mode: render like guild chat instead of a single color prefix from {@link #color}.
+   */
+  readonly guildChatImageStyle?: BroadcastGuildChatImageStyle
 }
 
 /**

@@ -419,32 +419,48 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       instanceName: event.instanceName
     })
     if (this.messageToImage.shouldRenderImage()) {
-      let formatted: string
-      switch (event.color) {
-        case Color.Good: {
-          formatted = `§a`
-          break
+      if (event.guildChatImageStyle !== undefined) {
+        const { channelType, skinUsername, imageBodyFormatted } = event.guildChatImageStyle
+        const prefix = this.getRenderedChannelPrefix(channelType)
+        const body =
+          imageBodyFormatted !== undefined && imageBodyFormatted.length > 0
+            ? imageBodyFormatted
+            : event.message.startsWith('§')
+              ? event.message
+              : `§f${event.message}`
+        const formattedMessage = `${prefix}{skin} ${body}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: skinUsername
+        })
+        await this.sendImageToChannels(event.eventId, channels, image)
+      } else {
+        let formatted: string
+        switch (event.color) {
+          case Color.Good: {
+            formatted = `§a`
+            break
+          }
+          case Color.Bad: {
+            formatted = `§c`
+            break
+          }
+          case Color.Error: {
+            formatted = `§4`
+            break
+          }
+          case Color.Info: {
+            formatted = `§e`
+            break
+          }
+          // eslint-disable-next-line unicorn/no-useless-switch-case
+          case Color.Default:
+          default: {
+            formatted = `§b`
+          }
         }
-        case Color.Bad: {
-          formatted = `§c`
-          break
-        }
-        case Color.Error: {
-          formatted = `§4`
-          break
-        }
-        case Color.Info: {
-          formatted = `§e`
-          break
-        }
-        // eslint-disable-next-line unicorn/no-useless-switch-case
-        case Color.Default:
-        default: {
-          formatted = `§b`
-        }
+        const image = this.messageToImage.generateMessageImageSync(formatted + event.message)
+        await this.sendImageToChannels(event.eventId, channels, image)
       }
-      const image = this.messageToImage.generateMessageImageSync(formatted + event.message)
-      await this.sendImageToChannels(event.eventId, channels, image)
     } else {
       await this.sendEmbedToChannels(event, channels, undefined)
     }
