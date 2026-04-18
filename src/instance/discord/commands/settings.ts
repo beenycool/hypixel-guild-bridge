@@ -58,6 +58,25 @@ interface GuildReactionMessageEditorConfig {
   fallbackMessages: string[]
   getMessages: () => string[]
   setMessages: (messages: string[]) => void
+  /** When set, included in persistence debug logs (per-bridge lists). */
+  debugContext?: { bridgeId?: string }
+}
+
+function logGuildReactionMessageListMutation(
+  config: GuildReactionMessageEditorConfig,
+  action: 'add' | 'edit' | 'delete',
+  data: Record<string, unknown>
+): void {
+  debugSessionLog({
+    hypothesisId: 'H-guild-msg-list',
+    location: `settings.ts:guildReactionMessages:${action}`,
+    message: `Guild reaction message list ${action}`,
+    data: {
+      listKey: config.key,
+      bridgeId: config.debugContext?.bridgeId,
+      ...data
+    }
+  })
 }
 
 function createGuildReactionMessageListOption(config: GuildReactionMessageEditorConfig): CategoryOption {
@@ -65,6 +84,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
     type: OptionType.Category,
     name: config.name,
     description: config.description,
+    stableId: `guild-reaction:${config.key}:root`,
     header:
       `**${config.name}**\n\n` +
       `View existing messages and manage this list.\n` +
@@ -77,6 +97,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
           type: OptionType.Label,
           name: 'Current Messages',
           description: 'Preview of all current messages in this list.',
+          stableId: `guild-reaction:${config.key}:label:empty`,
           getOption: () => formatGuildReactionMessageList(config.getMessages())
         } satisfies LabelOption)
       } else {
@@ -90,6 +111,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             type: OptionType.Label,
             name: `#${index_ + 1} ${formatGuildReactionMessagePreview(raw)}`,
             description: 'Message preview',
+            stableId: `guild-reaction:${config.key}:label:${index_}`,
             getOption: undefined
           } satisfies LabelOption)
 
@@ -97,6 +119,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             type: OptionType.Action,
             name: `Edit Message #${index_ + 1}`,
             description: `Edit message #${index_ + 1}`,
+            stableId: `guild-reaction:${config.key}:edit:${index_}`,
             label: 'Edit',
             style: ButtonStyle.Primary,
             onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
@@ -107,6 +130,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
             type: OptionType.Action,
             name: `Delete Message #${index_ + 1}`,
             description: `Delete message #${index_ + 1}`,
+            stableId: `guild-reaction:${config.key}:delete:${index_}`,
             label: 'Delete',
             style: ButtonStyle.Danger,
             onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
@@ -119,6 +143,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
         type: OptionType.Action,
         name: 'Add Message',
         description: `Add a new custom ${config.key} message.`,
+        stableId: `guild-reaction:${config.key}:add`,
         label: 'Add',
         style: ButtonStyle.Success,
         onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
@@ -146,6 +171,36 @@ async function handleGuildReactionMessageDelete(
   const removed = allMessages[index]
   const newMessages = [...allMessages.slice(0, index), ...allMessages.slice(index + 1)]
   config.setMessages(newMessages)
+
+  const readBack = config.getMessages()
+  if (!areMessageListsEqual(readBack, newMessages)) {
+    logGuildReactionMessageListMutation(config, 'delete', {
+      beforeLen: allMessages.length,
+      expectedLen: newMessages.length,
+      readBackLen: readBack.length,
+      ok: false
+    })
+    config.setMessages(allMessages)
+    await interaction.reply({
+      content:
+        '**Delete failed:** the message list could not be updated. Please try again or check database connectivity.',
+      flags: MessageFlags.Ephemeral
+    })
+    if (helpers) {
+      try {
+        await helpers.updateView()
+      } catch {
+        // ignore update failures
+      }
+    }
+    return true
+  }
+
+  logGuildReactionMessageListMutation(config, 'delete', {
+    beforeLen: allMessages.length,
+    afterLen: readBack.length,
+    ok: true
+  })
 
   await interaction.reply({
     content: `Deleted message: **${formatGuildReactionMessagePreview(removed)}**`,
@@ -233,6 +288,34 @@ async function handleGuildReactionMessageEdit(
   newMessages[index] = value
   config.setMessages(newMessages)
 
+  const readBack = config.getMessages()
+  if (!areMessageListsEqual(readBack, newMessages)) {
+    logGuildReactionMessageListMutation(config, 'edit', {
+      index,
+      expectedLen: newMessages.length,
+      readBackLen: readBack.length,
+      ok: false
+    })
+    config.setMessages(allMessages)
+    await modalInteraction.reply({
+      content:
+        '**Save failed:** the message list could not be updated. Please try again or check database connectivity.',
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  logGuildReactionMessageListMutation(config, 'edit', {
+    index,
+    afterLen: readBack.length,
+    ok: true
+  })
+
+  await modalInteraction.reply({
+    content: `Updated message **#${index + 1}** in **${config.name}**: ${escapeMarkdown(formatGuildReactionMessagePreview(value))}`,
+    flags: MessageFlags.Ephemeral
+  })
+
   assert.ok(modalInteraction.isFromMessage())
   await helpers.updateView(modalInteraction)
   return true
@@ -306,7 +389,37 @@ async function addGuildReactionMessage(
     return true
   }
 
-  config.setMessages([...allMessages, value])
+  const expected = [...allMessages, value]
+  config.setMessages(expected)
+
+  const readBack = config.getMessages()
+  if (!areMessageListsEqual(readBack, expected)) {
+    logGuildReactionMessageListMutation(config, 'add', {
+      beforeLen: allMessages.length,
+      expectedLen: expected.length,
+      readBackLen: readBack.length,
+      ok: false
+    })
+    config.setMessages(allMessages)
+    await modalInteraction.reply({
+      content:
+        '**Save failed:** the message list could not be updated. Please try again or check database connectivity.',
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  logGuildReactionMessageListMutation(config, 'add', {
+    beforeLen: allMessages.length,
+    afterLen: readBack.length,
+    ok: true
+  })
+
+  await modalInteraction.reply({
+    content: `Saved message **#${readBack.length}** in **${config.name}**: ${escapeMarkdown(formatGuildReactionMessagePreview(value))}`,
+    flags: MessageFlags.Ephemeral
+  })
+
   assert.ok(modalInteraction.isFromMessage())
   await helpers.updateView(modalInteraction)
 
@@ -887,7 +1000,8 @@ async function createBridgeOptionAsync(
                   'Messages the bot will randomly say. Use {username} to insert a random online player name.',
                 fallbackMessages: [],
                 getMessages: () => bridgeConfig.getRandomChatterMessages(bridgeId, []),
-                setMessages: (values) => bridgeConfig.setRandomChatterMessages(bridgeId, values)
+                setMessages: (values) => bridgeConfig.setRandomChatterMessages(bridgeId, values),
+                debugContext: { bridgeId }
               })
             ]
           }
@@ -1029,7 +1143,8 @@ async function createBridgeOptionAsync(
                   ),
                 setMessages: (values) => {
                   bridgeConfig.setGuildJoinReactionMessages(bridgeId, values)
-                }
+                },
+                debugContext: { bridgeId }
               }),
               createGuildReactionMessageListOption({
                 key: 'leave',
@@ -1043,7 +1158,8 @@ async function createBridgeOptionAsync(
                   ),
                 setMessages: (values) => {
                   bridgeConfig.setGuildLeaveReactionMessages(bridgeId, values)
-                }
+                },
+                debugContext: { bridgeId }
               }),
               createGuildReactionMessageListOption({
                 key: 'kick',
@@ -1057,7 +1173,8 @@ async function createBridgeOptionAsync(
                   ),
                 setMessages: (values) => {
                   bridgeConfig.setGuildKickReactionMessages(bridgeId, values)
-                }
+                },
+                debugContext: { bridgeId }
               })
             ]
           },

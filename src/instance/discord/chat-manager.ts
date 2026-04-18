@@ -19,6 +19,9 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private static readonly WarnMuteEvery = 10 * 60 * 1000
   private static readonly WarnVerificationEvery = 10 * 60 * 1000
   private readonly lastVerificationWarn = new Map<string, number>()
+  // Throttle repeated warnings for unmapped channels to reduce log spam
+  private readonly lastUnmappedChannelWarn = new Map<string, number>()
+  private readonly unmappedChannelSuppressed = new Map<string, number>()
 
   private readonly messageAssociation: MessageAssociation
   private readonly lastMuteWarn = new Map<string, number>()
@@ -63,9 +66,32 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       channelType = ChannelType.Officer
     } else if (event.guildId) {
       if (bridgeResolver.isMultiBridgeEnabled()) {
-        this.logger.warn(
-          `Ignoring guild message in unmapped channel ${event.channel.id} while multi-bridge routing is enabled`
-        )
+        const now = Date.now()
+        const last = this.lastUnmappedChannelWarn.get(event.channel.id) ?? 0
+        const SUPPRESS_MS = 5 * 60 * 1000 // 5 minutes
+        if (now - last > SUPPRESS_MS) {
+          // Log the warning and reset suppressed counter
+          this.lastUnmappedChannelWarn.set(event.channel.id, now)
+          const suppressed = this.unmappedChannelSuppressed.get(event.channel.id) ?? 0
+          this.unmappedChannelSuppressed.set(event.channel.id, 0)
+          if (suppressed > 0) {
+            this.logger.warn(
+              `Ignoring guild message in unmapped channel ${event.channel.id} while multi-bridge routing is enabled (suppressed ${suppressed} similar warnings in the last ${Math.floor(
+                SUPPRESS_MS / 1000
+              )}s)`
+            )
+          } else {
+            this.logger.warn(
+              `Ignoring guild message in unmapped channel ${event.channel.id} while multi-bridge routing is enabled`
+            )
+          }
+        } else {
+          // increment suppressed counter
+          this.unmappedChannelSuppressed.set(
+            event.channel.id,
+            (this.unmappedChannelSuppressed.get(event.channel.id) ?? 0) + 1
+          )
+        }
       }
       return
     } else {

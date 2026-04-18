@@ -222,14 +222,92 @@ try {
   app = new Application(config, RootDirectory, ConfigsDirectory, I18n.cloneInstance())
 
   const loggers = new Map<string, Logger4js.Logger>()
+
+  // Environment toggle to enable full JSON event dumps for debugging
+  const EVENT_TRACE = Boolean(process.env.EVENT_TRACE || process.env.LOG_EVENT_JSON)
+
+  // Events considered "noisy" (high-volume chat-like events) — emit concise summaries instead
+  const NOISY_EVENTS = new Set([
+    'minecraftChat',
+    'chat',
+    'guildPlayer',
+    'guildGeneral',
+    'minecraftChatEvent',
+    'minecraftSelfBroadcast'
+  ])
+
+  function stripColorCodesAndNormalize(s: unknown): string {
+    if (s == null) return ''
+    const str = String(s)
+    // Strip common Minecraft color codes (e.g. §a) and collapse whitespace
+    return str
+      .replace(/\u00A7[0-9a-fk-or]/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  function truncate(s: string, n = 120): string {
+    if (s.length <= n) return s
+    return s.slice(0, n - 1) + '…'
+  }
+
+  function formatEventSummary(name: string, event: unknown): string {
+    try {
+      const e = event as any
+      const instanceName = e?.instanceName ?? 'unknown'
+      const bridgeId = e?.bridgeId ?? e?.bridge ?? 'n/a'
+      const createdAt = e?.createdAt ?? e?.timestamp ?? undefined
+      const totalMembers = e?.totalMembers ?? e?.memberCount ?? undefined
+
+      // Prefer commonly used message fields
+      const rawMessage = e?.message ?? e?.rawMessage ?? e?.text ?? e?.content ?? ''
+      const clean = truncate(stripColorCodesAndNormalize(rawMessage), 120)
+
+      const parts = [`[${name}]`, `instance=${instanceName}`, `bridge=${bridgeId}`]
+      if (clean.length > 0) parts.push(`msg="${clean.replace(/"/g, "'")}"`)
+      if (totalMembers !== undefined) parts.push(`totalMembers=${totalMembers}`)
+      if (createdAt !== undefined) parts.push(`createdAt=${createdAt}`)
+      return parts.join(' ')
+    } catch (err) {
+      // Fallback to safe JSON if something unexpected happens
+      try {
+        return `[${name}] ${JSON.stringify(event)}`
+      } catch {
+        return `[${name}] (unserializable event)`
+      }
+    }
+  }
+
   app.onAny((name, event) => {
-    const instanceName = (event as any).instanceName ?? 'unknown'
+    const instanceName = (event as any)?.instanceName ?? 'unknown'
     let instanceLogger = loggers.get(instanceName)
     if (instanceLogger === undefined) {
       instanceLogger = Instance.createLogger(instanceName)
       loggers.set(instanceName, instanceLogger)
     }
-    instanceLogger.log(`[${name}] ${JSON.stringify(event)}`)
+
+    // If EVENT_TRACE is enabled, keep the previous full-JSON behaviour for debugging
+    if (EVENT_TRACE) {
+      // try to stringify safely
+      try {
+        instanceLogger.info(`[${name}] ${JSON.stringify(event)}`)
+      } catch {
+        instanceLogger.info(`[${name}] (unserializable event)`)
+      }
+      return
+    }
+
+    // For noisy events, emit a short, human-friendly summary. Other events keep a compact JSON-ish line.
+    if (NOISY_EVENTS.has(name)) {
+      instanceLogger.info(formatEventSummary(name, event))
+    } else {
+      // For everything else, keep the concise JSON line so important info stays visible
+      try {
+        instanceLogger.info(`[${name}] ${JSON.stringify(event)}`)
+      } catch {
+        instanceLogger.info(`[${name}] (unserializable event)`)
+      }
+    }
   })
 
   await app.start()

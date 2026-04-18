@@ -67,6 +67,12 @@ interface BaseOption {
 
   name: string
   description?: string
+  /**
+   * When set, used to resolve Discord `customId` after option objects are recreated
+   * (e.g. from getters). Prevents collisions when multiple options share the same
+   * `name` and `type` (common for repeated "Add" / "Edit" buttons).
+   */
+  stableId?: string
 }
 
 export interface CategoryOption extends BaseOption {
@@ -1609,6 +1615,14 @@ class ViewBuilder {
     // First try strict object identity (fast path)
     for (const [id, optionEntry] of this.ids.entries()) {
       if (option === optionEntry.item) return id
+    }
+
+    const optionStableId = option.stableId
+    if (optionStableId !== undefined && optionStableId.length > 0) {
+      for (const [id, optionEntry] of this.ids.entries()) {
+        const itemStable = optionEntry.item.stableId
+        if (itemStable !== undefined && itemStable === optionStableId) return id
+      }
     }
 
     // Fallback: option objects may be recreated by dynamic getters — match by stable properties
