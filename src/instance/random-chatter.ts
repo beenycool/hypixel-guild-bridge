@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 
 import type Application from '../application'
-import { ChannelType, Color, InstanceType } from '../common/application-event'
+import { ChannelType, Color, GuildPlayerEventType, InstanceType } from '../common/application-event'
 import { Instance } from '../common/instance'
 import Duration from '../utility/duration'
 import { setIntervalAsync } from '../utility/scheduling'
@@ -10,6 +10,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
   private readonly lastSentAt = new Map<string, number>()
   private started = false
   private intervalHandle: NodeJS.Timeout | undefined
+  public pausedBy: string | undefined
 
   constructor(application: Application) {
     super(application, 'random-chatter', InstanceType.Utility)
@@ -39,6 +40,18 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     )
 
     this.application.addShutdownListener(() => this.stop())
+
+    this.application.on('guildPlayer', (event) => {
+      if (this.pausedBy === undefined) return
+      if (event.type !== GuildPlayerEventType.Offline) return
+
+      const offlineName = event.user.mojangProfile()?.name
+      if (offlineName !== undefined && offlineName.toLowerCase() === this.pausedBy!.toLowerCase()) {
+        this.logger.info(`random-chatter auto-resumed: ${this.pausedBy} logged out`)
+        this.pausedBy = undefined
+      }
+    })
+
     // Listen for bridge removals to cleanup lastSentAt map
     this.application.on('bridgeConfigChanged', (event) => {
       try {
@@ -66,6 +79,8 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
   }
 
   private async maybeSendForBridge(bridgeId: string): Promise<void> {
+    if (this.pausedBy !== undefined) return
+
     const bridgeConfig = this.application.core.bridgeConfigurations
 
     const enabled = bridgeConfig.getRandomChatterEnabled(bridgeId)

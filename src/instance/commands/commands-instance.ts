@@ -24,6 +24,7 @@ import Boop from './triggers/boop.js'
 import Buildbattle from './triggers/buildbattle'
 import Calculate from './triggers/calculate.js'
 import Catacomb from './triggers/catacomb.js'
+import Chattermute from './triggers/chattermute.js'
 import Chocolate from './triggers/chocolate'
 import Collection from './triggers/collection'
 import Crimson from './triggers/crimson.js'
@@ -116,6 +117,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Buildbattle(),
       new Calculate(),
       new Catacomb(),
+      new Chattermute(),
       new Chocolate(),
       new Collection(),
       new Crimson(),
