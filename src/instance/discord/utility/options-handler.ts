@@ -231,7 +231,7 @@ export class OptionsHandler {
     // Cached getters (e.g. demotion/promotion rules) recreate option objects; drop stale id/path
     // entries so Discord customIds cannot target orphaned handlers (e.g. Delete on wrong rule).
     const live = new Set(allComponents)
-    for (const [id, entry] of [...this.ids.entries()]) {
+    for (const [id, entry] of this.ids.entries()) {
       if (!live.has(entry.item)) {
         this.ids.delete(id)
       }
@@ -241,7 +241,7 @@ export class OptionsHandler {
 
   /** After dynamic subtrees are rebuilt, path segments may reference removed categories. */
   private sanitizeNavigationPath(): void {
-    const prevLen = this.path.length
+    const previousLength = this.path.length
     let current: CategoryOption | EmbedCategoryOption = this.mainCategory
     const newPath: string[] = []
     for (const seg of this.path) {
@@ -249,17 +249,17 @@ export class OptionsHandler {
       if (entry === undefined) break
       const item = entry.item
       if (item.type !== OptionType.Category && item.type !== OptionType.EmbedCategory) break
-      if (!current.options.some((o) => o === item)) break
+      if (!current.options.includes(item)) break
       newPath.push(seg)
-      current = item as CategoryOption | EmbedCategoryOption
+      current = item
     }
-    if (newPath.length !== prevLen) {
+    if (newPath.length !== previousLength) {
       // #region agent log
       debugSessionLog({
         hypothesisId: 'H7',
         location: 'options-handler.ts:sanitizeNavigationPath',
         message: 'Navigation path trimmed after dynamic options rebuild',
-        data: { prevLen, nextLen: newPath.length }
+        data: { prevLen: previousLength, nextLen: newPath.length }
       })
       // #endregion
     }
@@ -346,24 +346,13 @@ export class OptionsHandler {
     // Rebuild IDs to pick up any dynamically added options
     this.rebuildIds()
 
-    const buildComponents = (): ContainerComponentData[] => [
-      new ViewBuilder(
-        this.mainCategory,
-        this.ids,
-        this.path,
-        this.enabled,
-        this.pages.get(this.getPathKey()) ?? 0,
-        DEFAULT_PAGE_SIZE
-      ).create()
-    ]
-
     if (interaction !== undefined) {
       let refreshedMessage = false
       // Check if the modal interaction is still valid before updating
       if (!interaction.deferred && !interaction.replied) {
         try {
           await interaction.update({
-            components: buildComponents(),
+            components: this.buildCurrentComponents(),
             flags: MessageFlags.IsComponentsV2,
             allowedMentions: { parse: [] }
           })
@@ -375,7 +364,7 @@ export class OptionsHandler {
       if (!refreshedMessage && this.originalReply) {
         try {
           await this.originalReply.edit({
-            components: buildComponents(),
+            components: this.buildCurrentComponents(),
             flags: MessageFlags.IsComponentsV2,
             allowedMentions: { parse: [] }
           })
@@ -411,6 +400,19 @@ export class OptionsHandler {
       // If the message was deleted or we can't edit it, just log and continue
       // Could not update original reply, message might have been deleted
     }
+  }
+
+  private buildCurrentComponents(): ContainerComponentData[] {
+    return [
+      new ViewBuilder(
+        this.mainCategory,
+        this.ids,
+        this.path,
+        this.enabled,
+        this.pages.get(this.getPathKey()) ?? 0,
+        DEFAULT_PAGE_SIZE
+      ).create()
+    ]
   }
 
   private async handleInteraction(

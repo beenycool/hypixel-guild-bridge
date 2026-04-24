@@ -8,7 +8,6 @@ import {
   getCommandSuggestions
 } from '../src/common/commands.js'
 
-// Mock command class for testing
 class TestCommand extends ChatCommandHandler {
   constructor(triggers: string[]) {
     super({
@@ -18,13 +17,12 @@ class TestCommand extends ChatCommandHandler {
     })
   }
 
-  async handler() {
+  handler() {
     return 'test response'
   }
 }
 
-// Mock commands for testing
-const mockCommands = [
+const MockCommands = [
   new TestCommand(['help']),
   new TestCommand(['player']),
   new TestCommand(['guild']),
@@ -35,45 +33,45 @@ const mockCommands = [
   new TestCommand(['networth'])
 ]
 
-void describe('Typo Detection and Suggestion', () => {
-  void test('should find exact matches', () => {
-    const suggestions = getCommandSuggestions(mockCommands, 'help')
+await describe('Typo Detection and Suggestion', async () => {
+  await test('should find exact matches', () => {
+    const suggestions = getCommandSuggestions(MockCommands, 'help')
     assert.strictEqual(suggestions.length, 1)
     assert.ok(suggestions[0].command.triggers.includes('help'))
     assert.strictEqual(suggestions[0].score, 100)
   })
 
-  void test('should suggest similar commands for typos', () => {
-    const suggestions = getCommandSuggestions(mockCommands, 'helps')
+  await test('should suggest similar commands for typos', () => {
+    const suggestions = getCommandSuggestions(MockCommands, 'helps')
     assert.ok(suggestions.length > 0)
     assert.ok(suggestions[0].command.triggers.includes('help'))
   })
 
-  void test('should suggest similar commands for partial matches', () => {
-    const suggestions = getCommandSuggestions(mockCommands, 'play')
+  await test('should suggest similar commands for partial matches', () => {
+    const suggestions = getCommandSuggestions(MockCommands, 'play')
     assert.ok(suggestions.length > 0)
     assert.ok(suggestions[0].command.triggers.includes('player'))
   })
 
-  void test('should get closest command', () => {
-    const closest = getClosestCommand(mockCommands, 'skil')
-    assert.notStrictEqual(closest, null)
+  await test('should get closest command', () => {
+    const closest = getClosestCommand(MockCommands, 'skil')
+    assert.notStrictEqual(closest, undefined)
     assert.ok(closest?.command.triggers.includes('skills'))
   })
 
-  void test('should calculate similarity scores correctly', () => {
+  await test('should calculate similarity scores correctly', () => {
     assert.strictEqual(calculateSimilarityScore('help', 'help'), 1)
     assert.ok(calculateSimilarityScore('hel', 'help') > 0.5)
     assert.ok(calculateSimilarityScore('xyz', 'help') < 0.3)
   })
 
-  void test('should return null for no close matches', () => {
-    const closest = getClosestCommand(mockCommands, 'nonexistentcommand123')
-    assert.strictEqual(closest, null)
+  await test('should return undefined for no close matches', () => {
+    const closest = getClosestCommand(MockCommands, 'nonexistentcommand123')
+    assert.strictEqual(closest, undefined)
   })
 
-  void test('should handle case insensitivity', () => {
-    const suggestions = getCommandSuggestions(mockCommands, 'HELP')
+  await test('should handle case insensitivity', () => {
+    const suggestions = getCommandSuggestions(MockCommands, 'HELP')
     assert.strictEqual(suggestions.length, 1)
     assert.ok(suggestions[0].command.triggers.includes('help'))
   })

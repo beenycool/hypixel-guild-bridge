@@ -6,8 +6,8 @@ import assert from 'node:assert'
 
 import type Application from '../application'
 import { InstanceType } from '../common/application-event'
-import { Instance, InternalInstancePrefix } from '../common/instance'
 import { DatabaseManager } from '../common/database-manager'
+import { Instance, InternalInstancePrefix } from '../common/instance'
 import type {
   DiscordProfile,
   DiscordUser,
@@ -41,13 +41,13 @@ import { Profanity } from './moderation/profanity'
 import type { SavedPunishment } from './moderation/punishments'
 import Punishments from './moderation/punishments'
 import PunishmentsEnforcer from './moderation/punishments-enforcer'
+import { PendingReviewManager } from './rankup/pending-review-manager'
+import { RankupManager } from './rankup/rankup-manager'
 import { SpontaneousEventsConfigurations } from './spontanmous-events-configurations'
 import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
 import { Inactivity } from './users/inactivity'
 import { MojangApi } from './users/mojang'
-import { RankupManager } from './rankup/rankup-manager'
-import { PendingReviewManager } from './rankup/pending-review-manager'
 import ScoresManager from './users/scores-manager'
 import { Verification } from './users/verification'
 
@@ -105,7 +105,10 @@ export class Core extends Instance<InstanceType.Core> {
     this.configurationsManager = new ConfigurationsManager(this.databaseManager)
 
     this.bridgeConfigurations = new BridgeConfigurations(this.configurationsManager, (event) => {
-      void application.emit('bridgeConfigChanged', event)
+      application.emit('bridgeConfigChanged', event).catch((error: unknown) => {
+        this.logger.error('Failed to emit bridgeConfigChanged event')
+        this.logger.error(error)
+      })
     })
     this.discordConfigurations = new DiscordConfigurations(this.configurationsManager)
     this.discordLeaderboards = new DiscordLeaderboards(this.databaseManager)

@@ -27,14 +27,14 @@ export default class Player extends ChatCommandHandler {
     const guildName = guild?.name ?? 'None'
 
     const rank = player.rank
-    const rankPrefix = rank && !['default', 'none'].includes(rank.toLowerCase()) ? `[${rank}] ` : ''
+    const rankPrefix = ['default', 'none'].includes(rank.toLowerCase()) ? '' : `[${rank}] `
 
     const level = formatNumber(player.level, 2)
-    const karma = formatNumber(player.karma ?? 0, 0)
-    const achievementPoints = formatNumber(player.achievementPoints ?? 0, 0)
+    const karma = formatNumber(player.karma, 0)
+    const achievementPoints = formatNumber(player.achievementPoints, 0)
 
     return (
-      `${rankPrefix}${player.nickname ?? givenUsername}'s level: ${level} | ` +
+      `${rankPrefix}${player.nickname}'s level: ${level} | ` +
       `Karma: ${karma} | ` +
       `Achievement Points: ${achievementPoints} | ` +
       `Guild: ${guildName}`

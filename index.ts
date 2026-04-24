@@ -33,47 +33,63 @@ const ConfigsDirectory = process.env.CONFIG_DIR
   ? path.resolve(process.env.CONFIG_DIR)
   : path.resolve(RootDirectory, 'config')
 
-// Default to port 80 if no port is provided (common in containers).
-// We also export INTERNAL_PORT so the application config can use ${INTERNAL_PORT}.
-const externalPort = Number(process.env.PORT ?? 80)
-const internalPort = Number(process.env.INTERNAL_PORT ?? 9091)
-const prometheusPort = Number(process.env.PROMETHEUS_PORT ?? 9090)
-process.env.INTERNAL_PORT = String(internalPort)
-
-console.log(`Starting application...`)
-console.log(`Root Directory: ${RootDirectory}`)
-console.log(`Config Directory: ${ConfigsDirectory}`)
-console.log(`Environment:`)
-console.log(`PORT: ${process.env.PORT}`)
-console.log(`INTERNAL_PORT: ${process.env.INTERNAL_PORT}`)
-
 try {
   if (!fs.existsSync(ConfigsDirectory)) {
-    console.log(`Creating config directory: ${ConfigsDirectory}`)
     fs.mkdirSync(ConfigsDirectory, { recursive: true })
   }
 } catch (error) {
-  console.error(`Failed to create config directory: ${ConfigsDirectory}`, error)
-  // Don't exit, let it try to continue or fail later with better logs
+  console.warn(`Failed to create config directory: ${ConfigsDirectory}`, error)
 }
+
+const LoggerConfigName = 'log4js-config.json'
+const LoggerPath = path.join(ConfigsDirectory, LoggerConfigName)
+if (!fs.existsSync(LoggerPath)) {
+  try {
+    fs.copyFileSync(path.join(RootDirectory, 'src', LoggerConfigName), LoggerPath)
+  } catch (error) {
+    console.error('Failed to copy logger config file:', error)
+  }
+}
+let LoggerConfig: Configuration
+try {
+  LoggerConfig = JSON.parse(fs.readFileSync(LoggerPath, 'utf8')) as Configuration
+} catch (error) {
+  console.error('Failed to parse logger config:', error)
+  throw error
+}
+const Logger = Logger4js.configure(LoggerConfig).getLogger('Main')
+
+// Default to port 80 if no port is provided (common in containers).
+// We also export INTERNAL_PORT so the application config can use ${INTERNAL_PORT}.
+const ExternalPort = Number(process.env.PORT ?? 80)
+const InternalPort = Number(process.env.INTERNAL_PORT ?? 9091)
+const PrometheusPort = Number(process.env.PROMETHEUS_PORT ?? 9090)
+process.env.INTERNAL_PORT = String(InternalPort)
+
+Logger.info('Starting application...')
+Logger.info(`Root Directory: ${RootDirectory}`)
+Logger.info(`Config Directory: ${ConfigsDirectory}`)
+Logger.info('Environment:')
+Logger.info(`PORT: ${process.env.PORT}`)
+Logger.info(`INTERNAL_PORT: ${process.env.INTERNAL_PORT}`)
 
 // Start a lightweight health/proxy server immediately so load balancers get fast `/health`/`/uptime`.
 // It listens on the external port (PORT) and responds 200 on `/uptime` quickly.
 // All other requests are proxied to the internal application port (INTERNAL_PORT) so
 // the real web server can boot on the internal port without exposing the slow startup window.
-const processStartTime = Date.now()
+const ProcessStartTime = Date.now()
 
-const healthServer = http.createServer((request, res) => {
+const HealthServer = http.createServer((request, response) => {
   try {
     const url = request.url ?? '/'
     if (url.split('?')[0] === '/uptime' || url.split('?')[0] === '/health') {
       // Respond immediately for probes
-      res.writeHead(200, { 'Content-Type': 'application/json' })
-      res.end(
+      response.writeHead(200, { ['Content-Type']: 'application/json' })
+      response.end(
         JSON.stringify({
           status: 'ok',
-          uptime: Date.now() - processStartTime,
-          version: PackageJson?.version ?? process.env.npm_package_version
+          uptime: Date.now() - ProcessStartTime,
+          version: PackageJson.version
         })
       )
       return
@@ -85,60 +101,54 @@ const healthServer = http.createServer((request, res) => {
       const metricsToken = process.env.GRAFANA_METRICS_TOKEN
       if (metricsToken) {
         const authHeader = request.headers.authorization
-        const queryToken = url.includes('?') ? new URLSearchParams(url.split('?')[1]).get('token') : null
-        const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+        const queryToken = url.includes('?') ? new URLSearchParams(url.split('?')[1]).get('token') : undefined
+        const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
         const basicMatch = authHeader?.startsWith('Basic ')
           ? Buffer.from(authHeader.slice(6), 'base64').toString().split(':')[1]
-          : null
+          : undefined
         const tokenOk = queryToken === metricsToken || bearer === metricsToken || basicMatch === metricsToken
         if (!tokenOk) {
-          res.writeHead(401, { 'Content-Type': 'text/plain' })
-          res.end('Unauthorized')
+          response.writeHead(401, { ['Content-Type']: 'text/plain' })
+          response.end('Unauthorized')
           return
         }
       }
     }
-    const proxyPort = pathname === '/metrics' || pathname === '/ping' ? prometheusPort : internalPort
+    const proxyPort = pathname === '/metrics' || pathname === '/ping' ? PrometheusPort : InternalPort
 
     const proxy = http.request(
       { hostname: '127.0.0.1', port: proxyPort, path: url, method: request.method, headers: request.headers },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers)
-        proxyRes.pipe(res, { end: true })
+      (proxyResponse) => {
+        response.writeHead(proxyResponse.statusCode ?? 200, proxyResponse.headers)
+        proxyResponse.pipe(response, { end: true })
       }
     )
 
-    proxy.on('error', () => {
-      res.writeHead(502)
-      res.end('Bad gateway')
+    proxy.on('error', (error) => {
+      console.error('Proxy error:', error)
+      response.writeHead(502)
+      response.end('Bad gateway')
     })
 
     request.pipe(proxy, { end: true })
-  } catch {
-    res.writeHead(500)
-    res.end('Internal error')
+  } catch (error) {
+    console.error('Health proxy request error:', error)
+    response.writeHead(500)
+    response.end('Internal error')
   }
 })
 
-healthServer.on('clientError', () => {
+HealthServer.on('clientError', () => {
   // ignore occasional client errors from probes
 })
 
-healthServer.listen(externalPort, () => {
-  // avoid log4js (not configured yet), use console for early message
-  console.log(`Health proxy listening on port ${externalPort} → proxying to ${internalPort}`)
+HealthServer.listen(ExternalPort, () => {
+  Logger.info(`Health proxy listening on port ${ExternalPort} → proxying to ${InternalPort}`)
 })
 
-process.on('SIGINT', () => healthServer.close())
-process.on('SIGTERM', () => healthServer.close())
+process.on('SIGINT', () => HealthServer.close())
+process.on('SIGTERM', () => HealthServer.close())
 
-const LoggerConfigName = 'log4js-config.json'
-const LoggerPath = path.join(ConfigsDirectory, LoggerConfigName)
-if (!fs.existsSync(LoggerPath)) {
-  fs.copyFileSync(path.join(RootDirectory, 'src', LoggerConfigName), LoggerPath)
-}
-const LoggerConfig = JSON.parse(fs.readFileSync(LoggerPath, 'utf8')) as Configuration
-const Logger = Logger4js.configure(LoggerConfig).getLogger('Main')
 let app: Application | undefined
 
 Logger.debug('Setting up process...')
@@ -179,7 +189,11 @@ if (process.argv.includes('test-run')) {
   await gracefullyExitProcess(0)
 }
 
-const File = process.env.CONFIG_PATH ?? process.argv[2] ?? './config.yaml'
+const ConfigPath = ((): string => {
+  if (process.env.CONFIG_PATH) return process.env.CONFIG_PATH
+  if (process.argv[2]) return process.argv[2]
+  return './config.yaml'
+})()
 let config: ReturnType<typeof loadApplicationConfig>
 
 // Priority order for loading configuration:
@@ -208,14 +222,28 @@ if (process.env.CONFIG_B64) {
     throw new Error('Process should have exited')
   }
 } else {
-  if (!fs.existsSync(File)) {
-    Logger.fatal(`File ${File} does not exist.`)
+  if (!fs.existsSync(ConfigPath)) {
+    Logger.fatal(`File ${ConfigPath} does not exist.`)
     Logger.fatal(`You can rename config_example.yaml to config.yaml and use it as the configuration file.`)
     Logger.fatal(`If this is the first time running the application, please read README.md before proceeding.`)
     await gracefullyExitProcess(1)
     throw new Error('Process should have exited')
   }
-  config = loadApplicationConfig(File)
+  config = loadApplicationConfig(ConfigPath)
+}
+
+interface WebSocketEventData {
+  instanceName?: string
+  bridge?: string
+  bridgeId?: string
+  timestamp?: number
+  createdAt?: string
+  totalMembers?: number
+  memberCount?: number
+  message?: string
+  rawMessage?: string
+  text?: string
+  content?: string
 }
 
 try {
@@ -224,10 +252,10 @@ try {
   const loggers = new Map<string, Logger4js.Logger>()
 
   // Environment toggle to enable full JSON event dumps for debugging
-  const EVENT_TRACE = Boolean(process.env.EVENT_TRACE || process.env.LOG_EVENT_JSON)
+  const EventTrace = Boolean(process.env.EVENT_TRACE ?? process.env.LOG_EVENT_JSON)
 
   // Events considered "noisy" (high-volume chat-like events) — emit concise summaries instead
-  const NOISY_EVENTS = new Set([
+  const NoisyEvents = new Set([
     'minecraftChat',
     'chat',
     'guildPlayer',
@@ -237,12 +265,13 @@ try {
   ])
 
   function stripColorCodesAndNormalize(s: unknown): string {
-    if (s == null) return ''
-    const str = String(s)
+    if (s == undefined) return ''
+    if (typeof s !== 'string' && typeof s !== 'number' && typeof s !== 'boolean') return ''
+    const inputString = String(s)
     // Strip common Minecraft color codes (e.g. §a) and collapse whitespace
-    return str
-      .replace(/\u00A7[0-9a-fk-or]/gi, '')
-      .replace(/\s+/g, ' ')
+    return inputString
+      .replaceAll(/\u00A7[0-9a-fk-or]/gi, '')
+      .replaceAll(/\s+/g, ' ')
       .trim()
   }
 
@@ -253,22 +282,23 @@ try {
 
   function formatEventSummary(name: string, event: unknown): string {
     try {
-      const e = event as any
-      const instanceName = e?.instanceName ?? 'unknown'
-      const bridgeId = e?.bridgeId ?? e?.bridge ?? 'n/a'
-      const createdAt = e?.createdAt ?? e?.timestamp ?? undefined
-      const totalMembers = e?.totalMembers ?? e?.memberCount ?? undefined
+      const eventData = event as WebSocketEventData
+      const instanceName = eventData.instanceName ?? 'unknown'
+      const bridgeId = eventData.bridgeId ?? eventData.bridge ?? 'n/a'
+      const createdAt = eventData.createdAt ?? eventData.timestamp
+      const totalMembers = eventData.totalMembers ?? eventData.memberCount
 
       // Prefer commonly used message fields
-      const rawMessage = e?.message ?? e?.rawMessage ?? e?.text ?? e?.content ?? ''
+      const rawMessage = eventData.message ?? eventData.rawMessage ?? eventData.text ?? eventData.content ?? ''
       const clean = truncate(stripColorCodesAndNormalize(rawMessage), 120)
 
       const parts = [`[${name}]`, `instance=${instanceName}`, `bridge=${bridgeId}`]
-      if (clean.length > 0) parts.push(`msg="${clean.replace(/"/g, "'")}"`)
+      if (clean.length > 0) parts.push(`msg="${clean.replaceAll('"', "'")}"`)
       if (totalMembers !== undefined) parts.push(`totalMembers=${totalMembers}`)
       if (createdAt !== undefined) parts.push(`createdAt=${createdAt}`)
       return parts.join(' ')
-    } catch (err) {
+    } catch (error) {
+      Logger.debug('formatEventSummary error:', error)
       // Fallback to safe JSON if something unexpected happens
       try {
         return `[${name}] ${JSON.stringify(event)}`
@@ -279,15 +309,16 @@ try {
   }
 
   app.onAny((name, event) => {
-    const instanceName = (event as any)?.instanceName ?? 'unknown'
+    const eventData = event as WebSocketEventData
+    const instanceName = eventData.instanceName ?? 'unknown'
     let instanceLogger = loggers.get(instanceName)
     if (instanceLogger === undefined) {
       instanceLogger = Instance.createLogger(instanceName)
       loggers.set(instanceName, instanceLogger)
     }
 
-    // If EVENT_TRACE is enabled, keep the previous full-JSON behaviour for debugging
-    if (EVENT_TRACE) {
+    // If EventTrace is enabled, keep the previous full-JSON behaviour for debugging
+    if (EventTrace) {
       // try to stringify safely
       try {
         instanceLogger.info(`[${name}] ${JSON.stringify(event)}`)
@@ -298,7 +329,7 @@ try {
     }
 
     // For noisy events, emit a short, human-friendly summary. Other events keep a compact JSON-ish line.
-    if (NOISY_EVENTS.has(name)) {
+    if (NoisyEvents.has(name)) {
       instanceLogger.info(formatEventSummary(name, event))
     } else {
       // For everything else, keep the concise JSON line so important info stays visible

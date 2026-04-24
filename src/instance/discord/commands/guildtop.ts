@@ -37,7 +37,7 @@ export default {
 
     const members = guild.members
       .map((member) => ({ member, exp: getGuildExperience(member, days) }))
-      .sort((a, b) => b.exp - a.exp)
+      .toSorted((a, b) => b.exp - a.exp)
       .slice(0, MaxResults)
 
     const results: { rank: number; username: string; exp: number }[] = []
@@ -52,11 +52,11 @@ export default {
 } satisfies DiscordCommandHandler
 
 function getGuildExperience(member: GuildMember, days?: number): number {
-  if (!days || days <= 0) return member.weeklyExperience ?? 0
+  if (days === undefined || days <= 0) return member.weeklyExperience
 
-  if (!member.expHistory || member.expHistory.length === 0) return member.weeklyExperience ?? 0
+  if (member.expHistory.length === 0) return member.weeklyExperience
 
-  const sortedHistory = [...member.expHistory].sort((a, b) => b.date.getTime() - a.date.getTime())
+  const sortedHistory = [...member.expHistory].toSorted((a, b) => b.date.getTime() - a.date.getTime())
   return sortedHistory.slice(0, Math.min(days, sortedHistory.length)).reduce((total, entry) => total + entry.exp, 0)
 }
 

@@ -1,4 +1,4 @@
-import type { Client, Guild } from 'discord.js'
+import type { Channel, Client, Guild } from 'discord.js'
 import { DiscordAPIError, GuildChannel } from 'discord.js'
 import type { Guild as HypixelGuild } from 'hypixel-api-reborn'
 import type { Logger } from 'log4js'
@@ -77,7 +77,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     const discordStatsCache = new Map<string, DiscordStats>()
 
     for (const channelInfo of config.channels) {
-      let channel
+      let channel: Channel | null
       try {
         channel = await client.channels.fetch(channelInfo.id)
       } catch (error: unknown) {
@@ -195,5 +195,5 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 }
 
 function replaceVariables(template: string, variables: StatsVariables): string {
-  return template.replaceAll(/\{(\w+)\}/g, (match, name) => variables[name] ?? match)
+  return template.replaceAll(/\{(\w+)\}/g, (match, name: string) => variables[name] ?? match)
 }

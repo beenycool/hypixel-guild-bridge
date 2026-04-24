@@ -33,14 +33,14 @@ import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.j
 import type { User } from '../../common/user'
 import { beautifyInstanceName } from '../../utility/shared-utility'
 
-import type { ResolvedDiscordMentions } from './common/minecraft-discord-mentions.js'
-import { resolveDiscordMentionsInMessage } from './common/minecraft-discord-mentions.js'
 import { BlockReaction, GuildMutedReaction, RepeatReaction } from './common/discord-config.js'
 import { InstanceStatusManager } from './common/instance-status-manager'
 import type MessageAssociation from './common/message-association.js'
 import type { DiscordAssociatedMessage } from './common/message-association.js'
 import MessageDeleter from './common/message-deletor.js'
 import MessageToImage from './common/message-to-image.js'
+import { resolveDiscordMentionsInMessage } from './common/minecraft-discord-mentions.js'
+import type { ResolvedDiscordMentions } from './common/minecraft-discord-mentions.js'
 import type DiscordInstance from './discord-instance.js'
 
 export default class DiscordBridge extends Bridge<DiscordInstance> {
@@ -96,7 +96,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     const effectiveBridgeId =
       bridgeId ??
-      (routingHint !== undefined ? bridgeResolver.getBridgeIdForInstance(routingHint.instanceName) : undefined)
+      (routingHint === undefined ? undefined : bridgeResolver.getBridgeIdForInstance(routingHint.instanceName))
 
     let results: string[]
     if (bridgeResolver.isMultiBridgeEnabled()) {
@@ -104,10 +104,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         results = this.resolveBridgeScopedChannels(channels, effectiveBridgeId)
       } else if (routingHint?.kind === 'broadcast') {
         results = this.resolveAllBridgeChannels(channels)
-      } else if (routingHint !== undefined) {
-        results = []
-      } else {
+      } else if (routingHint === undefined) {
         results = this.resolveChannels(channels)
+      } else {
+        results = []
       }
     } else {
       results = this.resolveChannels(channels)
@@ -192,7 +192,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         await this.sendImageToChannels(event.eventId, [channelId], image)
         if (mentions !== undefined && mentions.userIds.length > 0) {
           const channel = this.clientInstance.getClient().channels.cache.get(channelId)
-          if (channel !== undefined && channel.isSendable()) {
+          if (channel?.isSendable()) {
             await channel.send({
               content: mentions.userIds.map((id) => `<@${id}>`).join(' '),
               allowedMentions: { parse: [], users: mentions.userIds }
@@ -419,21 +419,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       instanceName: event.instanceName
     })
     if (this.messageToImage.shouldRenderImage()) {
-      if (event.guildChatImageStyle !== undefined) {
-        const { channelType, skinUsername, imageBodyFormatted } = event.guildChatImageStyle
-        const prefix = this.getRenderedChannelPrefix(channelType)
-        const body =
-          imageBodyFormatted !== undefined && imageBodyFormatted.length > 0
-            ? imageBodyFormatted
-            : event.message.startsWith('§')
-              ? event.message
-              : `§f${event.message}`
-        const formattedMessage = `${prefix}{skin} ${body}`
-        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: skinUsername
-        })
-        await this.sendImageToChannels(event.eventId, channels, image)
-      } else {
+      if (event.guildChatImageStyle === undefined) {
         let formatted: string
         switch (event.color) {
           case Color.Good: {
@@ -459,6 +445,20 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           }
         }
         const image = this.messageToImage.generateMessageImageSync(formatted + event.message)
+        await this.sendImageToChannels(event.eventId, channels, image)
+      } else {
+        const { channelType, skinUsername, imageBodyFormatted } = event.guildChatImageStyle
+        const prefix = this.getRenderedChannelPrefix(channelType)
+        const body =
+          imageBodyFormatted !== undefined && imageBodyFormatted.length > 0
+            ? imageBodyFormatted
+            : event.message.startsWith('§')
+              ? event.message
+              : `§f${event.message}`
+        const formattedMessage = `${prefix}{skin} ${body}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: skinUsername
+        })
         await this.sendImageToChannels(event.eventId, channels, image)
       }
     } else {
@@ -530,23 +530,29 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
   private getChannelPrefix(channelType: ChannelType): string {
     switch (channelType) {
-      case ChannelType.Officer:
+      case ChannelType.Officer: {
         return 'Officer > '
-      case ChannelType.Public:
+      }
+      case ChannelType.Public: {
         return 'Guild > '
-      default:
+      }
+      default: {
         return ''
+      }
     }
   }
 
   private getRenderedChannelPrefix(channelType: ChannelType): string {
     switch (channelType) {
-      case ChannelType.Officer:
+      case ChannelType.Officer: {
         return '§3Officer §3> '
-      case ChannelType.Public:
+      }
+      case ChannelType.Public: {
         return '§2Guild §2> '
-      default:
+      }
+      default: {
         return ''
+      }
     }
   }
 

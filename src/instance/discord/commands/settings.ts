@@ -106,37 +106,37 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
         const messages = config.getMessages()
         // For each message, expose a label and explicit Edit / Delete actions
         for (let index = 0; index < messages.length; index++) {
-          const index_ = index
-          const raw = messages[index_]
+          const messageIndex = index
+          const raw = messages[messageIndex]
 
           options.push({
             type: OptionType.Label,
-            name: `#${index_ + 1} ${formatGuildReactionMessagePreview(raw)}`,
+            name: `#${messageIndex + 1} ${formatGuildReactionMessagePreview(raw)}`,
             description: 'Message preview',
-            stableId: `guild-reaction:${config.scopeId}:${config.key}:label:${index_}`,
+            stableId: `guild-reaction:${config.scopeId}:${config.key}:label:${messageIndex}`,
             getOption: undefined
           } satisfies LabelOption)
 
           options.push({
             type: OptionType.Action,
-            name: `Edit Message #${index_ + 1}`,
-            description: `Edit message #${index_ + 1}`,
-            stableId: `guild-reaction:${config.scopeId}:${config.key}:edit:${index_}`,
+            name: `Edit Message #${messageIndex + 1}`,
+            description: `Edit message #${messageIndex + 1}`,
+            stableId: `guild-reaction:${config.scopeId}:${config.key}:edit:${messageIndex}`,
             label: 'Edit',
             style: ButtonStyle.Primary,
-            onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
-              handleGuildReactionMessageEdit(interaction, config, index_, helpers)
+            onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) =>
+              handleGuildReactionMessageEdit(interaction, config, messageIndex, helpers)
           } satisfies ActionOption)
 
           options.push({
             type: OptionType.Action,
-            name: `Delete Message #${index_ + 1}`,
-            description: `Delete message #${index_ + 1}`,
-            stableId: `guild-reaction:${config.scopeId}:${config.key}:delete:${index_}`,
+            name: `Delete Message #${messageIndex + 1}`,
+            description: `Delete message #${messageIndex + 1}`,
+            stableId: `guild-reaction:${config.scopeId}:${config.key}:delete:${messageIndex}`,
             label: 'Delete',
             style: ButtonStyle.Danger,
-            onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
-              handleGuildReactionMessageDelete(interaction, config, index_, helpers)
+            onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) =>
+              handleGuildReactionMessageDelete(interaction, config, messageIndex, helpers)
           } satisfies ActionOption)
         }
       }
@@ -148,7 +148,7 @@ function createGuildReactionMessageListOption(config: GuildReactionMessageEditor
         stableId: `guild-reaction:${config.scopeId}:${config.key}:add`,
         label: 'Add',
         style: ButtonStyle.Success,
-        onInteraction: async (interaction: ButtonInteraction, _errorHandler, helpers) =>
+        onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) =>
           addGuildReactionMessage(interaction, config, helpers)
       } satisfies ActionOption)
 
@@ -278,7 +278,7 @@ async function handleGuildReactionMessageEdit(
   }
 
   // Prevent duplicates (allow replacing same index with same value)
-  if (allMessages.some((message_, index_) => index_ !== index && message_ === value)) {
+  if (allMessages.some((message, messageIndex) => messageIndex !== index && message === value)) {
     await modalInteraction.reply({
       content: `This message already exists in **${config.name}**.`,
       flags: MessageFlags.Ephemeral
@@ -973,7 +973,9 @@ async function createBridgeOptionAsync(
                 min: 1,
                 max: 1440,
                 getOption: () => bridgeConfig.getRandomChatterIntervalMinutes(bridgeId),
-                setOption: (value) => bridgeConfig.setRandomChatterIntervalMinutes(bridgeId, value)
+                setOption: (value) => {
+                  bridgeConfig.setRandomChatterIntervalMinutes(bridgeId, value)
+                }
               },
               {
                 type: OptionType.Number,
@@ -982,19 +984,22 @@ async function createBridgeOptionAsync(
                 min: 1,
                 max: 100,
                 getOption: () => bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId),
-                setOption: (value) => bridgeConfig.setRandomChatterMinimumOnlinePlayers(bridgeId, value)
+                setOption: (value) => {
+                  bridgeConfig.setRandomChatterMinimumOnlinePlayers(bridgeId, value)
+                }
               },
               {
                 type: OptionType.Boolean,
-                name: 'Include Player Name',
+                name: 'Use Bot Name Instead of Random Player',
                 description:
-                  'When on: replace {username} in a line with a random online player, or prefix plain lines as "Username: message" (guild-chat style). When off: send templates exactly as written.',
+                  'When ON: use this bridge bot\'s Minecraft username for {username} and prefix plain lines as "BotName: message".\nWhen OFF: send templates exactly as written or leave {username} to be substituted by a random online player.',
                 getOption: () => bridgeConfig.getRandomChatterIncludePlayerName(bridgeId),
-                toggleOption: () =>
+                toggleOption: () => {
                   bridgeConfig.setRandomChatterIncludePlayerName(
                     bridgeId,
                     !bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
                   )
+                }
               },
               createGuildReactionMessageListOption({
                 scopeId: bridgeId,
@@ -1004,9 +1009,58 @@ async function createBridgeOptionAsync(
                   'One message per line. Use {username} where you want a random online player name. If Include Player Name is on and a line has no {username}, the bot prefixes a random online player as Username: …',
                 fallbackMessages: [],
                 getMessages: () => bridgeConfig.getRandomChatterMessages(bridgeId, []),
-                setMessages: (values) => bridgeConfig.setRandomChatterMessages(bridgeId, values),
+                setMessages: (values) => {
+                  bridgeConfig.setRandomChatterMessages(bridgeId, values)
+                },
                 debugContext: { bridgeId }
-              })
+              }),
+              {
+                type: OptionType.Number,
+                name: 'Anti-Repeat Length',
+                description:
+                  'Avoid reusing the same message within the last N sent messages for this bridge (0 = disabled).',
+                min: 0,
+                max: 50,
+                getOption: () => bridgeConfig.getRandomChatterAntiRepeatLength(bridgeId),
+                setOption: (value) => {
+                  bridgeConfig.setRandomChatterAntiRepeatLength(bridgeId, value)
+                }
+              },
+              {
+                type: OptionType.Number,
+                name: 'Quiet Window Minutes',
+                description:
+                  'If set, suppress random chatter for this many minutes after real guild chat activity (0 = disabled).',
+                min: 0,
+                max: 60,
+                getOption: () => bridgeConfig.getRandomChatterQuietWindowMinutes(bridgeId),
+                setOption: (value) => {
+                  bridgeConfig.setRandomChatterQuietWindowMinutes(bridgeId, value)
+                }
+              },
+              {
+                type: OptionType.Action,
+                name: 'Send Test Chatter',
+                description: 'Send one test random chatter message now for this bridge.',
+                stableId: `guild-reaction:${bridgeId}:randomChatter:sendTest`,
+                label: 'Send Test',
+                style: ButtonStyle.Primary,
+                onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) => {
+                  try {
+                    const result = await application.randomChatter.sendTest(bridgeId)
+                    await interaction.reply({
+                      content: result.sent ? `Sent: ${result.message}` : `Not sent: ${result.reason}`,
+                      flags: MessageFlags.Ephemeral
+                    })
+                  } catch (error) {
+                    await interaction.reply({
+                      content: `Failed to send test chatter: ${String(error)}`,
+                      flags: MessageFlags.Ephemeral
+                    })
+                  }
+                  return true
+                }
+              }
             ]
           }
         ]
@@ -1515,7 +1569,9 @@ async function createBridgeOptionAsync(
             description: 'Manually trigger the rankup check for this bridge.',
             label: 'Run Check',
             style: ButtonStyle.Primary,
-            onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
+            onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) => {
+              void errorHandler
+              void helpers
               await application.core.rankupManager.runTaskForBridge(bridgeId)
               await interaction.reply({
                 content: 'Rankup check triggered for this bridge.',
@@ -1624,7 +1680,9 @@ async function createBridgeOptionAsync(
                       name: 'Delete Rule',
                       label: 'Delete',
                       style: ButtonStyle.Danger,
-                      onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
+                      onInteraction: async (interaction, errorHandler, helpers) => {
+                        void errorHandler
+                        void helpers
                         const previous = bridgeConfig.getRankupRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
@@ -1654,7 +1712,9 @@ async function createBridgeOptionAsync(
                 name: 'Add Promotion Rule',
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
-                onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
+                onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) => {
+                  void errorHandler
+                  void helpers
                   const newRules = [...bridgeConfig.getRankupRules(bridgeId)]
                   newRules.push({
                     targetRank: guildRanks.length > 0 ? guildRanks[0] : 'Member',
@@ -1894,7 +1954,9 @@ async function createBridgeOptionAsync(
                       name: 'Delete Rule',
                       label: 'Delete',
                       style: ButtonStyle.Danger,
-                      onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
+                      onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) => {
+                        void errorHandler
+                        void helpers
                         const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                         // #region agent log
                         debugSessionLog({
@@ -1924,7 +1986,9 @@ async function createBridgeOptionAsync(
                 name: 'Add Demotion Rule',
                 label: 'Add Rule',
                 style: ButtonStyle.Success,
-                onInteraction: async (interaction: ButtonInteraction, _errorHandler, _helpers) => {
+                onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) => {
+                  void errorHandler
+                  void helpers
                   const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                   const newRules = [...previous]
                   newRules.push({
@@ -2013,7 +2077,9 @@ async function createBridgeOptionAsync(
             description: `Permanently delete bridge "${bridgeId}" and all its configurations.`,
             label: 'delete',
             style: ButtonStyle.Danger,
-            onInteraction: async (interaction, _errorHandler, _helpers) => {
+            onInteraction: async (interaction, errorHandler, helpers) => {
+              void errorHandler
+              void helpers
               bridgeConfig.removeBridgeId(bridgeId)
               application.bridgeResolver.rebuildLookupMaps()
 
@@ -2059,7 +2125,9 @@ async function fetchBridgeOptions(application: Application, context: DiscordComm
       description: 'Create a new bridge to connect Minecraft instances to specific Discord channels.',
       label: 'create',
       style: ButtonStyle.Success,
-      onInteraction: async (interaction, _errorHandler, _helpers) => {
+      onInteraction: async (interaction, errorHandler, helpers) => {
+        void errorHandler
+        void helpers
         await interaction.showModal({
           customId: 'bridge-create',
           title: 'Create New Bridge',
@@ -3043,7 +3111,8 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             description: 'Fetch Minecraft instances status.',
             label: 'fetch',
             style: ButtonStyle.Primary,
-            onInteraction: async (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) => {
+            onInteraction: async (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, helpers) => {
+              void helpers
               try {
                 return await minecraftInstancesStatus(
                   application,
@@ -3063,8 +3132,10 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             description: 'Add a Minecraft instance.',
             label: 'add',
             style: ButtonStyle.Success,
-            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) =>
-              minecraftInstanceAdd(application, interaction, errorHandler, context.bridgeId)
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, helpers) => {
+              void helpers
+              return minecraftInstanceAdd(application, interaction, errorHandler, context.bridgeId)
+            }
           },
           {
             type: OptionType.Action,
@@ -3072,14 +3143,16 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
             description: 'Remove a Minecraft instance.',
             label: 'remove',
             style: ButtonStyle.Danger,
-            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) =>
-              minecraftInstanceRemove(
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, helpers) => {
+              void helpers
+              return minecraftInstanceRemove(
                 application,
                 interaction,
                 errorHandler,
                 context.bridgeId,
                 context.permission === Permission.Admin
               )
+            }
           },
           {
             type: OptionType.Action,
@@ -3088,8 +3161,10 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
               'Import Microsoft authentication cache from JSON. Paste the JSON content from your auth-cache files.',
             label: 'import',
             style: ButtonStyle.Secondary,
-            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, _helpers) =>
-              minecraftInstanceImportAuthCache(application, interaction, errorHandler, context.bridgeId)
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, helpers) => {
+              void helpers
+              return minecraftInstanceImportAuthCache(application, interaction, errorHandler, context.bridgeId)
+            }
           }
         ] as ActionOption[]
       }

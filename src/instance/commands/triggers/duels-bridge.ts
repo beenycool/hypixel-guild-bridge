@@ -17,7 +17,7 @@ export default class DuelsBridge extends ChatCommandHandler {
   async handler(context: ChatCommandContext): Promise<string> {
     const underlying = new Duels()
 
-    const firstArgument = context.args[0]?.toLowerCase()
+const firstArgument = context.args[0]?.toLowerCase()
     const subMode = firstArgument ? BridgeSubModeAliases.get(firstArgument) : undefined
 
     if (subMode) {
@@ -28,7 +28,7 @@ export default class DuelsBridge extends ChatCommandHandler {
       return await underlying.handler(newContext)
     }
 
-    const newContext = { ...context, args: ['bridge', ...context.args] } as ChatCommandContext
+    const newContext = { ...context, args: ['bridge', ...context.args] } as ChatCommandContext)
     return await underlying.handler(newContext)
   }
 }

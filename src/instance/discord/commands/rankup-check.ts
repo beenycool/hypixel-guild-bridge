@@ -1,7 +1,7 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 
-import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 import { Permission } from '../../../common/application-event'
+import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 import { RulesEvaluator } from '../../../core/rankup/rules-evaluator'
 
 export default {
@@ -19,35 +19,38 @@ export default {
     await interaction.deferReply()
 
     if (!bridgeId) {
-        await interaction.editReply('This command must be run in a bridge context.')
-        return
+      await interaction.editReply('This command must be run in a bridge context.')
+      return
     }
 
     const username = interaction.options.getString('username', true)
-    
+
     // Check if we can get guild data.
-    const uuid = await application.mojangApi.profileByUsername(username).then((p) => p.id).catch(() => null)
+    const uuid = await application.mojangApi
+      .profileByUsername(username)
+      .then((p) => p.id)
+      .catch(() => undefined)
     if (!uuid) {
       await interaction.editReply('Invalid username.')
       return
     }
-    
+
     const bridgeConfig = application.core.bridgeConfigurations
-    
+
     const instances = bridgeConfig.getMinecraftInstances(bridgeId)
     if (instances.length === 0) {
       await interaction.editReply('No Minecraft instances configured for this bridge.')
       return
     }
-    
+
     const botName = instances[0]
-    const guild = await application.hypixelApi.getGuild('player', botName, {}).catch(() => null)
-    
+    const guild = await application.hypixelApi.getGuild('player', botName, {}).catch(() => undefined)
+
     if (!guild) {
       await interaction.editReply('Could not fetch guild data.')
       return
     }
-    
+
     const member = guild.members.find((m) => m.uuid === uuid)
     if (!member) {
       await interaction.editReply('Player is not in the guild.')
@@ -59,12 +62,13 @@ export default {
     const excludedRanks = bridgeConfig.getRankupExcludedRanks(bridgeId)
     const excludedPlayers = bridgeConfig.getRankupExcludedPlayers(bridgeId)
 
-    const rankPriority = guild.ranks
-      ? guild.ranks.sort((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
-      : []
+    const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
 
     const expHistoryValues = Object.values(member.expHistory)
-    const weeklyGexp = expHistoryValues.reduce((a, b) => a + (typeof b === 'number' ? b : (b as any).exp || 0), 0)
+    const weeklyGexp = expHistoryValues.reduce(
+      (a, b) => a + (typeof b === 'number' ? b : ((b as { exp?: number }).exp ?? 0)),
+      0
+    )
 
     const stats = {
       uuid: member.uuid,
@@ -89,7 +93,11 @@ export default {
       .addFields(
         { name: 'Current Rank', value: member.rank, inline: true },
         { name: 'Weekly GEXP', value: stats.weeklyGexp.toLocaleString(), inline: true },
-        { name: 'Days in Guild', value: ((Date.now() - stats.joinedAt) / (1000 * 60 * 60 * 24)).toFixed(1), inline: true },
+        {
+          name: 'Days in Guild',
+          value: ((Date.now() - stats.joinedAt) / (1000 * 60 * 60 * 24)).toFixed(1),
+          inline: true
+        },
         { name: 'Result', value: result.action === 'none' ? 'No Action' : result.action.toUpperCase() },
         { name: 'Target Rank', value: result.targetRank ?? 'N/A' },
         { name: 'Reason', value: result.reason ?? 'N/A' }

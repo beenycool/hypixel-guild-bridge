@@ -68,8 +68,8 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       if (bridgeResolver.isMultiBridgeEnabled()) {
         const now = Date.now()
         const last = this.lastUnmappedChannelWarn.get(event.channel.id) ?? 0
-        const SUPPRESS_MS = 5 * 60 * 1000 // 5 minutes
-        if (now - last > SUPPRESS_MS) {
+        const suppressMs = 5 * 60 * 1000 // 5 minutes
+        if (now - last > suppressMs) {
           // Log the warning and reset suppressed counter
           this.lastUnmappedChannelWarn.set(event.channel.id, now)
           const suppressed = this.unmappedChannelSuppressed.get(event.channel.id) ?? 0
@@ -77,7 +77,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
           if (suppressed > 0) {
             this.logger.warn(
               `Ignoring guild message in unmapped channel ${event.channel.id} while multi-bridge routing is enabled (suppressed ${suppressed} similar warnings in the last ${Math.floor(
-                SUPPRESS_MS / 1000
+                suppressMs / 1000
               )}s)`
             )
           } else {

@@ -80,9 +80,7 @@ export default class MessageDeleter {
     } catch (error) {
       // Message cleanup is idempotent; Discord returns 10008 if it is already gone.
       if (error instanceof DiscordAPIError && error.code === 10_008) return
-      await this.errorHandler.promiseCatch(`deleting temporarily event channel=${channelId},message=${messageId}`)(
-        error
-      )
+      this.errorHandler.promiseCatch(`deleting temporarily event channel=${channelId},message=${messageId}`)(error)
     }
   }
 }

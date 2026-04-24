@@ -1,101 +1,123 @@
 import assert from 'node:assert'
 
+import type Application from '../src/application.js'
 import { DatabaseManager } from '../src/common/database-manager'
 import { ConfigurationsManager } from '../src/core/configurations'
+import type { Configuration } from '../src/core/configurations'
 import { BridgeConfigurations } from '../src/core/discord/bridge-configurations'
 import { initializeCoreDatabase } from '../src/core/initialize-database'
 
 // Minimal fake logger
-const logger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {}
+const Logger = {
+  debug: () => {
+    /* noop */
+  },
+  info: () => {
+    /* noop */
+  },
+  warn: () => {
+    /* noop */
+  },
+  error: () => {
+    /* noop */
+  }
 } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
 
 // Minimal fake application with expected hooks used by DatabaseManager
-const fakeApp: any = {
-  applicationIntegrity: { addConfigPath: () => {} },
-  addShutdownListener: () => {},
+const FakeApp: {
+  applicationIntegrity: { addConfigPath: () => void }
+  addShutdownListener: () => void
+  getDatabaseConfig: () => { url: string }
+  getConfigFilePath: (name: string) => string
+} = {
+  applicationIntegrity: {
+    addConfigPath: () => {
+      /* noop */
+    }
+  },
+  addShutdownListener: () => {
+    /* noop for test */
+  },
   getDatabaseConfig: () => ({ url: 'memory://bridge-config-test' }),
   getConfigFilePath: (name: string) => `/tmp/nonexistent-${name}`
 }
 
-const databaseManager = new DatabaseManager(fakeApp, logger)
+const DatabaseManagerInstance = new DatabaseManager(FakeApp as unknown as Application, Logger)
 
-await initializeCoreDatabase(databaseManager)
+await initializeCoreDatabase(DatabaseManagerInstance)
 
-const configs = new ConfigurationsManager(databaseManager)
-const bridgeCfg = new BridgeConfigurations(configs)
-await configs.load()
+const Configs = new ConfigurationsManager(DatabaseManagerInstance)
+const BridgeCfg = new BridgeConfigurations(Configs)
+await Configs.load()
 
-const bridgeId = 'bridge-test'
+const BridgeId = 'bridge-test'
 
 // default should be true
-assert.strictEqual(bridgeCfg.getSkyblockEventsEnabled(bridgeId), true)
+assert.strictEqual(BridgeCfg.getSkyblockEventsEnabled(BridgeId), true)
 
-bridgeCfg.setSkyblockEventsEnabled(bridgeId, false)
-assert.strictEqual(bridgeCfg.getSkyblockEventsEnabled(bridgeId), false)
+BridgeCfg.setSkyblockEventsEnabled(BridgeId, false)
+assert.strictEqual(BridgeCfg.getSkyblockEventsEnabled(BridgeId), false)
 
 // Notifiers default -> undefined
-assert.strictEqual(bridgeCfg.getSkyblockEventNotifiers(bridgeId), undefined)
+assert.strictEqual(BridgeCfg.getSkyblockEventNotifiers(BridgeId), undefined)
 
-bridgeCfg.setSkyblockEventNotifier(bridgeId, 'BANK_INTEREST', false)
-const notifiers = bridgeCfg.getSkyblockEventNotifiers(bridgeId)
-assert.ok(notifiers)
-assert.strictEqual(notifiers.BANK_INTEREST, false)
+BridgeCfg.setSkyblockEventNotifier(BridgeId, 'BANK_INTEREST', false)
+const Notifiers = BridgeCfg.getSkyblockEventNotifiers(BridgeId)
+assert.ok(Notifiers)
+assert.strictEqual(Notifiers.BANK_INTEREST, false)
 
-bridgeCfg.setSkyblockEventNotifier(bridgeId, 'BANK_INTEREST', true)
-const notifiers2 = bridgeCfg.getSkyblockEventNotifiers(bridgeId)
-assert.strictEqual(notifiers2!.BANK_INTEREST, true)
+BridgeCfg.setSkyblockEventNotifier(BridgeId, 'BANK_INTEREST', true)
+const Notifiers2 = BridgeCfg.getSkyblockEventNotifiers(BridgeId)
+assert.strictEqual(Notifiers2?.BANK_INTEREST, true)
 
-bridgeCfg.deleteSkyblockNotifiers(bridgeId)
-assert.strictEqual(bridgeCfg.getSkyblockEventNotifiers(bridgeId), undefined)
+BridgeCfg.deleteSkyblockNotifiers(BridgeId)
+assert.strictEqual(BridgeCfg.getSkyblockEventNotifiers(BridgeId), undefined)
 
 // Persist guild online/offline getter/setter
-assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), false)
-bridgeCfg.setPersistGuildOnlineOffline(bridgeId, true)
-assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), true)
-bridgeCfg.setPersistGuildOnlineOffline(bridgeId, false)
-assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), false)
+assert.strictEqual(BridgeCfg.getPersistGuildOnlineOffline(BridgeId), false)
+BridgeCfg.setPersistGuildOnlineOffline(BridgeId, true)
+assert.strictEqual(BridgeCfg.getPersistGuildOnlineOffline(BridgeId), true)
+BridgeCfg.setPersistGuildOnlineOffline(BridgeId, false)
+assert.strictEqual(BridgeCfg.getPersistGuildOnlineOffline(BridgeId), false)
 
 // Removal cleans up persist key
-bridgeCfg.setPersistGuildOnlineOffline(bridgeId, true)
-bridgeCfg.addBridgeId(bridgeId)
-bridgeCfg.removeBridgeId(bridgeId)
-assert.strictEqual(bridgeCfg.getPersistGuildOnlineOffline(bridgeId), false)
+BridgeCfg.setPersistGuildOnlineOffline(BridgeId, true)
+BridgeCfg.addBridgeId(BridgeId)
+BridgeCfg.removeBridgeId(BridgeId)
+assert.strictEqual(BridgeCfg.getPersistGuildOnlineOffline(BridgeId), false)
 
 // Language getter/setter
-assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
-bridgeCfg.setLanguage(bridgeId, 'de')
-assert.strictEqual(bridgeCfg.getLanguage(bridgeId), 'de')
-bridgeCfg.setLanguage(bridgeId, undefined)
-assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
+assert.strictEqual(BridgeCfg.getLanguage(BridgeId), undefined)
+BridgeCfg.setLanguage(BridgeId, 'de')
+assert.strictEqual(BridgeCfg.getLanguage(BridgeId), 'de')
+BridgeCfg.setLanguage(BridgeId, undefined)
+assert.strictEqual(BridgeCfg.getLanguage(BridgeId), undefined)
 
 // Owner roles and migration
-assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), [])
-bridgeCfg.setOwnerRoleIds(bridgeId, ['owner1'])
-assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), ['owner1'])
+assert.deepStrictEqual(BridgeCfg.getOwnerRoleIds(BridgeId), [])
+BridgeCfg.setOwnerRoleIds(BridgeId, ['owner1'])
+assert.deepStrictEqual(BridgeCfg.getOwnerRoleIds(BridgeId), ['owner1'])
 
-const bridgeIdMigrate = 'bridge-migrate'
+const BridgeIdMigrate = 'bridge-migrate'
 // Directly set legacy adminRoleIds in the configuration to test migration
 
-;(bridgeCfg as any).configuration.setStringArray(`${bridgeIdMigrate}_adminRoleIds`, ['legacyAdmin'])
+;(BridgeCfg as unknown as { configuration: Configuration }).configuration.setStringArray(
+  `${BridgeIdMigrate}_adminRoleIds`,
+  ['legacyAdmin']
+)
 
 // getOwnerRoleIds should migrate it
-assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeIdMigrate), ['legacyAdmin'])
+assert.deepStrictEqual(BridgeCfg.getOwnerRoleIds(BridgeIdMigrate), ['legacyAdmin'])
 // Should also have saved it to the new key
-assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeIdMigrate), ['legacyAdmin'])
+assert.deepStrictEqual(BridgeCfg.getOwnerRoleIds(BridgeIdMigrate), ['legacyAdmin'])
 
 // Removal cleans up language key
-bridgeCfg.setLanguage(bridgeId, 'ar')
-bridgeCfg.addBridgeId(bridgeId)
-bridgeCfg.removeBridgeId(bridgeId)
-assert.strictEqual(bridgeCfg.getLanguage(bridgeId), undefined)
+BridgeCfg.setLanguage(BridgeId, 'ar')
+BridgeCfg.addBridgeId(BridgeId)
+BridgeCfg.removeBridgeId(BridgeId)
+assert.strictEqual(BridgeCfg.getLanguage(BridgeId), undefined)
 // And owner/admin roles
-assert.deepStrictEqual(bridgeCfg.getOwnerRoleIds(bridgeId), [])
+assert.deepStrictEqual(BridgeCfg.getOwnerRoleIds(BridgeId), [])
 
-await databaseManager.flushWrites()
-await databaseManager.close()
-
-console.log('PASS: BridgeConfigurations DB getters/setters')
+await DatabaseManagerInstance.flushWrites()
+await DatabaseManagerInstance.close()

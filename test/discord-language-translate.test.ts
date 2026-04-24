@@ -1,13 +1,44 @@
 import assert from 'node:assert'
 
-import { roleMention, userMention } from 'discord.js'
+import type { i18n } from 'i18next'
 
+import type Application from '../src/application.js'
 import { Permission } from '../src/common/application-event'
 import { translateNoPermission } from '../src/instance/discord/common/discord-language'
 
-// Setup a fake application that returns a translator capturing options
-function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: string[], admins: string[]) {
-  const app: any = {
+interface TranslatorOptions {
+  roles?: string[]
+  admins?: string[]
+}
+
+function buildTranslatorOutput(options: TranslatorOptions): string {
+  return `translated:${(options.roles ?? []).length}:${(options.admins ?? []).length}`
+}
+
+function fakeTranslator(key: Parameters<i18n['t']>[0], options?: TranslatorOptions): string {
+  void key
+  return buildTranslatorOutput(options ?? {})
+}
+
+interface FakeApp {
+  discordInstance: { getStaticConfig: () => { adminIds: string[] } }
+  core: {
+    discordConfigurations: {
+      getHelperRoleIds: () => string[]
+      getOfficerRoleIds: () => string[]
+      getOwnerRoleIds: () => string[]
+    }
+    bridgeConfigurations: {
+      getHelperRoleIds: () => string[]
+      getOfficerRoleIds: () => string[]
+      getOwnerRoleIds: () => string[]
+    }
+  }
+  getTranslatorForBridge: () => (key: Parameters<i18n['t']>[0], options?: TranslatorOptions) => string
+}
+
+function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: string[], admins: string[]): FakeApp {
+  return {
     discordInstance: { getStaticConfig: () => ({ adminIds: admins }) },
     core: {
       discordConfigurations: {
@@ -21,40 +52,34 @@ function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: 
         getOwnerRoleIds: () => []
       }
     },
-    getTranslatorForBridge: () => (key: any, options?: any) =>
-      `translated:${(options?.roles ?? []).length}:${(options?.admins ?? []).length}`
+    getTranslatorForBridge: () => fakeTranslator
   }
-  return app
 }
 
 // Roles only
 {
   const app = makeFakeApp(['r1'], ['r2'], ['r3'], [])
-  const out = translateNoPermission(app, Permission.Helper, 'b1')
-  // Helper roles (1) + Officer roles (1) + Owner roles (1) = 3 roles
+  const out = translateNoPermission(app as unknown as Application, Permission.Helper, 'b1')
   assert.strictEqual(out, 'translated:3:0')
 }
 
 // Admins only
 {
   const app = makeFakeApp([], [], [], ['a1'])
-  const out = translateNoPermission(app, Permission.Officer, 'b1')
+  const out = translateNoPermission(app as unknown as Application, Permission.Officer, 'b1')
   assert.strictEqual(out, 'translated:0:1')
 }
 
 // Owner only test
 {
   const app = makeFakeApp([], [], ['r3'], [])
-  const out = translateNoPermission(app, Permission.Owner, 'b1')
+  const out = translateNoPermission(app as unknown as Application, Permission.Owner, 'b1')
   assert.strictEqual(out, 'translated:1:0')
 }
 
 // Both
 {
   const app = makeFakeApp(['r1'], [], [], ['a1'])
-  const out = translateNoPermission(app, Permission.Helper, 'b1')
-  // Helper roles (1) + Officer roles (0) + Owner roles (0) = 1 role
+  const out = translateNoPermission(app as unknown as Application, Permission.Helper, 'b1')
   assert.strictEqual(out, 'translated:1:1')
 }
-
-console.log('PASS: discord-language translateNoPermission')

@@ -41,10 +41,11 @@ export class DiscordTemporarilyInteractions {
     const maxInteractions = this.discordConfigurations.getMaxTemporarilyInteractions()
     const duration = this.discordConfigurations.getDurationTemporarilyInteractions()
 
-    const allInteractions = [...this.entries.values()].map((entry) => ({ ...entry }))
+    const allInteractions = [...this.entries.values()]
+      .map((entry) => ({ ...entry }))
+      .toReversed()
+      .toSorted((a, b) => b.createdAt - a.createdAt)
     const toDelete: DiscordMessage[] = []
-
-    allInteractions.reverse().sort((a, b) => b.createdAt - a.createdAt)
 
     const interactionsCount = new Map<string, number>()
     for (const interaction of allInteractions) {

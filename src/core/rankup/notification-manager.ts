@@ -1,16 +1,19 @@
 import { EmbedBuilder } from 'discord.js'
+import type { Logger } from 'log4js'
 
 import type Application from '../../application'
+
 import type { PendingReview } from './pending-review-manager'
 
 export class NotificationManager {
-  constructor(private readonly application: Application) {}
+  private readonly logger: Logger
 
-  public async sendReviewNotification(
-    bridgeId: string,
-    channelIds: string[],
-    reviews: PendingReview[]
-  ): Promise<void> {
+  constructor(private readonly application: Application) {
+    // Application.logger is now public; use it for logging
+    this.logger = application.logger
+  }
+
+  public async sendReviewNotification(bridgeId: string, channelIds: string[], reviews: PendingReview[]): Promise<void> {
     if (reviews.length === 0) return
 
     // Sometimes bridgeId matches guildId, sometimes it's internal.
@@ -32,7 +35,7 @@ export class NotificationManager {
               .filter((r) => r.action === 'promote')
               .map((r) => `• <@${r.uuid}>: ${r.currentRank} ➜ ${r.proposedRank}`) // uuid here is MC UUID, need name resolve?
               .slice(0, 10)
-              .join('\n') || 'None',
+              .join('\n') || 'None'
         },
         {
           name: 'Demotions/Kicks',
@@ -41,7 +44,7 @@ export class NotificationManager {
               .filter((r) => ['demote', 'kick'].includes(r.action))
               .map((r) => `• <@${r.uuid}>: ${r.currentRank} ➜ ${r.proposedRank || 'Kick'}`)
               .slice(0, 10)
-              .join('\n') || 'None',
+              .join('\n') || 'None'
         }
       )
       .setFooter({ text: 'Use /rankup-pending to view and act on these reviews.' })
@@ -51,39 +54,40 @@ export class NotificationManager {
     const uuidToName = new Map<string, string>()
     for (const review of reviews) {
       if (!uuidToName.has(review.uuid)) {
-        const name = await this.application.mojangApi.profileByUuid(review.uuid).then((p) => p.name).catch(() => review.uuid)
+        const name = await this.application.mojangApi
+          .profileByUuid(review.uuid)
+          .then((p) => p.name)
+          .catch(() => review.uuid)
         uuidToName.set(review.uuid, name)
       }
     }
 
     // Rebuild fields with names
-    const field1 = reviews
+    const field1 =
+      reviews
         .filter((r) => r.action === 'promote')
         .map((r) => `• **${uuidToName.get(r.uuid)}**: ${r.currentRank} ➜ ${r.proposedRank}`)
         .slice(0, 10)
         .join('\n') || 'None'
-    
-    const field2 = reviews
+
+    const field2 =
+      reviews
         .filter((r) => ['demote', 'kick'].includes(r.action))
         .map((r) => `• **${uuidToName.get(r.uuid)}**: ${r.currentRank} ➜ ${r.proposedRank || 'Kick'}`)
         .slice(0, 10)
         .join('\n') || 'None'
 
-    embed.setFields(
-        { name: 'Promotions', value: field1 },
-        { name: 'Demotions/Kicks', value: field2 }
-    )
-
+    embed.setFields({ name: 'Promotions', value: field1 }, { name: 'Demotions/Kicks', value: field2 })
 
     for (const channelId of channelIds) {
-        // Broadcast to all connected discord instances that might have this channel
-        const instance = this.application.discordInstance
-        if (instance) {
-            const channel = await (instance as any).client.channels.fetch(channelId).catch(() => null)
-            if (channel && channel.isTextBased()) {
-                await (channel as any).send({ embeds: [embed] }).catch(console.error)
-            }
-        }
+      const instance = this.application.discordInstance
+      const client = instance.getClient()
+      const channel = await client.channels.fetch(channelId).catch(() => undefined)
+      if (channel?.isSendable()) {
+        await channel.send({ embeds: [embed] }).catch((error: unknown) => {
+          this.logger.error(error)
+        })
+      }
     }
   }
 }

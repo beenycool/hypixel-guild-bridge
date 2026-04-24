@@ -159,7 +159,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       timeout: 10_000
     })
 
-    const version = data?.version
+    const version = data.version
     if (!version) return
 
     if (this.skyblockVersion && this.skyblockVersion !== version) {
@@ -203,7 +203,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       responseType: 'text',
       timeout: 10_000,
       headers: {
-        'User-Agent': 'hypixel-guild-discord-bridge'
+        ['User-Agent']: 'hypixel-guild-discord-bridge'
       }
     })
 
@@ -324,7 +324,7 @@ function stripCdata(value: string): string {
 }
 
 function decodeHtmlEntities(value: string): string {
-  return value.replaceAll(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
+  return value.replaceAll(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (match: string, entity: string) => {
     if (entity.startsWith('#x')) {
       const code = Number.parseInt(entity.slice(2), 16)
       return Number.isFinite(code) ? String.fromCodePoint(code) : match

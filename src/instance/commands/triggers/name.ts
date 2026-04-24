@@ -21,9 +21,11 @@ export default class NameHistory extends ChatCommandHandler {
 
     try {
       const response = await DefaultAxios.get<AshconResponse>(`https://api.ashcon.app/mojang/v2/user/${uuid}`)
-      const history = response.data.username_history
+      const history = (response.data as unknown as Record<string, unknown>).username_history as {
+        username: string
+      }[]
 
-      if (history === undefined || history.length === 0) {
+      if (history.length === 0) {
         return context.app.i18n.t(($) => $['commands.name.no-history'], { username: givenUsername })
       }
 
@@ -42,8 +44,4 @@ export default class NameHistory extends ChatCommandHandler {
 interface AshconResponse {
   uuid: string
   username: string
-  username_history: {
-    username: string
-    changed_at?: string
-  }[]
 }

@@ -1,7 +1,8 @@
 /**
  * Formats a username based on the gamemode
- * @param username
- * @param gamemode
+ * @param username - The username to format
+ * @param gamemode - The gamemode to apply formatting for
+ * @returns The formatted username string
  */
 export function formatUsername(username: string, gamemode: string | undefined): string {
   if (gamemode === 'ironman') return `♲ ${username}`
@@ -13,8 +14,9 @@ export function formatUsername(username: string, gamemode: string | undefined): 
 
 /**
  * Formats a number with suffixes (K, M, B, T, etc.)
- * @param number
- * @param decimals
+ * @param number - The number to format
+ * @param decimals - The number of decimal places to include
+ * @returns The formatted number string
  */
 export function formatNumber(number: number | undefined | null, decimals = 2): string {
   if (number === undefined || number === null || number === 0) return '0'
@@ -23,14 +25,13 @@ export function formatNumber(number: number | undefined | null, decimals = 2): s
   const unformattedNumber = Math.abs(number)
 
   if (unformattedNumber < 100_000) {
-    return Number(number).toLocaleString()
+    return number.toLocaleString()
   }
 
   const abbrev = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'S', 'O', 'N', 'D']
   const abbrevIndex = Math.floor(Math.log10(unformattedNumber) / 3)
 
-  // Prevent index out of bounds
-  if (abbrevIndex >= abbrev.length) return Number(number).toExponential(decimals)
+  if (abbrevIndex >= abbrev.length) return number.toExponential(decimals)
 
   const shortNumber = (unformattedNumber / Math.pow(10, abbrevIndex * 3)).toFixed(decimals)
 
@@ -39,11 +40,12 @@ export function formatNumber(number: number | undefined | null, decimals = 2): s
 
 /**
  * Converts a string to title case
- * @param string_
+ * @param inputString - The string to convert
+ * @returns The title-cased string
  */
-export function titleCase(string_: string | undefined | null): string {
-  if (!string_) return ''
-  return string_
+export function titleCase(inputString: string | undefined | null): string {
+  if (!inputString) return ''
+  return inputString
     .toLowerCase()
     .replaceAll('_', ' ')
     .split(' ')

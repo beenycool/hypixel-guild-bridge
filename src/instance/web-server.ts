@@ -151,7 +151,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       this.sendJson(response, HttpStatusCode.Ok, {
         status: 'ok',
         uptime: Date.now() - this.startTime,
-        version: PackageJson?.version ?? process.env.npm_package_version
+        version: PackageJson.version
       })
       return
     }
@@ -170,7 +170,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private async handleMessageRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    let payload: WebMessagePayload
+    let payload: WebMessagePayload | undefined
 
     try {
       const body = await this.readBody(request)
@@ -179,15 +179,14 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
 
-      payload = JSON.parse(body) as WebMessagePayload
+      payload = JSON.parse(body) as WebMessagePayload | undefined
+      if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+        this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid payload format' })
+        return
+      }
     } catch (error: unknown) {
       this.logger.warn('Invalid /message payload', error)
       this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON payload' })
-      return
-    }
-
-    if (!payload || typeof payload !== 'object') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid payload' })
       return
     }
 
@@ -294,13 +293,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     try {
       const text = WebServer.rawDataToString(data)
       payload = JSON.parse(text) as WebMessagePayload
+      if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+        this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid payload' })
+        return
+      }
     } catch {
       this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid JSON payload' })
-      return
-    }
-
-    if (!payload || typeof payload !== 'object') {
-      this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid payload' })
       return
     }
 
@@ -405,7 +403,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     request.setEncoding('utf8')
     return await new Promise((resolve, reject) => {
       let body = ''
-      request.on('data', (chunk) => {
+      request.on('data', (chunk: string) => {
         body += chunk
       })
       request.on('end', () => {

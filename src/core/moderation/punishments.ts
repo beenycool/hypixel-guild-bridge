@@ -52,13 +52,19 @@ export default class Punishments {
   }
 
   public async load(): Promise<void> {
-    const rows = await this.databaseManager.queryRows<DatabasePunishment>('SELECT * FROM "punishments" ORDER BY "id" ASC')
+    const rows = await this.databaseManager.queryRows<DatabasePunishment>(
+      'SELECT * FROM "punishments" ORDER BY "id" ASC'
+    )
 
     this.entries.length = 0
     for (const row of rows) {
       this.entries.push({ ...row, createdAt: row.createdAt * 1000, till: row.till * 1000 })
     }
-    this.nextId = this.entries.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
+    let maxId = 0
+    for (const entry of this.entries) {
+      if (entry.id > maxId) maxId = entry.id
+    }
+    this.nextId = maxId + 1
   }
 
   private async migrateAnyOldData(application: Application, logger: Logger): Promise<void> {
@@ -198,7 +204,7 @@ export default class Punishments {
 
   private getPunishments(identifiers: UserIdentifier[], currentTime: number): DatabasePunishment[] {
     const currentSeconds = Math.floor(currentTime / 1000)
-    const allowedIdentifiers = new Set(identifiers.map(identifierKey))
+    const allowedIdentifiers = new Set(identifiers.map((id) => identifierKey(id)))
 
     return this.entries.filter((entry) => {
       if (entry.till <= currentSeconds * 1000) return false
@@ -208,7 +214,11 @@ export default class Punishments {
   }
 
   private convertDatabaseFields(entries: DatabasePunishment[]): SavedPunishment[] {
-    return entries.map(({ id: _id, ...entry }) => ({ ...entry }))
+    return entries.map((entry) => {
+      const { id, ...rest } = entry
+      void id
+      return rest
+    })
   }
 }
 

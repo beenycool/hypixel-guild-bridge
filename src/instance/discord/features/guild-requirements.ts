@@ -70,8 +70,8 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     const config = this.application.getGuildRequirementsConfig()
     if (!config?.enabled) return
 
-    const mojangProfile = event.user.mojangProfile()
-    if (!mojangProfile) return
+    const mojangProfile = event.user.mojangProfile() as ReturnType<typeof event.user.mojangProfile> | undefined
+    if (mojangProfile == undefined) return
 
     const requirements = config.requirements
     const result = await checkGuildRequirements(this.application, mojangProfile.id, requirements, mojangProfile.name)

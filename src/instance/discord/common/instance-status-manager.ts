@@ -26,6 +26,11 @@ import { DefaultTimeout, interactivePaging } from '../utility/discord-pager'
 import { translateNoPermission } from './discord-language'
 import type MessageAssociation from './message-association'
 
+type TranslatorFunction = (
+  keyOrSelector: string | ((t: (key: string) => string) => string),
+  options?: Record<string, unknown>
+) => string
+
 export class InstanceStatusManager {
   private static readonly PermissionToView = Permission.Helper
   private static readonly EntriesPerPage = 5
@@ -470,11 +475,11 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateNotice(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateNotice(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-notice'], {
+          description: t('discord.status.chat-notice' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -484,11 +489,11 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateAuthentication(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateAuthentication(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.requires-authentication'], {
+          description: t('discord.status.requires-authentication' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -497,11 +502,11 @@ export class InstanceStatusManager {
       components: [{ type: ComponentType.ActionRow, components: this.generateButtons() }]
     }
   }
-  private generateInitiation(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateInitiation(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.instance-started'], {
+          description: t('discord.status.instance-started' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -511,11 +516,11 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateFailed(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateFailed(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-failed'], {
+          description: t('discord.status.chat-failed' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Bad
@@ -525,11 +530,11 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateSuccess(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateSuccess(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-resumed'], {
+          description: t('discord.status.chat-resumed' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Good
@@ -538,11 +543,11 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateInterrupted(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateInterrupted(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-interrupted'], {
+          description: t('discord.status.chat-interrupted' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info

@@ -3,15 +3,42 @@ import { describe, it } from 'node:test'
 
 import { RankupManager } from '../src/core/rankup/rankup-manager.js'
 
-void describe('RankupManager executeAction', () => {
-  void it('uses setrank for promotion targets', async () => {
+interface RankupManagerLike {
+  application: {
+    mojangApi: { profileByUuid: () => { name: string } }
+    minecraftManager: { getAllInstances: () => { instanceName: string; send: (command: string) => void }[] }
+  }
+  pendingManager: { logHistory: (...logEntries: unknown[]) => void }
+  logger: { warn: () => void }
+}
+
+type ExecuteActionFunction = (
+  bridgeId: string,
+  instanceName: string,
+  uuid: string,
+  result: { action: string; targetRank?: string; reason?: string }
+) => Promise<void>
+
+function callExecuteAction(
+  manager: RankupManagerLike,
+  bridgeId: string,
+  instanceName: string,
+  uuid: string,
+  result: { action: string; targetRank?: string; reason?: string }
+): Promise<void> {
+  const executeFunction = (RankupManager.prototype as unknown as { executeAction: ExecuteActionFunction }).executeAction
+  return executeFunction.call(manager, bridgeId, instanceName, uuid, result)
+}
+
+await describe('RankupManager executeAction', async () => {
+  await it('uses setrank for promotion targets', async () => {
     const sentCommands: string[] = []
     const historyEntries: unknown[][] = []
 
-    const manager = {
+    const manager: RankupManagerLike = {
       application: {
         mojangApi: {
-          profileByUuid: async () => ({ name: 'PromotedPlayer' })
+          profileByUuid: () => ({ name: 'PromotedPlayer' })
         },
         minecraftManager: {
           getAllInstances: () => [
@@ -25,16 +52,18 @@ void describe('RankupManager executeAction', () => {
         }
       },
       pendingManager: {
-        logHistory: (...args: unknown[]) => {
-          historyEntries.push(args)
+        logHistory: (...logEntries: unknown[]) => {
+          historyEntries.push(logEntries)
         }
       },
       logger: {
-        warn: () => {}
+        warn: () => {
+          /* noop */
+        }
       }
     }
 
-    await (RankupManager.prototype as any).executeAction.call(manager, 'bridge-a', 'bot-a', 'uuid-1', {
+    await callExecuteAction(manager, 'bridge-a', 'bot-a', 'uuid-1', {
       action: 'promote',
       targetRank: 'Officer'
     })
@@ -44,14 +73,14 @@ void describe('RankupManager executeAction', () => {
     assert.strictEqual(historyEntries[0]?.[4], 'Officer')
   })
 
-  void it('uses setrank for demotion targets', async () => {
+  await it('uses setrank for demotion targets', async () => {
     const sentCommands: string[] = []
     const historyEntries: unknown[][] = []
 
-    const manager = {
+    const manager: RankupManagerLike = {
       application: {
         mojangApi: {
-          profileByUuid: async () => ({ name: 'DemotedPlayer' })
+          profileByUuid: () => ({ name: 'DemotedPlayer' })
         },
         minecraftManager: {
           getAllInstances: () => [
@@ -65,16 +94,18 @@ void describe('RankupManager executeAction', () => {
         }
       },
       pendingManager: {
-        logHistory: (...args: unknown[]) => {
-          historyEntries.push(args)
+        logHistory: (...logEntries: unknown[]) => {
+          historyEntries.push(logEntries)
         }
       },
       logger: {
-        warn: () => {}
+        warn: () => {
+          /* noop */
+        }
       }
     }
 
-    await (RankupManager.prototype as any).executeAction.call(manager, 'bridge-a', 'bot-a', 'uuid-2', {
+    await callExecuteAction(manager, 'bridge-a', 'bot-a', 'uuid-2', {
       action: 'demote',
       targetRank: 'Member'
     })

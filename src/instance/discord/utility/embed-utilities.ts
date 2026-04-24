@@ -29,7 +29,7 @@ export function splitToEmbeds(base: APIEmbed, text: string, maxLength = DefaultM
           current = { ...base, description: '' } as APIEmbed
           currentLength = 0
         }
-        current.description += chunk
+        current.description = (current.description ?? '') + chunk
         currentLength += chunk.length
         offset += chunk.length
       }
@@ -43,7 +43,7 @@ export function splitToEmbeds(base: APIEmbed, text: string, maxLength = DefaultM
       currentLength = 0
     }
 
-    current.description += lineWithNewline
+    current.description = (current.description ?? '') + lineWithNewline
     currentLength += lineWithNewline.length
   }
 

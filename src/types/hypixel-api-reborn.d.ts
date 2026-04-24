@@ -92,6 +92,8 @@ declare module 'hypixel-api-reborn' {
     dungeon_types: SkyblockV2DungeonsTypes
     player_classes?: Record<'healer' | 'mage' | 'berserk' | 'archer' | 'tank', SkyblockV2DungeonsClass | undefined>
     treasures?: { runs?: SkyblockV2DungeonRun[] }
+    selected_dungeon_class?: string
+    secrets?: number
   }
 
   export interface SkyblockV2DungeonsTypes {

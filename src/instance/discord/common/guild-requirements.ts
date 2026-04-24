@@ -1,12 +1,22 @@
 import type { APIEmbed } from 'discord.js'
 import { escapeMarkdown } from 'discord.js'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { GuildRequirementsThresholds } from '../../../application-config.js'
 import type Application from '../../../application.js'
 import { Color } from '../../../common/application-event.js'
-import { getSelectedSkyblockProfileRaw } from '../../commands/common/utility.js'
 
 import { DefaultCommandFooter } from './discord-config.js'
+
+async function getSelectedSkyblockProfileRaw(
+  application: Application,
+  uuid: string
+): Promise<SkyblockV2Member | undefined> {
+  const response = await application.hypixelApi.getSkyblockProfiles(uuid, { raw: true })
+  if (!response.profiles) return undefined
+  const profile = response.profiles.find((p) => p.selected)
+  return profile?.members[uuid]
+}
 
 export interface GuildRequirementsStats {
   bedwarsStars: number
@@ -36,6 +46,7 @@ export async function checkGuildRequirements(
   requirements: GuildRequirementsThresholds,
   fallbackName?: string
 ): Promise<GuildRequirementsCheck | undefined> {
+  void fallbackName
   const player = await application.hypixelApi.getPlayer(uuid, {}).catch(() => undefined)
   if (!player) return undefined
 
@@ -46,7 +57,7 @@ export async function checkGuildRequirements(
   const duelsWins = player.stats?.duels?.wins ?? 0
   const duelsWLR = player.stats?.duels?.WLRatio ?? 0
 
-  const selectedProfile = await getSelectedSkyblockProfileRaw(application.hypixelApi, uuid).catch(() => undefined)
+  const selectedProfile = await getSelectedSkyblockProfileRaw(application, uuid).catch(() => undefined)
   const skyblockExperience = selectedProfile?.leveling?.experience ?? 0
   const skyblockLevel = skyblockExperience > 0 ? skyblockExperience / 100 : 0
 
@@ -61,7 +72,7 @@ export async function checkGuildRequirements(
   ].some(Boolean)
 
   return {
-    displayName: player.nickname ?? fallbackName ?? uuid,
+    displayName: player.nickname,
     avatarId: uuid,
     stats: {
       bedwarsStars,

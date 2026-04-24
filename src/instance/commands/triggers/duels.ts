@@ -146,7 +146,11 @@ export default class Duels extends ChatCommandHandler {
     if (duelType === 'bridge' && bridgeSubMode !== undefined) {
       const bridgeData = stats.bridge
 
-      const subModeRaw = (bridgeData as unknown as Record<string, unknown>)[bridgeSubMode]
+      if (!bridgeData || typeof bridgeData !== 'object') {
+        return `${givenUsername} has no Bridge stats.`
+      }
+
+      const subModeRaw = (bridgeData as Record<string, unknown>)[bridgeSubMode]
       if (!subModeRaw || typeof subModeRaw !== 'object') {
         return `${givenUsername} has no ${BridgeSubModeDisplayNames.get(bridgeSubMode)} stats.`
       }
@@ -155,7 +159,7 @@ export default class Duels extends ChatCommandHandler {
       const wins = subModeData.wins
       const winstreak = subModeData.winstreak
       const bestWinstreak = subModeData.bestWinstreak
-      const wlRatio = subModeData.WLRatio
+      const wlRatio = subModeData.WLRatio ?? 0
       const division = calculateDuelsDivision(wins, 'long')
 
       return (
@@ -177,7 +181,7 @@ export default class Duels extends ChatCommandHandler {
     const wins = dataObject.wins
     const winstreak = dataObject.winstreak
     const bestWinstreak = dataObject.bestWinstreak
-    const wlRatio = dataObject.WLRatio
+    const wlRatio = dataObject.WLRatio ?? 0
     const divisionMode: DuelsDivisionMode = LongModeDuelTypes.has(duelType) ? 'long' : 'short'
     const division = calculateDuelsDivision(wins, divisionMode)
 

@@ -35,7 +35,7 @@ const RgbaColorLegacy: Record<string, string> = {
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-const defaultSample =
+const DefaultSample =
   '[Stone 7*] r4kz Kills: 483 KDR: 0.93 | Wins: 50.0\nWLR: 0.10 | Coins: 189k\n§aGreen §cRed §rreset/white'
 
 function getHeight(message: string): number {
@@ -109,26 +109,26 @@ function renderLegacySync(message: string): Buffer {
   return canvas.toBuffer()
 }
 
-async function main(): Promise<void> {
-  const sample = process.argv[2] ?? defaultSample
-  const outDir = path.join(process.cwd(), 'artifacts', 'message-to-image-compare')
-  fs.mkdirSync(outDir, { recursive: true })
+function main(): void {
+  const sample = process.argv[2] ?? DefaultSample
+  const outDirectory = path.join(process.cwd(), 'artifacts', 'message-to-image-compare')
+  fs.mkdirSync(outDirectory, { recursive: true })
 
-  const beforePath = path.join(outDir, 'before.png')
-  const afterPath = path.join(outDir, 'after.png')
+  const beforePath = path.join(outDirectory, 'before.png')
+  const afterPath = path.join(outDirectory, 'after.png')
 
   fs.writeFileSync(beforePath, renderLegacySync(sample))
 
   const messageToImage = new MessageToImage({} as Application)
   fs.writeFileSync(afterPath, messageToImage.generateMessageImageSync(sample))
 
-  console.log('Sample text (first line):')
-  console.log(sample.split('\n')[0] ?? sample)
-  console.log('')
-  console.log('Wrote:')
-  console.log(`  ${beforePath}  (legacy: black §r text, transparent background)`)
-  console.log(`  ${afterPath}   (current: white §r text, transparent background)`)
+  process.stdout.write('Sample text (first line):\n')
+  process.stdout.write(`${sample.split('\n')[0] ?? sample}\n`)
+  process.stdout.write('\n')
+  process.stdout.write('Wrote:\n')
+  process.stdout.write(` ${beforePath} (legacy: black §r text, transparent background)\n`)
+  process.stdout.write(` ${afterPath} (current: white §r text, transparent background)\n`)
 }
 
-await main()
+main()
 process.exit(0)

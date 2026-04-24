@@ -94,7 +94,7 @@ export default class RunsToClassAverage extends ChatCommandHandler {
       tank: 0
     } as Record<ClassName, number>
 
-    for (const [className, classObject] of Object.entries(selectedProfile.dungeons.player_classes)) {
+    for (const [className, classObject] of Object.entries(selectedProfile.dungeons!.player_classes!)) {
       classesExperiences[className as ClassName] = classObject?.experience ?? 0
     }
 

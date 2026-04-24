@@ -2,14 +2,15 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ComponentType,
   EmbedBuilder,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
-  ComponentType
+  StringSelectMenuOptionBuilder
 } from 'discord.js'
-import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
+
 import { MinecraftSendChatPriority, Permission } from '../../../common/application-event'
+import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 
 export default {
   getCommandBuilder: () =>
@@ -58,7 +59,7 @@ export default {
         displayedReviews.map((r) =>
           new StringSelectMenuOptionBuilder()
             .setLabel(`${uuidToName.get(r.uuid)}: ${r.action.toUpperCase()} ${r.currentRank} -> ${r.proposedRank}`)
-            .setDescription(r.reason.substring(0, 100))
+            .setDescription(r.reason.slice(0, 100))
             .setValue(r.id.toString())
         )
       )
@@ -77,17 +78,17 @@ export default {
 
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,
-      time: 600000, // 10 mins
-      filter: (i) => i.user.id === interaction.user.id
+      time: 600_000, // 10 mins
+      filter: (index) => index.user.id === interaction.user.id
     })
 
-    collector.on('collect', async (i) => {
-      if (i.customId === 'rankup-select-review') {
-        const reviewId = parseInt(i.values[0])
+    collector.on('collect', async (index) => {
+      if (index.customId === 'rankup-select-review') {
+        const reviewId = Number.parseInt(index.values[0])
         const review = pendingManager.getReview(reviewId)
 
         if (!review) {
-          await i.reply({ content: 'Review no longer exists.', flags: 64 }) // Ephemeral
+          await index.reply({ content: 'Review no longer exists.', flags: 64 }) // Ephemeral
           return
         }
 
@@ -106,25 +107,25 @@ export default {
             { name: 'Created At', value: `<t:${review.createdAt}:R>` }
           )
 
-        const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder().setCustomId(`approve-${reviewId}`).setLabel('Approve').setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId(`reject-${reviewId}`).setLabel('Reject').setStyle(ButtonStyle.Danger)
         )
 
-        const msg = await i.reply({
+        const message = await index.reply({
           embeds: [detailEmbed],
-          components: [btnRow],
+          components: [buttonRow],
           fetchReply: true
         })
 
-        const btnCollector = msg.createMessageComponentCollector({
+        const buttonCollector = message.createMessageComponentCollector({
           componentType: ComponentType.Button,
-          time: 60000,
-          filter: (btn) => btn.user.id === interaction.user.id
+          time: 60_000,
+          filter: (button) => button.user.id === interaction.user.id
         })
 
-        btnCollector.on('collect', async (btn) => {
-          const action = btn.customId.startsWith('approve') ? 'approve' : 'reject'
+        buttonCollector.on('collect', async (button) => {
+          const action = button.customId.startsWith('approve') ? 'approve' : 'reject'
 
           if (action === 'reject') {
             pendingManager.removeReview(reviewId)
@@ -134,9 +135,9 @@ export default {
               'reject',
               review.currentRank,
               review.proposedRank,
-              btn.user.tag
+              button.user.tag
             )
-            await btn.update({ content: 'Review rejected.', embeds: [], components: [] })
+            await button.update({ content: 'Review rejected.', embeds: [], components: [] })
           } else {
             // Execute Action
             // We need to send command to Minecraft
@@ -150,7 +151,7 @@ export default {
                 let command = ''
                 if (review.action === 'promote' || review.action === 'demote') {
                   if (review.proposedRank.length === 0) {
-                    await btn.update({ content: 'Error: pending review is missing a target rank.', components: [] })
+                    await button.update({ content: 'Error: pending review is missing a target rank.', components: [] })
                     return
                   }
 
@@ -159,27 +160,27 @@ export default {
                   command = `/g kick ${name} ${review.reason}`
                 }
 
-                instance.send(command, MinecraftSendChatPriority.High, undefined)
+                await instance.send(command, MinecraftSendChatPriority.High, undefined)
 
                 pendingManager.removeReview(reviewId)
                 pendingManager.logHistory(
                   bridgeId,
                   review.uuid,
-                  review.action as any,
+                  review.action,
                   review.currentRank,
                   review.proposedRank,
-                  btn.user.tag
+                  button.user.tag
                 )
 
-                await btn.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
+                await button.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
               } else {
-                await btn.update({ content: 'Error: Minecraft instance not found.', components: [] })
+                await button.update({ content: 'Error: Minecraft instance not found.', components: [] })
               }
             } else {
-              await btn.update({ content: 'Error: No Minecraft instances configured.', components: [] })
+              await button.update({ content: 'Error: No Minecraft instances configured.', components: [] })
             }
           }
-          btnCollector.stop()
+          buttonCollector.stop()
         })
       }
     })

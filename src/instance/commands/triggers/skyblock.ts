@@ -51,22 +51,33 @@ export default class Skyblock extends ChatCommandHandler {
     const slayerSummary = slayerBosses ? formatSlayerSummary(slayerBosses) : 'None'
 
     const dungeons = selected.member.dungeons
-    const catacombsExperience = (dungeons as any)?.dungeon_types?.catacombs?.experience ?? 0
+    const catacombsExperience = dungeons?.dungeon_types.catacombs.experience ?? 0
     const catacombsLevel = getLevelByXp(catacombsExperience, { type: 'dungeoneering' }).levelWithProgress
-    const classAverage = (dungeons as any)?.player_classes ? formatClassAverage((dungeons as any).player_classes) : 0
+    const classAverage = dungeons?.player_classes
+      ? formatClassAverage(dungeons.player_classes as unknown as Record<string, { experience?: number }>)
+      : 0
 
     const magicalPower = selected.member.accessory_bag_storage?.highest_magical_power ?? 0
-    const hotmExperience = (selected.member as any).mining_core?.experience ?? 0
+    const legacyHotmKey = 'mining_core'
+    const hotmExperience =
+      (
+        (selected.member as unknown as Record<string, { experience?: number } | undefined>).miningCore ??
+        (selected.member as unknown as Record<string, { experience?: number } | undefined>)[legacyHotmKey]
+      )?.experience ?? 0
     const hotmLevel = getHotmLevel(hotmExperience)
 
     const bankBalance = selected.profile.banking?.balance ?? 0
     const museum = await context.app.hypixelApi
       .getSkyblockMuseum(uuid, selected.profile.profile_id, { raw: true })
       .catch(() => undefined)
-    const museumMember = museum?.members?.[uuid]
+    const museumMember = museum?.members[uuid]
 
     let networth = 'N/A'
-    const networthManager = new ProfileNetworthCalculator(selected.member as any, museumMember as any, bankBalance)
+    const networthManager = new ProfileNetworthCalculator(
+      selected.member as unknown as Record<string, unknown>,
+      museumMember as Record<string, unknown> | undefined,
+      bankBalance
+    )
     const networthData = await networthManager.getNetworth({ onlyNetworth: true }).catch(() => undefined)
     if (networthData && !networthData.noInventory) {
       networth = formatNumber(networthData.networth)
@@ -87,7 +98,7 @@ export default class Skyblock extends ChatCommandHandler {
 
 function formatSlayerSummary(slayerBosses: Record<string, { xp?: number }>): string {
   const entries = SlayerTypes.map((type) => {
-    const xp = slayerBosses[type]?.xp ?? 0
+    const xp = slayerBosses[type].xp ?? 0
     const level = getSlayerLevel(type, xp)
     return `${level}${type[0].toUpperCase()}`
   })
@@ -106,13 +117,13 @@ function getSlayerLevel(type: SlayerType, xp: number): number {
   return level
 }
 
-function formatClassAverage(classes: Record<string, any>): number {
+function formatClassAverage(classes: Record<string, { experience?: number }>): number {
   const classNames = ['healer', 'mage', 'berserk', 'archer', 'tank']
   let total = 0
   let count = 0
 
   for (const name of classNames) {
-    const experience = classes[name]?.experience ?? 0
+    const experience = classes[name].experience ?? 0
     const level = getLevelByXp(experience, { type: 'dungeoneering' }).levelWithProgress
     total += level
     count += 1
@@ -126,7 +137,7 @@ function getHotmLevel(experience: number): number {
   let xpRemaining = experience
   let xpCurrent = experience
 
-  while (HotmXpTable[level + 1] !== undefined && HotmXpTable[level + 1] <= xpRemaining) {
+  while (level + 1 < HotmXpTable.length && HotmXpTable[level + 1] <= xpRemaining) {
     level += 1
     xpRemaining -= HotmXpTable[level]
     xpCurrent = xpRemaining

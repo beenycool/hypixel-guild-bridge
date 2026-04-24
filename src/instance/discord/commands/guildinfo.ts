@@ -1,5 +1,6 @@
 import type { APIEmbed } from 'discord.js'
 import { SlashCommandBuilder, SlashCommandStringOption } from 'discord.js'
+import type { Guild } from 'hypixel-api-reborn'
 
 import { Color } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
@@ -54,7 +55,7 @@ export default {
     await context.interaction.deferReply()
 
     try {
-      let guild
+      let guild: Guild | undefined
 
       if (type === 'player') {
         // Get UUID first

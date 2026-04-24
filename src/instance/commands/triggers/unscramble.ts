@@ -46,13 +46,18 @@ function shuffle<T>(array: T[]): T[] {
   return array
 }
 
+function splitChars(word: string): string[] {
+  const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' })
+  return Array.from(segmenter.segment(word), (segment) => segment.segment)
+}
+
 function scrambleWord(word: string): string {
   for (let attempt = 0; attempt < 10; attempt++) {
-    const scrambled = shuffle(word.split('')).join('')
+    const scrambled = shuffle(splitChars(word)).join('')
     if (scrambled !== word) return scrambled
   }
 
-  return word.split('').reverse().join('')
+  return splitChars(word).toReversed().join('')
 }
 
 export default class Unscramble extends ChatCommandHandler {

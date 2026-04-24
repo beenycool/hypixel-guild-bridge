@@ -1,8 +1,8 @@
 import assert from 'node:assert'
 
-import { newDb } from 'pg-mem'
-import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 import type { Logger } from 'log4js'
+import { Pool, type QueryResult, type QueryResultRow } from 'pg'
+import { newDb } from 'pg-mem'
 
 import type Application from '../application.js'
 
@@ -55,18 +55,21 @@ export class DatabaseManager {
     text: string,
     values: QueryValues = []
   ): Promise<T[]> {
-    return (await this.query(text, values)).rows as T[]
+    const result = await this.query(text, values)
+    return result.rows as T[]
   }
 
   public async queryOne<T extends QueryResultRow = QueryResultRow>(
     text: string,
     values: QueryValues = []
   ): Promise<T | undefined> {
-    return (await this.queryRows<T>(text, values))[0]
+    const rows = await this.queryRows<T>(text, values)
+    return rows[0]
   }
 
   public async execute(text: string, values: QueryValues = []): Promise<number> {
-    return (await this.query(text, values)).rowCount ?? 0
+    const result = await this.query(text, values)
+    return result.rowCount ?? 0
   }
 
   public enqueueWrite(description: string, callback: (database: Queryable) => Promise<void>): void {
@@ -160,7 +163,9 @@ export class DatabaseManager {
     if (databaseUrl.startsWith('memory://')) {
       const memoryDatabase = newDb({ autoCreateForeignKeyIndices: true })
       const adapter = memoryDatabase.adapters.createPg()
-      this.pool = new adapter.Pool() as unknown as PoolLike
+      const { Pool: RawPool } = adapter as Record<string, unknown>
+      const PgPoolAdapter = RawPool as new () => PoolLike
+      this.pool = new PgPoolAdapter()
       this.logger.info(`Using in-memory PostgreSQL adapter (${databaseUrl})`)
     } else {
       const ssl = this.resolveSsl(databaseUrl)
@@ -174,9 +179,12 @@ export class DatabaseManager {
     await this.query('SELECT 1')
 
     this.cleanTimer = setInterval(() => {
-      void this.runCleaners()
+      this.runCleaners().catch((error: unknown) => {
+        this.logger.error('Database cleaner failed in interval')
+        this.logger.error(error)
+      })
     }, DatabaseManager.CleanEvery)
-    this.cleanTimer.unref?.()
+    this.cleanTimer.unref()
   }
 
   private resolveDatabaseUrl(): string {

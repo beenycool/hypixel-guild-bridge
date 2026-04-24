@@ -11,7 +11,7 @@ import {
 
 interface TrophyFishProfile {
   rewards?: number[]
-  total_caught?: number
+  totalCaught?: number
   [key: string]: number | number[] | undefined
 }
 
@@ -35,7 +35,8 @@ export default class TrophyFish extends ChatCommandHandler {
     const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
     if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
 
-    const trophyFish = (selectedProfile as { trophy_fish?: TrophyFishProfile }).trophy_fish
+    const rawProfile = selectedProfile as unknown as Record<string, unknown>
+    const trophyFish = rawProfile.trophy_fish as TrophyFishProfile | undefined
     if (!trophyFish) return playerNeverEnteredCrimson(givenUsername)
 
     const trophyKeys = Object.keys(trophyFish)
@@ -44,7 +45,8 @@ export default class TrophyFish extends ChatCommandHandler {
     const rankIndex = typeof lastReward === 'number' ? lastReward : 0
     const rank = TrophyRanks[rankIndex] ?? TrophyRanks[0]
 
-    const caughtTotal = trophyFish.total_caught ?? 0
+    const totalCaughtKey = 'total_caught'
+    const caughtTotal = ((trophyFish as Record<string, unknown>)[totalCaughtKey] as number | undefined) ?? 0
     const bronze = trophyKeys.filter((key) => key.endsWith('_bronze')).length
     const silver = trophyKeys.filter((key) => key.endsWith('_silver')).length
     const gold = trophyKeys.filter((key) => key.endsWith('_gold')).length

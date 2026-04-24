@@ -33,7 +33,7 @@ export default class Forge extends ChatCommandHandler {
     if (forgeItems.length === 0) return `${givenUsername} has no items in their forge.`
 
     const formatted = forgeItems
-      .sort((a, b) => a.slot - b.slot)
+      .toSorted((a, b) => a.slot - b.slot)
       .map((item) => `${item.slot}: ${item.name}${item.timeFinishedText}`)
 
     return `${givenUsername}'s Forge: ${formatted.join(' | ')}`

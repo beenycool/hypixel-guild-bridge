@@ -2,30 +2,38 @@ import assert from 'node:assert'
 
 import { InstanceMessageType } from '../src/common/application-event'
 import { Status } from '../src/common/connectable-instance'
+import type { Translator } from '../src/core/instance/instance-language'
 import {
   translateAuthenticationCodeExpired,
   translateInstanceMessage,
   translateInstanceStatus
 } from '../src/core/instance/instance-language'
 
-const t = (k: any, options?: any) => `translated:${options?.from ?? options?.to ?? options?.instanceName ?? ''}`
+function extractOptionField(options: unknown, field: string): string | undefined {
+  return (options as Record<string, string> | undefined)?.[field]
+}
+
+const TestTranslator: Translator = (key, options) => {
+  void key
+  return `translated:${extractOptionField(options, 'from') ?? extractOptionField(options, 'to') ?? extractOptionField(options, 'instanceName') ?? ''}`
+}
 
 // message type
 {
-  const out = translateInstanceMessage(t as any, InstanceMessageType.MinecraftAuthenticationCode)
+  const out = translateInstanceMessage(TestTranslator, InstanceMessageType.MinecraftAuthenticationCode)
   assert.strictEqual(out, 'translated:')
 }
 
 // auth expired
 {
-  const out = translateAuthenticationCodeExpired(t as any)
+  const out = translateAuthenticationCodeExpired(TestTranslator)
   assert.strictEqual(out, 'translated:')
 }
 
 // status change
 {
-  const out = translateInstanceStatus(t as any, { from: Status.Connected, to: Status.Disconnected })
+  const out = translateInstanceStatus(TestTranslator, { from: Status.Connected, to: Status.Disconnected })
   assert.ok(out.startsWith('translated:'))
 }
 
-console.log('PASS: instance-language translator usage')
+assert.ok(true, 'instance-language translator usage')

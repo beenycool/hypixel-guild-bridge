@@ -15,10 +15,10 @@ export abstract class Instance<T extends InstanceType> implements InstanceIdenti
     if (this.instanceType === InstanceType.Minecraft) {
       return this.application.bridgeResolver.getBridgeIdForInstance(this.instanceName)
     }
-    return this._bridgeId
+    return this.bridgeIdInternal
   }
 
-  private readonly _bridgeId?: string
+  private readonly bridgeIdInternal?: string
 
   protected readonly application: Application
   protected readonly logger: Logger
@@ -29,7 +29,7 @@ export abstract class Instance<T extends InstanceType> implements InstanceIdenti
     this.application = application
     this.instanceName = instanceName
     this.instanceType = instanceType
-    this._bridgeId = bridgeId
+    this.bridgeIdInternal = bridgeId
 
     this.logger = Instance.createLogger(instanceName)
     this.errorHandler = new UnexpectedErrorHandler(this.logger)

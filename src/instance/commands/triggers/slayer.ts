@@ -78,22 +78,23 @@ export default class SlayerCommand extends ChatCommandHandler {
   }
 }
 
-function getSlayerSummary(profile: SkyblockV2Member): SlayerSummary | null {
-  if (!profile.slayer?.slayer_bosses) return null
+function getSlayerSummary(profile: SkyblockV2Member): SlayerSummary | undefined {
+  const bosses = profile.slayer?.slayer_bosses
+  if (!bosses) return undefined
 
   return {
-    zombie: getSlayerLevel(profile, 'zombie'),
-    spider: getSlayerLevel(profile, 'spider'),
-    wolf: getSlayerLevel(profile, 'wolf'),
-    enderman: getSlayerLevel(profile, 'enderman'),
-    blaze: getSlayerLevel(profile, 'blaze'),
-    vampire: getSlayerLevel(profile, 'vampire')
+    zombie: getSlayerLevel(bosses, 'zombie'),
+    spider: getSlayerLevel(bosses, 'spider'),
+    wolf: getSlayerLevel(bosses, 'wolf'),
+    enderman: getSlayerLevel(bosses, 'enderman'),
+    blaze: getSlayerLevel(bosses, 'blaze'),
+    vampire: getSlayerLevel(bosses, 'vampire')
   }
 }
 
-function getSlayerLevel(profile: SkyblockV2Member, slayer: SlayerType): SlayerLevel {
-  const slayerData = profile.slayer?.slayer_bosses?.[slayer]
-  const experience = slayerData?.xp ?? 0
+function getSlayerLevel(bosses: Record<string, Slayer>, slayer: SlayerType): SlayerLevel {
+  const slayerData = bosses[slayer]
+  const experience = slayerData.xp
   const xpTable = SlayerXpTable[slayer]
 
   if (experience <= 0) {
@@ -138,7 +139,7 @@ function getSlayerKills(
   if (slayer === 'zombie') kills['5'] = 0
   if (!slayerData) return { totalKills: total, kills }
 
-  for (const [key, value] of Object.entries(slayerData)) {
+  for (const [key, value] of Object.entries(slayerData) as [string, unknown][]) {
     if (!key.startsWith('boss_kills_tier_')) continue
     const tier = Number.parseInt(key.slice(-1), 10)
     if (Number.isNaN(tier)) continue

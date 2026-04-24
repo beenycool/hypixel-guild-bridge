@@ -2,26 +2,32 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import type {
+  ActionRowData,
   APIEmbed,
   APIEmbedField,
   ButtonInteraction,
   ChatInputCommandInteraction,
-  CollectedInteraction,
+  InteractionButtonComponentData,
   InteractionResponse,
-  ModalMessageModalSubmitInteraction
+  MessageActionRowComponentData,
+  ModalSubmitInteraction
 } from 'discord.js'
-import { bold, ButtonStyle, ComponentType, italic, MessageFlags, SlashCommandBuilder, TextInputStyle } from 'discord.js'
+import { ButtonStyle, ComponentType, MessageFlags, SlashCommandBuilder, TextInputStyle } from 'discord.js'
+import type { Logger } from 'log4js'
+import Logger4js from 'log4js'
 
 import type Application from '../../../application.js'
 import { Color, Permission } from '../../../common/application-event.js'
 import { CommandConfigManager } from '../../../common/command-config-manager.js'
-import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
+import type { ChatCommandHandler, DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 
+const CommandsLogger: Logger = Logger4js.getLogger('Commands')
+
 // Session state management for command custom IDs
-const SESSION_PREFIX = 'commands_session_'
-const MAX_SESSION_AGE = 600_000 // 10 minutes
+const SessionPrefix = 'commands_session_'
+const MaxSessionAge = 600_000 // 10 minutes
 
 interface CommandInfo {
   name: string
@@ -58,7 +64,6 @@ export default {
       const commandConfigManager = new CommandConfigManager(application)
       // Check admin permissions
       const isAdmin = context.permission === Permission.Admin
-      const bridgeId = context.bridgeId
 
       // Generate session token for state management
       const sessionToken = generateSessionToken()
@@ -104,15 +109,23 @@ async function discoverAllCommands(
 
   try {
     // Discover Discord commands
-    const discordCommandsDir = path.join(process.cwd(), 'src/instance/discord/commands/')
+    const discordCommandsDirectory = path.join(process.cwd(), 'src/instance/discord/commands/')
     const discordFiles = fs
-      .readdirSync(discordCommandsDir)
+      .readdirSync(discordCommandsDirectory)
       .filter((file) => file.endsWith('.ts') && file !== 'commands.ts')
 
     for (const file of discordFiles) {
       try {
-        const resolvedPath = path.join('../', discordCommandsDir, file.replaceAll('.ts', '.js'))
-        const importedModule = (await import(resolvedPath)) as { default: any }
+        const resolvedPath = path.join('../', discordCommandsDirectory, file.replaceAll('.ts', '.js'))
+        const importedModule = (await import(resolvedPath)) as {
+          default:
+            | {
+                getCommandBuilder?: () => { name: string; description: string }
+                permission?: Permission
+                scope?: unknown
+              }
+            | undefined
+        }
         const module = importedModule.default
 
         if (module?.getCommandBuilder) {
@@ -138,18 +151,26 @@ async function discoverAllCommands(
           discordCommands.push(commandInfo)
         }
       } catch (error) {
-        console.warn(`Failed to load Discord command from ${file}:`, error)
+        CommandsLogger.warn(`Failed to load Discord command from ${file}:`, error)
       }
     }
 
     // Discover Minecraft commands
-    const minecraftCommandsDir = path.join(process.cwd(), 'src/instance/commands/triggers/')
-    const minecraftFiles = fs.readdirSync(minecraftCommandsDir).filter((file) => file.endsWith('.ts'))
+    const minecraftCommandsDirectory = path.join(process.cwd(), 'src/instance/commands/triggers/')
+    const minecraftFiles = fs.readdirSync(minecraftCommandsDirectory).filter((file) => file.endsWith('.ts'))
 
     for (const file of minecraftFiles) {
       try {
-        const resolvedPath = path.join('../', minecraftCommandsDir, file.replaceAll('.ts', '.js'))
-        const importedModule = (await import(resolvedPath)) as { default: any }
+        const resolvedPath = path.join('../', minecraftCommandsDirectory, file.replaceAll('.ts', '.js'))
+        const importedModule = (await import(resolvedPath)) as {
+          default:
+            | {
+                triggers?: string[]
+                description?: string
+                resolveCommands?: () => ChatCommandHandler[]
+              }
+            | undefined
+        }
         const module = importedModule.default
 
         if (module?.triggers) {
@@ -192,7 +213,7 @@ async function discoverAllCommands(
             const commandInfo: CommandInfo = {
               name: displayName,
               originalName: commandTrigger,
-              description: module.description,
+              description: module.description ?? '',
               triggers: module.triggers,
               isDiscordCommand: false,
               category: categorizeMinecraftCommand(commandTrigger)
@@ -201,11 +222,11 @@ async function discoverAllCommands(
           }
         }
       } catch (error) {
-        console.warn(`Failed to load Minecraft command from ${file}:`, error)
+        CommandsLogger.warn(`Failed to load Minecraft command from ${file}:`, error)
       }
     }
   } catch (error) {
-    console.error('Error discovering commands:', error)
+    CommandsLogger.error('Error discovering commands:', error)
   }
 
   return { discord: discordCommands, minecraft: minecraftCommands }
@@ -216,7 +237,7 @@ async function discoverAllCommands(
  */
 function categorizeMinecraftCommand(trigger: string): string {
   const categories: Record<string, string[]> = {
-    Skyblock: [
+    ['Skyblock']: [
       'skyblock',
       'collection',
       'bestiary',
@@ -235,7 +256,7 @@ function categorizeMinecraftCommand(trigger: string): string {
       'magicalpower',
       'secrets'
     ],
-    Guild: [
+    ['Guild']: [
       'guild',
       'guildexp',
       'promote',
@@ -249,7 +270,7 @@ function categorizeMinecraftCommand(trigger: string): string {
       'offline',
       'officer'
     ],
-    Games: [
+    ['Games']: [
       'bedwars',
       'duels',
       'skywars',
@@ -265,7 +286,7 @@ function categorizeMinecraftCommand(trigger: string): string {
       'woolwars',
       'party'
     ],
-    Utility: [
+    ['Utility']: [
       'calculate',
       'rng',
       '8ball',
@@ -281,7 +302,7 @@ function categorizeMinecraftCommand(trigger: string): string {
       'dojo',
       'crimson'
     ],
-    Other: []
+    ['Other']: []
   }
 
   for (const [category, triggers] of Object.entries(categories)) {
@@ -331,28 +352,28 @@ async function sendInitialResponse(
         components: [
           {
             type: ComponentType.Button,
-            customId: `${SESSION_PREFIX}${sessionToken}:tab:discord`,
+            customId: `${SessionPrefix}${sessionToken}:tab:discord`,
             label: i18n.t(($) => $['discord.commands.commands.tabs.discord']),
             style: ButtonStyle.Primary,
             emoji: '💬'
           },
           {
             type: ComponentType.Button,
-            customId: `${SESSION_PREFIX}${sessionToken}:tab:minecraft`,
+            customId: `${SessionPrefix}${sessionToken}:tab:minecraft`,
             label: i18n.t(($) => $['discord.commands.commands.tabs.minecraft']),
             style: ButtonStyle.Secondary,
             emoji: '⛏️'
           },
           {
             type: ComponentType.Button,
-            customId: `${SESSION_PREFIX}${sessionToken}:search`,
+            customId: `${SessionPrefix}${sessionToken}:search`,
             label: i18n.t(($) => $['discord.commands.commands.actions.search']),
             style: ButtonStyle.Secondary,
             emoji: '🔍'
           },
           {
             type: ComponentType.Button,
-            customId: `${SESSION_PREFIX}${sessionToken}:categories`,
+            customId: `${SessionPrefix}${sessionToken}:categories`,
             label: i18n.t(($) => $['discord.commands.commands.actions.categories']),
             style: ButtonStyle.Secondary,
             emoji: '📂'
@@ -374,14 +395,14 @@ function generateSessionToken(): string {
 /**
  * Parse session token and state from custom ID
  */
-function parseSessionData(customId: string): { sessionToken: string; action: string; data?: string } | null {
-  if (!customId.startsWith(SESSION_PREFIX)) {
-    return null
+function parseSessionData(customId: string): { sessionToken: string; action: string; data?: string } | undefined {
+  if (!customId.startsWith(SessionPrefix)) {
+    return undefined
   }
 
-  const parts = customId.slice(SESSION_PREFIX.length).split(':')
+  const parts = customId.slice(SessionPrefix.length).split(':')
   if (parts.length < 2) {
-    return null
+    return undefined
   }
 
   return {
@@ -426,7 +447,7 @@ function getCategories(commands: CommandInfo[]): string[] {
       categories.add(cmd.category)
     }
   }
-  return [...categories].sort()
+  return [...categories].toSorted()
 }
 
 /**
@@ -445,37 +466,43 @@ async function setupComponentCollector(
   const collector = reply.createMessageComponentCollector({
     filter: (messageInteraction) =>
       messageInteraction.user.id === interaction.user.id && messageInteraction.message.id === replyId,
-    time: MAX_SESSION_AGE
+    time: MaxSessionAge
   })
 
-  collector.on('collect', async (messageInteraction) => {
-    try {
-      const sessionData = parseSessionData(messageInteraction.customId)
-      if (sessionData?.sessionToken !== sessionToken) {
-        return
-      }
+  collector.on('collect', (messageInteraction) => {
+    ;(async () => {
+      try {
+        const sessionData = parseSessionData(messageInteraction.customId)
+        if (sessionData?.sessionToken !== sessionToken) {
+          return
+        }
 
-      // Handle different interaction types
-      if (messageInteraction.isButton()) {
-        await handleButtonInteraction(
-          messageInteraction,
-          commands,
-          sessionState,
-          sessionToken,
-          application,
-          errorHandler
-        )
-      } else if (messageInteraction.isModalSubmit()) {
-        await handleModalSubmit(messageInteraction, commands, sessionState, sessionToken, application, errorHandler)
+        // Handle different interaction types
+        if (messageInteraction.isButton()) {
+          await handleButtonInteraction(
+            messageInteraction,
+            commands,
+            sessionState,
+            sessionToken,
+            application,
+            errorHandler
+          )
+        } else if (messageInteraction.isModalSubmit()) {
+          await handleModalSubmit(messageInteraction, commands, sessionState, sessionToken, application, errorHandler)
+        }
+      } catch (error) {
+        errorHandler.promiseCatch('commands component interaction')(error)
       }
-    } catch (error) {
+    })().catch((error: unknown) => {
       errorHandler.promiseCatch('commands component interaction')(error)
-    }
+    })
   })
 
   collector.on('end', () => {
     // Session expired, disable components
-    reply.edit({ components: [] }).catch(() => {})
+    reply.edit({ components: [] }).catch(() => {
+      /* session expired, ignore edit failure */
+    })
   })
 }
 
@@ -490,10 +517,10 @@ async function handleButtonInteraction(
   application: Application,
   errorHandler: UnexpectedErrorHandler
 ) {
+  void errorHandler
   const sessionData = parseSessionData(interaction.customId)
   if (!sessionData) return
 
-  const i18n = application.i18n
   switch (sessionData.action) {
     case 'tab': {
       if (sessionData.data === 'discord' || sessionData.data === 'minecraft') {
@@ -619,11 +646,10 @@ async function updateCommandList(
     title: i18n.t(
       ($) =>
         $['discord.commands.commands.title'] +
-        ` - ${i18n.t(
-          ($) =>
-            sessionState.currentTab === 'discord'
-              ? $['discord.commands.commands.tabs.discord']
-              : $['discord.commands.commands.tabs.minecraft']
+        ` - ${i18n.t(($) =>
+          sessionState.currentTab === 'discord'
+            ? $['discord.commands.commands.tabs.discord']
+            : $['discord.commands.commands.tabs.minecraft']
         )}`
     ),
     description:
@@ -635,15 +661,15 @@ async function updateCommandList(
         ? `\n${i18n.t(($) => $['discord.commands.commands.filters.category'])}: **${sessionState.selectedCategory}**`
         : ''),
     color: Color.Default,
-    fields: [],
     footer: { text: DefaultCommandFooter }
   }
 
+  const embedFields: APIEmbedField[] = []
+
   // Add commands to embed
-  for (const [index, cmd] of currentPageCommands.entries()) {
-    const actualIndex = startIndex + index
+  for (const cmd of currentPageCommands) {
     const displayName = sessionState.currentTab === 'discord' ? `/${cmd.name}` : `!${cmd.name}`
-    embed.fields!.push({
+    embedFields.push({
       name: `${displayName} ${cmd.category ? `(${cmd.category})` : ''}`,
       value: cmd.description.slice(0, 100) + (cmd.description.length > 100 ? '...' : ''),
       inline: false
@@ -651,7 +677,7 @@ async function updateCommandList(
   }
 
   if (filteredCommands.length === 0) {
-    embed.fields!.push({
+    embedFields.push({
       name: i18n.t(($) => $['discord.commands.commands.no-results']),
       value: i18n.t(($) => $['discord.commands.commands.try-different-filters']),
       inline: false
@@ -659,7 +685,7 @@ async function updateCommandList(
   }
 
   // Pagination info
-  embed.fields!.push({
+  embedFields.push({
     name: i18n.t(($) => $['discord.commands.commands.pagination.info']),
     value: i18n.t(($) => $['discord.commands.commands.pagination.display'], {
       current: sessionState.currentPage + 1,
@@ -669,8 +695,10 @@ async function updateCommandList(
     inline: false
   })
 
+  embed.fields = embedFields
+
   // Create components
-  const components: any[] = []
+  const components: ActionRowData<MessageActionRowComponentData>[] = []
 
   // Tab buttons
   components.push({
@@ -678,28 +706,28 @@ async function updateCommandList(
     components: [
       {
         type: ComponentType.Button,
-        customId: `${SESSION_PREFIX}${sessionToken}:tab:discord`,
+        customId: `${SessionPrefix}${sessionToken}:tab:discord`,
         label: i18n.t(($) => $['discord.commands.commands.tabs.discord']),
         style: sessionState.currentTab === 'discord' ? ButtonStyle.Primary : ButtonStyle.Secondary,
         emoji: '💬'
       },
       {
         type: ComponentType.Button,
-        customId: `${SESSION_PREFIX}${sessionToken}:tab:minecraft`,
+        customId: `${SessionPrefix}${sessionToken}:tab:minecraft`,
         label: i18n.t(($) => $['discord.commands.commands.tabs.minecraft']),
         style: sessionState.currentTab === 'minecraft' ? ButtonStyle.Primary : ButtonStyle.Secondary,
         emoji: '⛏️'
       },
       {
         type: ComponentType.Button,
-        customId: `${SESSION_PREFIX}${sessionToken}:search`,
+        customId: `${SessionPrefix}${sessionToken}:search`,
         label: i18n.t(($) => $['discord.commands.commands.actions.search']),
         style: ButtonStyle.Secondary,
         emoji: '🔍'
       },
       {
         type: ComponentType.Button,
-        customId: `${SESSION_PREFIX}${sessionToken}:categories`,
+        customId: `${SessionPrefix}${sessionToken}:categories`,
         label: i18n.t(($) => $['discord.commands.commands.actions.categories']),
         style: ButtonStyle.Secondary,
         emoji: '📂'
@@ -709,12 +737,12 @@ async function updateCommandList(
 
   // Command buttons (for detail view)
   if (currentPageCommands.length > 0) {
-    const commandButtons: any[] = []
-    for (const [index, _] of currentPageCommands.entries()) {
-      const actualIndex = startIndex + index
+    const commandButtons: InteractionButtonComponentData[] = []
+    for (let commandButtonIndex = 0; commandButtonIndex < currentPageCommands.length; commandButtonIndex++) {
+      const commandIndex = startIndex + commandButtonIndex
       commandButtons.push({
         type: ComponentType.Button,
-        customId: `${SESSION_PREFIX}${sessionToken}:command:${actualIndex}`,
+        customId: `${SessionPrefix}${sessionToken}:command:${commandIndex}`,
         label: i18n.t(($) => $['discord.commands.commands.actions.details']),
         style: ButtonStyle.Secondary,
         emoji: '📋'
@@ -722,10 +750,10 @@ async function updateCommandList(
     }
 
     // Split into rows of 5 buttons max
-    for (let index = 0; index < commandButtons.length; index += 5) {
+    for (let rowIndex = 0; rowIndex < commandButtons.length; rowIndex += 5) {
       components.push({
         type: ComponentType.ActionRow,
-        components: commandButtons.slice(index, index + 5)
+        components: commandButtons.slice(rowIndex, rowIndex + 5)
       })
     }
   }
@@ -737,7 +765,7 @@ async function updateCommandList(
       components: [
         {
           type: ComponentType.Button,
-          customId: `${SESSION_PREFIX}${sessionToken}:page:prev`,
+          customId: `${SessionPrefix}${sessionToken}:page:prev`,
           label: i18n.t(($) => $['discord.commands.commands.pagination.previous']),
           style: ButtonStyle.Secondary,
           disabled: sessionState.currentPage === 0,
@@ -745,7 +773,7 @@ async function updateCommandList(
         },
         {
           type: ComponentType.Button,
-          customId: `${SESSION_PREFIX}${sessionToken}:page:next`,
+          customId: `${SessionPrefix}${sessionToken}:page:next`,
           label: i18n.t(($) => $['discord.commands.commands.pagination.next']),
           style: ButtonStyle.Secondary,
           disabled: sessionState.currentPage >= totalPages - 1,
@@ -757,11 +785,11 @@ async function updateCommandList(
 
   // Clear filters buttons
   if (sessionState.searchQuery || sessionState.selectedCategory) {
-    const filterButtons: any[] = []
+    const filterButtons: InteractionButtonComponentData[] = []
     if (sessionState.searchQuery) {
       filterButtons.push({
         type: ComponentType.Button,
-        customId: `${SESSION_PREFIX}${sessionToken}:clear-search`,
+        customId: `${SessionPrefix}${sessionToken}:clear-search`,
         label: i18n.t(($) => $['discord.commands.commands.actions.clear-search']),
         style: ButtonStyle.Danger,
         emoji: '❌'
@@ -770,7 +798,7 @@ async function updateCommandList(
     if (sessionState.selectedCategory) {
       filterButtons.push({
         type: ComponentType.Button,
-        customId: `${SESSION_PREFIX}${sessionToken}:clear-category`,
+        customId: `${SessionPrefix}${sessionToken}:clear-category`,
         label: i18n.t(($) => $['discord.commands.commands.actions.clear-category']),
         style: ButtonStyle.Danger,
         emoji: '🗂️'
@@ -803,7 +831,7 @@ async function showSearchModal(
 ) {
   const i18n = application.i18n
   await interaction.showModal({
-    customId: `${SESSION_PREFIX}${sessionToken}:search-modal`,
+    customId: `${SessionPrefix}${sessionToken}:search-modal`,
     title: i18n.t(($) => $['discord.commands.commands.search.title']),
     components: [
       {
@@ -811,7 +839,7 @@ async function showSearchModal(
         components: [
           {
             type: ComponentType.TextInput,
-            customId: `${SESSION_PREFIX}${sessionToken}:search-input`,
+            customId: `${SessionPrefix}${sessionToken}:search-input`,
             label: i18n.t(($) => $['discord.commands.commands.search.label']),
             style: TextInputStyle.Short,
             required: false,
@@ -828,16 +856,20 @@ async function showSearchModal(
       time: 300_000,
       filter: (modalInteraction) => modalInteraction.user.id === interaction.user.id
     })
-    .then(async (modalInteraction) => {
-      const value = modalInteraction.fields.getTextInputValue(`${SESSION_PREFIX}${sessionToken}:search-input`).trim()
+    .then((modalInteraction) => {
+      const value = modalInteraction.fields.getTextInputValue(`${SessionPrefix}${sessionToken}:search-input`).trim()
       sessionState.searchQuery = value.length === 0 ? undefined : value
       sessionState.currentPage = 0
       // Update the display (modal from message has update)
       if (modalInteraction.isFromMessage()) {
-        modalInteraction.update({ components: [] }).catch(() => {})
+        modalInteraction.update({ components: [] }).catch(() => {
+          /* modal cleanup, ignore failure */
+        })
       }
     })
-    .catch(() => {})
+    .catch(() => {
+      /* modal timed out or cancelled */
+    })
 }
 
 /**
@@ -872,26 +904,26 @@ async function showCategorySelector(
 
   for (const category of categories) {
     const count = currentCommands.filter((cmd) => cmd.category === category).length
-    embed.fields!.push({
+    embed.fields?.push({
       name: `${category} (${count})`,
       value: i18n.t(($) => $['discord.commands.commands.categories.select'], { category }),
       inline: false
     })
   }
 
-  const categoryButtons = categories.map((category) => ({
+  const categoryButtons: InteractionButtonComponentData[] = categories.map((category) => ({
     type: ComponentType.Button,
-    customId: `${SESSION_PREFIX}${sessionToken}:category:${category}`,
+    customId: `${SessionPrefix}${sessionToken}:category:${category}`,
     label: category,
     style: sessionState.selectedCategory === category ? ButtonStyle.Primary : ButtonStyle.Secondary
   }))
 
   // Split into rows of 3 buttons max
-  const components: any[] = []
-  for (let index = 0; index < categoryButtons.length; index += 3) {
+  const components: ActionRowData<MessageActionRowComponentData>[] = []
+  for (let catIndex = 0; catIndex < categoryButtons.length; catIndex += 3) {
     components.push({
       type: ComponentType.ActionRow,
-      components: categoryButtons.slice(index, index + 3)
+      components: categoryButtons.slice(catIndex, catIndex + 3)
     })
   }
 
@@ -916,9 +948,7 @@ async function showCommandDetails(
   const i18n = application.i18n
   const currentCommands = sessionState.currentTab === 'discord' ? commands.discord : commands.minecraft
   const filteredCommands = filterCommands(currentCommands, sessionState)
-  const command = filteredCommands[commandIndex]
-
-  if (!command) {
+  if (commandIndex >= filteredCommands.length) {
     await interaction.reply({
       content: i18n.t(($) => $['discord.commands.commands.command-not-found']),
       flags: MessageFlags.Ephemeral
@@ -926,24 +956,28 @@ async function showCommandDetails(
     return
   }
 
+  const command = filteredCommands[commandIndex]
+
+  const embedFields: APIEmbedField[] = []
+
   const embed: APIEmbed = {
     title: sessionState.currentTab === 'discord' ? `/${command.name}` : `!${command.name}`,
     description: command.description,
     color: Color.Default,
-    fields: [],
+    fields: embedFields,
     footer: { text: DefaultCommandFooter }
   }
 
-  if (command.category) {
-    embed.fields!.push({
+  if (command.category !== undefined) {
+    embedFields.push({
       name: i18n.t(($) => $['discord.commands.commands.details.category']),
       value: command.category,
       inline: true
     })
   }
 
-  if (command.triggers && command.triggers.length > 1) {
-    embed.fields!.push({
+  if (command.triggers !== undefined && command.triggers.length > 1) {
+    embedFields.push({
       name: i18n.t(($) => $['discord.commands.commands.details.aliases']),
       value: command.triggers
         .slice(1)
@@ -953,8 +987,8 @@ async function showCommandDetails(
     })
   }
 
-  if (command.permission) {
-    embed.fields!.push({
+  if (command.permission !== undefined) {
+    embedFields.push({
       name: i18n.t(($) => $['discord.commands.commands.details.permission']),
       value: command.permission.toString(),
       inline: true
@@ -964,12 +998,12 @@ async function showCommandDetails(
   // Show command status and custom name for admins
   if (sessionState.isAdmin) {
     const commandType = command.isDiscordCommand ? 'discord' : 'minecraft'
-    const commandIdentifier = command.originalName || command.name
+    const commandIdentifier = command.originalName ?? command.name
     const isEnabled = sessionState.commandConfigManager.isCommandEnabled(commandType, commandIdentifier)
     const customName = sessionState.commandConfigManager.getCommandDisplayName(commandType, commandIdentifier)
     const isCustomName = customName !== commandIdentifier
 
-    embed.fields!.push({
+    embedFields.push({
       name: i18n.t(($) => $['discord.commands.commands.details.status']),
       value: isEnabled
         ? i18n.t(($) => $['discord.commands.commands.details.enabled'])
@@ -978,97 +1012,117 @@ async function showCommandDetails(
     })
 
     if (isCustomName) {
-      embed.fields!.push({
+      embedFields.push({
         name: i18n.t(($) => $['discord.commands.commands.details.custom-name']),
         value: customName,
         inline: true
       })
     }
-  }
 
-  const components: any[] = [
-    {
-      type: ComponentType.ActionRow,
-      components: [
-        {
-          type: ComponentType.Button,
-          customId: `${SESSION_PREFIX}${sessionToken}:back-to-list`,
-          label: i18n.t(($) => $['discord.commands.commands.actions.back-to-list']),
-          style: ButtonStyle.Secondary,
-          emoji: '⬅️'
-        }
-      ]
-    }
-  ]
+    const components: ActionRowData<MessageActionRowComponentData>[] = [
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.Button,
+            customId: `${SessionPrefix}${sessionToken}:back-to-list`,
+            label: i18n.t(($) => $['discord.commands.commands.actions.back-to-list']),
+            style: ButtonStyle.Secondary,
+            emoji: '⬅️'
+          }
+        ]
+      }
+    ]
 
-  // Add admin buttons if user is admin
-  if (sessionState.isAdmin) {
-    const adminButtons: any[] = []
+    // Add admin buttons if user is admin
+    const adminButtons: InteractionButtonComponentData[] = []
 
     // Rename button
     adminButtons.push({
       type: ComponentType.Button,
-      customId: `${SESSION_PREFIX}${sessionToken}:admin-rename:${commandIndex}`,
+      customId: `${SessionPrefix}${sessionToken}:admin-rename:${commandIndex}`,
       label: i18n.t(($) => $['discord.commands.commands.admin.rename.button']),
       style: ButtonStyle.Primary,
       emoji: '✏️'
     })
 
     // Toggle enable/disable button
-    const isEnabled = sessionState.commandConfigManager.isCommandEnabled(
+    const toggleIsEnabled = sessionState.commandConfigManager.isCommandEnabled(
       command.isDiscordCommand ? 'discord' : 'minecraft',
-      command.originalName || command.name
+      command.originalName ?? command.name
     )
     adminButtons.push({
       type: ComponentType.Button,
-      customId: `${SESSION_PREFIX}${sessionToken}:admin-toggle:${commandIndex}`,
-      label: isEnabled
+      customId: `${SessionPrefix}${sessionToken}:admin-toggle:${commandIndex}`,
+      label: toggleIsEnabled
         ? i18n.t(($) => $['discord.commands.commands.admin.toggle.disable'])
         : i18n.t(($) => $['discord.commands.commands.admin.toggle.enable']),
-      style: isEnabled ? ButtonStyle.Danger : ButtonStyle.Success,
-      emoji: isEnabled ? '🚫' : '✅'
+      style: toggleIsEnabled ? ButtonStyle.Danger : ButtonStyle.Success,
+      emoji: toggleIsEnabled ? '🚫' : '✅'
     })
 
     // Audit log button
     adminButtons.push({
       type: ComponentType.Button,
-      customId: `${SESSION_PREFIX}${sessionToken}:admin-audit:${commandIndex}`,
+      customId: `${SessionPrefix}${sessionToken}:admin-audit:${commandIndex}`,
       label: i18n.t(($) => $['discord.commands.commands.admin.audit.title']),
       style: ButtonStyle.Secondary,
       emoji: '📋'
     })
 
     // Split admin buttons into rows of 3
-    for (let index = 0; index < adminButtons.length; index += 3) {
+    for (let admIndex = 0; admIndex < adminButtons.length; admIndex += 3) {
       components.push({
         type: ComponentType.ActionRow,
-        components: adminButtons.slice(index, index + 3)
+        components: adminButtons.slice(admIndex, admIndex + 3)
       })
     }
-  }
 
-  await interaction.update({
-    embeds: [embed],
-    components,
-    flags: MessageFlags.IsComponentsV2
-  })
+    await interaction.update({
+      embeds: [embed],
+      components,
+      flags: MessageFlags.IsComponentsV2
+    })
+  } else {
+    await interaction.update({
+      embeds: [embed],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              customId: `${SessionPrefix}${sessionToken}:back-to-list`,
+              label: i18n.t(($) => $['discord.commands.commands.actions.back-to-list']),
+              style: ButtonStyle.Secondary,
+              emoji: '⬅️'
+            }
+          ]
+        }
+      ],
+      flags: MessageFlags.IsComponentsV2
+    })
+  }
 }
 
 /**
  * Handle modal submissions from the collector (if any)
  */
 async function handleModalSubmit(
-  interaction: any,
+  interaction: ModalSubmitInteraction,
   commands: { discord: CommandInfo[]; minecraft: CommandInfo[] },
   sessionState: SessionState,
   sessionToken: string,
   application: Application,
   errorHandler: UnexpectedErrorHandler
 ) {
+  void commands
+  void sessionState
+  void sessionToken
+  void application
+  void errorHandler
   // Modals are usually not caught by MessageComponentCollector, but kept for compatibility if needed.
-  if (interaction.isModalSubmit && interaction.isModalSubmit()) {
-    await interaction.deferUpdate()
-  }
+  await interaction.deferUpdate()
 }
 
 async function showRenameModal(
@@ -1082,11 +1136,12 @@ async function showRenameModal(
   const i18n = application.i18n
   const currentCommands = sessionState.currentTab === 'discord' ? commands.discord : commands.minecraft
   const filteredCommands = filterCommands(currentCommands, sessionState)
-  const command = filteredCommands[commandIndex]
-  if (!command) return
+  if (commandIndex >= filteredCommands.length) return
 
-  const modalId = `${SESSION_PREFIX}${sessionToken}:admin-rename-submit:${commandIndex}`
-  
+  const command = filteredCommands[commandIndex]
+
+  const modalId = `${SessionPrefix}${sessionToken}:admin-rename-submit:${commandIndex}`
+
   await interaction.showModal({
     customId: modalId,
     title: i18n.t(($) => $['discord.commands.commands.admin.rename.modal.title']),
@@ -1096,7 +1151,7 @@ async function showRenameModal(
         components: [
           {
             type: ComponentType.TextInput,
-            customId: `${SESSION_PREFIX}${sessionToken}:rename-input`,
+            customId: `${SessionPrefix}${sessionToken}:rename-input`,
             label: i18n.t(($) => $['discord.commands.commands.admin.rename.modal.label']),
             style: TextInputStyle.Short,
             value: command.name,
@@ -1111,17 +1166,26 @@ async function showRenameModal(
   try {
     const submit = await interaction.awaitModalSubmit({
       time: 60_000,
-      filter: (i) => i.customId === modalId && i.user.id === interaction.user.id
+      filter: (modalSubmitInteraction) =>
+        modalSubmitInteraction.customId === modalId && modalSubmitInteraction.user.id === interaction.user.id
     })
 
-    const newName = submit.fields.getTextInputValue(`${SESSION_PREFIX}${sessionToken}:rename-input`)
+    const newName = submit.fields.getTextInputValue(`${SessionPrefix}${sessionToken}:rename-input`)
     const commandType = command.isDiscordCommand ? 'discord' : 'minecraft'
-    const identifier = command.originalName || command.name
+    const identifier = command.originalName ?? command.name
 
     if (commandType === 'discord') {
-      sessionState.commandConfigManager.updateDiscordCommandConfig(identifier, { displayName: newName }, interaction.user.id)
+      sessionState.commandConfigManager.updateDiscordCommandConfig(
+        identifier,
+        { displayName: newName },
+        interaction.user.id
+      )
     } else {
-      sessionState.commandConfigManager.updateMinecraftCommandConfig(identifier, { displayName: newName }, interaction.user.id)
+      sessionState.commandConfigManager.updateMinecraftCommandConfig(
+        identifier,
+        { displayName: newName },
+        interaction.user.id
+      )
     }
 
     sessionState.commandConfigManager.addAuditLogEntry({
@@ -1132,11 +1196,10 @@ async function showRenameModal(
       newValue: newName,
       userId: interaction.user.id
     })
-    
-    // Refresh the list
-    await updateCommandList(submit as any, commands, sessionState, sessionToken, application)
 
-  } catch (e) {
+    // Refresh the list - ModalSubmitInteraction can be treated as ButtonInteraction for updateCommandList
+    await updateCommandList(submit as unknown as ButtonInteraction, commands, sessionState, sessionToken, application)
+  } catch {
     // Modal timed out or error
   }
 }
@@ -1151,17 +1214,25 @@ async function toggleCommand(
 ) {
   const currentCommands = sessionState.currentTab === 'discord' ? commands.discord : commands.minecraft
   const filteredCommands = filterCommands(currentCommands, sessionState)
+  if (commandIndex >= filteredCommands.length) return
   const command = filteredCommands[commandIndex]
-  if (!command) return
 
   const commandType = command.isDiscordCommand ? 'discord' : 'minecraft'
-  const identifier = command.originalName || command.name
+  const identifier = command.originalName ?? command.name
   const isEnabled = sessionState.commandConfigManager.isCommandEnabled(commandType, identifier)
-  
+
   if (commandType === 'discord') {
-    sessionState.commandConfigManager.updateDiscordCommandConfig(identifier, { enabled: !isEnabled }, interaction.user.id)
+    sessionState.commandConfigManager.updateDiscordCommandConfig(
+      identifier,
+      { enabled: !isEnabled },
+      interaction.user.id
+    )
   } else {
-    sessionState.commandConfigManager.updateMinecraftCommandConfig(identifier, { enabled: !isEnabled }, interaction.user.id)
+    sessionState.commandConfigManager.updateMinecraftCommandConfig(
+      identifier,
+      { enabled: !isEnabled },
+      interaction.user.id
+    )
   }
 
   sessionState.commandConfigManager.addAuditLogEntry({
@@ -1184,9 +1255,9 @@ async function showAuditLog(
 ) {
   const i18n = application.i18n
   // Placeholder
-  await interaction.reply({ 
-    content: i18n.t(($) => $['discord.commands.commands.admin.audit.empty']), 
-    flags: MessageFlags.Ephemeral 
+  await interaction.reply({
+    content: i18n.t(($) => $['discord.commands.commands.admin.audit.empty']),
+    flags: MessageFlags.Ephemeral
   })
 }
 

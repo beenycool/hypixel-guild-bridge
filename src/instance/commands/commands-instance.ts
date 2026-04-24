@@ -230,9 +230,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     this.logger.debug('chat commands have been disabled')
 
     // Clean up cooldown interval
-    if (this.cooldownCleanupInterval) {
-      clearInterval(this.cooldownCleanupInterval)
-    }
+    clearInterval(this.cooldownCleanupInterval)
 
     // Clear all cooldowns
     this.typoSuggestionCooldowns.clear()
@@ -294,7 +292,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
         let response = `Command "${targetCommandName}" does not exist.`
 
         if (suggestions.length > 0) {
-          response += ` Did you mean: ${suggestions.join(', ')}?`
+          response += ` Did you mean: ${suggestions.map((s) => s.trigger).join(', ')}?`
         }
 
         await this.reply(event, 'help', response)
@@ -378,7 +376,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     if (!suggestOnTypo) return
 
     // Check cooldown for this user
-    const userId = (event.user as any).discordId?.() || event.user.mojangProfile()?.id || event.user.displayName()
+    const userId = event.user.discordProfile()?.id ?? event.user.mojangProfile()?.id ?? event.user.displayName()
     const now = Date.now()
     const lastSuggestion = this.typoSuggestionCooldowns.get(userId)
 

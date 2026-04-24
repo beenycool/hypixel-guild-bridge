@@ -3,6 +3,7 @@ import { escapeMarkdown, MessageFlags, SlashCommandBuilder, SlashCommandStringOp
 
 import { Color } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
+import type Duration from '../../../utility/duration.js'
 import { getDuration } from '../../../utility/shared-utility.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 
@@ -49,7 +50,7 @@ export default {
       return
     }
 
-    let duration
+    let duration: Duration
     try {
       duration = getDuration(context.interaction.options.getString('time', true).toLowerCase())
     } catch {

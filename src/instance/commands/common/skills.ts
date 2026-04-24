@@ -91,13 +91,13 @@ export function getSkillLevelCaps(profile: SkyblockV2Member): Partial<Record<Ski
 export function getLevelByXp(xp: number, extra: { type?: string; cap?: number } = {}): SkillLevel {
   const xpTable = getXpTable(extra.type)
   const safeXp = Number.isFinite(xp) ? xp : 0
-  const levelCap = extra.cap ?? DefaultSkillCaps[extra.type ?? ''] ?? xpTable.length - 1
+  const levelCap = extra.cap ?? DefaultSkillCaps[extra.type ?? '']
 
   let uncappedLevel = 0
   let xpCurrent = safeXp
   let xpRemaining = safeXp
 
-  while (xpTable[uncappedLevel + 1] !== undefined && xpTable[uncappedLevel + 1] <= xpRemaining) {
+  while (uncappedLevel + 1 < xpTable.length && xpTable[uncappedLevel + 1] <= xpRemaining) {
     uncappedLevel++
     xpRemaining -= xpTable[uncappedLevel]
     if (uncappedLevel <= levelCap) xpCurrent = xpRemaining
@@ -169,9 +169,9 @@ export function getSkillAverage(
   return average.toFixed(decimals)
 }
 
-export function getSkills(profile: SkyblockV2Member, profileData: SkyblockV2Profile): Skills | null {
+export function getSkills(profile: SkyblockV2Member, profileData: SkyblockV2Profile): Skills | undefined {
   const experience = profile.player_data.experience
-  if (experience === undefined) return null
+  if (experience === undefined) return undefined
 
   const skillLevelCaps = getSkillLevelCaps(profile)
   const totalSocialXp = getSocialSkillExperience(profileData)

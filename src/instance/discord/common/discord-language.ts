@@ -56,17 +56,17 @@ export function translateNoPermission(
 
   let result: string
   if (roles.length === 0 && admins.length === 0) {
-    result = t(($) => $['discord.message.no-permission'])
+    result = t((t) => t('discord.message.no-permission'))
   } else if (roles.length > 0 && admins.length === 0) {
-    result = t(($) => $['discord.message.no-permission-roles'], {
+    result = t((t) => t('discord.message.no-permission-roles'), {
       roles: roles.map((roleId) => roleMention(roleId))
     })
   } else if (roles.length === 0 && admins.length > 0) {
-    result = t(($) => $['discord.message.no-permission-admin'], {
+    result = t((t) => t('discord.message.no-permission-admin'), {
       admins: admins.map((adminId) => userMention(adminId))
     })
   } else {
-    result = t(($) => $['discord.message.no-permission-roles-admin'], {
+    result = t((t) => t('discord.message.no-permission-roles-admin'), {
       roles: roles.map((roleId) => roleMention(roleId)),
       admins: admins.map((adminId) => userMention(adminId))
     })

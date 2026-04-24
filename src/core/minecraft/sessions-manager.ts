@@ -29,7 +29,11 @@ export class SessionsManager {
     for (const proxy of proxies) {
       this.proxies.set(proxy.id, { ...proxy, user: proxy.user ?? undefined, password: proxy.password ?? undefined })
     }
-    this.nextProxyId = proxies.reduce((maxId, proxy) => Math.max(maxId, proxy.id), 0) + 1
+    let maxProxyId = 0
+    for (const proxy of proxies) {
+      if (proxy.id > maxProxyId) maxProxyId = proxy.id
+    }
+    this.nextProxyId = maxProxyId + 1
 
     this.instances.clear()
     for (const instance of instances) {
@@ -76,7 +80,7 @@ export class SessionsManager {
     if (sessionMap === undefined) return 0
 
     let deleted = 0
-    for (const cacheName of [...sessionMap.keys()]) {
+    for (const cacheName of sessionMap.keys()) {
       if (cacheName !== mainSessionName) {
         sessionMap.delete(cacheName)
         deleted++
@@ -96,7 +100,7 @@ export class SessionsManager {
     return deleted
   }
 
-  public setSession(_instanceName: string, name: string, cacheName: string, value: Record<string, unknown>): void {
+  public setSession(instanceName: string, name: string, cacheName: string, value: Record<string, unknown>): void {
     const createdAt = Math.floor(Date.now() / 1000)
     const sessionMap = getOrCreate(this.sessions, sessionKey(name), () => new Map())
     sessionMap.set(cacheName, { name, cacheName, value: JSON.stringify(value), createdAt })
@@ -194,8 +198,8 @@ export class SessionsManager {
             options.proxy.protocol,
             options.proxy.host,
             options.proxy.port,
-            options.proxy.user ?? null,
-            options.proxy.password ?? null,
+            options.proxy.user ?? undefined,
+            options.proxy.password ?? undefined,
             Math.floor(Date.now() / 1000)
           ]
         )
@@ -206,7 +210,7 @@ export class SessionsManager {
          ON CONFLICT ("name") DO UPDATE SET
            "proxyId" = EXCLUDED."proxyId",
            "connect" = EXCLUDED."connect"`,
-        [options.name, proxyId ?? null, 1]
+        [options.name, proxyId ?? undefined, 1]
       )
     })
   }
@@ -311,10 +315,14 @@ export class SessionsManager {
             if (isSingleObject) {
               const normalized = trimmed
                 .replace(/^\uFEFF/, '')
-                .replace(/[\u200B-\u200D\uFEFF]/g, '')
+                .replaceAll(/[\u200B-\u200D\uFEFF]/g, '')
                 .trim()
 
-              if (normalized !== trimmed) {
+              if (normalized === trimmed) {
+                const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+                errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
+                return { imported, errors }
+              } else {
                 try {
                   parsedData = JSON.parse(normalized) as Record<string, unknown>
                   errors.push('Fixed JSON formatting issues (removed invisible characters)')
@@ -323,10 +331,6 @@ export class SessionsManager {
                   errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
                   return { imported, errors }
                 }
-              } else {
-                const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
-                errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
-                return { imported, errors }
               }
             } else {
               const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
@@ -339,15 +343,10 @@ export class SessionsManager {
         parsedData = jsonData
       }
 
-      if (typeof parsedData !== 'object' || parsedData === null || Array.isArray(parsedData)) {
-        errors.push('Invalid JSON format: expected an object with cache entries')
-        return { imported, errors }
-      }
-
       for (const [cacheName, cacheValue] of Object.entries(parsedData)) {
         try {
           if (typeof cacheValue !== 'object' || cacheValue === null || Array.isArray(cacheValue)) {
-            if (cacheName.length > 2 && !cacheName.match(/^(IssueInstant|NotAfter|Token|DisplayClaims)$/i)) {
+            if (cacheName.length > 2 && !/^(IssueInstant|NotAfter|Token|DisplayClaims)$/i.test(cacheName)) {
               errors.push(`Skipping invalid cache entry "${cacheName}": value must be an object`)
             }
             continue
@@ -402,9 +401,7 @@ export class SessionsManager {
     let topLevelCommas = 0
     let hasMultipleKeys = false
 
-    for (let i = 0; i < jsonString.length; i++) {
-      const char = jsonString[i]
-
+    for (const char of jsonString) {
       if (escapeNext) {
         escapeNext = false
         continue
@@ -446,59 +443,60 @@ export class SessionsManager {
     let escapeNext = false
     let lastNonWhitespacePos = -1
 
-    for (let i = 0; i < trimmed.length; i++) {
-      const char = trimmed[i]
-
+    let index = 0
+    for (const char of trimmed) {
       if (escapeNext) {
         escapeNext = false
         if (!/\s/.test(char)) {
-          lastNonWhitespacePos = i
+          lastNonWhitespacePos = index
         }
+        index++
         continue
       }
 
       if (char === '\\') {
         escapeNext = true
+        index++
         continue
       }
 
       if (char === '"') {
         inString = !inString
-        lastNonWhitespacePos = i
+        lastNonWhitespacePos = index
+        index++
         continue
       }
 
       if (!inString) {
         if (char === '{') {
           depth++
-          lastNonWhitespacePos = i
+          lastNonWhitespacePos = index
         } else if (char === '}') {
           depth--
-          lastNonWhitespacePos = i
+          lastNonWhitespacePos = index
         } else if (!/\s/.test(char)) {
-          lastNonWhitespacePos = i
+          lastNonWhitespacePos = index
         }
       } else if (!/\s/.test(char)) {
-        lastNonWhitespacePos = i
+        lastNonWhitespacePos = index
       }
+      index++
     }
 
     if (depth > 0 && depth <= 10 && lastNonWhitespacePos >= 0 && !inString) {
       const lastChar = trimmed[lastNonWhitespacePos]
       const canClose =
-        lastChar === '}' ||
-        lastChar === '"' ||
-        lastChar === ']' ||
-        (lastChar >= '0' && lastChar <= '9') ||
-        lastChar === 'e' ||
-        lastChar === 'E' ||
-        trimmed
-          .substring(Math.max(0, lastNonWhitespacePos - 4), lastNonWhitespacePos + 1)
-          .match(/(true|false|null)$/) ||
+        (lastChar === '}' ||
+          lastChar === '"' ||
+          lastChar === ']' ||
+          (lastChar >= '0' && lastChar <= '9') ||
+          lastChar === 'e' ||
+          lastChar === 'E' ||
+          /(true|false|null)$/.exec(trimmed.slice(Math.max(0, lastNonWhitespacePos - 4), lastNonWhitespacePos + 1))) ??
         lastChar === ','
 
       if (canClose) {
-        let fixed = trimmed.substring(0, lastNonWhitespacePos + 1).replace(/,\s*$/, '')
+        let fixed = trimmed.slice(0, Math.max(0, lastNonWhitespacePos + 1)).replace(/,\s*$/, '')
         fixed += '}'.repeat(depth)
         return fixed
       }
@@ -517,9 +515,7 @@ export class SessionsManager {
     let inString = false
     let escapeNext = false
 
-    for (let i = 0; i < trimmed.length; i++) {
-      const char = trimmed[i]
-
+    for (const char of trimmed) {
       if (escapeNext) {
         escapeNext = false
         continue
@@ -576,10 +572,10 @@ export class SessionsManager {
           }
           break
         }
-        const skipped = trimmed.substring(position, nextBrace).trim()
-        if (skipped.length > 0 && !skipped.match(/^[,:]\s*$/)) {
+        const skipped = trimmed.slice(position, nextBrace).trim()
+        if (skipped.length > 0 && !/^[,:]\s*$/.test(skipped)) {
           errors.push(
-            `Skipped unexpected content between JSON objects: "${skipped.substring(0, 50)}${skipped.length > 50 ? '...' : ''}"`
+            `Skipped unexpected content between JSON objects: "${skipped.slice(0, 50)}${skipped.length > 50 ? '...' : ''}"`
           )
         }
         position = nextBrace
@@ -591,8 +587,8 @@ export class SessionsManager {
       let escapeNext = false
       let foundEnd = false
 
-      for (let i = position; i < trimmed.length; i++) {
-        const char = trimmed[i]
+      for (let index = position; index < trimmed.length; index++) {
+        const char = trimmed[index]
 
         if (escapeNext) {
           escapeNext = false
@@ -615,16 +611,16 @@ export class SessionsManager {
           } else if (char === '}') {
             depth--
             if (depth === 0) {
-              const jsonObjectStr = trimmed.substring(startPos, i + 1)
+              const jsonObjectString = trimmed.slice(startPos, index + 1)
               try {
-                const parsed = JSON.parse(jsonObjectStr) as Record<string, unknown>
+                const parsed = JSON.parse(jsonObjectString) as Record<string, unknown>
                 Object.assign(merged, parsed)
                 objectCount++
               } catch (parseError) {
                 const errorMessage = parseError instanceof Error ? parseError.message : String(parseError)
                 errors.push(`Failed to parse JSON object at position ${startPos}: ${errorMessage}`)
               }
-              position = i + 1
+              position = index + 1
               foundEnd = true
               break
             }
@@ -633,11 +629,13 @@ export class SessionsManager {
       }
 
       if (!foundEnd) {
-        if (depth !== 0) {
+        if (depth === 0) {
+          break
+        } else {
           const endPos = Math.min(startPos + 200, trimmed.length)
-          const partial = trimmed.substring(startPos, endPos)
-          const objectPreview = partial.substring(0, 100)
-          const cacheNameMatch = partial.match(/"([^"]+)":\s*\{/)
+          const partial = trimmed.slice(startPos, endPos)
+          const objectPreview = partial.slice(0, 100)
+          const cacheNameMatch = /"([^"]+)":\s*\{/.exec(partial)
           const cacheName = cacheNameMatch ? cacheNameMatch[1] : 'unknown'
           const isNearEnd = position >= trimmed.length - 100
           const truncationWarning = isNearEnd
@@ -650,7 +648,7 @@ export class SessionsManager {
           )
 
           if (isNearEnd && depth > 0 && depth <= 10) {
-            const healedJson = trimmed.substring(startPos) + '}'.repeat(depth)
+            const healedJson = trimmed.slice(Math.max(0, startPos)) + '}'.repeat(depth)
             try {
               const parsed = JSON.parse(healedJson) as Record<string, unknown>
               Object.assign(merged, parsed)
@@ -670,8 +668,6 @@ export class SessionsManager {
             }
             position = nextBrace
           }
-        } else {
-          break
         }
       }
     }
