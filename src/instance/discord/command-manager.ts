@@ -51,8 +51,8 @@ import RequirementsCommand from './commands/requirements.js'
 import RestartCommand from './commands/restart.js'
 import SetrankCommand from './commands/setrank.js'
 import SettingsCommand from './commands/settings.js'
-import StatsCommand from './commands/stats.js'
 import SkyblockCommand from './commands/skyblock.js'
+import StatsCommand from './commands/stats.js'
 import UnlinkCommand from './commands/unlink.js'
 import VerificationCommand from './commands/verification.js'
 import {
@@ -180,9 +180,9 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
 
     if (focusedOption.name === 'instance') {
       const connectedInstances = new Set(getConnectedBridgeMinecraftInstanceNames(this.application, bridgeId))
-      const query = String(focusedOption.value).toLowerCase()
+      const query = focusedOption.value.toLowerCase()
       const response = getBridgeMinecraftInstanceNames(this.application, bridgeId)
-        .sort((left, right) => {
+        .toSorted((left, right) => {
           const leftConnected = connectedInstances.has(left)
           const rightConnected = connectedInstances.has(right)
           if (leftConnected !== rightConnected) {

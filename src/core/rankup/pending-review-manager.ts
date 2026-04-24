@@ -9,7 +9,7 @@ export interface PendingReview {
   action: 'promote' | 'demote' | 'kick'
   reason: string
   createdAt: number
-  notifiedAt: number | null
+  notifiedAt: number | undefined
 }
 
 export interface RankupHistoryEntry {
@@ -40,14 +40,18 @@ export class PendingReviewManager {
     )
 
     this.reviews.clear()
+    this.nextReviewId = 0
     for (const review of reviews) {
       this.reviews.set(review.id, review)
+      if (review.id >= this.nextReviewId) this.nextReviewId = review.id + 1
     }
-    this.nextReviewId = reviews.reduce((maxId, review) => Math.max(maxId, review.id), 0) + 1
 
     this.history.length = 0
     this.history.push(...history)
-    this.nextHistoryId = history.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
+    this.nextHistoryId = 0
+    for (const entry of history) {
+      if (entry.id >= this.nextHistoryId) this.nextHistoryId = entry.id + 1
+    }
   }
 
   public addReview(
@@ -68,7 +72,7 @@ export class PendingReviewManager {
       action,
       reason,
       createdAt: Math.floor(Date.now() / 1000),
-      notifiedAt: null
+      notifiedAt: undefined
     }
     this.reviews.set(review.id, review)
 
@@ -102,7 +106,7 @@ export class PendingReviewManager {
   public getReviews(bridgeId: string): PendingReview[] {
     return [...this.reviews.values()]
       .filter((review) => review.bridgeId === bridgeId)
-      .sort((a, b) => a.createdAt - b.createdAt)
+      .toSorted((a, b) => a.createdAt - b.createdAt)
       .map((review) => ({ ...review }))
   }
 
@@ -132,7 +136,7 @@ export class PendingReviewManager {
 
   public clearReviewsNotInList(bridgeId: string, uuids: string[]): void {
     const keep = new Set(uuids)
-    for (const review of [...this.reviews.values()]) {
+    for (const review of this.reviews.values()) {
       if (review.bridgeId === bridgeId && !keep.has(review.uuid)) {
         this.reviews.delete(review.id)
       }

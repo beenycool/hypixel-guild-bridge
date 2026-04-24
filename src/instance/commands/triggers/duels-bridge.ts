@@ -16,7 +16,7 @@ export default class DuelsBridge extends ChatCommandHandler {
     const underlying = new Duels()
 
     // prefix args with 'bridge' so the Duels handler processes it as `duels bridge [username]`
-    const newContext = { ...context, args: ['bridge', ...(context.args ?? [])] } as ChatCommandContext
+    const newContext: ChatCommandContext = { ...context, args: ['bridge', ...context.args] }
     return await underlying.handler(newContext)
   }
 }

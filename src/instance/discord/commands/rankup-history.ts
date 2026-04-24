@@ -1,7 +1,7 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 
-import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 import { Permission } from '../../../common/application-event'
+import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 
 export default {
   getCommandBuilder: () => new SlashCommandBuilder().setName('rankup-history').setDescription('View rankup history'),

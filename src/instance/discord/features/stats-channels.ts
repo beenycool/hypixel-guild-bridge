@@ -195,5 +195,5 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 }
 
 function replaceVariables(template: string, variables: StatsVariables): string {
-  return template.replaceAll(/\{(\w+)\}/g, (match, name) => variables[name] ?? match)
+  return template.replaceAll(/\{(\w+)\}/g, (match, name: string) => variables[name] ?? match)
 }

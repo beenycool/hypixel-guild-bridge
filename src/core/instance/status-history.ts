@@ -62,7 +62,11 @@ export class StatusHistory {
         entryType: StatusHistoryEntryType.Status as const
       }))
     )
-    this.nextStatusId = this.statusEntries.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
+    let maxStatusId = 0
+    for (const entry of statusEntries) {
+      if (entry.id > maxStatusId) maxStatusId = entry.id
+    }
+    this.nextStatusId = maxStatusId + 1
 
     this.messageEntries.length = 0
     this.messageEntries.push(
@@ -76,7 +80,11 @@ export class StatusHistory {
         entryType: StatusHistoryEntryType.Message as const
       }))
     )
-    this.nextMessageId = this.messageEntries.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
+    let maxMessageId = 0
+    for (const entry of messageEntries) {
+      if (entry.id > maxMessageId) maxMessageId = entry.id
+    }
+    this.nextMessageId = maxMessageId + 1
   }
 
   public add(entry: InstanceStatus): void {
@@ -130,7 +138,7 @@ export class StatusHistory {
             messageEntry.instanceType,
             Math.floor(messageEntry.createdAt / 1000),
             messageEntry.type,
-            messageEntry.value ?? null
+            messageEntry.value ?? undefined
           ]
         )
       })
@@ -151,7 +159,7 @@ export class StatusHistory {
 
     return entries
       .map((entry) => ({ ...entry }))
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         if (a.createdAt !== b.createdAt) {
           return a.createdAt - b.createdAt
         }

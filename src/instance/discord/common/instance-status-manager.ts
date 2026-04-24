@@ -26,6 +26,8 @@ import { DefaultTimeout, interactivePaging } from '../utility/discord-pager'
 import { translateNoPermission } from './discord-language'
 import type MessageAssociation from './message-association'
 
+type TranslatorFn = (key: Parameters<(typeof import('i18next').default)['t']>[0], options?: unknown) => string
+
 export class InstanceStatusManager {
   private static readonly PermissionToView = Permission.Helper
   private static readonly EntriesPerPage = 5
@@ -470,11 +472,11 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateNotice(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateNotice(instanceName: string, t: TranslatorFn): MessagePayload {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-notice'], {
+          description: t('discord.status.chat-notice' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -488,7 +490,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.requires-authentication'], {
+          description: t('discord.status.requires-authentication' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -501,7 +503,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.instance-started'], {
+          description: t('discord.status.instance-started' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info
@@ -515,7 +517,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-failed'], {
+          description: t('discord.status.chat-failed' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Bad
@@ -529,7 +531,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-resumed'], {
+          description: t('discord.status.chat-resumed' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Good
@@ -542,7 +544,7 @@ export class InstanceStatusManager {
     return {
       embeds: [
         {
-          description: t(($: any) => $['discord.status.chat-interrupted'], {
+          description: t('discord.status.chat-interrupted' as const, {
             instanceName: beautifyInstanceName(instanceName)
           }),
           color: Color.Info

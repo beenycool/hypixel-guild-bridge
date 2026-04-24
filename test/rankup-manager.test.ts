@@ -25,8 +25,8 @@ void describe('RankupManager executeAction', () => {
         }
       },
       pendingManager: {
-        logHistory: (...args: unknown[]) => {
-          historyEntries.push(args)
+        logHistory: (...arguments_: unknown[]) => {
+          historyEntries.push(arguments_)
         }
       },
       logger: {
@@ -65,8 +65,8 @@ void describe('RankupManager executeAction', () => {
         }
       },
       pendingManager: {
-        logHistory: (...args: unknown[]) => {
-          historyEntries.push(args)
+        logHistory: (...arguments_: unknown[]) => {
+          historyEntries.push(arguments_)
         }
       },
       logger: {

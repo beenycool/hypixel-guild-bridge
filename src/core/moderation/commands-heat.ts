@@ -128,7 +128,7 @@ export class CommandsHeat {
 
   private getUserHeats(currentTime: number, identifiers: UserIdentifier[], type: HeatType): number {
     const oldestAllowed = Math.floor((currentTime - CommandsHeat.ActionExpiresAfter.toMilliseconds()) / 1000)
-    const allowedIdentifiers = new Set(identifiers.map(identifierKey))
+    const allowedIdentifiers = new Set(identifiers.map((identifier) => identifierKey(identifier)))
 
     let count = 0
     for (const action of this.actions) {
@@ -173,7 +173,7 @@ export class CommandsHeat {
       }
     }
 
-    throw new Error(`Type ${type satisfies never} does not exists??`)
+    throw new Error(`Type ${String(type satisfies never)} does not exists??`)
   }
 
   private static resolveLimits(maxLimit: number): { maxLimit: number; warnLimit: number } {

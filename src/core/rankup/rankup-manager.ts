@@ -1,12 +1,12 @@
 import type { Logger } from 'log4js'
 
 import type Application from '../../application'
-import type { BridgeConfigurations } from '../discord/bridge-configurations'
-import { NotificationManager } from './notification-manager'
-import { PendingReviewManager } from './pending-review-manager'
-import { RulesEvaluator } from './rules-evaluator'
-
 import { MinecraftSendChatPriority } from '../../common/application-event'
+import type { BridgeConfigurations } from '../discord/bridge-configurations'
+
+import { NotificationManager } from './notification-manager'
+import type { PendingReviewManager } from './pending-review-manager'
+import { RulesEvaluator } from './rules-evaluator'
 
 export class RankupManager {
   private readonly rulesEvaluator: RulesEvaluator
@@ -32,7 +32,9 @@ export class RankupManager {
 
     setInterval(
       () => {
-        void this.runTask()
+        this.runTask().catch((error: unknown) => {
+          this.logger.error('Error in RankupManager scheduled task:', error)
+        })
       },
       60 * 60 * 1000
     )
@@ -83,8 +85,8 @@ export class RankupManager {
 
     const botName = instances[0]
 
-    const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch((e) => {
-      this.logger.error(`Failed to fetch guild for bridge ${bridgeId} via bot ${botName}:`, e)
+    const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch((error) => {
+      this.logger.error(`Failed to fetch guild for bridge ${bridgeId} via bot ${botName}:`, error)
 
       return null
     })
@@ -103,9 +105,7 @@ export class RankupManager {
 
     // Hypixel Guild Ranks are ordered by priority
 
-    const rankPriority = guild.ranks
-      ? guild.ranks.sort((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
-      : []
+    const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
 
     const currentGuildUuids = new Set<string>()
 
@@ -114,7 +114,11 @@ export class RankupManager {
 
       const expHistoryValues = Object.values(member.expHistory)
 
-      const weeklyGexp = expHistoryValues.reduce((a, b) => a + (typeof b === 'number' ? b : (b as any).exp || 0), 0)
+      let weeklyGexp = 0
+      for (const value of expHistoryValues) {
+        const expValue = typeof value === 'number' ? value : ((value as { exp?: number }).exp ?? 0)
+        weeklyGexp += expValue
+      }
 
       const stats = {
         uuid: member.uuid,
@@ -142,8 +146,14 @@ export class RankupManager {
         rankPriority
       )
 
-      if (result.action !== 'none') {
-        if ((result.action === 'promote' || result.action === 'demote') && (result.targetRank === undefined || result.targetRank.length === 0)) {
+      if (result.action === 'none') {
+        // Clear stale review if player no longer qualifies for any action
+        this.pendingManager.removeReviewByUuid(bridgeId, member.uuid)
+      } else {
+        if (
+          (result.action === 'promote' || result.action === 'demote') &&
+          (result.targetRank === undefined || result.targetRank.length === 0)
+        ) {
           this.logger.warn(`Skipping ${result.action} for ${member.uuid} in ${bridgeId}: missing target rank`)
           this.pendingManager.removeReviewByUuid(bridgeId, member.uuid)
           continue
@@ -159,21 +169,18 @@ export class RankupManager {
 
             result.action === 'kick' ? 'Kick' : (result.targetRank ?? 'Unknown'),
 
-            result.action as any,
+            result.action,
 
             result.reason ?? 'Automated rule match'
           )
         } else {
           await this.executeAction(bridgeId, botName, member.uuid, result)
         }
-      } else {
-        // Clear stale review if player no longer qualifies for any action
-        this.pendingManager.removeReviewByUuid(bridgeId, member.uuid)
       }
     }
 
     // Clear pending reviews for players no longer in the guild
-    this.pendingManager.clearReviewsNotInList(bridgeId, Array.from(currentGuildUuids))
+    this.pendingManager.clearReviewsNotInList(bridgeId, [...currentGuildUuids])
 
     // Notifications
 
@@ -241,7 +248,7 @@ export class RankupManager {
     if (command) {
       const instance = this.application.minecraftManager
         .getAllInstances()
-        .find((i) => i.instanceName.toLowerCase() === instanceName.toLowerCase())
+        .find((index) => index.instanceName.toLowerCase() === instanceName.toLowerCase())
 
       if (instance) {
         instance.send(command, MinecraftSendChatPriority.High, undefined)

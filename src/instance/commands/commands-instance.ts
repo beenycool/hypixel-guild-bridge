@@ -228,9 +228,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     this.logger.debug('chat commands have been disabled')
 
     // Clean up cooldown interval
-    if (this.cooldownCleanupInterval) {
-      clearInterval(this.cooldownCleanupInterval)
-    }
+    clearInterval(this.cooldownCleanupInterval)
 
     // Clear all cooldowns
     this.typoSuggestionCooldowns.clear()

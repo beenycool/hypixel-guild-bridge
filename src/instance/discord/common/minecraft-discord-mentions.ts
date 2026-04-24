@@ -11,14 +11,10 @@ export interface ResolvedDiscordMentions {
   userIds: string[]
 }
 
-export async function resolveDiscordMentionsInMessage(
-  message: string,
-  guild: Guild
-): Promise<ResolvedDiscordMentions> {
+export async function resolveDiscordMentionsInMessage(message: string, guild: Guild): Promise<ResolvedDiscordMentions> {
   const uniqueTokens = new Map<string, string>()
   for (const match of message.matchAll(MentionTokenRegex)) {
     const token = match[1]
-    if (token === undefined) continue
 
     const lowered = token.toLowerCase()
     if (DisallowedMentions.has(lowered)) continue
@@ -50,14 +46,12 @@ export async function resolveDiscordMentionsInMessage(
   for (const match of message.matchAll(MentionTokenRegex)) {
     const token = match[1]
     const start = match.index
-    if (token === undefined || start === undefined) continue
-
     const mention = match[0]
     const end = start + mention.length
     content += escapeMarkdown(message.slice(cursor, start))
 
     const userId = tokenToUserId.get(token.toLowerCase())
-    content += userId !== undefined ? `<@${userId}>` : escapeMarkdown(mention)
+    content += userId === undefined ? escapeMarkdown(mention) : `<@${userId}>`
     cursor = end
   }
   content += escapeMarkdown(message.slice(cursor))

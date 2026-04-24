@@ -32,10 +32,10 @@ import MetricsInstance from './instance/metrics/metrics-instance.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
+import { RandomChatter } from './instance/random-chatter'
 import { SkyblockReminders } from './instance/skyblock-reminders'
 import { SpontaneousEvents } from './instance/spontaneous-events'
 import WebServer from './instance/web-server'
-import { RandomChatter } from './instance/random-chatter'
 import { gracefullyExitProcess, sleep } from './utility/shared-utility'
 
 export type AllInstances =

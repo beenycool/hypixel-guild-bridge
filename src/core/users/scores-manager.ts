@@ -6,8 +6,8 @@ import PromiseQueue from 'promise-queue'
 import type Application from '../../application'
 import { ChannelType, InstanceType } from '../../common/application-event'
 import { Status } from '../../common/connectable-instance'
-import type EventHelper from '../../common/event-helper'
 import type { DatabaseManager } from '../../common/database-manager'
+import type EventHelper from '../../common/event-helper'
 import SubInstance from '../../common/sub-instance'
 import type UnexpectedErrorHandler from '../../common/unexpected-error-handler'
 import Duration from '../../utility/duration'
@@ -379,7 +379,7 @@ class ScoreDatabase {
 
     const top = [...leaderboard.entries()]
       .map(([user, totalCount]) => ({ user, total: totalCount }))
-      .sort((a, b) => b.total - a.total)
+      .toSorted((a, b) => b.total - a.total)
       .slice(0, limit)
 
     return { top, total }
@@ -394,7 +394,7 @@ class ScoreDatabase {
       leaderboard.set(entry.user, (leaderboard.get(entry.user) ?? 0) + entry.count)
     }
 
-    return [...leaderboard.entries()].map(([user, total]) => ({ user, total })).sort((a, b) => b.total - a.total)
+    return [...leaderboard.entries()].map(([user, total]) => ({ user, total })).toSorted((a, b) => b.total - a.total)
   }
 
   public getGuildMessagesLeaderboard(ignore: string[], from: number, to: number): TotalMessagesLeaderboard[] {
@@ -415,7 +415,7 @@ class ScoreDatabase {
       record.count += entry.count
     }
 
-    return [...leaderboard.values()].sort((a, b) => b.count - a.count)
+    return [...leaderboard.values()].toSorted((a, b) => b.count - a.count)
   }
 
   public getTime(
@@ -449,7 +449,7 @@ class ScoreDatabase {
       leaderboard.set(entry.uuid, current)
     }
 
-    return [...leaderboard.values()].sort((a, b) => b.totalTime - a.totalTime)
+    return [...leaderboard.values()].toSorted((a, b) => b.totalTime - a.totalTime)
   }
 
   public addDiscordMessage(id: string, timestamp: number): void {
@@ -583,7 +583,7 @@ class ScoreDatabase {
         fromTimestamp: entry.fromTimestamp,
         toTimestamp: entry.toTimestamp
       }))
-      .sort((a, b) => a.fromTimestamp - b.fromTimestamp)
+      .toSorted((a, b) => a.fromTimestamp - b.fromTimestamp)
 
     const baseScore = 15
     const scoreCooldown = Duration.minutes(15).toSeconds()
@@ -685,7 +685,7 @@ class ScoreDatabase {
 
     for (const entry of entries) {
       usernamesToDelete.push(entry.username)
-      for (const countEntry of [...this.minecraftMessages.values()]) {
+      for (const countEntry of this.minecraftMessages.values()) {
         if (countEntry.user !== entry.username || countEntry.timestamp <= oldestTimestamp) continue
         count += countEntry.count
 

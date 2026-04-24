@@ -28,8 +28,8 @@ import {
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import { debugSessionLog } from '../../../utility/debug-session-log.js'
 
-export const DEFAULT_PAGE_SIZE = 6
-export const MAX_COMPONENTS = 39
+export const DefaultPageSize = 6
+export const MaxComponents = 39
 
 export enum OptionType {
   Category = 'category',
@@ -231,7 +231,7 @@ export class OptionsHandler {
     // Cached getters (e.g. demotion/promotion rules) recreate option objects; drop stale id/path
     // entries so Discord customIds cannot target orphaned handlers (e.g. Delete on wrong rule).
     const live = new Set(allComponents)
-    for (const [id, entry] of [...this.ids.entries()]) {
+    for (const [id, entry] of this.ids.entries()) {
       if (!live.has(entry.item)) {
         this.ids.delete(id)
       }
@@ -241,7 +241,7 @@ export class OptionsHandler {
 
   /** After dynamic subtrees are rebuilt, path segments may reference removed categories. */
   private sanitizeNavigationPath(): void {
-    const prevLen = this.path.length
+    const previousLength = this.path.length
     let current: CategoryOption | EmbedCategoryOption = this.mainCategory
     const newPath: string[] = []
     for (const seg of this.path) {
@@ -249,17 +249,20 @@ export class OptionsHandler {
       if (entry === undefined) break
       const item = entry.item
       if (item.type !== OptionType.Category && item.type !== OptionType.EmbedCategory) break
-      if (!current.options.some((o) => o === item)) break
+      // `current.options` has a slightly different element type depending on whether
+      // the category is a normal CategoryOption or an EmbedCategoryOption. Coerce to
+      // OptionItem[] to satisfy the type checker while preserving runtime behavior.
+      if (!(current.options as OptionItem[]).includes(item as OptionItem)) break
       newPath.push(seg)
-      current = item as CategoryOption | EmbedCategoryOption
+      current = item
     }
-    if (newPath.length !== prevLen) {
+    if (newPath.length !== previousLength) {
       // #region agent log
       debugSessionLog({
         hypothesisId: 'H7',
         location: 'options-handler.ts:sanitizeNavigationPath',
         message: 'Navigation path trimmed after dynamic options rebuild',
-        data: { prevLen, nextLen: newPath.length }
+        data: { prevLen: previousLength, nextLen: newPath.length }
       })
       // #endregion
     }
@@ -275,7 +278,7 @@ export class OptionsHandler {
           this.path,
           this.enabled,
           this.pages.get(this.getPathKey()) ?? 0,
-          DEFAULT_PAGE_SIZE
+          DefaultPageSize
         ).create()
       ],
       flags: MessageFlags.IsComponentsV2,
@@ -296,7 +299,7 @@ export class OptionsHandler {
       timeoutId.refresh()
       void Promise.resolve()
         .then(async () => {
-          const alreadyReplied = await this.handleInteraction(messageInteraction, errorHandler)
+          await this.handleInteraction(messageInteraction, errorHandler)
 
           // Rebuild IDs to pick up any dynamically added options
           this.rebuildIds()
@@ -312,14 +315,14 @@ export class OptionsHandler {
                     this.path,
                     this.enabled,
                     this.pages.get(this.getPathKey()) ?? 0,
-                    DEFAULT_PAGE_SIZE
+                    DefaultPageSize
                   ).create()
                 ],
                 flags: MessageFlags.IsComponentsV2,
                 allowedMentions: { parse: [] }
               }))
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           // Log the error but don't try to acknowledge the interaction again
           errorHandler.promiseCatch('updating container')(error)
           // If interaction is still valid, try to update it with error state
@@ -346,24 +349,13 @@ export class OptionsHandler {
     // Rebuild IDs to pick up any dynamically added options
     this.rebuildIds()
 
-    const buildComponents = (): ContainerComponentData[] => [
-      new ViewBuilder(
-        this.mainCategory,
-        this.ids,
-        this.path,
-        this.enabled,
-        this.pages.get(this.getPathKey()) ?? 0,
-        DEFAULT_PAGE_SIZE
-      ).create()
-    ]
-
     if (interaction !== undefined) {
       let refreshedMessage = false
       // Check if the modal interaction is still valid before updating
       if (!interaction.deferred && !interaction.replied) {
         try {
           await interaction.update({
-            components: buildComponents(),
+            components: this.buildCurrentComponents(),
             flags: MessageFlags.IsComponentsV2,
             allowedMentions: { parse: [] }
           })
@@ -375,7 +367,7 @@ export class OptionsHandler {
       if (!refreshedMessage && this.originalReply) {
         try {
           await this.originalReply.edit({
-            components: buildComponents(),
+            components: this.buildCurrentComponents(),
             flags: MessageFlags.IsComponentsV2,
             allowedMentions: { parse: [] }
           })
@@ -401,7 +393,7 @@ export class OptionsHandler {
             this.path,
             this.enabled,
             this.pages.get(this.getPathKey()) ?? 0,
-            DEFAULT_PAGE_SIZE
+            DefaultPageSize
           ).create()
         ],
         flags: MessageFlags.IsComponentsV2,
@@ -411,6 +403,19 @@ export class OptionsHandler {
       // If the message was deleted or we can't edit it, just log and continue
       // Could not update original reply, message might have been deleted
     }
+  }
+
+  private buildCurrentComponents(): ContainerComponentData[] {
+    return [
+      new ViewBuilder(
+        this.mainCategory,
+        this.ids,
+        this.path,
+        this.enabled,
+        this.pages.get(this.getPathKey()) ?? 0,
+        DefaultPageSize
+      ).create()
+    ]
   }
 
   private async handleInteraction(
@@ -428,7 +433,7 @@ export class OptionsHandler {
       // Compute bounds
       const currentCategory = this.getCurrentCategory()
       const totalOptions = currentCategory.options.length
-      const totalPages = Math.max(1, Math.ceil(totalOptions / DEFAULT_PAGE_SIZE))
+      const totalPages = Math.max(1, Math.ceil(totalOptions / DefaultPageSize))
 
       let nextPage = current
       if (part === 'next') nextPage = Math.min(totalPages - 1, current + 1)
@@ -993,8 +998,6 @@ class ViewBuilder {
         }
 
         case OptionType.Channel: {
-          assert.ok(option.type === OptionType.Channel)
-
           let label = bold(option.name)
           if (option.description !== undefined) label += `\n-# ${option.description}`
           block.push({ type: ComponentType.TextDisplay, content: label })
@@ -1173,15 +1176,15 @@ class ViewBuilder {
       this.append(pageText)
     }
 
-    // Safety clamp: ensure we never exceed MAX_COMPONENTS
-    if (this.skipped || this.countTotalComponents(this.components) > MAX_COMPONENTS) {
+    // Safety clamp: ensure we never exceed MaxComponents
+    if (this.skipped || this.countTotalComponents(this.components) > MaxComponents) {
       const noteComponent: ComponentInContainerData = {
         type: ComponentType.TextDisplay,
         content: '**Note:** Too many items to display. Narrow your selection.'
       }
       const noteCount = this.getComponentCount(noteComponent)
 
-      while (this.components.length > 0 && this.countTotalComponents(this.components) + noteCount > MAX_COMPONENTS) {
+      while (this.components.length > 0 && this.countTotalComponents(this.components) + noteCount > MaxComponents) {
         this.components.pop()
       }
       this.components.push(noteComponent)
@@ -1521,7 +1524,7 @@ class ViewBuilder {
       if ('components' in component && Array.isArray(component.components)) {
         count += this.countTotalComponents(component.components as ComponentInContainerData[])
       }
-      if ('accessory' in component && component.accessory !== undefined) {
+      if ('accessory' in component) {
         count++
       }
     }
@@ -1533,7 +1536,7 @@ class ViewBuilder {
     if ('components' in component && Array.isArray(component.components)) {
       count += this.countTotalComponents(component.components as ComponentInContainerData[])
     }
-    if ('accessory' in component && component.accessory !== undefined) {
+    if ('accessory' in component) {
       count++
     }
     return count
@@ -1543,7 +1546,7 @@ class ViewBuilder {
     assert.ok(component.type !== ComponentType.Separator, 'use applySeperator() instead')
 
     // Check if adding this component would exceed Discord's component limit
-    if (this.countTotalComponents(this.components) + this.getComponentCount(component) > MAX_COMPONENTS) {
+    if (this.countTotalComponents(this.components) + this.getComponentCount(component) > MaxComponents) {
       this.skipped = true
       return
     }
@@ -1558,7 +1561,7 @@ class ViewBuilder {
     const separator: ComponentInContainerData = { type: ComponentType.Separator, spacing: size }
 
     // Check if adding this separator would exceed Discord's component limit
-    if (this.countTotalComponents(this.components) + this.getComponentCount(separator) > MAX_COMPONENTS) {
+    if (this.countTotalComponents(this.components) + this.getComponentCount(separator) > MaxComponents) {
       this.skipped = true
       return
     }

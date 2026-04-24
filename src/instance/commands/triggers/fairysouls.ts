@@ -30,7 +30,7 @@ export default class FairySouls extends ChatCommandHandler {
     const fairySouls = selected.member.fairy_soul
     if (!fairySouls) return `${givenUsername} has no fairy soul data or API is off.`
 
-    const collected = fairySouls.total_collected ?? 0
+    const collected = fairySouls.total_collected
     const progress = total > 0 ? (collected / total) * 100 : 0
 
     return `${givenUsername}'s Fairy Souls: ${collected} / ${total} | Progress: ${formatStatNumber(progress)}%`

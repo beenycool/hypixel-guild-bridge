@@ -23,8 +23,7 @@ const samples: { filename: string; label: string; message: string; username?: st
   {
     filename: 'guild-chat-mvp-style.png',
     label: 'Guild chat MVP-style (skin + rank + name carry)',
-    message:
-      '§2Guild §2> {skin} §b[MVP§a+§b] GodlySweat§a [STAFF]§f: !b booze',
+    message: '§2Guild §2> {skin} §b[MVP§a+§b] GodlySweat§a [STAFF]§f: !b booze',
     username: 'GodlySweat'
   },
   {
@@ -49,13 +48,11 @@ async function main(): Promise<void> {
     const target = path.join(outDir, sample.filename)
     try {
       let buffer: Buffer
-      if (sample.sync) {
-        buffer = messageToImage.generateMessageImageSync(sample.message)
-      } else {
-        buffer = await messageToImage.generateMessageImage(sample.message, {
-          username: sample.username
-        })
-      }
+      buffer = sample.sync
+        ? messageToImage.generateMessageImageSync(sample.message)
+        : await messageToImage.generateMessageImage(sample.message, {
+            username: sample.username
+          })
       fs.writeFileSync(target, buffer)
       console.log(`OK  ${sample.label}`)
       console.log(`    -> ${target}`)

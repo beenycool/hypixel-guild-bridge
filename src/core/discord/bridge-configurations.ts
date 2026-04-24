@@ -1,3 +1,4 @@
+import type { DynamicBridgeConfig } from '../../common/dynamic-bridge-config.js'
 import { debugSessionLog } from '../../utility/debug-session-log.js'
 import Duration from '../../utility/duration'
 import type { Configuration, ConfigurationsManager } from '../configurations'
@@ -7,7 +8,7 @@ import type { Configuration, ConfigurationsManager } from '../configurations'
  * This allows dynamic configuration via /settings command.
  * Each bridge has its own complete set of settings.
  */
-export class BridgeConfigurations {
+export class BridgeConfigurations implements DynamicBridgeConfig {
   private readonly configuration: Configuration
   private readonly onChange?: (event: { bridgeId: string; key: string; value: unknown }) => void
 
@@ -92,6 +93,8 @@ export class BridgeConfigurations {
     this.configuration.delete(`${bridgeId}_randomChatterIntervalMinutes`)
     this.configuration.delete(`${bridgeId}_randomChatterMinimumOnlinePlayers`)
     this.configuration.delete(`${bridgeId}_randomChatterIncludePlayerName`)
+    this.configuration.delete(`${bridgeId}_randomChatterAntiRepeatLength`)
+    this.configuration.delete(`${bridgeId}_randomChatterQuietWindowMinutes`)
     this.configuration.delete(`${bridgeId}_darkAuctionReminder`)
     this.configuration.delete(`${bridgeId}_starfallCultReminder`)
     this.configuration.delete(`${bridgeId}_announceMutedPlayer`)
@@ -758,6 +761,26 @@ export class BridgeConfigurations {
     this.configuration.setBoolean(`${bridgeId}_randomChatterIncludePlayerName`, include)
   }
 
+  public getRandomChatterAntiRepeatLength(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_randomChatterAntiRepeatLength`, 5)
+  }
+
+  public setRandomChatterAntiRepeatLength(bridgeId: string, length: number): void {
+    const normalized = Number.isFinite(length) && length >= 0 ? Math.floor(length) : 5
+    const clamped = Math.min(normalized, 50)
+    this.configuration.setNumber(`${bridgeId}_randomChatterAntiRepeatLength`, clamped)
+  }
+
+  public getRandomChatterQuietWindowMinutes(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_randomChatterQuietWindowMinutes`, 2)
+  }
+
+  public setRandomChatterQuietWindowMinutes(bridgeId: string, minutes: number): void {
+    const normalized = Number.isFinite(minutes) && minutes >= 0 ? Math.floor(minutes) : 2
+    const clamped = Math.min(normalized, 60)
+    this.configuration.setNumber(`${bridgeId}_randomChatterQuietWindowMinutes`, clamped)
+  }
+
   public getDarkAuctionReminder(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_darkAuctionReminder`, true)
   }
@@ -985,7 +1008,7 @@ export class BridgeConfigurations {
         data: {
           bridgeId,
           prevLen: previous.length,
-          stack: new Error().stack?.split('\n').slice(0, 12).join('\n')
+          stack: new Error('stack trace').stack?.split('\n').slice(0, 12).join('\n')
         }
       })
       // #endregion

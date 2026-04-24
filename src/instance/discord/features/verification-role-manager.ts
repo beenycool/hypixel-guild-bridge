@@ -452,11 +452,11 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
   }
 
   private replaceVariables(template: string, variables: StatsMap): string {
-    const formatted = Object.fromEntries(
+    const formatted: Record<string, string> = Object.fromEntries(
       Object.entries(variables).map(([key, value]) => [key, typeof value === 'number' ? formatNumber(value) : value])
     )
 
-    return template.replaceAll(/\{(\w+)\}/g, (match, name) => formatted[name] ?? match)
+    return template.replaceAll(/\{(\w+)\}/g, (match: string, name: string) => formatted[name] ?? match)
   }
 
   private truncateNickname(nickname: string): string {

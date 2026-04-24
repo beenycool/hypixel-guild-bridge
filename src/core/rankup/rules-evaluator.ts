@@ -45,7 +45,7 @@ export class RulesEvaluator {
         const targetIndex = rankPriority.indexOf(rule.targetRank.toLowerCase())
         return targetIndex > currentRankIndex
       })
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         const indexA = rankPriority.indexOf(a.targetRank.toLowerCase())
         const indexB = rankPriority.indexOf(b.targetRank.toLowerCase())
         return indexB - indexA // Descending priority
@@ -73,17 +73,19 @@ export class RulesEvaluator {
 
     // Check Demotions
     const applicableDemotion = demotionRules.find((r) => r.fromRank.toLowerCase() === member.rank.toLowerCase())
-    if (applicableDemotion) {
-      if (daysInGuild > applicableDemotion.gracePeriod && member.weeklyGexp < applicableDemotion.maxWeeklyGexp) {
-        if (applicableDemotion.action === 'demote' && applicableDemotion.targetRank === undefined) {
-          return { action: 'none' }
-        }
+    if (
+      applicableDemotion &&
+      daysInGuild > applicableDemotion.gracePeriod &&
+      member.weeklyGexp < applicableDemotion.maxWeeklyGexp
+    ) {
+      if (applicableDemotion.action === 'demote' && applicableDemotion.targetRank === undefined) {
+        return { action: 'none' }
+      }
 
-        return {
-          action: applicableDemotion.action === 'notify' ? 'none' : applicableDemotion.action, // 'notify' might be handled differently later, treating as 'none' for automation for now or maybe 'demote' if config implies
-          targetRank: applicableDemotion.targetRank,
-          reason: `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`
-        }
+      return {
+        action: applicableDemotion.action === 'notify' ? 'none' : applicableDemotion.action, // 'notify' might be handled differently later, treating as 'none' for automation for now or maybe 'demote' if config implies
+        targetRank: applicableDemotion.targetRank,
+        reason: `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`
       }
     }
 

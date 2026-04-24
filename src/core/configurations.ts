@@ -22,7 +22,11 @@ export class ConfigurationsManager {
   }
 
   public async load(): Promise<void> {
-    await Promise.all([...this.configurations].map(async (configuration) => await configuration.load()))
+    await Promise.all(
+      [...this.configurations].map(async (configuration) => {
+        await configuration.load()
+      })
+    )
   }
 }
 

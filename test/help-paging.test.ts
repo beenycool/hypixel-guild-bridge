@@ -4,53 +4,81 @@ import { describe, it } from 'node:test'
 import { Collection } from 'discord.js'
 
 import helpCommand from '../src/instance/discord/commands/help.js'
-import * as pager from '../src/instance/discord/utility/discord-pager.js'
 
-// Create mock command handlers
-function makeMockCommand(name: string, desc: string) {
-  return {
-    getCommandBuilder: () => ({ name, description: desc, options: [], toJSON: () => ({}) })
-  }
+interface CapturedReply {
+  replyArguments: unknown
 }
 
-void describe('help command paging', () => {
-  void it('uses pager when help content is very long', async () => {
-    const captured: any = {
-      replyArgs: undefined
+const makeMockCommand = (name: string, desc: string) => ({
+  getCommandBuilder: () => ({ name, description: desc, options: [], toJSON: () => ({}) })
+})
+
+interface MockCollector {
+  on: () => void
+  stop: () => void
+}
+
+const createFakeCollector = (): MockCollector => ({
+  on: () => {
+    /* empty */
+  },
+  stop: () => {
+    /* empty */
+  }
+})
+
+interface MockInteraction {
+  inGuild: () => boolean
+  inCachedGuild: () => boolean
+  deferReply: () => void
+  guild: { commands: { fetch: () => Collection<string, { id: string; name: string }> } }
+  channel: { createMessageComponentCollector: () => MockCollector }
+  editReply: (editArguments: unknown) => void
+}
+
+const emptyPromiseCatch = () => () => {
+  /* empty */
+}
+
+await describe('help command paging', async () => {
+  await it('uses pager when help content is very long', async () => {
+    const captured: CapturedReply = {
+      replyArguments: undefined
     }
 
-    const guildCommands = new Collection<string, any>([['1', { id: '1', name: 'test' }]])
+    const guildCommands = new Collection<string, { id: string; name: string }>([['1', { id: '1', name: 'test' }]])
 
-    // create many commands to force large help text
     const allCommands = []
     for (let index = 0; index < 500; index++) {
       allCommands.push(makeMockCommand(`cmd${index}`, 'A long description for testing ' + 'x'.repeat(50)))
     }
 
-    const fakeCollector = () => ({ on: (_: string, __: (...arguments_: any[]) => void) => {}, stop: () => {} })
-
-    const context: any = {
-      interaction: {
-        inGuild: () => true,
-        inCachedGuild: () => true,
-        deferReply: async () => {},
-        guild: { commands: { fetch: async () => guildCommands } },
-        channel: { createMessageComponentCollector: fakeCollector },
-        editReply: async (arguments_: any) => {
-          captured.replyArgs = arguments_
-        }
+    const mockInteraction: MockInteraction = {
+      inGuild: () => true,
+      inCachedGuild: () => true,
+      deferReply: () => {
+        /* empty */
       },
-      allCommands,
-      permission: 999,
-      errorHandler: { promiseCatch: (_: string) => (_: unknown) => {} }
+      guild: { commands: { fetch: () => guildCommands } },
+      channel: { createMessageComponentCollector: createFakeCollector },
+      editReply: (editArguments: unknown) => {
+        captured.replyArguments = editArguments
+      }
     }
 
-    // run handler
-    await helpCommand.handler(context)
+    const context = {
+      interaction: mockInteraction,
+      allCommands,
+      permission: 999,
+      errorHandler: { promiseCatch: emptyPromiseCatch }
+    }
 
-    assert.ok(captured.replyArgs !== undefined)
-    // components present on reply indicate paging was used
-    assert.ok(Array.isArray(captured.replyArgs.components) && captured.replyArgs.components.length > 0)
-    assert.ok((captured.replyArgs.embeds?.[0]?.description ?? '').length <= 3300)
+    await helpCommand.handler(context as unknown as Parameters<typeof helpCommand.handler>[0])
+
+    assert.ok(captured.replyArguments !== undefined)
+    const replyArguments = captured.replyArguments as Record<string, unknown>
+    assert.ok(Array.isArray(replyArguments.components) && (replyArguments.components as unknown[]).length > 0)
+    const embeds = replyArguments.embeds as Record<string, unknown>[] | undefined
+    assert.ok(((embeds?.[0]?.description ?? '') as string).length <= 3300)
   })
 })

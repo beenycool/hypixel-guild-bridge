@@ -47,16 +47,14 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
 
   public loadInstances(): void {
     const instances = this.application.core.minecraftSessions.getAllInstances()
-    ;(this.application as any).logger?.debug?.(
-      `STARTUP_LOAD: mojangInstances=${JSON.stringify(instances.map((i) => i.name))}`
-    )
+    this.logger.debug(`STARTUP_LOAD: mojangInstances=${JSON.stringify(instances.map((index) => index.name))}`)
     try {
       const bridgeCfg = this.application.core.bridgeConfigurations
         .getAllBridgeIds()
         .map((b) => ({ bridge: b, instances: this.application.core.bridgeConfigurations.getMinecraftInstances(b) }))
-      ;(this.application as any).logger?.debug?.(`STARTUP_CFG: ${JSON.stringify(bridgeCfg)}`)
+      this.logger.debug(`STARTUP_CFG: ${JSON.stringify(bridgeCfg)}`)
     } catch {
-      ;(this.application as any).logger?.debug?.('STARTUP_CFG: failed to read bridge configurations')
+      this.logger.debug('STARTUP_CFG: failed to read bridge configurations')
     }
     for (const instanceConfig of instances) {
       const alreadyLoaded = [...this.instances].some(

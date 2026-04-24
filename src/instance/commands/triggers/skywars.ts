@@ -107,7 +107,7 @@ export default class Skywars extends ChatCommandHandler {
     const coins = stats.coins
 
     const prestige = Skywars.PRESTIGE_SCHEMES.findLast((p) => level >= p.level)?.name ?? 'Stone'
-    const emblem = Skywars.PRESTIGE_EMBLEMS.findLast((e) => level >= e.level)?.emblem ?? '✯'
+    const emblem = Skywars.PRESTIGE_EMBLEMS.findLast((error) => level >= error.level)?.emblem ?? '✯'
 
     return (
       `[${prestige} ${level.toFixed(0)}${emblem}] ${givenUsername} ` +

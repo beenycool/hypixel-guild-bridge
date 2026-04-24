@@ -8,8 +8,8 @@ import type Application from '../src/application.js'
  * Verifies that when getPersistGuildOnlineOffline is true, Online/Offline messages
  * are not queued for deletion, and when false, they are.
  */
-void describe('DiscordBridge persist online/offline messages', () => {
-  void it('should NOT add to deleter when persist is enabled (multi-bridge, bridgeId present)', () => {
+await describe('DiscordBridge persist online/offline messages', async () => {
+  await it('should NOT add to deleter when persist is enabled (multi-bridge, bridgeId present)', () => {
     let addCallCount = 0
     const mockDiscordTemporarilyInteractions = {
       add: (entries: unknown[]) => {
@@ -45,7 +45,7 @@ void describe('DiscordBridge persist online/offline messages', () => {
     assert.strictEqual(addCallCount, 0)
   })
 
-  void it('should add to deleter when persist is disabled (multi-bridge, bridgeId present)', () => {
+  await it('should add to deleter when persist is disabled (multi-bridge, bridgeId present)', () => {
     const mockApplication = {
       bridgeResolver: {
         isMultiBridgeEnabled: () => true
@@ -66,7 +66,7 @@ void describe('DiscordBridge persist online/offline messages', () => {
     assert.strictEqual(shouldPersist, false)
   })
 
-  void it('should default to false (delete) when multi-bridge is disabled', () => {
+  await it('should default to false (delete) when multi-bridge is disabled', () => {
     const mockApplication = {
       bridgeResolver: {
         isMultiBridgeEnabled: () => false
@@ -82,7 +82,7 @@ void describe('DiscordBridge persist online/offline messages', () => {
     assert.strictEqual(shouldPersist, false)
   })
 
-  void it('should default to false (delete) when bridgeId is undefined', () => {
+  await it('should default to false (delete) when bridgeId is undefined', () => {
     const mockApplication = {
       bridgeResolver: {
         isMultiBridgeEnabled: () => true

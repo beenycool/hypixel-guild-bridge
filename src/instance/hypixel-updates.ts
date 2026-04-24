@@ -324,7 +324,7 @@ function stripCdata(value: string): string {
 }
 
 function decodeHtmlEntities(value: string): string {
-  return value.replaceAll(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
+  return value.replaceAll(/&(#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/g, (match: string, entity: string) => {
     if (entity.startsWith('#x')) {
       const code = Number.parseInt(entity.slice(2), 16)
       return Number.isFinite(code) ? String.fromCodePoint(code) : match

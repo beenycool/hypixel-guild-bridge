@@ -2,14 +2,15 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ComponentType,
   EmbedBuilder,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
-  ComponentType
+  StringSelectMenuOptionBuilder
 } from 'discord.js'
-import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
+
 import { MinecraftSendChatPriority, Permission } from '../../../common/application-event'
+import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 
 export default {
   getCommandBuilder: () =>
@@ -58,7 +59,7 @@ export default {
         displayedReviews.map((r) =>
           new StringSelectMenuOptionBuilder()
             .setLabel(`${uuidToName.get(r.uuid)}: ${r.action.toUpperCase()} ${r.currentRank} -> ${r.proposedRank}`)
-            .setDescription(r.reason.substring(0, 100))
+            .setDescription(r.reason.slice(0, 100))
             .setValue(r.id.toString())
         )
       )
@@ -77,17 +78,20 @@ export default {
 
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,
-      time: 600000, // 10 mins
-      filter: (i) => i.user.id === interaction.user.id
+      time: 600_000, // 10 mins
+      filter: (index) => index.user.id === interaction.user.id
     })
 
-    collector.on('collect', async (i) => {
-      if (i.customId === 'rankup-select-review') {
-        const reviewId = parseInt(i.values[0])
+    collector.on('collect', (index) => {
+      if (index.customId !== 'rankup-select-review') return
+      ;(async () => {
+        const reviewId = Number.parseInt(index.values[0])
         const review = pendingManager.getReview(reviewId)
 
         if (!review) {
-          await i.reply({ content: 'Review no longer exists.', flags: 64 }) // Ephemeral
+          await index.reply({ content: 'Review no longer exists.', flags: 64 }).catch(() => {
+            /* noop */
+          })
           return
         }
 
@@ -106,82 +110,93 @@ export default {
             { name: 'Created At', value: `<t:${review.createdAt}:R>` }
           )
 
-        const btnRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder().setCustomId(`approve-${reviewId}`).setLabel('Approve').setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId(`reject-${reviewId}`).setLabel('Reject').setStyle(ButtonStyle.Danger)
         )
 
-        const msg = await i.reply({
+        const message = await index.reply({
           embeds: [detailEmbed],
-          components: [btnRow],
+          components: [buttonRow],
           fetchReply: true
         })
 
-        const btnCollector = msg.createMessageComponentCollector({
+        const replyMessage = message.resource?.message ?? message
+        const buttonCollector = replyMessage.createMessageComponentCollector({
           componentType: ComponentType.Button,
-          time: 60000,
-          filter: (btn) => btn.user.id === interaction.user.id
+          time: 60_000,
+          filter: (button) => button.user.id === interaction.user.id
         })
+        if (buttonCollector === undefined) return
 
-        btnCollector.on('collect', async (btn) => {
-          const action = btn.customId.startsWith('approve') ? 'approve' : 'reject'
+        buttonCollector.on('collect', (button) => {
+          void (async () => {
+            const action = button.customId.startsWith('approve') ? 'approve' : 'reject'
 
-          if (action === 'reject') {
-            pendingManager.removeReview(reviewId)
-            pendingManager.logHistory(
-              bridgeId,
-              review.uuid,
-              'reject',
-              review.currentRank,
-              review.proposedRank,
-              btn.user.tag
-            )
-            await btn.update({ content: 'Review rejected.', embeds: [], components: [] })
-          } else {
-            // Execute Action
-            // We need to send command to Minecraft
-            const instances = bridgeConfig.getMinecraftInstances(bridgeId)
-            if (instances.length > 0) {
-              const instanceName = instances[0]
-              const instance = application.minecraftManager
-                .getAllInstances()
-                .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
-              if (instance) {
-                let command = ''
-                if (review.action === 'promote' || review.action === 'demote') {
-                  if (review.proposedRank.length === 0) {
-                    await btn.update({ content: 'Error: pending review is missing a target rank.', components: [] })
-                    return
+            if (action === 'reject') {
+              pendingManager.removeReview(reviewId)
+              pendingManager.logHistory(
+                bridgeId,
+                review.uuid,
+                'reject',
+                review.currentRank,
+                review.proposedRank,
+                button.user.tag
+              )
+              await button.update({ content: 'Review rejected.', embeds: [], components: [] })
+            } else {
+              // Execute Action
+              // We need to send command to Minecraft
+              const instances = bridgeConfig.getMinecraftInstances(bridgeId)
+              if (instances.length > 0) {
+                const instanceName = instances[0]
+                const instance = application.minecraftManager
+                  .getAllInstances()
+                  .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
+                if (instance) {
+                  let command = ''
+                  if (review.action === 'promote' || review.action === 'demote') {
+                    if (review.proposedRank.length === 0) {
+                      await button.update({
+                        content: 'Error: pending review is missing a target rank.',
+                        components: []
+                      })
+                      return
+                    }
+
+                    command = `/g setrank ${name} ${review.proposedRank}`
+                  } else {
+                    command = `/g kick ${name} ${review.reason}`
                   }
 
-                  command = `/g setrank ${name} ${review.proposedRank}`
-                } else if (review.action === 'kick') {
-                  command = `/g kick ${name} ${review.reason}`
+                  await instance.send(command, MinecraftSendChatPriority.High, undefined)
+
+                  pendingManager.removeReview(reviewId)
+                  pendingManager.logHistory(
+                    bridgeId,
+                    review.uuid,
+                    review.action,
+                    review.currentRank,
+                    review.proposedRank,
+                    button.user.tag
+                  )
+
+                  await button.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
+                } else {
+                  await button.update({ content: 'Error: Minecraft instance not found.', components: [] })
                 }
-
-                instance.send(command, MinecraftSendChatPriority.High, undefined)
-
-                pendingManager.removeReview(reviewId)
-                pendingManager.logHistory(
-                  bridgeId,
-                  review.uuid,
-                  review.action as any,
-                  review.currentRank,
-                  review.proposedRank,
-                  btn.user.tag
-                )
-
-                await btn.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
               } else {
-                await btn.update({ content: 'Error: Minecraft instance not found.', components: [] })
+                await button.update({ content: 'Error: No Minecraft instances configured.', components: [] })
               }
-            } else {
-              await btn.update({ content: 'Error: No Minecraft instances configured.', components: [] })
             }
-          }
-          btnCollector.stop()
+            buttonCollector.stop()
+          })().catch(() => {
+            /* noop */
+          })
         })
-      }
+      })().catch(() => {
+        /* noop */
+      })
     })
   }
 } satisfies DiscordCommandHandler

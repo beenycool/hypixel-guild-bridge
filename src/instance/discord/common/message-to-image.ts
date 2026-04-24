@@ -49,7 +49,7 @@ export default class MessageToImage {
   private static readonly SkinSize = 35
   private static readonly CanvasWidth = 1000
   /** Rightmost x for text (leave margin for shadow) */
-  private static readonly MaxLineX = MessageToImage.CanvasWidth - MessageToImage.WidthMargin
+  private static readonly MaxLinePosition = MessageToImage.CanvasWidth - MessageToImage.WidthMargin
   private static readonly LineAdvance = 40
 
   /**
@@ -70,12 +70,7 @@ export default class MessageToImage {
     return parts
   }
 
-  private static measureWords(
-    context: Canvas2DContext,
-    text: string,
-    x: number,
-    y: number
-  ): { x: number; y: number } {
+  private static measureWords(context: Canvas2DContext, text: string, x: number, y: number): { x: number; y: number } {
     if (text.length === 0) {
       return { x, y }
     }
@@ -83,7 +78,7 @@ export default class MessageToImage {
     let cx = x
     let cy = y
     const margin = MessageToImage.WidthMargin
-    const maxX = MessageToImage.MaxLineX
+    const maxX = MessageToImage.MaxLinePosition
     const line = MessageToImage.LineAdvance
     for (const token of tokens) {
       const tw = context.measureText(token).width
@@ -96,12 +91,7 @@ export default class MessageToImage {
     return { x: cx, y: cy }
   }
 
-  private static drawWords(
-    context: Canvas2DContext,
-    text: string,
-    x: number,
-    y: number
-  ): { x: number; y: number } {
+  private static drawWords(context: Canvas2DContext, text: string, x: number, y: number): { x: number; y: number } {
     if (text.length === 0) {
       return { x, y }
     }
@@ -109,7 +99,7 @@ export default class MessageToImage {
     let cx = x
     let cy = y
     const margin = MessageToImage.WidthMargin
-    const maxX = MessageToImage.MaxLineX
+    const maxX = MessageToImage.MaxLinePosition
     const line = MessageToImage.LineAdvance
     for (const token of tokens) {
       const tw = context.measureText(token).width
@@ -136,11 +126,11 @@ export default class MessageToImage {
     const parts = currentMessage.split('{skin}')
     let pos = { x, y }
     const margin = MessageToImage.WidthMargin
-    const maxX = MessageToImage.MaxLineX
+    const maxX = MessageToImage.MaxLinePosition
     const line = MessageToImage.LineAdvance
-    for (let i = 0; i < parts.length; i++) {
-      pos = MessageToImage.measureWords(context, parts[i] ?? '', pos.x, pos.y)
-      if (i < parts.length - 1) {
+    for (let index = 0; index < parts.length; index++) {
+      pos = MessageToImage.measureWords(context, parts[index] ?? '', pos.x, pos.y)
+      if (index < parts.length - 1) {
         const skinW = reserveSkin ? MessageToImage.SkinSize + 20 : context.measureText('{skin}').width
         if (pos.x + skinW > maxX && pos.x > margin) {
           pos.y += line
@@ -183,20 +173,18 @@ export default class MessageToImage {
     const parts = currentMessage.split('{skin}')
     let pos = { x, y }
     const margin = MessageToImage.WidthMargin
-    const maxX = MessageToImage.MaxLineX
+    const maxX = MessageToImage.MaxLinePosition
     const line = MessageToImage.LineAdvance
-    for (let i = 0; i < parts.length; i++) {
-      pos = MessageToImage.drawWords(context, parts[i] ?? '', pos.x, pos.y)
-      if (i < parts.length - 1) {
+    for (let index = 0; index < parts.length; index++) {
+      pos = MessageToImage.drawWords(context, parts[index] ?? '', pos.x, pos.y)
+      if (index < parts.length - 1) {
         const skinW = MessageToImage.SkinSize + 20
         if (pos.x + skinW > maxX && pos.x > margin) {
           pos.y += line
           pos.x = margin
         }
         try {
-          const skinImage = await loadImage(
-            `https://mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`
-          )
+          const skinImage = await loadImage(`https://mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
           context.drawImage(skinImage, pos.x, pos.y - MessageToImage.SkinSize)
           pos.x += skinW
         } catch {

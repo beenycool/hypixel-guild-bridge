@@ -97,7 +97,7 @@ export function getLevelByXp(xp: number, extra: { type?: string; cap?: number } 
   let xpCurrent = safeXp
   let xpRemaining = safeXp
 
-  while (xpTable[uncappedLevel + 1] !== undefined && xpTable[uncappedLevel + 1] <= xpRemaining) {
+  while (uncappedLevel + 1 < xpTable.length && xpTable[uncappedLevel + 1] <= xpRemaining) {
     uncappedLevel++
     xpRemaining -= xpTable[uncappedLevel]
     if (uncappedLevel <= levelCap) xpCurrent = xpRemaining

@@ -19,11 +19,10 @@ export class DiscordLeaderboards {
 
   public addOrSet(entry: LeaderboardEntry): void {
     const existing = this.entries.get(entry.messageId)
-    const now = Date.now()
     const stored = {
       ...entry,
-      createdAt: existing?.createdAt ?? entry.createdAt ?? now,
-      updatedAt: existing?.updatedAt ?? entry.updatedAt ?? now,
+      createdAt: existing?.createdAt ?? entry.createdAt,
+      updatedAt: existing?.updatedAt ?? entry.updatedAt,
       guildId: entry.guildId
     }
     this.entries.set(entry.messageId, stored)
@@ -41,7 +40,7 @@ export class DiscordLeaderboards {
           stored.messageId,
           stored.type,
           stored.channelId,
-          stored.guildId ?? null,
+          stored.guildId ?? undefined,
           Math.floor(stored.updatedAt / 1000),
           Math.floor(stored.createdAt / 1000)
         ]

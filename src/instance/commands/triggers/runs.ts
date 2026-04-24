@@ -36,13 +36,13 @@ export default class Runs extends ChatCommandHandler {
     const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
     if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
 
-    const dungeon = selectedProfile.dungeons?.dungeon_types
+    const dungeon = selectedProfile.dungeons?.dungeonTypes
     if (!dungeon) {
       return playerNeverPlayedDungeons(givenUsername)
     }
 
     const runs = masterMode
-      ? this.getTotalRuns(dungeon.master_catacombs.tier_completions)
+      ? this.getTotalRuns(dungeon.masterCatacombs.tier_completions)
       : this.getTotalRuns(dungeon.catacombs.tier_completions)
     if (runs.length === 0) return `${givenUsername}: ${givenType} - never done runs in this type before?`
 

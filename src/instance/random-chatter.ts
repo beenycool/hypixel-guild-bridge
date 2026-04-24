@@ -1,13 +1,17 @@
 import assert from 'node:assert'
 
 import type Application from '../application'
-import { ChannelType, Color, InstanceType } from '../common/application-event'
+import { ChannelType, Color, GuildPlayerEventType, InstanceType } from '../common/application-event'
+import { Status } from '../common/connectable-instance'
 import { Instance } from '../common/instance'
 import Duration from '../utility/duration'
 import { setIntervalAsync } from '../utility/scheduling'
 
 export class RandomChatter extends Instance<InstanceType.Utility> {
+  public pausedBy?: string
   private readonly lastSentAt = new Map<string, number>()
+  private readonly antiRepeatMemory = new Map<string, string[]>()
+  private readonly lastActivityAt = new Map<string, number>()
   private started = false
   private intervalHandle: NodeJS.Timeout | undefined
 
@@ -38,19 +42,56 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       { errorHandler: this.errorHandler.promiseCatch('random chatter check'), delay: Duration.minutes(1) }
     )
 
-    this.application.addShutdownListener(() => this.stop())
-    // Listen for bridge removals to cleanup lastSentAt map
+    this.application.addShutdownListener(() => {
+      this.stop()
+    })
+    // Record recent public guild chat activity to implement a "quiet window"
+    this.application.on('chat', (event) => {
+      try {
+        if (event.channelType !== ChannelType.Public) return
+
+        const bId = event.bridgeId
+        if (bId === undefined) {
+          // Legacy global event: mark activity for all known bridges
+          for (const id of this.application.core.bridgeConfigurations.getAllBridgeIds()) {
+            this.lastActivityAt.set(id, event.createdAt)
+          }
+        } else {
+          this.lastActivityAt.set(bId, event.createdAt)
+        }
+      } catch {
+        // swallow errors from observer
+      }
+    })
+    // Clear pausedBy when the paused Minecraft player goes offline
+    this.application.on('guildPlayer', (event) => {
+      try {
+        if (!this.pausedBy) return
+        if (event.type !== GuildPlayerEventType.Offline) return
+        const name = event.user.mojangProfile().name
+        if (name && name.toLowerCase() === this.pausedBy.toLowerCase()) {
+          this.logger.debug(`random-chatter: cleared pausedBy due to ${name} going offline`)
+          this.pausedBy = undefined
+        }
+      } catch {
+        // swallow errors from cleanup
+      }
+    })
+    // Listen for bridge removals to cleanup in-memory maps for that bridge
     this.application.on('bridgeConfigChanged', (event) => {
       try {
+        const bid = event.bridgeId
+        if (!bid) return
+
         // When a bridge is removed, BridgeConfigurations.removeBridgeId deletes its keys.
-        // We receive bridgeConfigChanged events for other changes as well; only act when bridgeId matches and key indicates removal.
-        if (event.key === 'remove_bridge' || event.key.startsWith(`${event.bridgeId}_`)) {
-          // If the bridge was removed (no longer present in list), clear memory for it
-          if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(event.bridgeId)) {
-            this.lastSentAt.delete(event.bridgeId)
-          }
+        // We receive bridgeConfigChanged events for other changes as well; only act when the bridge is no longer present.
+        if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(bid)) {
+          this.lastSentAt.delete(bid)
+          this.antiRepeatMemory.delete(bid)
+          this.lastActivityAt.delete(bid)
+          this.logger.debug(`random-chatter: cleaned in-memory state for removed bridge ${bid}`)
         }
-      } catch (e) {
+      } catch {
         // swallow errors from cleanup
       }
     })
@@ -68,6 +109,8 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
   private async maybeSendForBridge(bridgeId: string): Promise<void> {
     const bridgeConfig = this.application.core.bridgeConfigurations
 
+    if (this.pausedBy !== undefined) return
+
     const enabled = bridgeConfig.getRandomChatterEnabled(bridgeId)
     if (!enabled) return
 
@@ -79,24 +122,41 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
 
     const now = Date.now()
     const last = this.lastSentAt.get(bridgeId) ?? 0
-    if (last + Duration.minutes(intervalMinutes).toMilliseconds() > now) return
+
+    // Apply jitter +/-20% to interval to make chatter feel less periodic
+    const intervalMs = Duration.minutes(intervalMinutes).toMilliseconds()
+    const jitterFactor = 0.8 + Math.random() * 0.4
+    const jitteredIntervalMs = Math.round(intervalMs * jitterFactor)
+    if (last + jitteredIntervalMs > now) return
 
     const messages = bridgeConfig.getRandomChatterMessages(bridgeId, [])
-    if (!messages || messages.length === 0) return
+    if (messages.length === 0) return
 
     const minOnline = bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId)
     const includeName = bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
 
+    // Quiet window: do not send if recent real guild activity happened for this bridge
+    const quietMinutes = bridgeConfig.getRandomChatterQuietWindowMinutes(bridgeId)
+    if (quietMinutes > 0) {
+      const lastActivity = this.lastActivityAt.get(bridgeId)
+      if (lastActivity !== undefined && lastActivity + Duration.minutes(quietMinutes).toMilliseconds() > Date.now())
+        return
+    }
+
     // Get guild list from guildManager for this bridge's configured minecraft instances.
     const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
-    if (!instanceNames || instanceNames.length === 0) return
+    if (instanceNames.length === 0) return
 
-    // Use the first available instance that is connected
+    // Choose the first configured Minecraft instance that exists and is connected
     let chosenInstance: string | undefined
-    const availableInstances = this.application.getInstancesNames(InstanceType.Minecraft)
-    for (const inst of instanceNames) {
-      if (availableInstances.includes(inst)) {
-        chosenInstance = inst
+    const mcInstances = this.application.minecraftManager.getAllInstances()
+    for (const instName of instanceNames) {
+      const mcCandidate = mcInstances.find(
+        (index) =>
+          index.instanceName.toLowerCase() === instName.toLowerCase() && index.currentStatus() === Status.Connected
+      )
+      if (mcCandidate) {
+        chosenInstance = mcCandidate.instanceName
         break
       }
     }
@@ -104,7 +164,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
 
     const mc = this.application.minecraftManager
       .getAllInstances()
-      .find((i) => i.instanceName.toLowerCase() === chosenInstance.toLowerCase())
+      .find((index) => index.instanceName.toLowerCase() === chosenInstance.toLowerCase())
     if (mc === undefined) return
 
     const botIgn = mc.username()
@@ -119,8 +179,12 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     const onlineMembers = guild.members.filter((m) => m.online)
     if (onlineMembers.length < minOnline) return
 
-    // pick a message; with includeName, use bot IGN (same as skin) — not random online members
-    const raw = messages[Math.floor(Math.random() * messages.length)]
+    // Anti-repeat selection: prefer messages not seen in the last N sends for this bridge
+    const antiRepeatLength = bridgeConfig.getRandomChatterAntiRepeatLength(bridgeId)
+    const memory = this.antiRepeatMemory.get(bridgeId) ?? []
+    let candidates = messages.filter((m) => !memory.includes(m))
+    if (candidates.length === 0) candidates = messages // fallback when all messages are in recent memory
+    const raw = candidates[Math.floor(Math.random() * candidates.length)]
     let message = raw
     let pickedName: string | undefined
     if (includeName && raw.includes('{username}')) {
@@ -146,11 +210,11 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     if (includeName && pickedName !== undefined && !raw.includes('{username}')) {
       const colon = message.indexOf(': ')
       if (colon !== -1 && message.slice(0, colon) === pickedName) {
-        const namePart = botRank !== undefined ? `${botRank}§f` : `§a${pickedName}§f`
+        const namePart = botRank === undefined ? `§a${pickedName}§f` : `${botRank}§f`
         imageBodyFormatted = `${namePart}: §f${message.slice(colon + 2)}`
       }
     } else if (includeName && pickedName !== undefined && raw.includes('{username}')) {
-      const namePart = botRank !== undefined ? `${botRank}§f` : `§a${pickedName}§f`
+      const namePart = botRank === undefined ? `§a${pickedName}§f` : `${botRank}§f`
       imageBodyFormatted = raw.replaceAll('{username}', namePart)
     }
 
@@ -164,10 +228,116 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       guildChatImageStyle: {
         channelType: ChannelType.Public,
         skinUsername,
-        ...(imageBodyFormatted !== undefined ? { imageBodyFormatted } : {})
+        ...(imageBodyFormatted === undefined ? {} : { imageBodyFormatted })
       }
     })
 
+    // update anti-repeat memory
+    if (antiRepeatLength > 0) {
+      const nextMem = [...(this.antiRepeatMemory.get(bridgeId) ?? [])]
+      nextMem.push(raw)
+      while (nextMem.length > antiRepeatLength) nextMem.shift()
+      this.antiRepeatMemory.set(bridgeId, nextMem)
+    }
+
     this.lastSentAt.set(bridgeId, Date.now())
+  }
+
+  /**
+   * Send a single test random chatter for the given bridge and return structured result.
+   * This ignores interval checks but respects paused state.
+   */
+  public async sendTest(bridgeId: string): Promise<{ sent: boolean; message?: string; reason?: string }> {
+    try {
+      const bridgeConfig = this.application.core.bridgeConfigurations
+
+      const enabled = bridgeConfig.getRandomChatterEnabled(bridgeId)
+      if (!enabled) return { sent: false, reason: 'disabled' }
+
+      if (this.pausedBy !== undefined) return { sent: false, reason: 'paused' }
+
+      const messages = bridgeConfig.getRandomChatterMessages(bridgeId, [])
+      if (messages.length === 0) return { sent: false, reason: 'no_messages' }
+
+      const minOnline = bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId)
+      const includeName = bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
+
+      const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
+      if (instanceNames.length === 0) return { sent: false, reason: 'no_instances_configured' }
+
+      // choose a connected instance
+      let chosenInstance: string | undefined
+      const mcInstances = this.application.minecraftManager.getAllInstances()
+      for (const instName of instanceNames) {
+        const mcCandidate = mcInstances.find(
+          (index) =>
+            index.instanceName.toLowerCase() === instName.toLowerCase() && index.currentStatus() === Status.Connected
+        )
+        if (mcCandidate) {
+          chosenInstance = mcCandidate.instanceName
+          break
+        }
+      }
+      if (!chosenInstance) return { sent: false, reason: 'no_connected_instance' }
+
+      const mc = this.application.minecraftManager
+        .getAllInstances()
+        .find((index) => index.instanceName.toLowerCase() === chosenInstance.toLowerCase())
+      if (mc === undefined) return { sent: false, reason: 'instance_not_found' }
+
+      const botIgn = mc.username()
+      if (botIgn === undefined) return { sent: false, reason: 'bot_username_unavailable' }
+
+      const guild = await this.application.core.guildManager.list(chosenInstance)
+      const onlineMembers = guild.members.filter((m) => m.online)
+      if (onlineMembers.length < minOnline) return { sent: false, reason: 'not_enough_players_online' }
+
+      const raw = messages[Math.floor(Math.random() * messages.length)]
+      let message = raw
+      let pickedName: string | undefined
+      if (includeName && raw.includes('{username}')) {
+        pickedName = botIgn
+        message = raw.replaceAll('{username}', pickedName)
+      } else if (includeName) {
+        pickedName = botIgn
+        message = `${pickedName}: ${raw}`
+      }
+
+      if (message.length > 2000) message = message.slice(0, 2000)
+
+      const skinUsername = botIgn
+      const botRank = this.application.minecraftManager.getBotRank(chosenInstance)
+
+      let imageBodyFormatted: string | undefined
+      if (includeName && pickedName !== undefined && !raw.includes('{username}')) {
+        const colon = message.indexOf(': ')
+        if (colon !== -1 && message.slice(0, colon) === pickedName) {
+          const namePart = botRank === undefined ? `§a${pickedName}§f` : `${botRank}§f`
+          imageBodyFormatted = `${namePart}: §f${message.slice(colon + 2)}`
+        }
+      } else if (includeName && pickedName !== undefined && raw.includes('{username}')) {
+        const namePart = botRank === undefined ? `§a${pickedName}§f` : `${botRank}§f`
+        imageBodyFormatted = raw.replaceAll('{username}', namePart)
+      }
+
+      await this.application.emit('broadcast', {
+        ...this.eventHelper.fillBaseEvent(),
+        channels: [ChannelType.Public],
+        color: Color.Default,
+        user: undefined,
+        message: message,
+        bridgeId: bridgeId,
+        guildChatImageStyle: {
+          channelType: ChannelType.Public,
+          skinUsername,
+          ...(imageBodyFormatted === undefined ? {} : { imageBodyFormatted })
+        }
+      })
+
+      this.lastSentAt.set(bridgeId, Date.now())
+      return { sent: true, message }
+    } catch (error: unknown) {
+      return { sent: false, reason: String(error) }
+    }
   }
 }

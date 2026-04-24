@@ -89,14 +89,16 @@ declare module 'hypixel-api-reborn' {
   }
 
   export interface SkyblockV2Dungeons {
-    dungeon_types: SkyblockV2DungeonsTypes
-    player_classes?: Record<'healer' | 'mage' | 'berserk' | 'archer' | 'tank', SkyblockV2DungeonsClass | undefined>
+    dungeonTypes: SkyblockV2DungeonsTypes
+    playerClasses?: Record<'healer' | 'mage' | 'berserk' | 'archer' | 'tank', SkyblockV2DungeonsClass>
     treasures?: { runs?: SkyblockV2DungeonRun[] }
+    selectedDungeonClass?: string
+    secrets?: number
   }
 
   export interface SkyblockV2DungeonsTypes {
     catacombs: SkyblockV2DungeonsCatacombs
-    master_catacombs: SkyblockV2DungeonsMasterCatacombs
+    masterCatacombs: SkyblockV2DungeonsMasterCatacombs
   }
 
   export type DungeonFloors = '1' | '2' | '3' | '4' | '5' | '6' | '7'

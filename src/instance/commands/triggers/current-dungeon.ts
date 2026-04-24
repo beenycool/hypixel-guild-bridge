@@ -108,11 +108,11 @@ export default class CurrentDungeon extends ChatCommandHandler {
     assert.ok(/^\d+$/.test(classLevel))
     let parsedLevel = Number.parseInt(classLevel, 10)
     if (parsedLevel === 50) {
-      const classes = dungeonProfile.player_classes
+      const classes = dungeonProfile.playerClasses
       const classNameKey = className.toLowerCase().trim() as 'healer' | 'mage' | 'berserk' | 'archer' | 'tank'
       assert.ok(classes !== undefined)
 
-      const experience = classes[classNameKey]?.experience
+      const experience = classes[classNameKey].experience
       assert.ok(experience !== undefined)
 
       parsedLevel = getDungeonLevelWithOverflow(experience)

@@ -18,9 +18,9 @@ function createFakeApplication(databaseUrl?: string) {
   }
 }
 
-void describe('DatabaseManager database selection', () => {
-  void it('supports explicit in-memory databases', async () => {
-    const previousNodeEnv = process.env.NODE_ENV
+await describe('DatabaseManager database selection', async () => {
+  await it('supports explicit in-memory databases', async () => {
+    const previousNodeEnvironment = process.env.NODE_ENV
     process.env.NODE_ENV = 'test'
 
     const manager = new DatabaseManager(createFakeApplication('memory://database-manager-test') as any, logger)
@@ -30,12 +30,12 @@ void describe('DatabaseManager database selection', () => {
       assert.strictEqual(rows[0]?.value, 1)
     } finally {
       await manager.close()
-      process.env.NODE_ENV = previousNodeEnv
+      process.env.NODE_ENV = previousNodeEnvironment
     }
   })
 
-  void it('fails fast when no database is configured outside tests', async () => {
-    const previousNodeEnv = process.env.NODE_ENV
+  await it('fails fast when no database is configured outside tests', async () => {
+    const previousNodeEnvironment = process.env.NODE_ENV
     const previousDatabaseUrl = process.env.DATABASE_URL
     const previousDyno = process.env.DYNO
 
@@ -46,14 +46,13 @@ void describe('DatabaseManager database selection', () => {
     const manager = new DatabaseManager(createFakeApplication() as any, logger)
 
     try {
-      await assert.rejects(
-        async () => await manager.awaitReady(),
-        /No database configured\. Set config\.database\.url or DATABASE_URL/
-      )
+      await assert.rejects(async () => {
+        await manager.awaitReady()
+      }, /No database configured\. Set config\.database\.url or DATABASE_URL/)
     } finally {
       await manager.close()
 
-      process.env.NODE_ENV = previousNodeEnv
+      process.env.NODE_ENV = previousNodeEnvironment
       if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL
       else process.env.DATABASE_URL = previousDatabaseUrl
       if (previousDyno === undefined) delete process.env.DYNO

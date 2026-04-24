@@ -2,21 +2,30 @@ import assert from 'node:assert'
 
 import Application from '../src/application'
 
+interface FakeCall {
+  key: string
+  opts: Record<string, unknown> | undefined
+}
+
+type MockApplication = {
+  [K in keyof Application]: Application[K]
+} & Record<string, unknown>
+
 function makeFakeApp(dynamicLang?: string, staticLang?: string) {
-  const calls: any[] = []
+  const calls: FakeCall[] = []
   const fakeI18n = {
-    t: (key: any, options?: any) => {
+    t: (key: string, options?: Record<string, unknown>) => {
       calls.push({ key, opts: options })
       return `translated:${key}:${options?.lng ?? 'undefined'}`
     }
   }
 
-  const app: any = Object.create(Application.prototype)
+  const app = Object.create(Application.prototype) as MockApplication
   app.core = { bridgeConfigurations: { getLanguage: (_: string) => dynamicLang } }
   app.config = { bridges: staticLang ? [{ id: 'bridge1', language: staticLang }] : [] }
   app.i18n = fakeI18n
 
-  return { app, calls }
+  return { app: app as unknown as Application, calls }
 }
 
 // Dynamic should override static

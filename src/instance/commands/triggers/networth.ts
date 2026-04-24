@@ -55,10 +55,10 @@ export default class Networth extends ChatCommandHandler {
     const nonCosmeticUnsoulboundNetworth = formatNumber(nonCosmeticNetworthData.unsoulboundNetworth)
 
     const purse = formatNumber(networthData.purse)
-    const bank = selected.profile.banking?.balance ? formatNumber(selected.profile.banking.balance) : 'N/A'
-    const personalBank = selected.member.profile?.bank_account
-      ? formatNumber(selected.member.profile.bank_account)
-      : 'N/A'
+    const bankBalance = selected.profile.banking?.balance
+    const bank = bankBalance !== undefined ? formatNumber(bankBalance) : 'N/A'
+    const personalBank =
+      selected.member.profile?.bank_account !== undefined ? formatNumber(selected.member.profile.bank_account) : 'N/A'
     const museumTotal = museumMember
       ? formatNumber((networthData as { types?: NetworthTypes }).types?.museum?.total ?? 0)
       : 'N/A'

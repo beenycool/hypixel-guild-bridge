@@ -6,49 +6,56 @@ import PackageJson from '../package.json' with { type: 'json' }
 import type Application from '../src/application.js'
 import WebServer from '../src/instance/web-server.js'
 
-void describe('web server /health', () => {
-  void it('returns status ok, uptime number and version', async () => {
+await describe('web server /health', async () => {
+  await it('returns status ok, uptime number and version', async () => {
     const app = {
-      emit: () => {},
-      on: () => {},
-      onAny: () => {},
-      addShutdownListener: () => {},
-      sendMinecraft: async () => {},
+      emit: () => {
+        /* noop */
+      },
+      on: () => {
+        /* noop */
+      },
+      onAny: () => {
+        /* noop */
+      },
+      addShutdownListener: () => {
+        /* noop */
+      },
+      sendMinecraft: async () => {
+        /* noop */
+      },
       getInstancesNames: () => [],
       i18n: { t: () => '' }
     } as unknown as Application
     const server = new WebServer(app, { port: 0, token: 'test', enabled: true })
 
-    // wait for server to bind to ephemeral port
     await new Promise<void>((resolve) => {
-      const httpServer = (server as any).httpServer as http.Server
+      const httpServer = (server as unknown as { httpServer: http.Server }).httpServer
       httpServer.once('listening', () => {
         resolve()
       })
     })
 
-    const address = (server as any).httpServer.address()
+    const address = (server as unknown as { httpServer: { address(): { port: number } } }).httpServer.address()
     const port = address.port
 
     const body = await new Promise<string>((resolve, reject) => {
       http
-        .get(`http://127.0.0.1:${port}/health`, (res) => {
+        .get(`http://127.0.0.1:${String(port)}/health`, (response) => {
           let data = ''
-          res.setEncoding('utf8')
-          res.on('data', (chunk) => (data += chunk))
-          res.on('end', () => {
+          response.setEncoding('utf8')
+          response.on('data', (chunk: string) => (data += chunk))
+          response.on('end', () => {
             resolve(data)
           })
         })
         .on('error', reject)
     })
 
-    const json = JSON.parse(body)
+    const json = JSON.parse(body) as { status: string; uptime: number; version: string }
     assert.strictEqual(json.status, 'ok')
     assert.strictEqual(typeof json.uptime, 'number')
     assert.strictEqual(json.version, PackageJson.version)
-
-    // close underlying server
-    ;((server as any).httpServer as http.Server).close()
+    ;(server as unknown as { httpServer: http.Server }).httpServer.close()
   })
 })

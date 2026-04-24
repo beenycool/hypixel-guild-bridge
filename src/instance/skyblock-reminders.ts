@@ -144,7 +144,9 @@ export class SkyblockReminders extends Instance<InstanceType.Utility> {
     // Subscribe to bridge config changes for immediate effect
     this.application.on('bridgeConfigChanged', (event) => {
       if (event.key.startsWith('skyblock')) {
-        void this.runImmediateCheckForBridge(event.bridgeId)
+        this.runImmediateCheckForBridge(event.bridgeId).catch(
+          this.errorHandler.promiseCatch('immediate skyblock check')
+        )
       }
     })
 

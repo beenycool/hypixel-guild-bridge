@@ -5,8 +5,32 @@ import { ChannelType } from '../src/common/application-event.js'
 import ChatManager from '../src/instance/discord/chat-manager.js'
 import DiscordBridge from '../src/instance/discord/discord-bridge.js'
 
-void describe('multi-bridge routing hardening', () => {
-  void it('routes Discord-bound chat by Minecraft instance when bridgeId is omitted', () => {
+type ResolveChannelsFunction = (
+  channels: ChannelType[],
+  bridgeId: string | undefined,
+  routingHint?: { kind: string; instanceName: string }
+) => string[]
+type ResolveBridgeScopedChannelsFunction = (channels: ChannelType[], bridgeId: string) => string[]
+type ResolveAllBridgeChannelsFunction = (channels: ChannelType[]) => string[]
+type HandlePassthroughCommandFunction = (
+  event: { channel: { id: string } },
+  content: string,
+  channelType: ChannelType,
+  bridgeId: string | undefined
+) => Promise<boolean>
+
+const DiscordBridgePrototype = DiscordBridge.prototype as unknown as {
+  resolveBridgeScopedChannels: ResolveBridgeScopedChannelsFunction
+  resolveAllBridgeChannels: ResolveAllBridgeChannelsFunction
+  resolveChannelsForEvent: ResolveChannelsFunction
+}
+
+const ChatManagerPrototype = ChatManager.prototype as unknown as {
+  handlePassthroughCommand: HandlePassthroughCommandFunction
+}
+
+await describe('multi-bridge routing hardening', async () => {
+  await it('routes Discord-bound chat by Minecraft instance when bridgeId is omitted', () => {
     const warnings: string[] = []
 
     const context = {
@@ -27,22 +51,20 @@ void describe('multi-bridge routing hardening', () => {
       },
       logger: { warn: (message: string) => warnings.push(message) },
       resolveChannels: () => ['legacy-public'],
-      resolveBridgeScopedChannels: (DiscordBridge.prototype as any).resolveBridgeScopedChannels,
-      resolveAllBridgeChannels: (DiscordBridge.prototype as any).resolveAllBridgeChannels
+      resolveBridgeScopedChannels: DiscordBridgePrototype.resolveBridgeScopedChannels,
+      resolveAllBridgeChannels: DiscordBridgePrototype.resolveAllBridgeChannels
     }
 
-    const result = (DiscordBridge.prototype as any).resolveChannelsForEvent.call(
-      context,
-      [ChannelType.Public],
-      undefined,
-      { kind: 'chat', instanceName: 'bot1' }
-    )
+    const result = DiscordBridgePrototype.resolveChannelsForEvent.call(context, [ChannelType.Public], undefined, {
+      kind: 'chat',
+      instanceName: 'bot1'
+    })
 
     assert.deepStrictEqual(result, ['public-a'])
     assert.deepStrictEqual(warnings, [])
   })
 
-  void it('fails closed for routed guild traffic when no bridge mapping exists', () => {
+  await it('fails closed for routed guild traffic when no bridge mapping exists', () => {
     const warnings: string[] = []
 
     const context = {
@@ -63,23 +85,21 @@ void describe('multi-bridge routing hardening', () => {
       },
       logger: { warn: (message: string) => warnings.push(message) },
       resolveChannels: () => ['legacy-public'],
-      resolveBridgeScopedChannels: (DiscordBridge.prototype as any).resolveBridgeScopedChannels,
-      resolveAllBridgeChannels: (DiscordBridge.prototype as any).resolveAllBridgeChannels
+      resolveBridgeScopedChannels: DiscordBridgePrototype.resolveBridgeScopedChannels,
+      resolveAllBridgeChannels: DiscordBridgePrototype.resolveAllBridgeChannels
     }
 
-    const result = (DiscordBridge.prototype as any).resolveChannelsForEvent.call(
-      context,
-      [ChannelType.Public],
-      undefined,
-      { kind: 'chat', instanceName: 'unmapped-bot' }
-    )
+    const result = DiscordBridgePrototype.resolveChannelsForEvent.call(context, [ChannelType.Public], undefined, {
+      kind: 'chat',
+      instanceName: 'unmapped-bot'
+    })
 
     assert.deepStrictEqual(result, [])
     assert.strictEqual(warnings.length, 1)
     assert.match(warnings[0] ?? '', /no target channels/i)
   })
 
-  void it('fans out bridge-less broadcasts across all configured bridge channels', () => {
+  await it('fans out bridge-less broadcasts across all configured bridge channels', () => {
     const context = {
       application: {
         bridgeResolver: {
@@ -111,13 +131,17 @@ void describe('multi-bridge routing hardening', () => {
           }
         }
       },
-      logger: { warn: () => {} },
+      logger: {
+        warn: () => {
+          /* empty */
+        }
+      },
       resolveChannels: () => [],
-      resolveBridgeScopedChannels: (DiscordBridge.prototype as any).resolveBridgeScopedChannels,
-      resolveAllBridgeChannels: (DiscordBridge.prototype as any).resolveAllBridgeChannels
+      resolveBridgeScopedChannels: DiscordBridgePrototype.resolveBridgeScopedChannels,
+      resolveAllBridgeChannels: DiscordBridgePrototype.resolveAllBridgeChannels
     }
 
-    const result = (DiscordBridge.prototype as any).resolveChannelsForEvent.call(
+    const result = DiscordBridgePrototype.resolveChannelsForEvent.call(
       context,
       [ChannelType.Public, ChannelType.Officer],
       undefined,
@@ -127,7 +151,7 @@ void describe('multi-bridge routing hardening', () => {
     assert.deepStrictEqual(result, ['public-a', 'officer-a', 'public-b', 'officer-b'])
   })
 
-  void it('drops passthrough commands from unmapped channels in multi-bridge mode', async () => {
+  await it('drops passthrough commands from unmapped channels in multi-bridge mode', async () => {
     const warnings: string[] = []
     const sentCommands: unknown[] = []
 
@@ -148,17 +172,19 @@ void describe('multi-bridge routing hardening', () => {
           }
         },
         getInstancesNames: () => ['bot1', 'bot2'],
-        sendMinecraft: async (...args: unknown[]) => {
-          sentCommands.push(args)
+        sendMinecraft: (...sentArguments: unknown[]) => {
+          sentCommands.push(sentArguments)
         }
       },
       logger: {
         warn: (message: string) => warnings.push(message),
-        debug: () => {}
+        debug: () => {
+          /* empty */
+        }
       }
     }
 
-    const handled = await (ChatManager.prototype as any).handlePassthroughCommand.call(
+    const handled = await ChatManagerPrototype.handlePassthroughCommand.call(
       context,
       { channel: { id: 'channel-1' } },
       '!bw aidn5',

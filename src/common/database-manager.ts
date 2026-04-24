@@ -1,8 +1,8 @@
 import assert from 'node:assert'
 
-import { newDb } from 'pg-mem'
-import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 import type { Logger } from 'log4js'
+import { Pool, type QueryResult, type QueryResultRow } from 'pg'
+import { newDb } from 'pg-mem'
 
 import type Application from '../application.js'
 
@@ -174,7 +174,10 @@ export class DatabaseManager {
     await this.query('SELECT 1')
 
     this.cleanTimer = setInterval(() => {
-      void this.runCleaners()
+      this.runCleaners().catch((error: unknown) => {
+        this.logger.error('Database cleaner failed in interval')
+        this.logger.error(error)
+      })
     }, DatabaseManager.CleanEvery)
     this.cleanTimer.unref?.()
   }

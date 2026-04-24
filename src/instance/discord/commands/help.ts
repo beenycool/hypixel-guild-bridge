@@ -13,7 +13,7 @@ import { Color, Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 import { pageMessage } from '../utility/discord-pager.js'
-import { splitToEmbeds } from '../utility/embed-utils.js'
+import { splitToEmbeds } from '../utility/embed-utilities.js'
 
 export default {
   getCommandBuilder: () => new SlashCommandBuilder().setName('help').setDescription('Show available commands.'),
