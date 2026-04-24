@@ -1,18 +1,35 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
+import type Application from '../src/application.js'
 import { DatabaseManager } from '../src/common/database-manager.js'
 
-const logger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {}
+const Logger = {
+  debug: () => {
+    /* noop */
+  },
+  info: () => {
+    /* noop */
+  },
+  warn: () => {
+    /* noop */
+  },
+  error: () => {
+    /* noop */
+  }
 } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
 
-function createFakeApplication(databaseUrl?: string) {
+interface FakeApplication {
+  addShutdownListener: () => void
+  getDatabaseConfig: () => { url?: string }
+  getConfigFilePath: (name: string) => string
+}
+
+function createFakeApplication(databaseUrl?: string): FakeApplication {
   return {
-    addShutdownListener: () => {},
+    addShutdownListener: () => {
+      /* noop */
+    },
     getDatabaseConfig: () => (databaseUrl === undefined ? {} : { url: databaseUrl }),
     getConfigFilePath: (name: string) => `/tmp/nonexistent-${name}`
   }
@@ -23,7 +40,10 @@ await describe('DatabaseManager database selection', async () => {
     const previousNodeEnvironment = process.env.NODE_ENV
     process.env.NODE_ENV = 'test'
 
-    const manager = new DatabaseManager(createFakeApplication('memory://database-manager-test') as any, logger)
+    const manager = new DatabaseManager(
+      createFakeApplication('memory://database-manager-test') as unknown as Application,
+      Logger
+    )
 
     try {
       const rows = await manager.queryRows<{ value: number }>('SELECT 1 AS value')
@@ -43,7 +63,7 @@ await describe('DatabaseManager database selection', async () => {
     delete process.env.DATABASE_URL
     delete process.env.DYNO
 
-    const manager = new DatabaseManager(createFakeApplication() as any, logger)
+    const manager = new DatabaseManager(createFakeApplication() as unknown as Application, Logger)
 
     try {
       await assert.rejects(async () => {

@@ -38,7 +38,7 @@ try {
     fs.mkdirSync(ConfigsDirectory, { recursive: true })
   }
 } catch (error) {
-  console.error('Failed to create configs directory:', error)
+  console.warn(`Failed to create config directory: ${ConfigsDirectory}`, error)
 }
 
 const LoggerConfigName = 'log4js-config.json'

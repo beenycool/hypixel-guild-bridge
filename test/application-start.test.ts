@@ -3,13 +3,13 @@ import { describe, it } from 'node:test'
 
 import Application from '../src/application.js'
 
-void describe('Application.start', () => {
-  void it('rebuilds bridge lookup maps before loading instances', async () => {
+await describe('Application.start', async () => {
+  await it('rebuilds bridge lookup maps before loading instances', async () => {
     const calls: string[] = []
 
     const application = {
       core: {
-        awaitReady: async () => {
+        awaitReady: () => {
           calls.push('core.awaitReady')
         }
       },
@@ -27,17 +27,21 @@ void describe('Application.start', () => {
         }
       },
       pluginsManager: {
-        loadPlugins: async () => {
+        loadPlugins: () => {
           calls.push('pluginsManager.loadPlugins')
         }
       },
       rootDirectory: '/tmp',
       getAllInstances: () => [],
-      logger: { debug: () => {} },
+      logger: {
+        debug: () => {
+          /* noop */
+        }
+      },
       config: { general: { shareMetrics: false } }
     }
 
-    await Application.prototype.start.call(application as any)
+    await Application.prototype.start.call(application as unknown as Application)
 
     assert.deepStrictEqual(calls, [
       'core.awaitReady',

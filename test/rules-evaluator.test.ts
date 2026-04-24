@@ -3,8 +3,8 @@ import { describe, it } from 'node:test'
 
 import { RulesEvaluator } from '../src/core/rankup/rules-evaluator.js'
 
-void describe('RulesEvaluator', () => {
-  void it('ignores invalid demotion rules that have no target rank', () => {
+await describe('RulesEvaluator', async () => {
+  await it('ignores invalid demotion rules that have no target rank', () => {
     const evaluator = new RulesEvaluator()
     const result = evaluator.evaluate(
       {

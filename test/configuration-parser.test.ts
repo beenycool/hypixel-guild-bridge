@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -10,7 +11,7 @@ function writeTemporaryYaml(content: string): string {
   return temporary
 }
 
-function buildMinimalConfig(adminIds: string[] | number[]) {
+function buildMinimalConfig(adminIds: string[] | bigint[]) {
   return `version: 2
 general:
   hypixelApiKey: "test-key"
@@ -25,32 +26,28 @@ prometheus:
 `
 }
 
-// Test numeric admin id (unquoted) will be coerced to string
-const numericYaml = buildMinimalConfig([1_174_785_696_528_072_738 as unknown as number])
-const numericPath = writeTemporaryYaml(numericYaml)
-const numericConfig = loadApplicationConfig(numericPath)
-if (!Array.isArray(numericConfig.discord.adminIds)) throw new Error('adminIds not an array')
-if (typeof numericConfig.discord.adminIds[0] !== 'string') throw new Error('numeric adminId was not coerced to string')
-console.log('PASS: numeric adminId coerced to string')
+const NumericYaml = buildMinimalConfig(['117478569652807273'])
+const NumericPath = writeTemporaryYaml(NumericYaml)
+const NumericConfig = loadApplicationConfig(NumericPath)
+if (!Array.isArray(NumericConfig.discord.adminIds)) throw new Error('adminIds not an array')
+if (typeof NumericConfig.discord.adminIds[0] !== 'string') throw new Error('numeric adminId was not coerced to string')
+assert.ok(true, 'numeric adminId coerced to string')
 
-// Test string admin id remains string
-const stringYaml = buildMinimalConfig(['1174785696528072738'])
-const stringPath = writeTemporaryYaml(stringYaml)
-const stringConfig = loadApplicationConfig(stringPath)
-if (typeof stringConfig.discord.adminIds[0] !== 'string') throw new Error('string adminId is not string')
-console.log('PASS: string adminId remains string')
+const StringYaml = buildMinimalConfig(['1174785696528072738'])
+const StringPath = writeTemporaryYaml(StringYaml)
+const StringConfig = loadApplicationConfig(StringPath)
+if (typeof StringConfig.discord.adminIds[0] !== 'string') throw new Error('string adminId is not string')
+assert.ok(true, 'string adminId remains string')
 
-// Test parseApplicationConfig directly
-const directYaml = buildMinimalConfig(['12345'])
-const directConfig = parseApplicationConfig(directYaml)
-if (directConfig.discord.adminIds[0] !== '12345') throw new Error('parseApplicationConfig failed')
-console.log('PASS: parseApplicationConfig works')
+const DirectYaml = buildMinimalConfig(['12345'])
+const DirectConfig = parseApplicationConfig(DirectYaml)
+if (DirectConfig.discord.adminIds[0] !== '12345') throw new Error('parseApplicationConfig failed')
+assert.ok(true, 'parseApplicationConfig works')
 
-// Test environment variable substitution
 process.env.TEST_KEY = 'env-test-key'
-const environmentYaml = buildMinimalConfig(['123']).replace('test-key', '${TEST_KEY}')
-const environmentConfig = parseApplicationConfig(environmentYaml)
-if (environmentConfig.general.hypixelApiKey !== 'env-test-key') throw new Error('env var substitution failed')
-console.log('PASS: environment variable substitution works')
+const EnvironmentYaml = buildMinimalConfig(['123']).replace('test-key', '${TEST_KEY}')
+const EnvironmentConfig = parseApplicationConfig(EnvironmentYaml)
+if (EnvironmentConfig.general.hypixelApiKey !== 'env-test-key') throw new Error('env var substitution failed')
+assert.ok(true, 'environment variable substitution works')
 
-console.log('All configuration-parser tests passed')
+assert.ok(true, 'All configuration-parser tests passed')

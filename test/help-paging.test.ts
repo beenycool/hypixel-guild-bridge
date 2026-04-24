@@ -9,7 +9,7 @@ interface CapturedReply {
   replyArguments: unknown
 }
 
-const makeMockCommand = (name: string, desc: string) => ({
+const MakeMockCommand = (name: string, desc: string) => ({
   getCommandBuilder: () => ({ name, description: desc, options: [], toJSON: () => ({}) })
 })
 
@@ -18,12 +18,12 @@ interface MockCollector {
   stop: () => void
 }
 
-const createFakeCollector = (): MockCollector => ({
+const CreateFakeCollector = (): MockCollector => ({
   on: () => {
-    /* empty */
+    /* noop */
   },
   stop: () => {
-    /* empty */
+    /* noop */
   }
 })
 
@@ -36,31 +36,31 @@ interface MockInteraction {
   editReply: (editArguments: unknown) => void
 }
 
-const emptyPromiseCatch = () => () => {
-  /* empty */
+function emptyPromiseCatchReturn(): void {
+  /* noop */
 }
+
+const EmptyPromiseCatch = () => emptyPromiseCatchReturn
 
 await describe('help command paging', async () => {
   await it('uses pager when help content is very long', async () => {
-    const captured: CapturedReply = {
-      replyArguments: undefined
-    }
+    const captured: CapturedReply = { replyArguments: undefined }
 
     const guildCommands = new Collection<string, { id: string; name: string }>([['1', { id: '1', name: 'test' }]])
 
     const allCommands = []
     for (let index = 0; index < 500; index++) {
-      allCommands.push(makeMockCommand(`cmd${index}`, 'A long description for testing ' + 'x'.repeat(50)))
+      allCommands.push(MakeMockCommand(`cmd${index}`, 'A long description for testing ' + 'x'.repeat(50)))
     }
 
     const mockInteraction: MockInteraction = {
       inGuild: () => true,
       inCachedGuild: () => true,
       deferReply: () => {
-        /* empty */
+        /* noop */
       },
       guild: { commands: { fetch: () => guildCommands } },
-      channel: { createMessageComponentCollector: createFakeCollector },
+      channel: { createMessageComponentCollector: CreateFakeCollector },
       editReply: (editArguments: unknown) => {
         captured.replyArguments = editArguments
       }
@@ -70,7 +70,7 @@ await describe('help command paging', async () => {
       interaction: mockInteraction,
       allCommands,
       permission: 999,
-      errorHandler: { promiseCatch: emptyPromiseCatch }
+      errorHandler: { promiseCatch: EmptyPromiseCatch }
     }
 
     await helpCommand.handler(context as unknown as Parameters<typeof helpCommand.handler>[0])

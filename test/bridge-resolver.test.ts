@@ -1,13 +1,14 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
+import type Application from '../src/application.js'
 import { BridgeResolver } from '../src/common/bridge-resolver.js'
 import { DatabaseManager } from '../src/common/database-manager.js'
 import { ConfigurationsManager } from '../src/core/configurations.js'
 import { BridgeConfigurations } from '../src/core/discord/bridge-configurations.js'
 import { initializeCoreDatabase } from '../src/core/initialize-database.js'
 
-const logger = {
+const Logger = {
   debug: () => {
     /* noop */
   },
@@ -22,7 +23,14 @@ const logger = {
   }
 } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
 
-function createFakeApplication(databaseUrl: string) {
+interface FakeApplication {
+  applicationIntegrity: { addConfigPath: () => void }
+  addShutdownListener: (listener: () => void | Promise<void>) => void
+  getDatabaseConfig: () => { url: string }
+  getConfigFilePath: (name: string) => string
+}
+
+function createFakeApplication(databaseUrl: string): FakeApplication {
   return {
     applicationIntegrity: {
       addConfigPath: () => {
@@ -37,10 +45,10 @@ function createFakeApplication(databaseUrl: string) {
   }
 }
 
-void describe('BridgeResolver', () => {
-  void it('loads persisted dynamic mappings after a rebuild once configs are loaded', async () => {
-    const fakeApp = createFakeApplication('memory://bridge-resolver-startup-test') as any
-    const databaseManager = new DatabaseManager(fakeApp, logger)
+await describe('BridgeResolver', async () => {
+  await it('loads persisted dynamic mappings after a rebuild once configs are loaded', async () => {
+    const fakeApp = createFakeApplication('memory://bridge-resolver-startup-test')
+    const databaseManager = new DatabaseManager(fakeApp as unknown as Application, Logger)
     await initializeCoreDatabase(databaseManager)
 
     const writerConfigurations = new ConfigurationsManager(databaseManager)
@@ -71,7 +79,7 @@ void describe('BridgeResolver', () => {
     await databaseManager.close()
   })
 
-  void it('updates logger channel mappings when lookup maps are rebuilt', () => {
+  await it('updates logger channel mappings when lookup maps are rebuilt', () => {
     let loggerChannelIds = ['logger-old']
 
     const dynamicConfig = {

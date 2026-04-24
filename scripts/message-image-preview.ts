@@ -11,9 +11,9 @@ import process from 'node:process'
 import type Application from '../src/application.js'
 import MessageToImage from '../src/instance/discord/common/message-to-image.js'
 
-const outDir = path.join(process.cwd(), 'artifacts', 'message-image-preview')
+const OutputDirectory = path.join(process.cwd(), 'artifacts', 'message-image-preview')
 
-const samples: { filename: string; label: string; message: string; username?: string; sync?: boolean }[] = [
+const SampleList: { filename: string; label: string; message: string; username?: string; sync?: boolean }[] = [
   {
     filename: 'guild-join-with-skin.png',
     label: 'Guild join (embedded {skin} + color carry-over)',
@@ -41,29 +41,28 @@ const samples: { filename: string; label: string; message: string; username?: st
 ]
 
 async function main(): Promise<void> {
-  fs.mkdirSync(outDir, { recursive: true })
+  fs.mkdirSync(OutputDirectory, { recursive: true })
   const messageToImage = new MessageToImage({} as Application)
 
-  for (const sample of samples) {
-    const target = path.join(outDir, sample.filename)
+  for (const sample of SampleList) {
+    const target = path.join(OutputDirectory, sample.filename)
     try {
-      let buffer: Buffer
-      buffer = sample.sync
+      const buffer = sample.sync
         ? messageToImage.generateMessageImageSync(sample.message)
         : await messageToImage.generateMessageImage(sample.message, {
             username: sample.username
           })
       fs.writeFileSync(target, buffer)
-      console.log(`OK  ${sample.label}`)
-      console.log(`    -> ${target}`)
+      process.stdout.write(`OK ${sample.label}\n`)
+      process.stdout.write(` -> ${target}\n`)
     } catch (error) {
-      console.error(`FAIL ${sample.label}`)
-      console.error(error)
+      process.stderr.write(`FAIL ${sample.label}\n`)
+      process.stderr.write(`${String(error)}\n`)
     }
   }
 
-  console.log('')
-  console.log('Done. Open the PNGs in artifacts/message-image-preview/')
+  process.stdout.write('\n')
+  process.stdout.write('Done. Open the PNGs in artifacts/message-image-preview/\n')
 }
 
 await main()

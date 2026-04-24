@@ -6,31 +6,39 @@ import type Application from '../src/application.js'
 import { Permission } from '../src/common/application-event'
 import { translateNoPermission } from '../src/instance/discord/common/discord-language'
 
-function buildTranslatorOutput(options: { roles?: string[]; admins?: string[] }): string {
+interface TranslatorOptions {
+  roles?: string[]
+  admins?: string[]
+}
+
+function buildTranslatorOutput(options: TranslatorOptions): string {
   return `translated:${(options.roles ?? []).length}:${(options.admins ?? []).length}`
 }
 
-// Setup a fake application that returns a translator capturing options
-function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: string[], admins: string[]) {
-  const app: {
-    discordInstance: { getStaticConfig: () => { adminIds: string[] } }
-    core: {
-      discordConfigurations: {
-        getHelperRoleIds: () => string[]
-        getOfficerRoleIds: () => string[]
-        getOwnerRoleIds: () => string[]
-      }
-      bridgeConfigurations: {
-        getHelperRoleIds: () => string[]
-        getOfficerRoleIds: () => string[]
-        getOwnerRoleIds: () => string[]
-      }
+function fakeTranslator(key: Parameters<i18n['t']>[0], options?: TranslatorOptions): string {
+  void key
+  return buildTranslatorOutput(options ?? {})
+}
+
+interface FakeApp {
+  discordInstance: { getStaticConfig: () => { adminIds: string[] } }
+  core: {
+    discordConfigurations: {
+      getHelperRoleIds: () => string[]
+      getOfficerRoleIds: () => string[]
+      getOwnerRoleIds: () => string[]
     }
-    getTranslatorForBridge: () => (
-      key: Parameters<i18n['t']>[0],
-      options?: { roles?: string[]; admins?: string[] }
-    ) => string
-  } = {
+    bridgeConfigurations: {
+      getHelperRoleIds: () => string[]
+      getOfficerRoleIds: () => string[]
+      getOwnerRoleIds: () => string[]
+    }
+  }
+  getTranslatorForBridge: () => (key: Parameters<i18n['t']>[0], options?: TranslatorOptions) => string
+}
+
+function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: string[], admins: string[]): FakeApp {
+  return {
     discordInstance: { getStaticConfig: () => ({ adminIds: admins }) },
     core: {
       discordConfigurations: {
@@ -44,17 +52,14 @@ function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: 
         getOwnerRoleIds: () => []
       }
     },
-    getTranslatorForBridge: () => (_key: Parameters<i18n['t']>[0], options?: { roles?: string[]; admins?: string[] }) =>
-      buildTranslatorOutput(options ?? {})
+    getTranslatorForBridge: () => fakeTranslator
   }
-  return app
 }
 
 // Roles only
 {
   const app = makeFakeApp(['r1'], ['r2'], ['r3'], [])
   const out = translateNoPermission(app as unknown as Application, Permission.Helper, 'b1')
-  // Helper roles (1) + Officer roles (1) + Owner roles (1) = 3 roles
   assert.strictEqual(out, 'translated:3:0')
 }
 
@@ -76,6 +81,5 @@ function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: 
 {
   const app = makeFakeApp(['r1'], [], [], ['a1'])
   const out = translateNoPermission(app as unknown as Application, Permission.Helper, 'b1')
-  // Helper roles (1) + Officer roles (0) + Owner roles (0) = 1 role
   assert.strictEqual(out, 'translated:1:1')
 }

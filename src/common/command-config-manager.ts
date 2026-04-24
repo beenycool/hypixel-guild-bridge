@@ -62,8 +62,8 @@ export interface CommandAuditLogEntry {
 
 /**
  * Migrate numeric permission levels in a set of command configs.
- * Before Owner was added, Admin was value 3. Now Owner=3 and Admin=4.
- * Any stored '3' (legacy Admin) must be bumped to '4' (new Admin).
+ * Old Admin (3) is now Owner (3) and Admin is (4).
+ * Since Owner didn't exist before, any stored '3' must be bumped to '4'.
  * @param configs - The command configs to migrate
  * @returns Whether any changes were made
  */
