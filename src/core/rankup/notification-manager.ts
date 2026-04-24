@@ -1,7 +1,4 @@
 import { EmbedBuilder } from 'discord.js'
-
-import type { Client } from 'discord.js'
-
 import type { Logger } from 'log4js'
 
 import type Application from '../../application'
@@ -12,6 +9,7 @@ export class NotificationManager {
   private readonly logger: Logger
 
   constructor(private readonly application: Application) {
+    // Application.logger is now public; use it for logging
     this.logger = application.logger
   }
 
@@ -86,7 +84,9 @@ export class NotificationManager {
       const client = instance.getClient()
       const channel = await client.channels.fetch(channelId).catch(() => undefined)
       if (channel?.isSendable()) {
-        await channel.send({ embeds: [embed] }).catch((error: unknown) => this.logger.error(error))
+        await channel.send({ embeds: [embed] }).catch((error: unknown) => {
+          this.logger.error(error)
+        })
       }
     }
   }

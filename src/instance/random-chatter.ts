@@ -10,6 +10,7 @@ import { setIntervalAsync } from '../utility/scheduling'
 export class RandomChatter extends Instance<InstanceType.Utility> {
   public pausedBy?: string
   private readonly lastSentAt = new Map<string, number>()
+  private readonly nextSendAt = new Map<string, number>()
   private readonly antiRepeatMemory = new Map<string, string[]>()
   private readonly lastActivityAt = new Map<string, number>()
   private started = false
@@ -68,7 +69,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       try {
         if (!this.pausedBy) return
         if (event.type !== GuildPlayerEventType.Offline) return
-        const name = event.user.mojangProfile().name
+        const name = event.user.mojangProfile()?.name
         if (name && name.toLowerCase() === this.pausedBy.toLowerCase()) {
           this.logger.debug(`random-chatter: cleared pausedBy due to ${name} going offline`)
           this.pausedBy = undefined
@@ -77,19 +78,16 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
         // swallow errors from cleanup
       }
     })
-    // Listen for bridge removals to cleanup in-memory maps for that bridge
+    // Listen for bridge removals to cleanup lastSentAt map
     this.application.on('bridgeConfigChanged', (event) => {
       try {
-        const bid = event.bridgeId
-        if (!bid) return
-
         // When a bridge is removed, BridgeConfigurations.removeBridgeId deletes its keys.
-        // We receive bridgeConfigChanged events for other changes as well; only act when the bridge is no longer present.
-        if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(bid)) {
-          this.lastSentAt.delete(bid)
-          this.antiRepeatMemory.delete(bid)
-          this.lastActivityAt.delete(bid)
-          this.logger.debug(`random-chatter: cleaned in-memory state for removed bridge ${bid}`)
+        // We receive bridgeConfigChanged events for other changes as well; only act when bridgeId matches and key indicates removal.
+        if (
+          (event.key === 'remove_bridge' || event.key.startsWith(`${event.bridgeId}_`)) && // If the bridge was removed (no longer present in list), clear memory for it
+          !this.application.core.bridgeConfigurations.getAllBridgeIds().includes(event.bridgeId)
+        ) {
+          this.lastSentAt.delete(event.bridgeId)
         }
       } catch {
         // swallow errors from cleanup
@@ -121,22 +119,19 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     )
 
     const now = Date.now()
-    const last = this.lastSentAt.get(bridgeId) ?? 0
-
-    // Apply jitter +/-20% to interval to make chatter feel less periodic
-    const intervalMs = Duration.minutes(intervalMinutes).toMilliseconds()
-    const jitterFactor = 0.8 + Math.random() * 0.4
-    const jitteredIntervalMs = Math.round(intervalMs * jitterFactor)
-    if (last + jitteredIntervalMs > now) return
+    const next = this.nextSendAt.get(bridgeId)
+    if (next !== undefined && now < next) return
 
     const messages = bridgeConfig.getRandomChatterMessages(bridgeId, [])
-    if (messages.length === 0) return
+    if (!messages || messages.length === 0) return
 
     const minOnline = bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId)
     const includeName = bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
 
     // Quiet window: do not send if recent real guild activity happened for this bridge
-    const quietMinutes = bridgeConfig.getRandomChatterQuietWindowMinutes(bridgeId)
+    const quietMinutes = bridgeConfig.getRandomChatterQuietWindowMinutes
+      ? bridgeConfig.getRandomChatterQuietWindowMinutes(bridgeId)
+      : 0
     if (quietMinutes > 0) {
       const lastActivity = this.lastActivityAt.get(bridgeId)
       if (lastActivity !== undefined && lastActivity + Duration.minutes(quietMinutes).toMilliseconds() > Date.now())
@@ -145,7 +140,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
 
     // Get guild list from guildManager for this bridge's configured minecraft instances.
     const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
-    if (instanceNames.length === 0) return
+    if (!instanceNames || instanceNames.length === 0) return
 
     // Choose the first configured Minecraft instance that exists and is connected
     let chosenInstance: string | undefined
@@ -180,7 +175,9 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     if (onlineMembers.length < minOnline) return
 
     // Anti-repeat selection: prefer messages not seen in the last N sends for this bridge
-    const antiRepeatLength = bridgeConfig.getRandomChatterAntiRepeatLength(bridgeId)
+    const antiRepeatLength = bridgeConfig.getRandomChatterAntiRepeatLength
+      ? bridgeConfig.getRandomChatterAntiRepeatLength(bridgeId)
+      : 5
     const memory = this.antiRepeatMemory.get(bridgeId) ?? []
     let candidates = messages.filter((m) => !memory.includes(m))
     if (candidates.length === 0) candidates = messages // fallback when all messages are in recent memory
@@ -241,6 +238,10 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     }
 
     this.lastSentAt.set(bridgeId, Date.now())
+    const intervalMs = Duration.minutes(intervalMinutes).toMilliseconds()
+    const jitterFactor = 0.8 + Math.random() * 0.4
+    const jitteredIntervalMs = Math.round(intervalMs * jitterFactor)
+    this.nextSendAt.set(bridgeId, Date.now() + jitteredIntervalMs)
   }
 
   /**
@@ -257,13 +258,13 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       if (this.pausedBy !== undefined) return { sent: false, reason: 'paused' }
 
       const messages = bridgeConfig.getRandomChatterMessages(bridgeId, [])
-      if (messages.length === 0) return { sent: false, reason: 'no_messages' }
+      if (!messages || messages.length === 0) return { sent: false, reason: 'no_messages' }
 
       const minOnline = bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId)
       const includeName = bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
 
       const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
-      if (instanceNames.length === 0) return { sent: false, reason: 'no_instances_configured' }
+      if (!instanceNames || instanceNames.length === 0) return { sent: false, reason: 'no_instances_configured' }
 
       // choose a connected instance
       let chosenInstance: string | undefined

@@ -41,8 +41,8 @@ export default {
     const above: string[] = []
 
     const sortedMembers = guild.members
-      .map((member) => ({ member, exp: member.weeklyExperience ?? 0 }))
-      .sort((a, b) => b.exp - a.exp)
+      .map((member) => ({ member, exp: member.weeklyExperience }))
+      .toSorted((a, b) => b.exp - a.exp)
 
     for (const entry of sortedMembers) {
       const username = await resolveUsername(context, entry.member.uuid)

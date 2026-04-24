@@ -45,7 +45,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
     super(application, clientInstance, eventHelper, logger, errorHandler)
 
     const config = this.application.getVerificationConfig()
-    if (config?.autoRoleUpdater?.enabled) {
+    if (config?.autoRoleUpdater.enabled) {
       const interval = VerificationRoleManager.resolveUpdateInterval(config)
       setIntervalAsync(() => this.updateAll(), {
         delay: interval,
@@ -57,7 +57,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
   override registerEvents(client: Client): void {
     client.on('clientReady', () => {
       const config = this.application.getVerificationConfig()
-      if (!config?.autoRoleUpdater?.enabled) return
+      if (!config?.autoRoleUpdater.enabled) return
 
       void this.updateAll().catch(this.errorHandler.promiseCatch('updating verification roles for all users'))
     })
@@ -224,13 +224,13 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
     const duelsStats = player.stats?.duels
 
     return {
-      username: player.nickname ?? '',
+      username: player.nickname,
       guildRank: guildRank,
       guildName: guildName,
 
-      hypixelLevel: player.level ?? 0,
-      achievementPoints: player.achievementPoints ?? 0,
-      karma: player.karma ?? 0,
+      hypixelLevel: player.level,
+      achievementPoints: player.achievementPoints,
+      karma: player.karma,
 
       bedwarsStar: bedwarsStats?.level ?? 0,
       bedwarsFinalKills: bedwarsStats?.finalKills ?? 0,
@@ -403,8 +403,6 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
 
   private meetsRequirement(role: LevelRole, stats: StatsMap): boolean {
     const value = stats[role.type]
-    if (value === undefined) return false
-
     if (typeof value === 'number') {
       const requirementNumber =
         typeof role.requirement === 'number' ? role.requirement : Number.parseFloat(role.requirement)

@@ -1,3 +1,5 @@
+import type { SkyblockMember } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 import {
@@ -22,7 +24,7 @@ export default class Garden extends ChatCommandHandler {
     const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
     if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
-    let selectedProfile
+    let selectedProfile: SkyblockMember
     try {
       selectedProfile = await getSelectedSkyblockProfile(context.app.hypixelApi, uuid)
     } catch {

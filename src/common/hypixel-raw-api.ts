@@ -49,9 +49,15 @@ export class HypixelRawApi {
     // Resolve UUID/Username
     if (this.isUuid(input)) {
       const profile = await this.mojangApi.profileByUuid(input)
+      if (!profile) {
+        throw new Error(`Player not found: ${input}`)
+      }
       username = profile.name
     } else {
       const profile = await this.mojangApi.profileByUsername(input)
+      if (!profile) {
+        throw new Error(`Player not found: ${input}`)
+      }
       uuid = profile.id
       username = profile.name
     }

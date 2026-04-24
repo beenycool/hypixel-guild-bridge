@@ -334,11 +334,19 @@ class ScoreDatabase {
 
     this.allMembers.length = 0
     this.allMembers.push(...allMembers)
-    this.nextAllMembersId = allMembers.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
+    let maxAllMembersId = 0
+    for (const entry of allMembers) {
+      if (entry.id > maxAllMembersId) maxAllMembersId = entry.id
+    }
+    this.nextAllMembersId = maxAllMembersId + 1
 
     this.onlineMembers.length = 0
     this.onlineMembers.push(...onlineMembers)
-    this.nextOnlineMembersId = onlineMembers.reduce((maxId, entry) => Math.max(maxId, entry.id), 0) + 1
+    let maxOnlineMembersId = 0
+    for (const entry of onlineMembers) {
+      if (entry.id > maxOnlineMembersId) maxOnlineMembersId = entry.id
+    }
+    this.nextOnlineMembersId = maxOnlineMembersId + 1
 
     this.minecraftBots.clear()
     for (const entry of minecraftBots) {
@@ -814,7 +822,7 @@ class ScoreDatabase {
     for (const entry of this.filterCounts(minecraftTable, from, to)) {
       result.push({
         uuid: entry.user,
-        discordId: uuidToDiscord.get(entry.user) ?? null,
+        discordId: uuidToDiscord.get(entry.user) ?? undefined,
         count: entry.count,
         timestamp: entry.timestamp
       })
@@ -956,7 +964,7 @@ interface MemberLeaderboard {
 interface DatabaseCountEntry {
   uuid: string
   count: number
-  discordId: string | null
+  discordId: string | undefined
   timestamp: number
 }
 

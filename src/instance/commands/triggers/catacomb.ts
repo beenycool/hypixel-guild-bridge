@@ -34,14 +34,14 @@ export default class Catacomb extends ChatCommandHandler {
     const dungeons = selectedProfile.dungeons
     if (!dungeons) return playerNeverPlayedDungeons(givenUsername)
 
-    const catacombsExperience = dungeons.dungeonTypes.catacombs.experience
+    const catacombsExperience = dungeons.dungeon_types.catacombs.experience
     const catacombsLevel = getLevelByXp(catacombsExperience, { type: 'dungeoneering' }).levelWithProgress
 
-    const playerClasses = dungeons.playerClasses
+    const playerClasses = dungeons.player_classes
     if (!playerClasses) return playerNeverPlayedDungeons(givenUsername)
 
     const classLevels: { className: DungeonClass; level: number }[] = DungeonClasses.map((className) => {
-      const experience = playerClasses[className].experience ?? 0
+      const experience = playerClasses[className]?.experience ?? 0
       return {
         className: className,
         level: getLevelByXp(experience, { type: 'dungeoneering' }).levelWithProgress
@@ -53,7 +53,7 @@ export default class Catacomb extends ChatCommandHandler {
       .map((entry) => `${formatNumber(entry.level, 2)}${entry.className[0].toUpperCase()}`)
       .join(', ')
 
-    const selectedClass = titleCase(dungeons.selectedDungeonClass ?? 'none')
+    const selectedClass = titleCase(dungeons.selected_dungeon_class ?? 'none')
     const secretsFound = dungeons.secrets ?? 0
 
     return (

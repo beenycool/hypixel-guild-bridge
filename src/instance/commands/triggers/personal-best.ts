@@ -33,7 +33,7 @@ export default class PersonalBest extends ChatCommandHandler {
     const skyblockProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
     if (!skyblockProfile) return playerNeverPlayedSkyblock(context, givenUsername)
 
-    const dungeon = skyblockProfile.dungeons?.dungeonTypes
+    const dungeon = skyblockProfile.dungeons?.dungeon_types
     if (!dungeon) return playerNeverPlayedDungeons(givenUsername)
 
     return PersonalBest.formatMessage(givenUsername, resolvedFloor, dungeon)
@@ -48,9 +48,9 @@ export default class PersonalBest extends ChatCommandHandler {
         return this.formatFloor(
           username,
           `master mode ${selectedFloorWithoutEntrance}`,
-          dungeon.masterCatacombs.fastest_time?.[selectedFloorWithoutEntrance],
-          dungeon.masterCatacombs.fastest_time_s?.[selectedFloorWithoutEntrance],
-          dungeon.masterCatacombs.fastest_time_s_plus?.[selectedFloorWithoutEntrance]
+          dungeon.master_catacombs.fastest_time?.[selectedFloorWithoutEntrance],
+          dungeon.master_catacombs.fastest_time_s?.[selectedFloorWithoutEntrance],
+          dungeon.master_catacombs.fastest_time_s_plus?.[selectedFloorWithoutEntrance]
         )
       } else if (selectedFloorWithEntrance === '0') {
         return this.formatFloor(
@@ -72,9 +72,9 @@ export default class PersonalBest extends ChatCommandHandler {
     }
 
     // check for highest S+ master mode
-    if (dungeon.masterCatacombs.fastest_time_s_plus) {
+    if (dungeon.master_catacombs.fastest_time_s_plus) {
       let selectedFloor: DungeonFloors | undefined = undefined
-      for (const floorName of Object.keys(dungeon.masterCatacombs.fastest_time_s_plus).toReversed()) {
+      for (const floorName of Object.keys(dungeon.master_catacombs.fastest_time_s_plus).toReversed()) {
         if (floorName === 'best') continue
         selectedFloor = floorName as DungeonFloors
         break
@@ -83,9 +83,9 @@ export default class PersonalBest extends ChatCommandHandler {
         return this.formatFloor(
           username,
           `master mode ${selectedFloor}`,
-          dungeon.masterCatacombs.fastest_time?.[selectedFloor],
-          dungeon.masterCatacombs.fastest_time_s?.[selectedFloor],
-          dungeon.masterCatacombs.fastest_time_s_plus[selectedFloor]
+          dungeon.master_catacombs.fastest_time?.[selectedFloor],
+          dungeon.master_catacombs.fastest_time_s?.[selectedFloor],
+          dungeon.master_catacombs.fastest_time_s_plus[selectedFloor]
         )
       }
     }

@@ -1,15 +1,9 @@
-import type Application from '../application.js'
-
 import type { InstanceMessage, InstanceStatus, InstanceType } from './application-event.js'
 import { InstanceSignalType } from './application-event.js'
 import { Instance } from './instance.js'
 
 export abstract class ConnectableInstance<T extends InstanceType> extends Instance<T> {
   private status: Status = Status.Fresh
-
-  constructor(app: Application, instanceName: string, instanceType: T, bridgeId?: string) {
-    super(app, instanceName, instanceType, bridgeId)
-  }
 
   public async signal(type: InstanceSignalType): Promise<void> {
     this.logger.log(`instance has received signal type=${type}`)

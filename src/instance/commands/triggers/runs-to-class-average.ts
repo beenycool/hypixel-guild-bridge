@@ -47,7 +47,7 @@ export default class RunsToClassAverage extends ChatCommandHandler {
     const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
     if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
 
-    if (selectedProfile.dungeons?.playerClasses === undefined) {
+    if (selectedProfile.dungeons?.player_classes === undefined) {
       return playerNeverPlayedDungeons(givenUsername)
     }
 
@@ -94,8 +94,8 @@ export default class RunsToClassAverage extends ChatCommandHandler {
       tank: 0
     } as Record<ClassName, number>
 
-    for (const [className, classObject] of Object.entries(selectedProfile.dungeons.playerClasses)) {
-      classesExperiences[className as ClassName] = classObject.experience ?? 0
+    for (const [className, classObject] of Object.entries(selectedProfile.dungeons!.player_classes!)) {
+      classesExperiences[className as ClassName] = classObject?.experience ?? 0
     }
 
     let currentClassAverage = this.getClassAverage(classesExperiences, targetAverage)

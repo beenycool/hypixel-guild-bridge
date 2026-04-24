@@ -29,7 +29,7 @@ export default {
     const uuid = await application.mojangApi
       .profileByUsername(username)
       .then((p) => p.id)
-      .catch(() => null)
+      .catch(() => undefined)
     if (!uuid) {
       await interaction.editReply('Invalid username.')
       return
@@ -44,7 +44,7 @@ export default {
     }
 
     const botName = instances[0]
-    const guild = await application.hypixelApi.getGuild('player', botName, {}).catch(() => null)
+    const guild = await application.hypixelApi.getGuild('player', botName, {}).catch(() => undefined)
 
     if (!guild) {
       await interaction.editReply('Could not fetch guild data.')
@@ -62,12 +62,13 @@ export default {
     const excludedRanks = bridgeConfig.getRankupExcludedRanks(bridgeId)
     const excludedPlayers = bridgeConfig.getRankupExcludedPlayers(bridgeId)
 
-    const rankPriority = guild.ranks
-      ? guild.ranks.sort((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
-      : []
+    const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
 
     const expHistoryValues = Object.values(member.expHistory)
-    const weeklyGexp = expHistoryValues.reduce((a, b) => a + (typeof b === 'number' ? b : (b as any).exp || 0), 0)
+    const weeklyGexp = expHistoryValues.reduce(
+      (a, b) => a + (typeof b === 'number' ? b : ((b as { exp?: number }).exp ?? 0)),
+      0
+    )
 
     const stats = {
       uuid: member.uuid,

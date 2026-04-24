@@ -27,11 +27,11 @@ export default class Secrets extends ChatCommandHandler {
     const skyblockProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
     if (!skyblockProfile) return playerNeverPlayedSkyblock(context, givenUsername)
 
-    const dungeon = skyblockProfile.dungeons?.dungeonTypes
+    const dungeon = skyblockProfile.dungeons?.dungeon_types
     if (!dungeon) return playerNeverPlayedDungeons(givenUsername)
 
     const catacombRuns = dungeon.catacombs.tier_completions
-    const mastermodeRuns = dungeon.masterCatacombs.tier_completions
+    const mastermodeRuns = dungeon.master_catacombs.tier_completions
 
     const totalRuns = this.getTotalRuns(catacombRuns) + this.getTotalRuns(mastermodeRuns)
 

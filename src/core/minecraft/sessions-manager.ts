@@ -343,11 +343,6 @@ export class SessionsManager {
         parsedData = jsonData
       }
 
-      if (parsedData === null || typeof parsedData !== 'object' || Array.isArray(parsedData)) {
-        errors.push('Invalid JSON format: expected an object with cache entries')
-        return { imported, errors }
-      }
-
       for (const [cacheName, cacheValue] of Object.entries(parsedData)) {
         try {
           if (typeof cacheValue !== 'object' || cacheValue === null || Array.isArray(cacheValue)) {

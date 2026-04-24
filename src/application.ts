@@ -12,6 +12,11 @@ import type { i18n } from 'i18next'
 import type { Logger } from 'log4js'
 import Logger4js from 'log4js'
 
+export type TranslatorFunction = (
+  keyOrSelector: string | ((t: (key: string) => string) => string),
+  options?: Record<string, unknown>
+) => string
+
 import type { ApplicationConfig, DatabaseConfig } from './application-config.js'
 import type { ApplicationEvents, InstanceIdentifier, MinecraftSendChatPriority } from './common/application-event.js'
 import { InstanceSignalType, InstanceType } from './common/application-event.js'
@@ -127,7 +132,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.rootDirectory
   }
 
-  private readonly logger: Logger
+  public readonly logger: Logger
   private readonly errorHandler: UnexpectedErrorHandler
   private readonly shutdownListeners: (() => void | Promise<void>)[] = []
 
@@ -140,7 +145,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly minecraftManager: MinecraftManager
   public readonly pluginsManager: PluginsManager
   public readonly commandsInstance: CommandsInstance
-  public readonly core: Core
+  public core: Core
   public readonly bridgeResolver: BridgeResolver
   private readonly prometheusInstance: PrometheusInstance | undefined
   private readonly webServer: WebServer | undefined
@@ -156,7 +161,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     config: ApplicationConfig,
     rootDirectory: string,
     configsDirectory: string,
-    public readonly i18n: i18n
+    public i18n: i18n
   ) {
     super()
 
@@ -204,6 +209,12 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.spontaneousEvents = new SpontaneousEvents(this)
     this.randomChatter = new RandomChatter(this)
     this.autoRestart = new AutoRestart(this)
+  }
+
+  /** Optional Aurora API key used by some plugins */
+  public get auroraApiKey(): string | undefined {
+    // Prefer environment variable; fallback to undefined (not all configs include this key)
+    return process.env.AURORA_API_KEY
   }
 
   public getConfigFilePath(filename: string): string {
@@ -254,7 +265,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
    * Resolution precedence: dynamic DB > static bridge config > global application language.
    * Returns a function compatible with `i18n.t` that will call `this.i18n.t` with the resolved `lng` option.
    */
-  public getTranslatorForBridge(bridgeId?: string): (key: Parameters<i18n['t']>[0], options?: any) => string {
+  public getTranslatorForBridge(bridgeId?: string): TranslatorFunction {
     let dynamicLang: string | undefined
     if (bridgeId !== undefined) {
       dynamicLang = this.core.bridgeConfigurations.getLanguage(bridgeId)
@@ -268,8 +279,15 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
     const chosenLang = dynamicLang ?? staticLang
 
-    return (key: Parameters<i18n['t']>[0], options?: any) =>
-      this.i18n.t(key as any, { ...(options ?? {}), ...(chosenLang ? { lng: chosenLang } : {}) }) as unknown as string
+    const translate = (
+      keyOrSelector: string | ((t: (key: string) => string) => string),
+      options?: Record<string, unknown>
+    ) =>
+      (this.i18n.t as unknown as TranslatorFunction)(keyOrSelector, {
+        ...(options ?? {}),
+        ...(chosenLang ? { lng: chosenLang } : {})
+      })
+    return translate as TranslatorFunction
   }
 
   public async start(): Promise<void> {

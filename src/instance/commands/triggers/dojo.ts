@@ -32,10 +32,12 @@ export default class Dojo extends ChatCommandHandler {
     if (!selectedProfile.nether_island_player_data) return playerNeverEnteredCrimson(givenUsername)
 
     const dojo = (selectedProfile.nether_island_player_data as { dojo?: DojoData }).dojo ?? {}
-    const totalPoints = Object.entries(dojo).reduce((total, [key, value]) => {
-      if (!key.startsWith('dojo_points') || value === undefined) return total
-      return total + value
-    }, 0)
+    let totalPoints = 0
+    for (const [key, value] of Object.entries(dojo)) {
+      if (key.startsWith('dojo_points') && value !== undefined) {
+        totalPoints += value
+      }
+    }
 
     const belt = Dojo.getBelt(totalPoints)
     const force = dojo.dojo_points_mob_kb ?? 0

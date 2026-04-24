@@ -85,10 +85,8 @@ export class RankupManager {
 
     const botName = instances[0]
 
-    const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch((error) => {
+    const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch((error: unknown) => {
       this.logger.error(`Failed to fetch guild for bridge ${bridgeId} via bot ${botName}:`, error)
-
-      return null
     })
 
     if (!guild) return
@@ -251,14 +249,16 @@ export class RankupManager {
         .find((index) => index.instanceName.toLowerCase() === instanceName.toLowerCase())
 
       if (instance) {
-        instance.send(command, MinecraftSendChatPriority.High, undefined)
+        instance.send(command, MinecraftSendChatPriority.High, undefined).catch((error: unknown) => {
+          this.logger.error(`Failed to send command ${command} for bridge ${bridgeId}:`, error)
+        })
 
         this.pendingManager.logHistory(
           bridgeId,
 
           uuid,
 
-          actionLog as any,
+          actionLog as 'demote' | 'kick' | 'promote' | 'reject' | 'manual_update',
 
           '?', // we'd need current rank here, but we can pass it or ignore
 

@@ -31,7 +31,7 @@ type DuelType =
 
 // Bridge, Boxing, MegaWalls, NoDebuff, and Parkour use halved win thresholds
 // compared to short modes — see: https://hypixel.fandom.com/wiki/Duels
-const LongModeDuelTypes: readonly DuelType[] = ['bridge', 'boxing', 'megawalls', 'nodebuff', 'parkour']
+const LongModeDuelTypes = new Set<DuelType>(['bridge', 'boxing', 'megawalls', 'nodebuff', 'parkour'])
 
 export default class Duels extends ChatCommandHandler {
   private static readonly ValidDuelTypes: readonly DuelType[] = [
@@ -136,7 +136,7 @@ export default class Duels extends ChatCommandHandler {
     const winstreak = dataObject.winstreak as number
     const bestWinstreak = dataObject.bestWinstreak as number
     const wlRatio = dataObject.WLRatio as number
-    const divisionMode: DuelsDivisionMode = LongModeDuelTypes.includes(duelType) ? 'long' : 'short'
+    const divisionMode: DuelsDivisionMode = LongModeDuelTypes.has(duelType) ? 'long' : 'short'
     const division = calculateDuelsDivision(wins, divisionMode)
 
     return (

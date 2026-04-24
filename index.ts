@@ -44,9 +44,19 @@ try {
 const LoggerConfigName = 'log4js-config.json'
 const LoggerPath = path.join(ConfigsDirectory, LoggerConfigName)
 if (!fs.existsSync(LoggerPath)) {
-  fs.copyFileSync(path.join(RootDirectory, 'src', LoggerConfigName), LoggerPath)
+  try {
+    fs.copyFileSync(path.join(RootDirectory, 'src', LoggerConfigName), LoggerPath)
+  } catch (error) {
+    console.error('Failed to copy logger config file:', error)
+  }
 }
-const LoggerConfig = JSON.parse(fs.readFileSync(LoggerPath, 'utf8')) as Configuration
+let LoggerConfig: Configuration
+try {
+  LoggerConfig = JSON.parse(fs.readFileSync(LoggerPath, 'utf8')) as Configuration
+} catch (error) {
+  console.error('Failed to parse logger config:', error)
+  throw error
+}
 const Logger = Logger4js.configure(LoggerConfig).getLogger('Main')
 
 // Default to port 80 if no port is provided (common in containers).
@@ -114,13 +124,15 @@ const HealthServer = http.createServer((request, response) => {
       }
     )
 
-    proxy.on('error', () => {
+    proxy.on('error', (error) => {
+      console.error('Proxy error:', error)
       response.writeHead(502)
       response.end('Bad gateway')
     })
 
     request.pipe(proxy, { end: true })
-  } catch {
+  } catch (error) {
+    console.error('Health proxy request error:', error)
     response.writeHead(500)
     response.end('Internal error')
   }
@@ -285,7 +297,8 @@ try {
       if (totalMembers !== undefined) parts.push(`totalMembers=${totalMembers}`)
       if (createdAt !== undefined) parts.push(`createdAt=${createdAt}`)
       return parts.join(' ')
-    } catch {
+    } catch (error) {
+      Logger.debug('formatEventSummary error:', error)
       // Fallback to safe JSON if something unexpected happens
       try {
         return `[${name}] ${JSON.stringify(event)}`

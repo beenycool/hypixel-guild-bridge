@@ -33,7 +33,7 @@ export default class AuctionHouse extends ChatCommandHandler {
     if (activeAuctions.length === 0) return `${givenUsername} has no active auctions.`
 
     const entries = activeAuctions
-      .sort((a, b) => a.auctionEndTimestamp - b.auctionEndTimestamp)
+      .toSorted((a, b) => a.auctionEndTimestamp - b.auctionEndTimestamp)
       .slice(0, AuctionHouse.MaxAuctions)
       .map((auction) => formatAuctionEntry(auction))
 

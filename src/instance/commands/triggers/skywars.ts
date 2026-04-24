@@ -9,7 +9,7 @@ import {
 } from '../common/utility'
 
 export default class Skywars extends ChatCommandHandler {
-  private static readonly PRESTIGE_SCHEMES = [
+  private static readonly PrestigeSchemes = [
     { level: 0, name: 'Stone' },
     { level: 10, name: 'Iron' },
     { level: 20, name: 'Gold' },
@@ -63,7 +63,7 @@ export default class Skywars extends ChatCommandHandler {
     { level: 500, name: 'Mythic V' }
   ]
 
-  private static readonly PRESTIGE_EMBLEMS = [
+  private static readonly PrestigeEmblems = [
     { level: 0, emblem: '✯' },
     { level: 50, emblem: '^_^' },
     { level: 100, emblem: '@_@' },
@@ -106,8 +106,8 @@ export default class Skywars extends ChatCommandHandler {
     const wlRatio = stats.WLRatio
     const coins = stats.coins
 
-    const prestige = Skywars.PRESTIGE_SCHEMES.findLast((p) => level >= p.level)?.name ?? 'Stone'
-    const emblem = Skywars.PRESTIGE_EMBLEMS.findLast((error) => level >= error.level)?.emblem ?? '✯'
+    const prestige = Skywars.PrestigeSchemes.findLast((p) => level >= p.level)?.name ?? 'Stone'
+    const emblem = Skywars.PrestigeEmblems.findLast((error) => level >= error.level)?.emblem ?? '✯'
 
     return (
       `[${prestige} ${level.toFixed(0)}${emblem}] ${givenUsername} ` +

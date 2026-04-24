@@ -16,7 +16,7 @@ export function loadApplicationConfig(filepath: fs.PathOrFileDescriptor): Applic
 
 export function parseApplicationConfig(fileString: string): ApplicationConfig {
   // Substitute environment variables in the form of ${VAR_NAME}
-  const substitutedString = fileString.replaceAll(/\${(\w+)}/g, (match, p1) => {
+  const substitutedString = fileString.replaceAll(/\${(\w+)}/g, (match, p1: string) => {
     return process.env[p1] ?? match
   })
 
@@ -24,9 +24,12 @@ export function parseApplicationConfig(fileString: string): ApplicationConfig {
 
   // Normalize `discord.adminIds` to strings so YAML numeric literals are accepted
   if (config && typeof config === 'object' && 'discord' in config) {
-    const discord = (config as Record<string, any>).discord
-    if (discord && Array.isArray(discord.adminIds)) {
-      discord.adminIds = discord.adminIds.map(String)
+    const discord = (config as Record<string, unknown>).discord
+    if (discord && typeof discord === 'object' && 'adminIds' in discord) {
+      const adminIds = (discord as Record<string, unknown>).adminIds
+      if (Array.isArray(adminIds)) {
+        ;(discord as Record<string, unknown>).adminIds = (adminIds as unknown[]).map(String)
+      }
     }
   }
 

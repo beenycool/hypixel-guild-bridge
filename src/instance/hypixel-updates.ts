@@ -159,7 +159,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       timeout: 10_000
     })
 
-    const version = data?.version
+    const version = data.version
     if (!version) return
 
     if (this.skyblockVersion && this.skyblockVersion !== version) {
@@ -203,7 +203,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       responseType: 'text',
       timeout: 10_000,
       headers: {
-        'User-Agent': 'hypixel-guild-discord-bridge'
+        ['User-Agent']: 'hypixel-guild-discord-bridge'
       }
     })
 

@@ -82,16 +82,13 @@ export default {
       filter: (index) => index.user.id === interaction.user.id
     })
 
-    collector.on('collect', (index) => {
-      if (index.customId !== 'rankup-select-review') return
-      ;(async () => {
+    collector.on('collect', async (index) => {
+      if (index.customId === 'rankup-select-review') {
         const reviewId = Number.parseInt(index.values[0])
         const review = pendingManager.getReview(reviewId)
 
         if (!review) {
-          await index.reply({ content: 'Review no longer exists.', flags: 64 }).catch(() => {
-            /* noop */
-          })
+          await index.reply({ content: 'Review no longer exists.', flags: 64 }) // Ephemeral
           return
         }
 
@@ -121,82 +118,71 @@ export default {
           fetchReply: true
         })
 
-        const replyMessage = message.resource?.message ?? message
-        const buttonCollector = replyMessage.createMessageComponentCollector({
+        const buttonCollector = message.createMessageComponentCollector({
           componentType: ComponentType.Button,
           time: 60_000,
           filter: (button) => button.user.id === interaction.user.id
         })
-        if (buttonCollector === undefined) return
 
-        buttonCollector.on('collect', (button) => {
-          void (async () => {
-            const action = button.customId.startsWith('approve') ? 'approve' : 'reject'
+        buttonCollector.on('collect', async (button) => {
+          const action = button.customId.startsWith('approve') ? 'approve' : 'reject'
 
-            if (action === 'reject') {
-              pendingManager.removeReview(reviewId)
-              pendingManager.logHistory(
-                bridgeId,
-                review.uuid,
-                'reject',
-                review.currentRank,
-                review.proposedRank,
-                button.user.tag
-              )
-              await button.update({ content: 'Review rejected.', embeds: [], components: [] })
-            } else {
-              // Execute Action
-              // We need to send command to Minecraft
-              const instances = bridgeConfig.getMinecraftInstances(bridgeId)
-              if (instances.length > 0) {
-                const instanceName = instances[0]
-                const instance = application.minecraftManager
-                  .getAllInstances()
-                  .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
-                if (instance) {
-                  let command = ''
-                  if (review.action === 'promote' || review.action === 'demote') {
-                    if (review.proposedRank.length === 0) {
-                      await button.update({
-                        content: 'Error: pending review is missing a target rank.',
-                        components: []
-                      })
-                      return
-                    }
-
-                    command = `/g setrank ${name} ${review.proposedRank}`
-                  } else {
-                    command = `/g kick ${name} ${review.reason}`
+          if (action === 'reject') {
+            pendingManager.removeReview(reviewId)
+            pendingManager.logHistory(
+              bridgeId,
+              review.uuid,
+              'reject',
+              review.currentRank,
+              review.proposedRank,
+              button.user.tag
+            )
+            await button.update({ content: 'Review rejected.', embeds: [], components: [] })
+          } else {
+            // Execute Action
+            // We need to send command to Minecraft
+            const instances = bridgeConfig.getMinecraftInstances(bridgeId)
+            if (instances.length > 0) {
+              const instanceName = instances[0]
+              const instance = application.minecraftManager
+                .getAllInstances()
+                .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
+              if (instance) {
+                let command = ''
+                if (review.action === 'promote' || review.action === 'demote') {
+                  if (review.proposedRank.length === 0) {
+                    await button.update({ content: 'Error: pending review is missing a target rank.', components: [] })
+                    return
                   }
 
-                  await instance.send(command, MinecraftSendChatPriority.High, undefined)
-
-                  pendingManager.removeReview(reviewId)
-                  pendingManager.logHistory(
-                    bridgeId,
-                    review.uuid,
-                    review.action,
-                    review.currentRank,
-                    review.proposedRank,
-                    button.user.tag
-                  )
-
-                  await button.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
-                } else {
-                  await button.update({ content: 'Error: Minecraft instance not found.', components: [] })
+                  command = `/g setrank ${name} ${review.proposedRank}`
+                } else if (review.action === 'kick') {
+                  command = `/g kick ${name} ${review.reason}`
                 }
+
+                await instance.send(command, MinecraftSendChatPriority.High, undefined)
+
+                pendingManager.removeReview(reviewId)
+                pendingManager.logHistory(
+                  bridgeId,
+                  review.uuid,
+                  review.action,
+                  review.currentRank,
+                  review.proposedRank,
+                  button.user.tag
+                )
+
+                await button.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
               } else {
-                await button.update({ content: 'Error: No Minecraft instances configured.', components: [] })
+                await button.update({ content: 'Error: Minecraft instance not found.', components: [] })
               }
+            } else {
+              await button.update({ content: 'Error: No Minecraft instances configured.', components: [] })
             }
-            buttonCollector.stop()
-          })().catch(() => {
-            /* noop */
-          })
+          }
+          buttonCollector.stop()
         })
-      })().catch(() => {
-        /* noop */
-      })
+      }
     })
   }
 } satisfies DiscordCommandHandler

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
@@ -41,18 +41,19 @@ export default class Urchin extends ChatCommandHandler {
         }
       })
 
-      const data = response.data as UrchinResponse
-      if (!data.tags || data.tags.length === 0) {
+      const { data } = response as { data: unknown }
+      const urchinData = data as UrchinResponse
+      if (!urchinData.tags || urchinData.tags.length === 0) {
         return context.app.i18n.t(($) => $['commands.urchin.no-tags'], { username: givenUsername })
       }
 
-      const tags = data.tags.map((tag) => `${tag.type}: ${tag.reason}`).join(', ')
+      const tags = urchinData.tags.map((tag) => `${tag.type}: ${tag.reason}`).join(', ')
       return context.app.i18n.t(($) => $['commands.urchin.tags'], { username: givenUsername, tags })
     } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         return context.app.i18n.t(($) => $['commands.urchin.not-found'], { username: givenUsername })
       }
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (isAxiosError(error) && error.response?.status === 401) {
         return context.app.i18n.t(($) => $['commands.urchin.invalid-key'])
       }
       context.logger.error(error)

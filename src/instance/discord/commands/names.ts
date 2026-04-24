@@ -9,12 +9,12 @@ import { DefaultCommandFooter } from '../common/discord-config.js'
 function createNamesEmbed(
   username: string,
   uuid: string,
-  history: { username: string; changed_at?: string }[]
+  history: { username: string; changedAt?: string }[]
 ): APIEmbed {
   const names = history
     .map((entry) => {
-      if (entry.changed_at) {
-        const date = new Date(entry.changed_at)
+      if (entry.changedAt) {
+        const date = new Date(entry.changedAt)
         return `\`${entry.username}\` (<t:${Math.floor(date.getTime() / 1000)}:R>)`
       }
       return `\`${entry.username}\` (Original)`
@@ -56,9 +56,15 @@ export default {
       }
 
       const response = await DefaultAxios.get<AshconResponse>(`https://api.ashcon.app/mojang/v2/user/${profile.id}`)
-      const history = response.data.username_history
+      const rawHistory = (response.data as unknown as Record<string, unknown>).username_history as
+        | Record<string, unknown>[]
+        | undefined
+      const history = (rawHistory ?? []).map((entry) => ({
+        username: entry.username as string,
+        changedAt: entry.changed_at as string | undefined
+      }))
 
-      if (!history || history.length === 0) {
+      if (history.length === 0) {
         await context.interaction.editReply(`\`${username}\` has no name history.`)
         return
       }
@@ -76,8 +82,4 @@ export default {
 interface AshconResponse {
   uuid: string
   username: string
-  username_history: {
-    username: string
-    changed_at?: string
-  }[]
 }

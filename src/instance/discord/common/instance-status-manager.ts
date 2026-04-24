@@ -26,7 +26,10 @@ import { DefaultTimeout, interactivePaging } from '../utility/discord-pager'
 import { translateNoPermission } from './discord-language'
 import type MessageAssociation from './message-association'
 
-type TranslatorFn = (key: Parameters<(typeof import('i18next').default)['t']>[0], options?: unknown) => string
+type TranslatorFunction = (
+  keyOrSelector: string | ((t: (key: string) => string) => string),
+  options?: Record<string, unknown>
+) => string
 
 export class InstanceStatusManager {
   private static readonly PermissionToView = Permission.Helper
@@ -472,7 +475,7 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateNotice(instanceName: string, t: TranslatorFn): MessagePayload {
+  private generateNotice(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
@@ -486,7 +489,7 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateAuthentication(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateAuthentication(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
@@ -499,7 +502,7 @@ export class InstanceStatusManager {
       components: [{ type: ComponentType.ActionRow, components: this.generateButtons() }]
     }
   }
-  private generateInitiation(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateInitiation(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
@@ -513,7 +516,7 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateFailed(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateFailed(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
@@ -527,7 +530,7 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateSuccess(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateSuccess(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {
@@ -540,7 +543,7 @@ export class InstanceStatusManager {
     }
   }
 
-  private generateInterrupted(instanceName: string, t: (k: any, o?: any) => string): MessagePayload {
+  private generateInterrupted(instanceName: string, t: TranslatorFunction): MessagePayload {
     return {
       embeds: [
         {

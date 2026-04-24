@@ -12,7 +12,6 @@ import {
 } from 'discord.js'
 
 import type Application from '../../../application.js'
-import type { TranslatorFunction } from '../../../application.js'
 import { Color, InstanceMessageType, InstanceType, Permission } from '../../../common/application-event.js'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
 import { Status } from '../../../common/connectable-instance.js'
@@ -463,7 +462,10 @@ function areMessageListsEqual(left: string[], right: string[]): boolean {
   return left.every((value, index) => value === right[index])
 }
 
-function translateStatusForBridge(t: TranslatorFunction, status: Status): string {
+function translateStatusForBridge(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  status: Status
+): string {
   switch (status) {
     case Status.Fresh: {
       return t('instance.status.fresh')
@@ -489,14 +491,20 @@ function translateStatusForBridge(t: TranslatorFunction, status: Status): string
   }
 }
 
-function translateInstanceStatusForBridge(t: TranslatorFunction, status: { from: Status; to: Status }): string {
+function translateInstanceStatusForBridge(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  status: { from: Status; to: Status }
+): string {
   return t('instance.status.change', {
     from: translateStatusForBridge(t, status.from),
     to: translateStatusForBridge(t, status.to)
   })
 }
 
-function translateInstanceMessageForBridge(t: TranslatorFunction, key: InstanceMessageType): string {
+function translateInstanceMessageForBridge(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  key: InstanceMessageType
+): string {
   switch (key) {
     case InstanceMessageType.MinecraftAuthenticationCode: {
       return t('instance.message.authentication-code')
@@ -1038,8 +1046,6 @@ async function createBridgeOptionAsync(
                 label: 'Send Test',
                 style: ButtonStyle.Primary,
                 onInteraction: async (interaction: ButtonInteraction, errorHandler, helpers) => {
-                  void errorHandler
-                  void helpers
                   try {
                     const result = await application.randomChatter.sendTest(bridgeId)
                     await interaction.reply({

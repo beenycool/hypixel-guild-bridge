@@ -35,10 +35,14 @@ export default class Networth extends ChatCommandHandler {
     const museum = await context.app.hypixelApi
       .getSkyblockMuseum(uuid, selected.profile.profile_id, { raw: true })
       .catch(() => undefined)
-    const museumMember = museum?.members?.[uuid]
+    const museumMember = museum?.members[uuid]
 
     const bankingBalance = selected.profile.banking?.balance ?? 0
-    const networthManager = new ProfileNetworthCalculator(selected.member as any, museumMember as any, bankingBalance)
+    const networthManager = new ProfileNetworthCalculator(
+      selected.member as unknown as Record<string, unknown>,
+      museumMember as Record<string, unknown> | undefined,
+      bankingBalance
+    )
 
     const [networthData, nonCosmeticNetworthData] = await Promise.all([
       networthManager.getNetworth({ onlyNetworth: true }),
@@ -55,10 +59,10 @@ export default class Networth extends ChatCommandHandler {
     const nonCosmeticUnsoulboundNetworth = formatNumber(nonCosmeticNetworthData.unsoulboundNetworth)
 
     const purse = formatNumber(networthData.purse)
-    const bankBalance = selected.profile.banking?.balance
-    const bank = bankBalance !== undefined ? formatNumber(bankBalance) : 'N/A'
-    const personalBank =
-      selected.member.profile?.bank_account !== undefined ? formatNumber(selected.member.profile.bank_account) : 'N/A'
+    const bank = selected.profile.banking?.balance ? formatNumber(selected.profile.banking.balance) : 'N/A'
+    const personalBank = selected.member.profile.bank_account
+      ? formatNumber(selected.member.profile.bank_account)
+      : 'N/A'
     const museumTotal = museumMember
       ? formatNumber((networthData as { types?: NetworthTypes }).types?.museum?.total ?? 0)
       : 'N/A'

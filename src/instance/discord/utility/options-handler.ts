@@ -28,8 +28,8 @@ import {
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import { debugSessionLog } from '../../../utility/debug-session-log.js'
 
-export const DefaultPageSize = 6
-export const MaxComponents = 39
+export const DEFAULT_PAGE_SIZE = 6
+export const MAX_COMPONENTS = 39
 
 export enum OptionType {
   Category = 'category',
@@ -249,10 +249,7 @@ export class OptionsHandler {
       if (entry === undefined) break
       const item = entry.item
       if (item.type !== OptionType.Category && item.type !== OptionType.EmbedCategory) break
-      // `current.options` has a slightly different element type depending on whether
-      // the category is a normal CategoryOption or an EmbedCategoryOption. Coerce to
-      // OptionItem[] to satisfy the type checker while preserving runtime behavior.
-      if (!(current.options as OptionItem[]).includes(item as OptionItem)) break
+      if (!current.options.includes(item)) break
       newPath.push(seg)
       current = item
     }
@@ -278,7 +275,7 @@ export class OptionsHandler {
           this.path,
           this.enabled,
           this.pages.get(this.getPathKey()) ?? 0,
-          DefaultPageSize
+          DEFAULT_PAGE_SIZE
         ).create()
       ],
       flags: MessageFlags.IsComponentsV2,
@@ -299,7 +296,7 @@ export class OptionsHandler {
       timeoutId.refresh()
       void Promise.resolve()
         .then(async () => {
-          await this.handleInteraction(messageInteraction, errorHandler)
+          const alreadyReplied = await this.handleInteraction(messageInteraction, errorHandler)
 
           // Rebuild IDs to pick up any dynamically added options
           this.rebuildIds()
@@ -315,14 +312,14 @@ export class OptionsHandler {
                     this.path,
                     this.enabled,
                     this.pages.get(this.getPathKey()) ?? 0,
-                    DefaultPageSize
+                    DEFAULT_PAGE_SIZE
                   ).create()
                 ],
                 flags: MessageFlags.IsComponentsV2,
                 allowedMentions: { parse: [] }
               }))
         })
-        .catch((error: unknown) => {
+        .catch((error) => {
           // Log the error but don't try to acknowledge the interaction again
           errorHandler.promiseCatch('updating container')(error)
           // If interaction is still valid, try to update it with error state
@@ -393,7 +390,7 @@ export class OptionsHandler {
             this.path,
             this.enabled,
             this.pages.get(this.getPathKey()) ?? 0,
-            DefaultPageSize
+            DEFAULT_PAGE_SIZE
           ).create()
         ],
         flags: MessageFlags.IsComponentsV2,
@@ -413,7 +410,7 @@ export class OptionsHandler {
         this.path,
         this.enabled,
         this.pages.get(this.getPathKey()) ?? 0,
-        DefaultPageSize
+        DEFAULT_PAGE_SIZE
       ).create()
     ]
   }
@@ -433,7 +430,7 @@ export class OptionsHandler {
       // Compute bounds
       const currentCategory = this.getCurrentCategory()
       const totalOptions = currentCategory.options.length
-      const totalPages = Math.max(1, Math.ceil(totalOptions / DefaultPageSize))
+      const totalPages = Math.max(1, Math.ceil(totalOptions / DEFAULT_PAGE_SIZE))
 
       let nextPage = current
       if (part === 'next') nextPage = Math.min(totalPages - 1, current + 1)
@@ -998,6 +995,8 @@ class ViewBuilder {
         }
 
         case OptionType.Channel: {
+          assert.ok(option.type === OptionType.Channel)
+
           let label = bold(option.name)
           if (option.description !== undefined) label += `\n-# ${option.description}`
           block.push({ type: ComponentType.TextDisplay, content: label })
@@ -1176,15 +1175,15 @@ class ViewBuilder {
       this.append(pageText)
     }
 
-    // Safety clamp: ensure we never exceed MaxComponents
-    if (this.skipped || this.countTotalComponents(this.components) > MaxComponents) {
+    // Safety clamp: ensure we never exceed MAX_COMPONENTS
+    if (this.skipped || this.countTotalComponents(this.components) > MAX_COMPONENTS) {
       const noteComponent: ComponentInContainerData = {
         type: ComponentType.TextDisplay,
         content: '**Note:** Too many items to display. Narrow your selection.'
       }
       const noteCount = this.getComponentCount(noteComponent)
 
-      while (this.components.length > 0 && this.countTotalComponents(this.components) + noteCount > MaxComponents) {
+      while (this.components.length > 0 && this.countTotalComponents(this.components) + noteCount > MAX_COMPONENTS) {
         this.components.pop()
       }
       this.components.push(noteComponent)
@@ -1524,7 +1523,7 @@ class ViewBuilder {
       if ('components' in component && Array.isArray(component.components)) {
         count += this.countTotalComponents(component.components as ComponentInContainerData[])
       }
-      if ('accessory' in component) {
+      if ('accessory' in component && component.accessory !== undefined) {
         count++
       }
     }
@@ -1536,7 +1535,7 @@ class ViewBuilder {
     if ('components' in component && Array.isArray(component.components)) {
       count += this.countTotalComponents(component.components as ComponentInContainerData[])
     }
-    if ('accessory' in component) {
+    if ('accessory' in component && component.accessory !== undefined) {
       count++
     }
     return count
@@ -1546,7 +1545,7 @@ class ViewBuilder {
     assert.ok(component.type !== ComponentType.Separator, 'use applySeperator() instead')
 
     // Check if adding this component would exceed Discord's component limit
-    if (this.countTotalComponents(this.components) + this.getComponentCount(component) > MaxComponents) {
+    if (this.countTotalComponents(this.components) + this.getComponentCount(component) > MAX_COMPONENTS) {
       this.skipped = true
       return
     }
@@ -1561,7 +1560,7 @@ class ViewBuilder {
     const separator: ComponentInContainerData = { type: ComponentType.Separator, spacing: size }
 
     // Check if adding this separator would exceed Discord's component limit
-    if (this.countTotalComponents(this.components) + this.getComponentCount(separator) > MaxComponents) {
+    if (this.countTotalComponents(this.components) + this.getComponentCount(separator) > MAX_COMPONENTS) {
       this.skipped = true
       return
     }
