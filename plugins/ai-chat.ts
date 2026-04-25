@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import process from 'node:process'
 
 import PromiseQueue from 'promise-queue'
@@ -334,6 +336,35 @@ export default class AiChatPlugin extends PluginInstance {
     )
   }
 
+  private async logResponse(
+    input: {
+      username: string
+      playerId: string
+      bridgeId: string | undefined
+      latestMessage: string
+    },
+    response: ResolvedAiChatOutput,
+    userMode: string | undefined
+  ): Promise<void> {
+    const logDir = path.join(this.application.rootDirectory, 'logs')
+    await fs.mkdir(logDir, { recursive: true })
+    const logPath = path.join(logDir, 'ai-responses.json')
+
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      username: input.username,
+      playerId: input.playerId,
+      bridgeId: input.bridgeId ?? 'default',
+      latestMessage: input.latestMessage,
+      userMode: userMode ?? 'normal',
+      reply: response.reply,
+      memory: response.memory,
+      fallbackUsed: response.fallbackUsed
+    }
+
+    await fs.appendFile(logPath, JSON.stringify(logEntry) + '\n')
+  }
+
   private resolveChatPrefix(bridgeId: string | undefined): string {
     const globalPrefix = this.application.core.commandsConfigurations.getChatPrefix()
     if (bridgeId === undefined) return globalPrefix
@@ -472,6 +503,10 @@ export default class AiChatPlugin extends PluginInstance {
     if (response.fallbackUsed) {
       this.logger.debug(`AI chat fallback used for ${input.username} on ${bridgeKey}`)
     }
+
+    void this.logResponse(input, response, userMode).catch((error) => {
+      this.logger.error('Error logging AI response:', error)
+    })
 
     const sanitizedReply = await this.application.minecraftManager.sanitizer.sanitizeChatMessage(
       input.instanceName,
