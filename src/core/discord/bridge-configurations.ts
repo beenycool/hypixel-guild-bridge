@@ -1043,4 +1043,20 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   public setRankupExcludedPlayers(bridgeId: string, players: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_rankupExcludedPlayers`, players)
   }
+
+  // ========== AI Chat Configurations ==========
+
+  /**
+   * Get whether the AI chat plugin is enabled for a specific bridge
+   */
+  public getAiChatEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_aiChatEnabled`, false)
+  }
+
+  /**
+   * Set whether the AI chat plugin is enabled for a specific bridge
+   */
+  public setAiChatEnabled(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_aiChatEnabled`, enabled)
+  }
 }

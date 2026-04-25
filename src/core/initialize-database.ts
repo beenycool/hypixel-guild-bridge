@@ -229,7 +229,28 @@ const SchemaStatements = [
     "createdAt" INTEGER NOT NULL DEFAULT CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER)
   )`,
   `CREATE INDEX IF NOT EXISTS "rankupHistoryBridge" ON "rankupHistory" ("bridgeId")`,
-  `CREATE INDEX IF NOT EXISTS "rankupHistoryUuid" ON "rankupHistory" ("uuid")`
+  `CREATE INDEX IF NOT EXISTS "rankupHistoryUuid" ON "rankupHistory" ("uuid")`,
+
+  `CREATE TABLE IF NOT EXISTS "ai_chat_mute" (
+    "bridge_id" TEXT PRIMARY KEY,
+    "muted" BOOLEAN NOT NULL DEFAULT FALSE,
+    "updated_at" INTEGER NOT NULL DEFAULT CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER)
+  )`,
+  `CREATE TABLE IF NOT EXISTS "ai_chat_notes" (
+    "bridge_id" TEXT NOT NULL,
+    "player_id" TEXT NOT NULL,
+    "note" TEXT NOT NULL,
+    "expires_at" INTEGER NOT NULL DEFAULT (CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER) + 2592000),
+    "updated_at" INTEGER NOT NULL DEFAULT CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER),
+    PRIMARY KEY ("bridge_id", "player_id")
+  )`,
+  `ALTER TABLE "ai_chat_notes" ADD COLUMN IF NOT EXISTS "expires_at" INTEGER NOT NULL DEFAULT (CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER) + 2592000)`,
+  `CREATE INDEX IF NOT EXISTS "ai_chat_notes_expires_at_idx" ON "ai_chat_notes" ("expires_at")`,
+  `CREATE TABLE IF NOT EXISTS "ai_chat_user_config" (
+    "player_id" TEXT PRIMARY KEY,
+    "mode" TEXT,
+    "updated_at" INTEGER NOT NULL DEFAULT CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER)
+  )`
 ]
 
 /**
