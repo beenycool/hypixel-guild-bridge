@@ -8,13 +8,26 @@ import Duration from '../utility/duration'
 import { setIntervalAsync } from '../utility/scheduling'
 
 export class RandomChatter extends Instance<InstanceType.Utility> {
-  public pausedBy?: string
   private readonly lastSentAt = new Map<string, number>()
   private readonly nextSendAt = new Map<string, number>()
   private readonly antiRepeatMemory = new Map<string, string[]>()
   private readonly lastActivityAt = new Map<string, number>()
   private started = false
   private intervalHandle: NodeJS.Timeout | undefined
+  public pausedBy: string | undefined
+  private readonly guildPlayerListener = (event: {
+    type: string
+    user: { mojangProfile: () => { name: string } | undefined }
+  }) => {
+    if (this.pausedBy === undefined) return
+    if (event.type !== GuildPlayerEventType.Offline) return
+
+    const offlineName = event.user.mojangProfile()?.name
+    if (offlineName !== undefined && offlineName.toLowerCase() === this.pausedBy!.toLowerCase()) {
+      this.logger.info(`random-chatter auto-resumed: ${this.pausedBy} logged out`)
+      this.pausedBy = undefined
+    }
+  }
 
   constructor(application: Application) {
     super(application, 'random-chatter', InstanceType.Utility)
@@ -65,20 +78,8 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       }
     })
     // Clear pausedBy when the paused Minecraft player goes offline
-    this.application.on('guildPlayer', (event) => {
-      try {
-        if (!this.pausedBy) return
-        if (event.type !== GuildPlayerEventType.Offline) return
-        const name = event.user.mojangProfile()?.name
-        if (name && name.toLowerCase() === this.pausedBy.toLowerCase()) {
-          this.logger.debug(`random-chatter: cleared pausedBy due to ${name} going offline`)
-          this.pausedBy = undefined
-        }
-      } catch {
-        // swallow errors from cleanup
-      }
-    })
-    // Listen for bridge removals to cleanup lastSentAt map
+    this.application.on('guildPlayer', this.guildPlayerListener)
+    // Listen for bridge removals to cleanup in-memory maps for that bridge
     this.application.on('bridgeConfigChanged', (event) => {
       try {
         // When a bridge is removed, BridgeConfigurations.removeBridgeId deletes its keys.
@@ -102,12 +103,13 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       clearInterval(this.intervalHandle)
       this.intervalHandle = undefined
     }
+    this.application.off('guildPlayer', this.guildPlayerListener)
   }
 
   private async maybeSendForBridge(bridgeId: string): Promise<void> {
-    const bridgeConfig = this.application.core.bridgeConfigurations
-
     if (this.pausedBy !== undefined) return
+
+    const bridgeConfig = this.application.core.bridgeConfigurations
 
     const enabled = bridgeConfig.getRandomChatterEnabled(bridgeId)
     if (!enabled) return
