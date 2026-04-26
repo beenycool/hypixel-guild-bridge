@@ -105,6 +105,7 @@ export interface ResolvedAiChatOutput {
   reply: string
   memory: string | undefined
   fallbackUsed: boolean
+  fallbackReason?: string
   reasoning: string | undefined
 }
 
@@ -200,12 +201,24 @@ export function sanitizeAiChatMemory(memory: string): string | undefined {
 export function resolveAiChatOutput(rawContent: string, recentMessages: readonly string[], reasoning?: string): ResolvedAiChatOutput {
   const parsed = parseAiChatOutput(rawContent)
   if (parsed === undefined) {
-    return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true, reasoning }
+    return { 
+      reply: AiChatFallbackReply, 
+      memory: undefined, 
+      fallbackUsed: true, 
+      fallbackReason: 'Failed to parse <reply> or <memory> tags from AI response',
+      reasoning 
+    }
   }
 
   const reply = sanitizeAiChatReply(parsed.reply)
   if (isBadAiChatReply(reply, recentMessages)) {
-    return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true, reasoning }
+    return { 
+      reply: AiChatFallbackReply, 
+      memory: undefined, 
+      fallbackUsed: true, 
+      fallbackReason: 'AI response triggered content filters (empty, meta-leak, or includes speaker name)',
+      reasoning 
+    }
   }
 
   return {
@@ -359,6 +372,7 @@ export default class AiChatPlugin extends PluginInstance {
       reply: response.reply,
       memory: response.memory,
       fallbackUsed: response.fallbackUsed,
+      fallbackReason: response.fallbackReason,
       reasoning: response.reasoning
     }
 
@@ -501,7 +515,7 @@ export default class AiChatPlugin extends PluginInstance {
     })
 
     if (response.fallbackUsed) {
-      this.logger.debug(`AI chat fallback used for ${input.username} on ${bridgeKey}`)
+      this.logger.debug(`AI chat fallback used for ${input.username} on ${bridgeKey}. Reason: ${response.fallbackReason}`)
     }
 
     void this.logResponse(input, response, userMode).catch((error) => {
@@ -534,7 +548,14 @@ export default class AiChatPlugin extends PluginInstance {
     } catch (error: unknown) {
       this.logger.warn('AI chat model request failed, using fallback reply.')
       this.logger.warn(error)
-      return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true, reasoning: undefined }
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      return { 
+        reply: AiChatFallbackReply, 
+        memory: undefined, 
+        fallbackUsed: true, 
+        fallbackReason: `AI model request failed: ${errorMessage}`,
+        reasoning: undefined 
+      }
     }
   }
 
