@@ -291,8 +291,32 @@ export function buildAiChatUserPrompt(
 export function parseAiChatOutput(content: string): TaggedOutput | undefined {
   const normalized = stripOuterReasoningMarkup(content).trim()
   
-  const replyMatch = /<reply>([\s\S]*?)<\/reply>/i.exec(normalized)
-  const memoryMatch = /<memory>([\s\S]*?)<\/memory>/i.exec(normalized)
+  // 1. Try strict matching first
+  let replyMatch = /<reply>([\s\S]*?)<\/reply>/i.exec(normalized)
+  let memoryMatch = /<memory>([\s\S]*?)<\/memory>/i.exec(normalized)
+
+  // 2. Handle cases where tags are opened but never closed (cut off)
+  if (replyMatch === null && /<reply>/i.test(normalized)) {
+    const startTagMatch = /<reply>/i.exec(normalized)
+    if (startTagMatch) {
+      const startIndex = startTagMatch.index + startTagMatch[0].length
+      const remaining = normalized.slice(startIndex)
+      const nextTagMatch = /<[a-z]+>/i.exec(remaining)
+      const replyContent = nextTagMatch ? remaining.slice(0, nextTagMatch.index) : remaining
+      replyMatch = [startTagMatch[0] + replyContent, replyContent] as any
+    }
+  }
+
+  if (memoryMatch === null && /<memory>/i.test(normalized)) {
+    const startTagMatch = /<memory>/i.exec(normalized)
+    if (startTagMatch) {
+      const startIndex = startTagMatch.index + startTagMatch[0].length
+      const remaining = normalized.slice(startIndex)
+      const nextTagMatch = /<[a-z]+>/i.exec(remaining)
+      const memoryContent = nextTagMatch ? remaining.slice(0, nextTagMatch.index) : remaining
+      memoryMatch = [startTagMatch[0] + memoryContent, memoryContent] as any
+    }
+  }
 
   if (replyMatch !== null) {
     const reply = replyMatch[1].trim()
@@ -302,6 +326,7 @@ export function parseAiChatOutput(content: string): TaggedOutput | undefined {
     }
   }
 
+  // 3. Plaintext fallback if no tags at all
   if (!normalized.includes('<') && !normalized.includes('>') && normalized.length > 0) {
     return { reply: normalized, memory: MemoryNoneMarker }
   }
