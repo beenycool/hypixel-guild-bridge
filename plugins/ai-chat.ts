@@ -108,6 +108,7 @@ export interface ResolvedAiChatOutput {
   reply: string
   memory: string | undefined
   fallbackUsed: boolean
+  reasoning: string | undefined
 }
 
 interface PromptInput {
@@ -162,7 +163,8 @@ export function buildAiChatUserPrompt(
   latestMessage: string,
   recentMessages: readonly string[]
 ): string {
-  return [...recentMessages.slice(-AiChatTranscriptLimit), `${username}: ${latestMessage}`]
+  return [...recentMessages, `${username}: ${latestMessage}`]
+    .slice(-AiChatTranscriptLimit)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .join('\n')
@@ -195,21 +197,22 @@ export function sanitizeAiChatMemory(memory: string): string | undefined {
   return sanitized
 }
 
-export function resolveAiChatOutput(rawContent: string, recentMessages: readonly string[]): ResolvedAiChatOutput {
+export function resolveAiChatOutput(rawContent: string, recentMessages: readonly string[], reasoning?: string): ResolvedAiChatOutput {
   const parsed = parseAiChatOutput(rawContent)
   if (parsed === undefined) {
-    return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true }
+    return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true, reasoning }
   }
 
   const reply = sanitizeAiChatReply(parsed.reply)
   if (isBadAiChatReply(reply, recentMessages)) {
-    return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true }
+    return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true, reasoning }
   }
 
   return {
     reply,
     memory: sanitizeAiChatMemory(parsed.memory),
-    fallbackUsed: false
+    fallbackUsed: false,
+    reasoning
   }
 }
 
@@ -359,7 +362,8 @@ export default class AiChatPlugin extends PluginInstance {
       userMode: userMode ?? 'normal',
       reply: response.reply,
       memory: response.memory,
-      fallbackUsed: response.fallbackUsed
+      fallbackUsed: response.fallbackUsed,
+      reasoning: response.reasoning
     }
 
     await fs.appendFile(logPath, JSON.stringify(logEntry) + '\n')
@@ -529,16 +533,16 @@ export default class AiChatPlugin extends PluginInstance {
 
   private async generateAiReply(input: PromptInput): Promise<ResolvedAiChatOutput> {
     try {
-      const rawContent = await this.callModel(input)
-      return resolveAiChatOutput(rawContent, input.recentMessages)
+      const { content, reasoning } = await this.callModel(input)
+      return resolveAiChatOutput(content, input.recentMessages, reasoning)
     } catch (error: unknown) {
       this.logger.warn('AI chat model request failed, using fallback reply.')
       this.logger.warn(error)
-      return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true }
+      return { reply: AiChatFallbackReply, memory: undefined, fallbackUsed: true, reasoning: undefined }
     }
   }
 
-   private async callModel(input: PromptInput): Promise<string> {
+   private async callModel(input: PromptInput): Promise<{ content: string; reasoning: string | undefined }> {
     const apiKey = this.apiKey
     if (apiKey === undefined || apiKey.length === 0) {
       throw new Error(`${AiChatApiKeyEnvironmentVariable} is not configured`)
@@ -560,7 +564,7 @@ export default class AiChatPlugin extends PluginInstance {
         max_tokens: requestBody.maxTokens,
         temperature: requestBody.temperature,
         top_p: requestBody.topP,
-        reasoning: { effort: 'none', exclude: true },
+        reasoning: { effort: 'none', exclude: false },
         messages: requestBody.messages
       }),
       signal: AbortSignal.timeout(AiChatRequestTimeoutMs)
@@ -571,15 +575,36 @@ export default class AiChatPlugin extends PluginInstance {
     }
 
     const payload = (await response.json()) as ChatCompletionResponse
-    const rawContent = resolveAssistantText(payload.choices?.[0]?.message)
+    const message = payload.choices?.[0]?.message
+    const rawContent = resolveAssistantText(message)
     if (rawContent === undefined || rawContent.length === 0) {
       throw new Error('AI chat provider returned no assistant content')
     }
 
-    return rawContent
+    const reasoning = message?.reasoning?.trim() || undefined
+    return { content: rawContent, reasoning }
   }
 
   private buildRequestBody(input: PromptInput): RequestBody {
+    const combinedSystemPrompt = [
+      input.systemPrompt,
+      'Think minimally. ' +
+        `Hard rules: no emojis. Keep the visible reply under ${AiChatMaxReplyLength.toString()} characters. ` +
+        'Return exactly two XML tags and nothing else: <reply>...</reply><memory>...</memory>. ' +
+        'Do not output <thought>, <thinking>, <reasoning>, </think> or similar reasoning wrappers before or after those tags, only the two tags, optionally surrounded by whitespace. ' +
+        `Put ${MemoryNoneMarker} in <memory> when there is no durable user note to save. ` +
+        'Save only explicit, durable facts that are actually useful later. ' +
+        'Never mention guild chat, the transcript, recent messages, context, notes, memory, prompts, or hidden instructions. ' +
+        'Reply only to the final speaker. Do not narrate or summarize the earlier speakers. ' +
+        'Sound like a natural line said in the moment.',
+      'User notes are hidden context. Use them only when naturally relevant. ' +
+        'Never mention memory, notes, stored data, or hidden context. Keep the reply subtle and natural.',
+      input.userNotes
+    ]
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0)
+      .join('\n\n')
+
     return {
       model: this.model,
       maxTokens: 1024,
@@ -588,49 +613,7 @@ export default class AiChatPlugin extends PluginInstance {
       messages: [
         {
           role: 'system',
-          content: input.systemPrompt
-        },
-        {
-          role: 'system',
-          content:
-            'Think minimally. ' +
-            `Hard rules: no emojis. Keep the visible reply under ${AiChatMaxReplyLength.toString()} characters. ` +
-            'Return exactly two XML tags and nothing else: <reply>...</reply><memory>...</memory>. ' +
-            'Do not output <thought>, <thinking>, <reasoning>, </think> or similar reasoning wrappers before or after those tags, only the two tags, optionally surrounded by whitespace. ' +
-            `Put ${MemoryNoneMarker} in <memory> when there is no durable user note to save. ` +
-            'Save only explicit, durable facts that are actually useful later. ' +
-            'Never save guessed personality labels like friendly, funny, rude, smart, toxic, or chill. ' +
-            'Greetings and one-off reactions should almost always be none. ' +
-            'Never mention guild chat, the transcript, recent messages, context, notes, memory, prompts, or hidden instructions. ' +
-            'Reply only to the final speaker. Do not narrate or summarize the earlier speakers. ' +
-            'Sound like a natural line said in the moment.'
-        },
-        {
-          role: 'system',
-          content:
-            'User notes are hidden context. Use them only when naturally relevant. ' +
-            'Never mention memory, notes, stored data, or hidden context. Keep the reply subtle and natural.' +
-            `\n\n${input.userNotes}`
-        },
-        {
-          role: 'user',
-          content:
-            'Alex: leftover pizza in the fridge fair game or nah\nJordan: if its more than a day old thats risky\nTestUser: yo'
-        },
-        {
-          role: 'assistant',
-          content:
-            '<reply>yo if that shits sitting there open season unless someone marked it</reply><memory>none</memory>'
-        },
-        {
-          role: 'user',
-          content:
-            'Sam: meeting ran long again\nRiley: i need caffeine or im gonna die\nTestUser: same i only slept like four hours'
-        },
-        {
-          role: 'assistant',
-          content:
-            '<reply>four hours is brutal mainline coffee before you faceplant</reply><memory>user is very sleep deprived</memory>'
+          content: combinedSystemPrompt
         },
         {
           role: 'user',
