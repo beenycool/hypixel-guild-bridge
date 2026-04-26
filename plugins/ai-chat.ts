@@ -173,14 +173,23 @@ export function buildAiChatUserPrompt(
 
 export function parseAiChatOutput(content: string): TaggedOutput | undefined {
   const normalized = stripOuterReasoningMarkup(content).trim()
-  const match = /<reply>([\s\S]*?)<\/reply>\s*<memory>([\s\S]*?)<\/memory>/i.exec(normalized)
-  if (match === null) return undefined
+  
+  const replyMatch = /<reply>([\s\S]*?)<\/reply>/i.exec(normalized)
+  const memoryMatch = /<memory>([\s\S]*?)<\/memory>/i.exec(normalized)
 
-  const reply = match[1].trim()
-  const memory = match[2].trim()
-  if (reply.length === 0 || memory.length === 0) return undefined
+  if (replyMatch !== null) {
+    const reply = replyMatch[1].trim()
+    const memory = memoryMatch !== null ? memoryMatch[1].trim() : MemoryNoneMarker
+    if (reply.length > 0) {
+      return { reply, memory }
+    }
+  }
 
-  return { reply, memory }
+  if (!normalized.includes('<') && !normalized.includes('>') && normalized.length > 0) {
+    return { reply: normalized, memory: MemoryNoneMarker }
+  }
+
+  return undefined
 }
 
 export function sanitizeAiChatMemory(memory: string): string | undefined {
@@ -205,7 +214,7 @@ export function resolveAiChatOutput(rawContent: string, recentMessages: readonly
       reply: AiChatFallbackReply, 
       memory: undefined, 
       fallbackUsed: true, 
-      fallbackReason: 'Failed to parse <reply> or <memory> tags from AI response',
+      fallbackReason: `Failed to parse AI response. Raw output (truncated): ${rawContent.slice(0, 150)}`,
       reasoning 
     }
   }
@@ -216,7 +225,7 @@ export function resolveAiChatOutput(rawContent: string, recentMessages: readonly
       reply: AiChatFallbackReply, 
       memory: undefined, 
       fallbackUsed: true, 
-      fallbackReason: 'AI response triggered content filters (empty, meta-leak, or includes speaker name)',
+      fallbackReason: `AI response triggered content filters. Raw output: ${rawContent.slice(0, 150)}`,
       reasoning 
     }
   }
