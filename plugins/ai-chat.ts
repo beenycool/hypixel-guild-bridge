@@ -682,17 +682,7 @@ function sanitizeAiChatReply(reply: string): string {
 
 function isBadAiChatReply(reply: string, recentMessages: readonly string[]): boolean {
   if (reply.length === 0) return true
-  if (MetaLeakPatterns.some((pattern) => pattern.test(reply))) return true
-
-  const earlierSpeakerNames = recentMessages.map((line) => line.split(':')[0].trim()).filter((name) => name.length > 0)
-
-  return earlierSpeakerNames.some((name) => includesSpeakerName(reply, name))
-}
-
-function includesSpeakerName(reply: string, speakerName: string): boolean {
-  const escapedSpeakerName = speakerName.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
-  const boundaryPattern = new RegExp(`(^|[^a-zA-Z0-9_])${escapedSpeakerName}([^a-zA-Z0-9_]|$)`, 'i')
-  return boundaryPattern.test(reply)
+  return MetaLeakPatterns.some((pattern) => pattern.test(reply))
 }
 
 function messagePartToText(part: MessagePart): string {
