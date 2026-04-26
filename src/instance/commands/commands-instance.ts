@@ -12,6 +12,7 @@ import {
 import { ConnectableInstance, Status } from '../../common/connectable-instance.js'
 import { InternalInstancePrefix } from '../../common/instance.js'
 
+import Aimute from './triggers/aimute.js'
 import EightBallCommand from './triggers/8ball.js'
 import Api from './triggers/api.js'
 import Asian from './triggers/asian.js'
@@ -104,6 +105,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     super(app, InternalInstancePrefix + InstanceType.Commands, InstanceType.Commands)
 
     this.commands = [
+      new Aimute(),
       new Api(),
       new Asian(),
       new AuctionHouse(),

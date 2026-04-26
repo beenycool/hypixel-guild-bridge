@@ -1516,6 +1516,24 @@ async function createBridgeOptionAsync(
           }
         ]
       },
+      // ========== AI Chatbot ==========
+      {
+        type: OptionType.Category,
+        name: 'AI Chatbot',
+        description: 'Configure the AI Chatbot plugin for this bridge',
+        header: `**AI Chatbot for ${bridgeId}**\n\nConfigure whether the AI chat plugin is enabled for this specific bridge.`,
+        options: [
+          {
+            type: OptionType.Boolean,
+            name: 'Enable AI Chatbot',
+            description: 'Enable or disable the AI chat plugin for this bridge.',
+            getOption: () => bridgeConfig.getAiChatEnabled(bridgeId),
+            toggleOption: () => {
+              bridgeConfig.setAiChatEnabled(bridgeId, !bridgeConfig.getAiChatEnabled(bridgeId))
+            }
+          }
+        ]
+      },
       // ========== Rankup Automation ==========
       {
         type: OptionType.Category,
