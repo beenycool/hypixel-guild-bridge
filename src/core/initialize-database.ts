@@ -279,4 +279,38 @@ export async function initializeCoreDatabase(databaseManager: DatabaseManager): 
   for (const statement of DisconnectLogsSchemaStatements) {
     await databaseManager.execute(statement)
   }
+
+  await syncSequences(databaseManager)
+}
+
+async function syncSequences(databaseManager: DatabaseManager): Promise<void> {
+  const tables = [
+    'AllMembers',
+    'OnlineMembers',
+    'punishments',
+    'heatsCommands',
+    'proxies',
+    'instanceStatusHistory',
+    'instanceMessageHistory',
+    'rankupPendingReviews',
+    'rankupHistory',
+    'disconnectLogs'
+  ]
+
+  for (const table of tables) {
+    try {
+      // This query works for both SERIAL and IDENTITY columns in PostgreSQL.
+      // We use coalesce to handle empty tables, resetting the sequence to 1.
+      await databaseManager.execute(`
+        SELECT setval(
+          pg_get_serial_sequence('"${table}"', 'id'),
+          COALESCE(MAX(id), 0) + 1,
+          false
+        ) FROM "${table}"
+      `)
+    } catch (error) {
+      // In-memory databases or non-Postgres environments might not support this.
+      // We ignore the error as it's a non-critical optimization/fixup.
+    }
+  }
 }
