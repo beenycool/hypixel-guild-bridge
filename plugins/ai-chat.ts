@@ -163,7 +163,10 @@ export function buildAiChatUserPrompt(
   latestMessage: string,
   recentMessages: readonly string[]
 ): string {
-  return [...recentMessages, `${username}: ${latestMessage}`]
+  const safeUsername = username.replaceAll('<', '').replaceAll('>', '')
+  const safeLatestMessage = latestMessage.replaceAll('<', '').replaceAll('>', '')
+
+  return [...recentMessages, `${safeUsername}: ${safeLatestMessage}`]
     .slice(-AiChatTranscriptLimit)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
@@ -172,7 +175,7 @@ export function buildAiChatUserPrompt(
 
 export function parseAiChatOutput(content: string): TaggedOutput | undefined {
   const normalized = stripOuterReasoningMarkup(content).trim()
-  const match = /^<reply>([\s\S]*?)<\/reply>\s*<memory>([\s\S]*?)<\/memory>$/i.exec(normalized)
+  const match = /<reply>([\s\S]*?)<\/reply>\s*<memory>([\s\S]*?)<\/memory>/i.exec(normalized)
   if (match === null) return undefined
 
   const reply = match[1].trim()
@@ -283,8 +286,8 @@ export default class AiChatPlugin extends PluginInstance {
     const chatPrefix = this.resolveChatPrefix(event.bridgeId)
     
     // Command handling
-    if (event.message.startsWith('!')) {
-      const parts = event.message.slice(1).trim().split(/\s+/)
+    if (event.message.startsWith(chatPrefix)) {
+      const parts = event.message.slice(chatPrefix.length).trim().split(/\s+/)
       const command = parts[0].toLowerCase()
 
       if (command === 'mode' || AiChatModes[command] !== undefined) {
@@ -349,10 +352,6 @@ export default class AiChatPlugin extends PluginInstance {
     response: ResolvedAiChatOutput,
     userMode: string | undefined
   ): Promise<void> {
-    const logDir = path.join(this.application.rootDirectory, 'logs')
-    await fs.mkdir(logDir, { recursive: true })
-    const logPath = path.join(logDir, 'ai-responses.json')
-
     const logEntry = {
       timestamp: new Date().toISOString(),
       username: input.username,
@@ -366,7 +365,7 @@ export default class AiChatPlugin extends PluginInstance {
       reasoning: response.reasoning
     }
 
-    await fs.appendFile(logPath, JSON.stringify(logEntry) + '\n')
+    this.logger.info(JSON.stringify(logEntry))
   }
 
   private resolveChatPrefix(bridgeId: string | undefined): string {
@@ -633,6 +632,7 @@ function stripOuterReasoningMarkup(text: string): string {
     current = current
       .replaceAll(/<redacted_thinking>[\s\S]*?<\/redacted_thinking>/gi, '')
       .replaceAll(/<thought>[\s\S]*?<\/thought>/gi, '')
+      .replaceAll(/<think>[\s\S]*?<\/think>/gi, '')
       .replaceAll(/<thinking>[\s\S]*?<\/thinking>/gi, '')
       .replaceAll(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
       .trim()

@@ -80,7 +80,11 @@ export class DatabaseManager {
       .then(async () => {
         await this.awaitReady()
         const pool = this.getPool()
-        await callback(pool)
+
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Database write operation timed out')), 15000)
+        )
+        await Promise.race([callback(pool), timeoutPromise])
       })
       .catch((error: unknown) => {
         this.logger.error(`Database write failed during ${description}`)
@@ -98,7 +102,12 @@ export class DatabaseManager {
         const client = await this.getPool().connect()
         try {
           await client.query('BEGIN')
-          await callback(client)
+
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Database transaction operation timed out')), 15000)
+          )
+          await Promise.race([callback(client), timeoutPromise])
+
           await client.query('COMMIT')
         } catch (error) {
           await client.query('ROLLBACK').catch(() => undefined)

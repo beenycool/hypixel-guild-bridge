@@ -6,6 +6,9 @@ const DisallowedMentions = new Set(['everyone', 'here'])
 /** Cap REST `guild.members.search` calls per message to reduce rate-limit risk. */
 const MaxMemberSearchTokens = 5
 
+const ResolvedMentionsCache = new Map<string, { userId: string; timestamp: number }>()
+const CacheTTL = 60 * 60 * 1000 // 1 hour
+
 export interface ResolvedDiscordMentions {
   content: string
   userIds: string[]
@@ -25,19 +28,37 @@ export async function resolveDiscordMentionsInMessage(message: string, guild: Gu
   const tokenToUserId = new Map<string, string>()
   const searchEntries = [...uniqueTokens.entries()].slice(0, MaxMemberSearchTokens)
   for (const [lowered, token] of searchEntries) {
+    const cached = ResolvedMentionsCache.get(lowered)
+    if (cached && Date.now() - cached.timestamp < CacheTTL) {
+      tokenToUserId.set(lowered, cached.userId)
+      continue
+    }
+
     const results = await guild.members.search({ query: token, limit: 25 })
     const members = [...results.values()]
 
     const usernameMatches = members.filter((member) => member.user.username.toLowerCase() === lowered)
     if (usernameMatches.length === 1) {
-      tokenToUserId.set(lowered, usernameMatches[0].id)
+      const userId = usernameMatches[0].id
+      tokenToUserId.set(lowered, userId)
+      ResolvedMentionsCache.set(lowered, { userId, timestamp: Date.now() })
       continue
     }
     if (usernameMatches.length > 1) continue
 
     const nicknameMatches = members.filter((member) => member.nickname?.toLowerCase() === lowered)
     if (nicknameMatches.length === 1) {
-      tokenToUserId.set(lowered, nicknameMatches[0].id)
+      const userId = nicknameMatches[0].id
+      tokenToUserId.set(lowered, userId)
+      ResolvedMentionsCache.set(lowered, { userId, timestamp: Date.now() })
+    }
+  }
+
+  // Clean old cache entries occasionally
+  if (ResolvedMentionsCache.size > 500) {
+    const now = Date.now()
+    for (const [key, value] of ResolvedMentionsCache.entries()) {
+      if (now - value.timestamp > CacheTTL) ResolvedMentionsCache.delete(key)
     }
   }
 

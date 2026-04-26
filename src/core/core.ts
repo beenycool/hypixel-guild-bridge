@@ -177,12 +177,12 @@ export class Core extends Instance<InstanceType.Core> {
     this.ready = this.initialize()
   }
 
-  public completeUsername(query: string, limit: number): string[] {
-    return this.autoComplete.username(query, limit)
+  public async completeUsername(query: string, limit: number): Promise<string[]> {
+    return await this.autoComplete.username(query, limit)
   }
 
-  public completeRank(query: string, limit: number): string[] {
-    return this.autoComplete.rank(query, limit)
+  public async completeRank(query: string, limit: number): Promise<string[]> {
+    return await this.autoComplete.rank(query, limit)
   }
 
   public filterProfanity(message: string): { filteredMessage: string; changed: boolean } {

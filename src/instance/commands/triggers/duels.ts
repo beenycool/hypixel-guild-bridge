@@ -144,7 +144,7 @@ export default class Duels extends ChatCommandHandler {
 
     // Bridge sub-mode stats
     if (duelType === 'bridge' && bridgeSubMode !== undefined) {
-      const bridgeData = stats.bridge as Record<string, unknown> | undefined
+      const bridgeData = stats.bridge as unknown as Record<string, unknown> | undefined
 
       if (!bridgeData || typeof bridgeData !== 'object') {
         return `${givenUsername} has no Bridge stats.`

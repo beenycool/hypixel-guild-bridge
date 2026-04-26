@@ -81,9 +81,9 @@ export class InstanceStatusManager {
       return
     }
 
-    await interactivePaging(interaction, 0, DefaultTimeout, this.errorHandler, (requestedPage) => {
-      const entries = this.application.core.statusHistory
-        .getHistory(entry.instanceName, entry.startTime, entry.endTime)
+    await interactivePaging(interaction, 0, DefaultTimeout, this.errorHandler, async (requestedPage) => {
+      const entries = (await this.application.core.statusHistory
+        .getHistory(entry.instanceName, entry.startTime, entry.endTime))
         .toReversed()
 
       // Only show latest authentication code since others have expired
@@ -177,7 +177,7 @@ export class InstanceStatusManager {
       const channel = await this.clientInstance.getClient().channels.fetch(channelId)
       if (!channel?.isSendable()) continue
 
-      const result = this.createMessage(event, channel.id)
+      const result = await this.createMessage(event, channel.id)
       if (result === undefined) continue
 
       const message = await this.privateEditOrSend(
@@ -257,10 +257,10 @@ export class InstanceStatusManager {
     else return DiscordInstanceHistoryButtonType.Notice
   }
 
-  private createMessage(
+  private async createMessage(
     event: InstanceStatus,
     channelId: string
-  ):
+  ): Promise<
     | {
         payload: MessagePayload
         onlySend: boolean
@@ -268,7 +268,8 @@ export class InstanceStatusManager {
         lastMessageId: string | undefined
         replyMessageId: string | undefined
       }
-    | undefined {
+    | undefined
+  > {
     const lastMessage = this.application.core.discordInstanceHistoryButton.lastButton(channelId, event.instanceName)
     const bridgeIdForChannel = this.application.bridgeResolver.getBridgeIdForChannel(channelId)
     const t = this.application.getTranslatorForBridge(bridgeIdForChannel)
@@ -358,8 +359,8 @@ export class InstanceStatusManager {
 
       // combine multiple authentication messages if all contain the same display message "this.generateAuthentication(...)"
     } else if (event.message?.type === InstanceMessageType.MinecraftAuthenticationCode) {
-      const firstMessageEntry = this.application.core.statusHistory
-        .getHistory(event.instanceName, lastMessage.startTime, lastMessage.endTime)
+      const firstMessageEntry = (await this.application.core.statusHistory
+        .getHistory(event.instanceName, lastMessage.startTime, lastMessage.endTime))
         .find((entry) => entry.entryType === StatusHistoryEntryType.Message)
 
       if (

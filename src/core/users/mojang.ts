@@ -9,6 +9,7 @@ import RateLimiter from '../../utility/rate-limiter'
 
 export class MojangApi {
   private static readonly RetryCount = 3
+  private static readonly MaxQueueSize = 15
   private readonly queue = new PromiseQueue(1)
   private readonly rateLimit = new RateLimiter(1, 800)
 
@@ -25,6 +26,10 @@ export class MojangApi {
   async profileByUsername(username: string): Promise<MojangProfile> {
     const cachedResult = this.mojangDatabase.profileByUsername(username)
     if (cachedResult) return cachedResult
+
+    if (this.queue.getQueueLength() >= MojangApi.MaxQueueSize) {
+      throw new Error('Mojang API queue is full. Try again later.')
+    }
 
     const result = await this.queue.add(async () => {
       let lastError: Error | undefined
@@ -55,6 +60,10 @@ export class MojangApi {
 
     const cachedResult = this.mojangDatabase.profileByUuid(uuid)
     if (cachedResult) return cachedResult
+
+    if (this.queue.getQueueLength() >= MojangApi.MaxQueueSize) {
+      throw new Error('Mojang API queue is full. Try again later.')
+    }
 
     const result = await this.queue.add(async () => {
       let lastError: Error | undefined
@@ -133,6 +142,10 @@ export class MojangApi {
   }
 
   private async lookupUsernames(usernames: string[]): Promise<MojangProfile[]> {
+    if (this.queue.getQueueLength() >= MojangApi.MaxQueueSize) {
+      throw new Error('Mojang API queue is full. Try again later.')
+    }
+
     const result = await this.queue.add(async () => {
       let lastError: Error | undefined
       for (let retry = 0; retry < MojangApi.RetryCount; retry++) {

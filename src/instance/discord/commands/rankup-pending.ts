@@ -12,6 +12,8 @@ import {
 import { MinecraftSendChatPriority, Permission } from '../../../common/application-event'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 
+const REVIEWS_PER_PAGE = 25
+
 export default {
   getCommandBuilder: () =>
     new SlashCommandBuilder().setName('rankup-pending').setDescription('View and manage pending rankup reviews'),
@@ -29,61 +31,87 @@ export default {
     const pendingManager = application.core.pendingReviewManager
     const bridgeConfig = application.core.bridgeConfigurations
 
-    // We need to resolve names for UUIDs to make the list readable
-    const reviews = pendingManager.getReviews(bridgeId)
+    let reviews = pendingManager.getReviews(bridgeId)
 
     if (reviews.length === 0) {
       await interaction.editReply('No pending reviews.')
       return
     }
 
-    // Limit to 25 for select menu
-    const displayedReviews = reviews.slice(0, 25)
-
-    // Resolve names
+    let currentPage = 0
     const uuidToName = new Map<string, string>()
-    for (const r of displayedReviews) {
-      if (!uuidToName.has(r.uuid)) {
-        const name = await application.mojangApi
-          .profileByUuid(r.uuid)
-          .then((p) => p.name)
-          .catch(() => r.uuid.slice(0, 8))
-        uuidToName.set(r.uuid, name)
-      }
-    }
 
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId('rankup-select-review')
-      .setPlaceholder('Select a review to action')
-      .addOptions(
-        displayedReviews.map((r) =>
-          new StringSelectMenuOptionBuilder()
-            .setLabel(`${uuidToName.get(r.uuid)}: ${r.action.toUpperCase()} ${r.currentRank} -> ${r.proposedRank}`)
-            .setDescription(r.reason.slice(0, 100))
-            .setValue(r.id.toString())
+    const generatePage = async (page: number) => {
+      const start = page * REVIEWS_PER_PAGE
+      const displayedReviews = reviews.slice(start, start + REVIEWS_PER_PAGE)
+      const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE)
+
+      // Resolve names for currently displayed reviews
+      for (const r of displayedReviews) {
+        if (!uuidToName.has(r.uuid)) {
+          const name = await application.mojangApi
+            .profileByUuid(r.uuid)
+            .then((p) => p.name)
+            .catch(() => r.uuid.slice(0, 8))
+          uuidToName.set(r.uuid, name)
+        }
+      }
+
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId('rankup-select-review')
+        .setPlaceholder('Select a review to action')
+        .addOptions(
+          displayedReviews.map((r) =>
+            new StringSelectMenuOptionBuilder()
+              .setLabel(`${uuidToName.get(r.uuid)}: ${r.action.toUpperCase()} ${r.currentRank} -> ${r.proposedRank}`)
+              .setDescription(r.reason.slice(0, 100))
+              .setValue(r.id.toString())
+          )
         )
+
+      const menuRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu)
+      const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId('rankup-prev')
+          .setLabel('Previous')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page === 0),
+        new ButtonBuilder()
+          .setCustomId('rankup-next')
+          .setLabel('Next')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(page >= totalPages - 1)
       )
 
-    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu)
+      const embed = new EmbedBuilder()
+        .setTitle('Pending Rankup Reviews')
+        .setDescription(
+          `Found ${reviews.length} pending reviews. Showing ${start + 1}-${start + displayedReviews.length} (Page ${
+            page + 1
+          }/${totalPages}).`
+        )
+        .setColor('#FFA500')
 
-    const embed = new EmbedBuilder()
-      .setTitle('Pending Rankup Reviews')
-      .setDescription(`Found ${reviews.length} pending reviews. Showing first ${displayedReviews.length}.`)
-      .setColor('#FFA500')
+      return { embeds: [embed], components: totalPages > 1 ? [menuRow, buttonRow] : [menuRow] }
+    }
 
-    const response = await interaction.editReply({
-      embeds: [embed],
-      components: [row]
-    })
+    const initialPage = await generatePage(currentPage)
+    const response = await interaction.editReply(initialPage)
 
     const collector = response.createMessageComponentCollector({
-      componentType: ComponentType.StringSelect,
       time: 600_000, // 10 mins
       filter: (index) => index.user.id === interaction.user.id
     })
 
     collector.on('collect', async (index) => {
-      if (index.customId === 'rankup-select-review') {
+      if (index.customId === 'rankup-prev') {
+        currentPage--
+        await index.update(await generatePage(currentPage))
+      } else if (index.customId === 'rankup-next') {
+        currentPage++
+        await index.update(await generatePage(currentPage))
+      } else if (index.customId === 'rankup-select-review') {
+        if (!index.isStringSelectMenu()) return
         const reviewId = Number.parseInt(index.values[0])
         const review = pendingManager.getReview(reviewId)
 
@@ -92,10 +120,7 @@ export default {
           return
         }
 
-        const name = await application.mojangApi
-          .profileByUuid(review.uuid)
-          .then((p) => p.name)
-          .catch(() => review.uuid)
+        const name = uuidToName.get(review.uuid) ?? review.uuid
 
         const detailEmbed = new EmbedBuilder()
           .setTitle(`Review for ${name}`)
@@ -107,14 +132,14 @@ export default {
             { name: 'Created At', value: `<t:${review.createdAt}:R>` }
           )
 
-        const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder().setCustomId(`approve-${reviewId}`).setLabel('Approve').setStyle(ButtonStyle.Success),
           new ButtonBuilder().setCustomId(`reject-${reviewId}`).setLabel('Reject').setStyle(ButtonStyle.Danger)
         )
 
         const message = await index.reply({
           embeds: [detailEmbed],
-          components: [buttonRow],
+          components: [actionRow],
           fetchReply: true
         })
 
@@ -139,8 +164,6 @@ export default {
             )
             await button.update({ content: 'Review rejected.', embeds: [], components: [] })
           } else {
-            // Execute Action
-            // We need to send command to Minecraft
             const instances = bridgeConfig.getMinecraftInstances(bridgeId)
             if (instances.length > 0) {
               const instanceName = instances[0]
@@ -154,7 +177,6 @@ export default {
                     await button.update({ content: 'Error: pending review is missing a target rank.', components: [] })
                     return
                   }
-
                   command = `/g setrank ${name} ${review.proposedRank}`
                 } else if (review.action === 'kick') {
                   command = `/g kick ${name} ${review.reason}`
@@ -181,6 +203,17 @@ export default {
             }
           }
           buttonCollector.stop()
+
+          // Refresh the main list
+          reviews = pendingManager.getReviews(bridgeId)
+          if (reviews.length === 0) {
+            await interaction.editReply({ content: 'No pending reviews.', embeds: [], components: [] })
+            collector.stop()
+          } else {
+            const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE)
+            if (currentPage >= totalPages) currentPage = totalPages - 1
+            await interaction.editReply(await generatePage(currentPage))
+          }
         })
       }
     })

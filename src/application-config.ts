@@ -104,6 +104,15 @@ export interface HypixelUpdatesConfig {
   alphaCheckIntervalMinutes?: number
 }
 
+export interface AiChatConfig {
+  enabled: boolean
+  apiKey?: string
+  endpoint?: string
+  model?: string
+  systemPrompt?: string
+  debounceMs?: number
+}
+
 /**
  * Configuration for a bridge that connects specific Minecraft instances to specific Discord channels.
  * This allows running multiple isolated guild bridges within a single application instance.
@@ -151,6 +160,7 @@ export interface ApplicationConfig {
   inactivity?: InactivityConfig
   skyblockEvents?: SkyblockEventsConfig
   hypixelUpdates?: HypixelUpdatesConfig
+  aiChat?: AiChatConfig
   /**
    * Optional bridge configurations for multi-guild support.
    * If defined, messages will be routed based on bridge membership.

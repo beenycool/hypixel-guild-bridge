@@ -249,7 +249,7 @@ export class OptionsHandler {
       if (entry === undefined) break
       const item = entry.item
       if (item.type !== OptionType.Category && item.type !== OptionType.EmbedCategory) break
-      if (!current.options.includes(item)) break
+      if (!current.options.includes(item as any)) break
       newPath.push(seg)
       current = item
     }

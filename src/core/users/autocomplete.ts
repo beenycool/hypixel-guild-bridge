@@ -16,9 +16,6 @@ import type { Core } from '../core'
 export default class Autocomplete extends SubInstance<Core, InstanceType.Core, void> {
   private static readonly MaxLife = Duration.years(1)
 
-  private readonly usernames = new Map<string, AutocompleteEntry>()
-  private readonly ranks = new Map<string, AutocompleteEntry>()
-
   constructor(
     application: Application,
     clientInstance: Core,
@@ -62,82 +59,81 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
 
     this.databaseManager.registerCleaner(() => {
       const oldestTimestamp = Math.floor((Date.now() - Autocomplete.MaxLife.toMilliseconds()) / 1000)
-      const usernamesDeleted = removeOldAutocompleteEntries(this.usernames, oldestTimestamp)
-      const ranksDeleted = removeOldAutocompleteEntries(this.ranks, oldestTimestamp)
-      const count = usernamesDeleted + ranksDeleted
 
-      if (count > 0) {
-        this.logger.debug(`Deleted ${count} old autocomplete entry`)
-        this.databaseManager.enqueueTransaction('cleaning autocomplete entries', async (database) => {
-          await database.query('DELETE FROM "autocompleteUsernames" WHERE "timestamp" < $1', [oldestTimestamp])
-          await database.query('DELETE FROM "autocompleteRanks" WHERE "timestamp" < $1', [oldestTimestamp])
-        })
-      }
+      this.databaseManager.enqueueTransaction('cleaning autocomplete entries', async (database) => {
+        const usernamesDeleted = await database.query('DELETE FROM "autocompleteUsernames" WHERE "timestamp" < $1', [
+          oldestTimestamp
+        ])
+        const ranksDeleted = await database.query('DELETE FROM "autocompleteRanks" WHERE "timestamp" < $1', [
+          oldestTimestamp
+        ])
+        const count = (usernamesDeleted.rowCount ?? 0) + (ranksDeleted.rowCount ?? 0)
+
+        if (count > 0) {
+          this.logger.debug(`Deleted ${count} old autocomplete entry`)
+        }
+      })
     })
   }
 
   public async load(): Promise<void> {
-    const [usernames, ranks] = await Promise.all([
-      this.databaseManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteUsernames"'),
-      this.databaseManager.queryRows<AutocompleteEntry>('SELECT * FROM "autocompleteRanks"')
-    ])
-
-    replaceAutocompleteEntries(this.usernames, usernames)
-    replaceAutocompleteEntries(this.ranks, ranks)
+    // No longer loading into RAM to prevent memory issues
+    this.logger.debug('Autocomplete loaded (on-demand mode)')
   }
 
-  public username(query: string, limit: number): string[] {
-    return this.fetch(this.usernames, query, limit)
+  public async username(query: string, limit: number): Promise<string[]> {
+    return await this.fetch('autocompleteUsernames', query, limit)
   }
 
-  public rank(query: string, limit: number): string[] {
-    return this.fetch(this.ranks, query, limit)
+  public async rank(query: string, limit: number): Promise<string[]> {
+    return await this.fetch('autocompleteRanks', query, limit)
   }
 
-  private fetch(entries: Map<string, AutocompleteEntry>, query: string, limit: number): string[] {
+  private async fetch(
+    table: 'autocompleteUsernames' | 'autocompleteRanks',
+    query: string,
+    limit: number
+  ): Promise<string[]> {
     assert.ok(limit >= 1, 'limit must be 1 or greater')
     limit = Math.floor(limit)
 
     query = query.replaceAll(/[%_]/g, '').toLowerCase()
 
-    const allEntries = [...entries.values()].map((entry) => entry.content)
-    const result = allEntries.filter((entry) => entry.toLowerCase().startsWith(query)).slice(0, limit)
+    // Try startsWith first
+    const startsWithResult = await this.databaseManager.queryRows<{ content: string }>(
+      `SELECT "content" FROM "${table}" WHERE "loweredContent" LIKE $1 LIMIT $2`,
+      [query + '%', limit]
+    )
+
+    const result = startsWithResult.map((row) => row.content)
     if (result.length >= limit) {
       return result
     }
 
-    for (const entry of allEntries) {
-      if (result.includes(entry)) continue
-      if (!entry.toLowerCase().includes(query)) continue
+    // Fallback to contains
+    const containsResult = await this.databaseManager.queryRows<{ content: string }>(
+      `SELECT "content" FROM "${table}" WHERE "loweredContent" LIKE $1 AND "loweredContent" NOT LIKE $2 LIMIT $3`,
+      ['%' + query + '%', query + '%', limit - result.length]
+    )
 
-      result.push(entry)
-      if (result.length >= limit) break
-    }
-
-    return result
+    return [...result, ...containsResult.map((row) => row.content)]
   }
 
   private addUsernames(usernames: string[]): void {
-    this.add('autocompleteUsernames', this.usernames, usernames)
+    this.add('autocompleteUsernames', usernames)
   }
 
   private addRanks(ranks: string[]): void {
-    this.add('autocompleteRanks', this.ranks, ranks)
+    this.add('autocompleteRanks', ranks)
   }
 
-  private add(
-    table: 'autocompleteUsernames' | 'autocompleteRanks',
-    target: Map<string, AutocompleteEntry>,
-    entries: string[]
-  ): void {
+  private add(table: 'autocompleteUsernames' | 'autocompleteRanks', entries: string[]): void {
     const timestamp = Math.floor(Date.now() / 1000)
-    const preparedEntries: AutocompleteEntry[] = []
+    const preparedEntries: { loweredContent: string; content: string; timestamp: number }[] = []
 
     for (const entry of entries) {
       const loweredContent = entry.toLowerCase().trim()
-      const normalizedEntry = { loweredContent, content: entry.trim(), timestamp }
-      target.set(loweredContent, normalizedEntry)
-      preparedEntries.push(normalizedEntry)
+      preparedEntries.push({ loweredContent, content: entry.trim(), timestamp })
     }
 
     this.databaseManager.enqueueTransaction(`saving autocomplete ${table}`, async (database) => {
@@ -199,29 +195,5 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
     }
 
     this.addRanks(ranks)
-  }
-}
-
-interface AutocompleteEntry {
-  loweredContent: string
-  content: string
-  timestamp: number
-}
-
-function removeOldAutocompleteEntries(entries: Map<string, AutocompleteEntry>, oldestTimestamp: number): number {
-  let deleted = 0
-  for (const [key, entry] of entries) {
-    if (entry.timestamp < oldestTimestamp) {
-      entries.delete(key)
-      deleted++
-    }
-  }
-  return deleted
-}
-
-function replaceAutocompleteEntries(target: Map<string, AutocompleteEntry>, entries: AutocompleteEntry[]): void {
-  target.clear()
-  for (const entry of entries) {
-    target.set(entry.loweredContent, entry)
   }
 }

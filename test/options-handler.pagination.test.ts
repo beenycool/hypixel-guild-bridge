@@ -2,8 +2,8 @@ import assert from 'node:assert'
 
 import type { CategoryOption, OptionItem } from '../src/instance/discord/utility/options-handler.js'
 import {
-  DefaultPageSize,
-  MaxComponents,
+  DEFAULT_PAGE_SIZE,
+  MAX_COMPONENTS,
   OptionType,
   ViewBuilder
 } from '../src/instance/discord/utility/options-handler.js'
@@ -21,10 +21,10 @@ const BigCategory = {
 } as unknown as CategoryOption
 
 const IdsMap = new Map<string, { action: 'default' | 'add' | 'delete'; item: OptionItem }>()
-const View = new ViewBuilder(BigCategory, IdsMap, [], true, 0, DefaultPageSize).create()
+const View = new ViewBuilder(BigCategory, IdsMap, [], true, 0, DEFAULT_PAGE_SIZE).create()
 
-if (View.components.length > MaxComponents)
-  throw new Error(`components exceed MaxComponents (${View.components.length} > ${MaxComponents})`)
+if (View.components.length > MAX_COMPONENTS)
+  throw new Error(`components exceed MAX_COMPONENTS (${View.components.length} > ${MAX_COMPONENTS})`)
 
 function hasCustomId(component: unknown, customId: string): boolean {
   const record = component as Record<string, unknown> | null | undefined
