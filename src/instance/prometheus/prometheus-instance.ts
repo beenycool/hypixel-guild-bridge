@@ -32,7 +32,7 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
     Client.collectDefaultMetrics({ register: this.register })
 
     this.applicationMetrics = new ApplicationMetrics(this.register, config.prefix)
-    this.guildOnlineMetrics = new GuildOnlineMetrics(this.register, config.prefix)
+    this.guildOnlineMetrics = new GuildOnlineMetrics(this.register, config.prefix, app, config.exportPerMember ?? false)
 
     app.on('guildPlayer', (event) => {
       this.applicationMetrics.onClientEvent(event)

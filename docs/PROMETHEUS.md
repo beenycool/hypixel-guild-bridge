@@ -9,13 +9,23 @@ Many metrics are automatically collected in memory and await prometheus to scrap
 These are the currently monitored metrics. No usernames or anything personal is monitored. All metrics have the default
 prefix `guild_bridge_`. It can be changed in `config.yaml` under `metrics`.
 
-| Metric                        | Description                  | Source                                                  | metadata                                                                                                                                        |
-| ----------------------------- | ---------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PREFIX_guild_members`        | Guild members count          | Hypixel API `/guild` end point                          | `name`: Guild name                                                                                                                              |
-| `PREFIX_guild_members_online` | Guild current online members | In-game periodic execution of `/guild list`             | `name`: Guild name                                                                                                                              |
-| `PREFIX_chat`                 | Messages count of all chat   | In-game guild chat/Discord bot                          | `location`: Discord, webhook, in-game.<br>`scope`: private, officer, public chat.<br>`instance`: name of the source registered in `config.yaml` |
-| `PREFIX_command`              | Commands usage count         | Discord commands interactions and in-game chat commands | Same as chat metrics + `command`: command name                                                                                                  |
-| `PREFIX_event`                | Events count                 | Discord server events and in-game chat                  | same as chat metrics + `event`: event name (e.g. offline, join, mute, etc.)                                                                     |
+Per-member gauges and snapshot tables are only populated when `prometheus.exportPerMember` is enabled.
+
+| Metric                             | Description                  | Source                                                  | metadata                                                                                                                                        |
+| ---------------------------------- | ---------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PREFIX_guild_members`             | Guild members count          | Hypixel API `/guild` end point                          | `name`: Guild name                                                                                                                              |
+| `PREFIX_guild_members_online`      | Guild current online members | In-game periodic execution of `/guild list`             | `name`: Guild name                                                                                                                              |
+| `PREFIX_guild_gexp_total`          | Guild cumulative GEXP        | Hypixel API guild payload                               | `name`: Guild name                                                                                                                              |
+| `PREFIX_guild_gexp_weekly`         | Guild weekly GEXP            | Hypixel API guild payload                               | `name`: Guild name                                                                                                                              |
+| `PREFIX_guild_member_gexp_weekly`  | Member weekly GEXP snapshot  | Hypixel API guild payload + database snapshot           | `name`, `member_uuid`, `member_name`                                                                                                            |
+| `PREFIX_guild_member_gexp_daily`   | Member daily GEXP snapshot   | Hypixel API guild payload + database snapshot           | `name`, `member_uuid`, `member_name`                                                                                                            |
+| `PREFIX_guild_member_joined_at`    | Member join timestamp        | Hypixel API guild payload + database snapshot           | `name`, `member_uuid`, `member_name`                                                                                                            |
+| `PREFIX_guild_member_last_seen_at` | Member last seen timestamp   | Database snapshot from live guild member polling        | `name`, `member_uuid`, `member_name`                                                                                                            |
+| `PREFIX_guild_member_online`       | Member online flag           | Database snapshot from live guild member polling        | `name`, `member_uuid`, `member_name`                                                                                                            |
+| `PREFIX_discord_role_members`      | Discord role size            | Discord guild role/member cache                         | `guild_id`, `role_id`, `role_name`                                                                                                              |
+| `PREFIX_chat`                      | Messages count of all chat   | In-game guild chat/Discord bot                          | `location`: Discord, webhook, in-game.<br>`scope`: private, officer, public chat.<br>`instance`: name of the source registered in `config.yaml` |
+| `PREFIX_command`                   | Commands usage count         | Discord commands interactions and in-game chat commands | Same as chat metrics + `command`: command name                                                                                                  |
+| `PREFIX_event`                     | Events count                 | Discord server events and in-game chat                  | same as chat metrics + `event`: event name (e.g. offline, join, mute, etc.)                                                                     |
 
 ## Metrics With Grafana
 
@@ -37,10 +47,22 @@ sum(increase(guild_bridge_chat[1h])) by (scope,location)
 - Guild Total Experience:
 
 ```prometheus
-increase(guild_bridge_guild_exp_total[10m])
+guild_bridge_guild_gexp_total
 ```
 
 ![](https://raw.githubusercontent.com/aidn3/hypixel-guild-discord-bridge/media/metrics_guild_experience_total.png)
+
+- Guild Weekly Experience:
+
+```prometheus
+guild_bridge_guild_gexp_weekly
+```
+
+- Discord Role Count:
+
+```prometheus
+guild_bridge_discord_role_members
+```
 
 - Guild Current Online Members:
 

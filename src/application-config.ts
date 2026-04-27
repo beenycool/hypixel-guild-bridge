@@ -15,6 +15,7 @@ export interface PrometheusConfig {
   enabled: boolean
   port: number
   prefix: string
+  exportPerMember?: boolean
 }
 
 export interface DatabaseConfig {

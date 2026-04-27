@@ -16,12 +16,12 @@ Use **Grafana Cloud** (free tier, no credit card) to scrape metrics from your He
 3. Click **Create scrape job**
 4. Fill in:
 
-   | Field | Value |
-   |-------|-------|
-   | Job name | `hypixel-bridge` |
-   | URL | `https://YOUR_HEROKU_APP.herokuapp.com/metrics` |
-   | Authentication | Bearer token |
-   | Token | (same value as `GRAFANA_METRICS_TOKEN` on Heroku) |
+   | Field          | Value                                             |
+   | -------------- | ------------------------------------------------- |
+   | Job name       | `hypixel-bridge`                                  |
+   | URL            | `https://YOUR_HEROKU_APP.herokuapp.com/metrics`   |
+   | Authentication | Bearer token                                      |
+   | Token          | (same value as `GRAFANA_METRICS_TOKEN` on Heroku) |
 
 5. Click **Test connection**, then **Save**
 6. Click **Install** to add any Grafana Cloud dashboards
@@ -45,8 +45,9 @@ Then paste the **same token** into the Grafana Cloud scrape job (Bearer token fi
 
 1. In Grafana Cloud, go to **Dashboards** → **New** → **Import**
 2. Upload or paste the contents of `grafana/dashboards/hypixel-bridge-overview.json` from this repo
-3. Select your **Grafana Cloud Prometheus** data source
-4. Click **Import**
+3. Optionally import `grafana/dashboards/hypixel-bridge-guild-detail.json` for per-guild drilldowns
+4. Select your **Grafana Cloud Prometheus** data source
+5. Click **Import**
 
 Use the **Bridge** dropdown to filter by guild, or choose **All**.
 

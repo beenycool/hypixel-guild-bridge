@@ -9,10 +9,12 @@ import {
   ChannelType,
   type ChatEvent,
   InstanceType,
-  MinecraftSendChatPriority
+  MinecraftSendChatPriority,
+  type MinecraftGuildChat
 } from '../src/common/application-event.js'
 import PluginInstance from '../src/common/plugin-instance.js'
 import type { PluginInfo } from '../src/common/plugin-instance.js'
+import type { User } from '../src/common/user.js'
 import type { PluginsManager } from '../src/instance/features/plugins-manager.js'
 
 function resolveAiChatBridgeId(bridgeId: string | undefined): string {
@@ -439,11 +441,17 @@ export default class AiChatPlugin extends PluginInstance {
   }
 
   private async onChatEvent(event: ChatEvent): Promise<void> {
-    if (event.instanceType !== InstanceType.Minecraft || event.channelType !== ChannelType.Public) return
+    if (event.channelType !== ChannelType.Public) return
+    if (event.instanceType !== InstanceType.Minecraft && event.instanceType !== InstanceType.Discord) return
+
+    if (event.instanceType === InstanceType.Minecraft) {
+      const mojangProfile = event.user.mojangProfile()
+      if (mojangProfile === undefined || this.application.minecraftManager.isMinecraftBot(mojangProfile.name)) return
+    } else if (event.instanceType === InstanceType.Discord) {
+      if (event.user.discordProfile()?.id === this.application.discordInstance.getClient().user?.id) return
+    }
 
     const mojangProfile = event.user.mojangProfile()
-    if (this.application.minecraftManager.isMinecraftBot(mojangProfile.name)) return
-
     const chatPrefix = this.resolveChatPrefix(event.bridgeId)
     
     // Command handling
@@ -452,6 +460,11 @@ export default class AiChatPlugin extends PluginInstance {
       const command = parts[0].toLowerCase()
 
       if (command === 'mode' || AiChatModes[command] !== undefined) {
+        if (mojangProfile === undefined) {
+          await this.sendReply(event, "AI mode selection is currently only available for linked Minecraft accounts.")
+          return
+        }
+
         let targetMode = command === 'mode' ? parts[1]?.toLowerCase() : command
         if (targetMode === undefined) {
           await this.sendReply(event, `Current AI modes: ${Object.keys(AiChatModes).join(', ')}`)
@@ -472,7 +485,8 @@ export default class AiChatPlugin extends PluginInstance {
     if (event.message.startsWith(chatPrefix)) return
 
     const bridgeKey = resolveAiChatBridgeId(event.bridgeId)
-    const currentLine = `${mojangProfile.name}: ${event.message}`
+    const senderName = event.user.displayName()
+    const currentLine = `${senderName}: ${event.message}`
 
     const existingTranscript = this.transcripts.get(bridgeKey) ?? []
     this.transcripts.set(bridgeKey, appendAiChatTranscript(existingTranscript, currentLine))
@@ -488,8 +502,8 @@ export default class AiChatPlugin extends PluginInstance {
       bridgeId: event.bridgeId,
       instanceName: event.instanceName,
       eventId: event.eventId,
-      username: mojangProfile.name,
-      playerId: mojangProfile.id,
+      username: senderName,
+      playerId: mojangProfile?.id ?? `discord::${event.user.discordProfile()?.id ?? 'unknown'}`,
       latestMessage: event.message
     })
   }
@@ -501,6 +515,21 @@ export default class AiChatPlugin extends PluginInstance {
       event.eventId,
       `/gc ${message}`
     )
+
+    const botUser = await this.getBotUser(event.instanceName)
+    const replyEvent = this.eventHelper.fillBaseEvent()
+    await this.application.emit('chat', {
+      ...replyEvent,
+      instanceType: InstanceType.Minecraft,
+      instanceName: event.instanceName,
+      channelType: ChannelType.Public,
+      bridgeId: event.bridgeId,
+      user: botUser,
+      message: message,
+      rawMessage: `§2Guild > §b${botUser.displayName()}: §f${message}`,
+      hypixelRank: '§b',
+      guildRank: 'AI'
+    } as MinecraftGuildChat)
   }
 
   private async logResponse(
@@ -687,9 +716,32 @@ export default class AiChatPlugin extends PluginInstance {
       `/gc ${trimmedReply}`
     )
 
+    const botUser = await this.getBotUser(input.instanceName)
+    const event = this.eventHelper.fillBaseEvent()
+    await this.application.emit('chat', {
+      ...event,
+      instanceType: InstanceType.Minecraft,
+      instanceName: input.instanceName,
+      channelType: ChannelType.Public,
+      bridgeId: input.bridgeId,
+      user: botUser,
+      message: trimmedReply,
+      rawMessage: `§2Guild > §b${botUser.displayName()}: §f${trimmedReply}`,
+      hypixelRank: '§b',
+      guildRank: 'AI'
+    } as MinecraftGuildChat)
+
     if (response.memory !== undefined) {
       await storage.saveNote(input.bridgeId, input.playerId, response.memory)
     }
+  }
+
+  private async getBotUser(instanceName: string): Promise<User> {
+    const botInfo = this.application.minecraftManager.getMinecraftBots().find((bot) => bot.instanceName === instanceName)
+    const username = botInfo?.username ?? 'Bot'
+    const uuid = botInfo?.uuid ?? '00000000000000000000000000000000'
+
+    return await this.application.core.initializeMinecraftUser({ name: username, id: uuid }, {})
   }
 
   private async generateAiReply(input: PromptInput): Promise<ResolvedAiChatOutput> {
