@@ -122,7 +122,7 @@ export default class GuildOnlineMetrics {
     this.resetMetrics()
 
     const instanceNames = app.getInstancesNames(InstanceType.Minecraft)
-    this.app.logger.debug(`collectMetrics: instances=${instanceNames.join(',')}`)
+    this.app.logger.info(`collectMetrics: instances=${instanceNames.join(',')}`)
 
     const guildTasks: Promise<unknown>[] = []
     for (const instanceName of instanceNames) {
@@ -131,7 +131,7 @@ export default class GuildOnlineMetrics {
         app.core.guildManager
           .list(instanceName)
           .then((guild) => {
-            this.app.logger.debug(
+            this.app.logger.info(
               `collectMetrics: ${instanceName} list=${guild.members.length} online=${guild.members.filter((m) => m.online).length}`
             )
             this.guildTotalMembersCount.set({ name: instanceName }, guild.members.length)
@@ -141,7 +141,7 @@ export default class GuildOnlineMetrics {
             )
           })
           .catch((err) => {
-            this.app.logger.debug(`collectMetrics: ${instanceName} list failed: ${String(err)}`)
+            this.app.logger.info(`collectMetrics: ${instanceName} list failed: ${String(err)}`)
           })
       )
 
@@ -153,7 +153,7 @@ export default class GuildOnlineMetrics {
         (async () => {
           this.app.logger.debug(`collectMetrics: ${instanceName} fetching Hypixel API for ${bot.uuid}`)
           const hypixelGuild = await app.hypixelApi.getGuild('player', bot.uuid)
-          this.app.logger.debug(
+          this.app.logger.info(
             `collectMetrics: ${instanceName} Hypixel API ok, members=${hypixelGuild.members.length} gexp=${hypixelGuild.experience}`
           )
 
@@ -191,16 +191,16 @@ export default class GuildOnlineMetrics {
             this.memberOnline.set(labels, online ? 1 : 0)
           }
         })().catch((err) => {
-          this.app.logger.debug(`collectMetrics: ${instanceName} Hypixel API failed: ${String(err)}`)
+          this.app.logger.info(`collectMetrics: ${instanceName} Hypixel API failed: ${String(err)}`)
         })
       )
     }
 
     await Promise.allSettled(guildTasks)
 
-    this.app.logger.debug('collectMetrics: collecting Discord roles')
+    this.app.logger.info('collectMetrics: collecting Discord roles')
     await this.collectDiscordRoleMetrics(app)
-    this.app.logger.debug('collectMetrics: done')
+    this.app.logger.info('collectMetrics: done')
   }
 
   private async snapshotMemberState(): Promise<void> {
