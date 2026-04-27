@@ -9,7 +9,7 @@
   "timezone": "browser",
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Total Members",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
@@ -17,7 +17,7 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto" }
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Total Online",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
@@ -25,7 +25,7 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto" }
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Total GEXP",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
@@ -33,7 +33,7 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto" }
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Weekly GEXP",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
@@ -41,7 +41,7 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "auto" }
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "timeseries",
       "title": "Guild Members and Online Trend",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 4 },
@@ -51,7 +51,7 @@
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "timeseries",
       "title": "Guild GEXP Trend",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 4 },
@@ -61,21 +61,21 @@
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "table",
       "title": "Top Guilds By Weekly GEXP",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
       "targets": [{ "expr": "topk(10, sum by (name) (hypixel_bridge_guild_gexp_weekly))", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "table",
       "title": "Discord Role Sizes",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
       "targets": [{ "expr": "topk(20, hypixel_bridge_discord_role_members)", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "timeseries",
       "title": "Guild Event Churn",
       "gridPos": { "h": 8, "w": 16, "x": 0, "y": 20 },

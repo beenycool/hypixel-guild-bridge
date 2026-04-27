@@ -8,6 +8,8 @@ import type { PrometheusConfig } from '../../application-config.js'
 import type Application from '../../application.js'
 import { InstanceType } from '../../common/application-event.js'
 import { Instance, InternalInstancePrefix } from '../../common/instance.js'
+import Duration from '../../utility/duration'
+import { setIntervalAsync } from '../../utility/scheduling'
 
 import ApplicationMetrics from './application-metrics.js'
 import GuildOnlineMetrics from './guild-online-metrics.js'
@@ -50,6 +52,12 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
       this.applicationMetrics.onCommandEvent(event)
     })
 
+    // Collect metrics periodically in background so scrapes return instantly
+    setIntervalAsync(() => this.collectMetrics(), {
+      delay: Duration.seconds(30),
+      errorHandler: (error) => this.logger.error('Background metric collection failed', error)
+    })
+
     this.httpServer = http.createServer((request, response) => {
       if (request.url == undefined) {
         response.writeHead(HttpStatusCode.NotFound)
@@ -59,15 +67,9 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
 
       const route = request.url.split('?')[0]
       if (route === '/metrics') {
-        this.logger.debug('Prometheus scrap is called on /metrics')
         response.setHeader('Content-Type', this.register.contentType)
-
-        void this.collectMetrics()
-          .then(() => this.register.metrics())
-          .then((metrics) => response.end(metrics))
-          .catch(() => response.end())
+        this.register.metrics().then((metrics) => response.end(metrics))
       } else if (route === '/ping') {
-        this.logger.debug('Ping received')
         response.writeHead(HttpStatusCode.Ok)
         response.end()
       } else {

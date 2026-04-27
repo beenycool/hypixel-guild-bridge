@@ -24,35 +24,35 @@
   },
   "panels": [
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Members",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
       "targets": [{ "expr": "sum(hypixel_bridge_guild_members{name=~\"$guild\"})", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Online",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
       "targets": [{ "expr": "sum(hypixel_bridge_guild_members_online{name=~\"$guild\"})", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Weekly GEXP",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
       "targets": [{ "expr": "sum(hypixel_bridge_guild_gexp_weekly{name=~\"$guild\"})", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "stat",
       "title": "Total GEXP",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
       "targets": [{ "expr": "sum(hypixel_bridge_guild_gexp_total{name=~\"$guild\"})", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "timeseries",
       "title": "GEXP Trend",
       "gridPos": { "h": 8, "w": 16, "x": 0, "y": 4 },
@@ -62,21 +62,21 @@
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "table",
       "title": "Top Members By Weekly GEXP",
       "gridPos": { "h": 10, "w": 8, "x": 0, "y": 12 },
       "targets": [{ "expr": "topk(10, hypixel_bridge_guild_member_gexp_weekly{name=~\"$guild\"})", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "table",
       "title": "Inactive Members",
       "gridPos": { "h": 10, "w": 8, "x": 8, "y": 12 },
       "targets": [{ "expr": "hypixel_bridge_guild_member_last_seen_at{name=~\"$guild\"}", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "PROMETHEUS" },
+      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
       "type": "timeseries",
       "title": "Join and Leave Churn",
       "gridPos": { "h": 8, "w": 16, "x": 0, "y": 22 },
