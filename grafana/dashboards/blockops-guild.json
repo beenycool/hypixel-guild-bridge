@@ -96,7 +96,7 @@
       "title": "Chat Messages (24h)",
       "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
       "targets": [
-        { "expr": "sum(increase(hypixel_bridge_chat{name=\"blockops\"}[24h]))", "refId": "A", "instant": true }
+        { "expr": "sum(increase(hypixel_bridge_chat{instance=\"blockops\"}[24h]))", "refId": "A", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -117,7 +117,7 @@
       "title": "Commands Used (24h)",
       "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
       "targets": [
-        { "expr": "sum(increase(hypixel_bridge_command{name=\"blockops\"}[24h]))", "refId": "A", "instant": true }
+        { "expr": "sum(increase(hypixel_bridge_command{instance=\"blockops\"}[24h]))", "refId": "A", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -206,27 +206,27 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_event{name=\"blockops\",event=\"join\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"blockops\",event=\"join\"}[1h])",
           "refId": "A",
           "legendFormat": "Joins"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"blockops\",event=\"leave\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"blockops\",event=\"leave\"}[1h])",
           "refId": "B",
           "legendFormat": "Leaves"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"blockops\",event=\"kick\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"blockops\",event=\"kick\"}[1h])",
           "refId": "C",
           "legendFormat": "Kicks"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"blockops\",event=\"online\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"blockops\",event=\"online\"}[1h])",
           "refId": "D",
           "legendFormat": "Online Events"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"blockops\",event=\"offline\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"blockops\",event=\"offline\"}[1h])",
           "refId": "E",
           "legendFormat": "Offline Events"
         }
@@ -255,17 +255,17 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_chat{name=\"blockops\",scope=\"public\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"blockops\",scope=\"public\"}[1h])",
           "refId": "A",
           "legendFormat": "Public"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{name=\"blockops\",scope=\"officer\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"blockops\",scope=\"officer\"}[1h])",
           "refId": "B",
           "legendFormat": "Officer"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{name=\"blockops\",scope=\"discord\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"blockops\",scope=\"discord\"}[1h])",
           "refId": "C",
           "legendFormat": "Discord"
         }
@@ -285,7 +285,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_command{name=\"blockops\"}[1h])",
+          "expr": "increase(hypixel_bridge_command{instance=\"blockops\"}[1h])",
           "refId": "A",
           "legendFormat": "Commands"
         }

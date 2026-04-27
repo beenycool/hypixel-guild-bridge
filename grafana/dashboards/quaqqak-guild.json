@@ -96,7 +96,7 @@
       "title": "Chat Messages (24h)",
       "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
       "targets": [
-        { "expr": "sum(increase(hypixel_bridge_chat{name=\"quaqqak\"}[24h]))", "refId": "A", "instant": true }
+        { "expr": "sum(increase(hypixel_bridge_chat{instance=\"quaqqak\"}[24h]))", "refId": "A", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -117,7 +117,7 @@
       "title": "Commands Used (24h)",
       "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
       "targets": [
-        { "expr": "sum(increase(hypixel_bridge_command{name=\"quaqqak\"}[24h]))", "refId": "A", "instant": true }
+        { "expr": "sum(increase(hypixel_bridge_command{instance=\"quaqqak\"}[24h]))", "refId": "A", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -206,27 +206,27 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_event{name=\"quaqqak\",event=\"join\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"quaqqak\",event=\"join\"}[1h])",
           "refId": "A",
           "legendFormat": "Joins"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"quaqqak\",event=\"leave\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"quaqqak\",event=\"leave\"}[1h])",
           "refId": "B",
           "legendFormat": "Leaves"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"quaqqak\",event=\"kick\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"quaqqak\",event=\"kick\"}[1h])",
           "refId": "C",
           "legendFormat": "Kicks"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"quaqqak\",event=\"online\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"quaqqak\",event=\"online\"}[1h])",
           "refId": "D",
           "legendFormat": "Online Events"
         },
         {
-          "expr": "increase(hypixel_bridge_event{name=\"quaqqak\",event=\"offline\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"quaqqak\",event=\"offline\"}[1h])",
           "refId": "E",
           "legendFormat": "Offline Events"
         }
@@ -255,17 +255,17 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_chat{name=\"quaqqak\",scope=\"public\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"quaqqak\",scope=\"public\"}[1h])",
           "refId": "A",
           "legendFormat": "Public"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{name=\"quaqqak\",scope=\"officer\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"quaqqak\",scope=\"officer\"}[1h])",
           "refId": "B",
           "legendFormat": "Officer"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{name=\"quaqqak\",scope=\"discord\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"quaqqak\",scope=\"discord\"}[1h])",
           "refId": "C",
           "legendFormat": "Discord"
         }
@@ -285,7 +285,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_command{name=\"quaqqak\"}[1h])",
+          "expr": "increase(hypixel_bridge_command{instance=\"quaqqak\"}[1h])",
           "refId": "A",
           "legendFormat": "Commands"
         }

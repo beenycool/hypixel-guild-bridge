@@ -121,16 +121,6 @@ export default class GuildOnlineMetrics {
   async collectMetrics(app: Application): Promise<void> {
     this.resetMetrics()
 
-    const membersState = new Map<string, StoredGuildMemberState[]>()
-    const memberStateRows = await app.core.databaseManager.queryRows<StoredGuildMemberState>(
-      'SELECT * FROM "guildMemberStates"'
-    )
-    for (const row of memberStateRows) {
-      const current = membersState.get(row.instanceName) ?? []
-      current.push(row)
-      membersState.set(row.instanceName, current)
-    }
-
     const guildTasks: Promise<unknown>[] = []
     for (const instanceName of app.getInstancesNames(InstanceType.Minecraft)) {
       guildTasks.push(
@@ -147,25 +137,40 @@ export default class GuildOnlineMetrics {
       if (bot === undefined) continue
 
       guildTasks.push(
-        app.hypixelApi.getGuild('player', bot.uuid).then((guild) => {
-          this.guildTotalExperience.set({ name: instanceName }, guild.experience)
-          this.guildWeeklyExperience.set({ name: instanceName }, guild.totalWeeklyGexp)
-        })
-      )
+        (async () => {
+          const [hypixelGuild, guildList] = await Promise.all([
+            app.hypixelApi.getGuild('player', bot.uuid),
+            app.core.guildManager.list(instanceName)
+          ])
 
-      const rows = membersState.get(instanceName) ?? []
-      for (const row of rows) {
-        const labels = {
-          name: instanceName,
-          member_uuid: row.memberUuid,
-          member_name: row.memberName
-        }
-        this.memberWeeklyExperience.set(labels, row.weeklyGexp)
-        this.memberDailyExperience.set(labels, row.dailyGexp)
-        this.memberJoinedAt.set(labels, row.joinedAt)
-        this.memberLastSeenAt.set(labels, row.lastSeenAt)
-        this.memberOnline.set(labels, row.online)
-      }
+          this.guildTotalExperience.set({ name: instanceName }, hypixelGuild.experience)
+          this.guildWeeklyExperience.set({ name: instanceName }, hypixelGuild.totalWeeklyGexp)
+
+          if (!this.exportPerMember) return
+
+          const onlineUsernames = guildList.members.filter((member) => member.online).map((member) => member.username)
+          const onlineProfiles = await this.resolveOnlineProfiles(onlineUsernames)
+          const onlineUuids = new Set([...onlineProfiles.values()].filter((uuid): uuid is string => uuid !== undefined))
+
+          for (const member of hypixelGuild.members) {
+            const sortedHistory = member.expHistory.toSorted((a, b) => b.date.getTime() - a.date.getTime())
+            const online = onlineUuids.has(member.uuid)
+            const memberName =
+              (await this.app.mojangApi.profileByUuid(member.uuid).catch(() => undefined))?.name ?? member.uuid
+
+            const labels = {
+              name: instanceName,
+              member_uuid: member.uuid,
+              member_name: memberName
+            }
+            this.memberWeeklyExperience.set(labels, member.weeklyExperience)
+            this.memberDailyExperience.set(labels, sortedHistory[0]?.exp ?? 0)
+            this.memberJoinedAt.set(labels, member.joinedAtTimestamp)
+            this.memberLastSeenAt.set(labels, online ? Date.now() : member.joinedAtTimestamp)
+            this.memberOnline.set(labels, online ? 1 : 0)
+          }
+        })().catch(() => undefined)
+      )
     }
 
     await Promise.allSettled(guildTasks)
