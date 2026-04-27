@@ -122,7 +122,6 @@ export default class GuildOnlineMetrics {
     this.resetMetrics()
 
     const instanceNames = app.getInstancesNames(InstanceType.Minecraft)
-    this.app.logger.info(`collectMetrics: instances=${instanceNames.join(',')}`)
 
     const guildTasks: Promise<unknown>[] = []
     for (const instanceName of instanceNames) {
@@ -131,35 +130,22 @@ export default class GuildOnlineMetrics {
         app.core.guildManager
           .list(instanceName)
           .then((guild) => {
-            this.app.logger.info(
-              `collectMetrics: ${instanceName} list=${guild.members.length} online=${guild.members.filter((m) => m.online).length}`
-            )
             this.guildTotalMembersCount.set({ name: instanceName }, guild.members.length)
             this.guildOnlineMembersCount.set(
               { name: instanceName },
               guild.members.filter((member) => member.online).length
             )
           })
-          .catch((err) => {
-            this.app.logger.info(`collectMetrics: ${instanceName} list failed: ${String(err)}`)
-          })
+          .catch(() => undefined)
       )
 
       const bot = app.minecraftManager.getMinecraftBots().find((entry) => entry.instanceName === instanceName)
-      if (bot === undefined) {
-        this.app.logger.info(`collectMetrics: ${instanceName} no bot found`)
-        continue
-      }
-      this.app.logger.info(`collectMetrics: ${instanceName} bot uuid=${bot.uuid}`)
+      if (bot === undefined) continue
 
       // Hypixel API data (GEXP + per-member) – independent promise with catch
       guildTasks.push(
         (async () => {
-          this.app.logger.info(`collectMetrics: ${instanceName} fetching Hypixel API for ${bot.uuid}`)
           const hypixelGuild = await app.hypixelApi.getGuild('player', bot.uuid)
-          this.app.logger.info(
-            `collectMetrics: ${instanceName} Hypixel API ok, members=${hypixelGuild.members.length} gexp=${hypixelGuild.experience}`
-          )
 
           this.guildTotalExperience.set({ name: instanceName }, hypixelGuild.experience)
           this.guildWeeklyExperience.set({ name: instanceName }, hypixelGuild.totalWeeklyGexp)
@@ -194,17 +180,13 @@ export default class GuildOnlineMetrics {
             this.memberLastSeenAt.set(labels, online ? Date.now() : member.joinedAtTimestamp)
             this.memberOnline.set(labels, online ? 1 : 0)
           }
-        })().catch((err) => {
-          this.app.logger.info(`collectMetrics: ${instanceName} Hypixel API failed: ${String(err)}`)
-        })
+        })().catch(() => undefined)
       )
     }
 
     await Promise.allSettled(guildTasks)
 
-    this.app.logger.info('collectMetrics: collecting Discord roles')
     await this.collectDiscordRoleMetrics(app)
-    this.app.logger.info('collectMetrics: done')
   }
 
   private async snapshotMemberState(): Promise<void> {
@@ -320,31 +302,23 @@ export default class GuildOnlineMetrics {
 
   private async collectDiscordRoleMetrics(app: Application): Promise<void> {
     const client = app.discordInstance.getClient()
-    if (!client.isReady()) {
-      this.app.logger.info('collectMetrics: Discord client not ready')
-      return
-    }
+    if (!client.isReady()) return
 
-    this.app.logger.info(`collectMetrics: Discord guilds=${client.guilds.cache.size}`)
     const tasks: Promise<unknown>[] = []
     for (const guild of client.guilds.cache.values()) {
       tasks.push(
         (async () => {
-          this.app.logger.info(`collectMetrics: Discord fetching roles for guild ${guild.id}`)
           const [roles, members] = await Promise.all([
             guild.roles.fetch(),
             guild.members.fetch().catch(() => guild.members.cache)
           ])
-          this.app.logger.info(`collectMetrics: Discord guild ${guild.id} roles=${roles.size} members=${members.size}`)
           for (const role of roles.values()) {
             this.discordRoleMembers.set(
               { guild_id: guild.id, role_id: role.id, role_name: role.name },
               members.filter((member) => member.roles.cache.has(role.id)).size
             )
           }
-        })().catch((err) => {
-          this.app.logger.info(`collectMetrics: Discord guild ${guild.id} failed: ${String(err)}`)
-        })
+        })().catch(() => undefined)
       )
     }
 
