@@ -123,34 +123,43 @@ export default class GuildOnlineMetrics {
 
     const guildTasks: Promise<unknown>[] = []
     for (const instanceName of app.getInstancesNames(InstanceType.Minecraft)) {
+      // Guild list (members + online) – independent promise with catch
       guildTasks.push(
-        app.core.guildManager.list(instanceName).then((guild) => {
-          this.guildTotalMembersCount.set({ name: instanceName }, guild.members.length)
-          this.guildOnlineMembersCount.set(
-            { name: instanceName },
-            guild.members.filter((member) => member.online).length
-          )
-        })
+        app.core.guildManager
+          .list(instanceName)
+          .then((guild) => {
+            this.guildTotalMembersCount.set({ name: instanceName }, guild.members.length)
+            this.guildOnlineMembersCount.set(
+              { name: instanceName },
+              guild.members.filter((member) => member.online).length
+            )
+          })
+          .catch(() => undefined)
       )
 
       const bot = app.minecraftManager.getMinecraftBots().find((entry) => entry.instanceName === instanceName)
       if (bot === undefined) continue
 
+      // Hypixel API data (GEXP + per-member) – independent promise with catch
       guildTasks.push(
         (async () => {
-          const [hypixelGuild, guildList] = await Promise.all([
-            app.hypixelApi.getGuild('player', bot.uuid),
-            app.core.guildManager.list(instanceName)
-          ])
+          const hypixelGuild = await app.hypixelApi.getGuild('player', bot.uuid)
 
           this.guildTotalExperience.set({ name: instanceName }, hypixelGuild.experience)
           this.guildWeeklyExperience.set({ name: instanceName }, hypixelGuild.totalWeeklyGexp)
 
           if (!this.exportPerMember) return
 
-          const onlineUsernames = guildList.members.filter((member) => member.online).map((member) => member.username)
-          const onlineProfiles = await this.resolveOnlineProfiles(onlineUsernames)
-          const onlineUuids = new Set([...onlineProfiles.values()].filter((uuid): uuid is string => uuid !== undefined))
+          // Try to get online status from guild list, but don't fail if disconnected
+          let onlineUuids = new Set<string>()
+          try {
+            const guildList = await app.core.guildManager.list(instanceName)
+            const onlineUsernames = guildList.members.filter((member) => member.online).map((member) => member.username)
+            const onlineProfiles = await this.resolveOnlineProfiles(onlineUsernames)
+            onlineUuids = new Set([...onlineProfiles.values()].filter((uuid): uuid is string => uuid !== undefined))
+          } catch {
+            // Bot disconnected – all members appear offline
+          }
 
           for (const member of hypixelGuild.members) {
             const sortedHistory = member.expHistory.toSorted((a, b) => b.date.getTime() - a.date.getTime())
