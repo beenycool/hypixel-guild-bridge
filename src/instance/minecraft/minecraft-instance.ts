@@ -30,7 +30,7 @@ import StateHandler, { QuitOwnVolition } from './handlers/state-handler.js'
 import MinecraftBridge from './minecraft-bridge.js'
 
 export default class MinecraftInstance extends ConnectableInstance<InstanceType.Minecraft> {
-  readonly defaultHosts = ['free.stopthelag.lol', 'me.hypixel.net']
+  readonly defaultHosts = ['me.hypixel.net', 'free.stopthelag.lol']
   readonly defaultPort = 25_565
   readonly defaultVersion = '1.8.9'
   public currentHostIndex = 0
