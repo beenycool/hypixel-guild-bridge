@@ -121,20 +121,28 @@ export default class GuildOnlineMetrics {
   async collectMetrics(app: Application): Promise<void> {
     this.resetMetrics()
 
+    const instanceNames = app.getInstancesNames(InstanceType.Minecraft)
+    this.app.logger.debug(`collectMetrics: instances=${instanceNames.join(',')}`)
+
     const guildTasks: Promise<unknown>[] = []
-    for (const instanceName of app.getInstancesNames(InstanceType.Minecraft)) {
+    for (const instanceName of instanceNames) {
       // Guild list (members + online) – independent promise with catch
       guildTasks.push(
         app.core.guildManager
           .list(instanceName)
           .then((guild) => {
+            this.app.logger.debug(
+              `collectMetrics: ${instanceName} list=${guild.members.length} online=${guild.members.filter((m) => m.online).length}`
+            )
             this.guildTotalMembersCount.set({ name: instanceName }, guild.members.length)
             this.guildOnlineMembersCount.set(
               { name: instanceName },
               guild.members.filter((member) => member.online).length
             )
           })
-          .catch(() => undefined)
+          .catch((err) => {
+            this.app.logger.debug(`collectMetrics: ${instanceName} list failed: ${String(err)}`)
+          })
       )
 
       const bot = app.minecraftManager.getMinecraftBots().find((entry) => entry.instanceName === instanceName)
@@ -143,7 +151,11 @@ export default class GuildOnlineMetrics {
       // Hypixel API data (GEXP + per-member) – independent promise with catch
       guildTasks.push(
         (async () => {
+          this.app.logger.debug(`collectMetrics: ${instanceName} fetching Hypixel API for ${bot.uuid}`)
           const hypixelGuild = await app.hypixelApi.getGuild('player', bot.uuid)
+          this.app.logger.debug(
+            `collectMetrics: ${instanceName} Hypixel API ok, members=${hypixelGuild.members.length} gexp=${hypixelGuild.experience}`
+          )
 
           this.guildTotalExperience.set({ name: instanceName }, hypixelGuild.experience)
           this.guildWeeklyExperience.set({ name: instanceName }, hypixelGuild.totalWeeklyGexp)
@@ -178,13 +190,17 @@ export default class GuildOnlineMetrics {
             this.memberLastSeenAt.set(labels, online ? Date.now() : member.joinedAtTimestamp)
             this.memberOnline.set(labels, online ? 1 : 0)
           }
-        })().catch(() => undefined)
+        })().catch((err) => {
+          this.app.logger.debug(`collectMetrics: ${instanceName} Hypixel API failed: ${String(err)}`)
+        })
       )
     }
 
     await Promise.allSettled(guildTasks)
 
+    this.app.logger.debug('collectMetrics: collecting Discord roles')
     await this.collectDiscordRoleMetrics(app)
+    this.app.logger.debug('collectMetrics: done')
   }
 
   private async snapshotMemberState(): Promise<void> {
