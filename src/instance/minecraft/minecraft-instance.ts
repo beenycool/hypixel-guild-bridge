@@ -30,11 +30,10 @@ import StateHandler, { QuitOwnVolition } from './handlers/state-handler.js'
 import MinecraftBridge from './minecraft-bridge.js'
 
 export default class MinecraftInstance extends ConnectableInstance<InstanceType.Minecraft> {
-  readonly defaultBotConfig = {
-    host: 'me.hypixel.net',
-    port: 25_565,
-    version: '1.8.9'
-  }
+  readonly defaultHosts = ['free.stopthelag.lol', 'me.hypixel.net']
+  readonly defaultPort = 25_565
+  readonly defaultVersion = '1.8.9'
+  public currentHostIndex = 0
 
   private clientSession: ClientSession | undefined
 
@@ -128,6 +127,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     }
 
     this.stateHandler.resetLoginAttempts()
+    this.currentHostIndex = 0
     await this.automaticReconnect()
   }
 
@@ -145,14 +145,22 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       return
     }
 
+    const currentHost = this.defaultHosts[this.currentHostIndex]
+    this.logger.info(`Connecting to ${currentHost} (host ${this.currentHostIndex + 1}/${this.defaultHosts.length})`)
+
     const client = createClient({
-      ...this.defaultBotConfig,
+      host: currentHost,
+      port: this.defaultPort,
+      version: this.defaultVersion,
       username: this.config.name,
       auth: 'microsoft',
       // @ts-expect-error profilesFolder is directly passed to 'prismarine-auth'.Authflow, which that library also allow a factory function
       profilesFolder: this.application.core.minecraftSessions.getSessionsFactory(this.instanceName),
 
-      ...resolveProxyIfExist(this.logger, this.config.proxy, this.defaultBotConfig),
+      ...resolveProxyIfExist(this.logger, this.config.proxy, {
+        host: currentHost,
+        port: this.defaultPort
+      }),
       onMsaCode: (code) => {
         void this.broadcastInstanceMessage({
           type: InstanceMessageType.MinecraftAuthenticationCode,

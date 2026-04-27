@@ -136,6 +136,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     this.logger.info('Minecraft client ready, logged in')
 
     this.loginAttempts = 0
+    this.clientInstance.currentHostIndex = 0
     await this.clientInstance.setAndBroadcastNewStatus(Status.Connected)
     this.logger.info('Minecraft instance has connected')
   }
@@ -264,6 +265,8 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       return
     }
 
+    this.tryFallbackHost()
+
     let loginDelay = (this.loginAttempts + 1) * 5000
     if (loginDelay > StateHandler.MaxDuration.toMilliseconds()) loginDelay = StateHandler.MaxDuration.toMilliseconds()
 
@@ -276,5 +279,14 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       delay: Duration.milliseconds(loginDelay),
       errorHandler: this.errorHandler.promiseCatch('trying to auto reconnect')
     })
+  }
+
+  private tryFallbackHost(): void {
+    if (this.clientInstance.currentHostIndex < this.clientInstance.defaultHosts.length - 1) {
+      this.clientInstance.currentHostIndex++
+      this.logger.info(
+        `Falling back to host: ${this.clientInstance.defaultHosts[this.clientInstance.currentHostIndex]}`
+      )
+    }
   }
 }

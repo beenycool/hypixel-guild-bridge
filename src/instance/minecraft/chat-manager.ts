@@ -57,7 +57,7 @@ export default class ChatManager extends SubInstance<MinecraftInstance, Instance
   ) {
     super(application, clientInstance, eventHelper, logger, errorHandler)
 
-    this.minecraftData = GetMinecraftData(clientInstance.defaultBotConfig.version)
+    this.minecraftData = GetMinecraftData(clientInstance.defaultVersion)
 
     this.chatModules = [
       AdvertiseChat,
