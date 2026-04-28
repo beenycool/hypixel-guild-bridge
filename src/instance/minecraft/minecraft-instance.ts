@@ -160,10 +160,29 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     const iasTokenCache = sessionsManager.getCacheSync(this.instanceName, 'iasRefreshToken')
     const usesIasAuth = typeof iasTokenCache.token === 'string'
 
+    // #region agent log
+    this.emitAgentDebugLog(
+      'pre-fix',
+      'H1,H4',
+      'src/instance/minecraft/minecraft-instance.ts:automaticReconnect',
+      'Minecraft reconnect auth selection',
+      {
+        autoConnect,
+        currentHost,
+        currentHostIndex: this.currentHostIndex,
+        hasIasRefreshToken: usesIasAuth,
+        iasRefreshTokenValueType: typeof iasTokenCache.token
+      }
+    )
+    // #endregion
+
     const authOption = usesIasAuth
       ? createIasAuthFunction({
           instanceName: this.instanceName,
           cache: this.buildIasAuthCache(),
+          onDebug: (location, message, data, hypothesisId) => {
+            this.emitAgentDebugLog('pre-fix', hypothesisId, location, message, data)
+          },
           onError: (message) => {
             this.logger.warn(`IAS auth error for ${this.instanceName}: ${message}`)
           }
@@ -331,6 +350,36 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private static normalizeUuidForCompare(uuid: string | undefined): string | undefined {
     if (uuid === undefined || uuid.length === 0) return undefined
     return uuid.replaceAll('-', '').toLowerCase()
+  }
+
+  private emitAgentDebugLog(
+    runId: string,
+    hypothesisId: string,
+    location: string,
+    message: string,
+    data: Record<string, unknown>
+  ): void {
+    const payload = {
+      sessionId: '6b9e0b',
+      runId,
+      hypothesisId,
+      location,
+      message,
+      data: {
+        instanceName: this.instanceName,
+        ...data
+      },
+      timestamp: Date.now()
+    }
+
+    // #region agent log
+    this.logger.info(`[agent-debug] ${JSON.stringify(payload)}`)
+    void fetch('http://localhost:7841/ingest/96583079-93df-4c4e-95ed-e3e352350fef', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6b9e0b' },
+      body: JSON.stringify(payload)
+    }).catch(() => {})
+    // #endregion
   }
 
   private buildIasAuthCache(): IasAuthCache {

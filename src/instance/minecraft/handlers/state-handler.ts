@@ -173,6 +173,34 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'kicked', reason)
     this.logger.error(`Minecraft bot was kicked from the server for: ${reason}`)
 
+    const iasRefreshTokenCache = this.application.core.minecraftSessions.getCacheSync(
+      this.clientInstance.instanceName,
+      'iasRefreshToken'
+    )
+
+    // #region agent log
+    const payload = {
+      sessionId: '6b9e0b',
+      runId: 'pre-fix',
+      hypothesisId: 'H4,H5',
+      location: 'src/instance/minecraft/handlers/state-handler.ts:onKicked',
+      message: 'Minecraft kicked while connecting',
+      data: {
+        instanceName: this.clientInstance.instanceName,
+        reason,
+        hasIasRefreshToken: typeof iasRefreshTokenCache.token === 'string',
+        status: this.clientInstance.currentStatus()
+      },
+      timestamp: Date.now()
+    }
+    this.logger.info(`[agent-debug] ${JSON.stringify(payload)}`)
+    void fetch('http://localhost:7841/ingest/96583079-93df-4c4e-95ed-e3e352350fef', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '6b9e0b' },
+      body: JSON.stringify(payload)
+    }).catch(() => {})
+    // #endregion
+
     this.loginAttempts++
     if (reason.includes('You logged in from another location')) {
       this.logger.fatal('Instance will shut off since someone logged in from another place')

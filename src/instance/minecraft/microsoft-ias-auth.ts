@@ -26,6 +26,7 @@ export interface IasAuthOptions {
   instanceName: string
   cache: IasAuthCache
   onError?: (message: string) => void
+  onDebug?: (location: string, message: string, data: Record<string, unknown>, hypothesisId: string) => void
 }
 
 interface MicrosoftTokenResponse {
@@ -102,9 +103,61 @@ async function authenticate(client: Client, clientOptions: ClientOptions, option
   let mcToken = getStoredMcToken(cache, instanceName)
   let profile = getStoredProfile(cache, instanceName)
 
+  // #region agent log
+  options.onDebug?.(
+    'src/instance/minecraft/microsoft-ias-auth.ts:authenticate',
+    'IAS authenticate cache state',
+    {
+      hasRefreshToken: refreshToken !== undefined,
+      hasMcToken: mcToken !== undefined,
+      mcTokenExpiresInMs: mcToken === undefined ? undefined : mcToken.expiresAt - Date.now(),
+      hasProfile: profile !== undefined
+    },
+    'H1,H3,H5'
+  )
+  // #endregion
+
   // Reuse cached MC token if still valid
   if (!mcToken || Date.now() >= mcToken.expiresAt) {
-    const microsoftToken = await refreshMicrosoftToken(refreshToken)
+    // #region agent log
+    options.onDebug?.(
+      'src/instance/minecraft/microsoft-ias-auth.ts:authenticate',
+      'IAS refreshing Microsoft token',
+      {
+        reason: mcToken === undefined ? 'missingMcToken' : 'expiredMcToken',
+        cachedMcTokenExpiresInMs: mcToken === undefined ? undefined : mcToken.expiresAt - Date.now()
+      },
+      'H2,H3'
+    )
+    // #endregion
+
+    let microsoftToken: MicrosoftTokenResponse
+    try {
+      microsoftToken = await refreshMicrosoftToken(refreshToken)
+    } catch (error) {
+      // #region agent log
+      options.onDebug?.(
+        'src/instance/minecraft/microsoft-ias-auth.ts:authenticate',
+        'IAS Microsoft token refresh failed',
+        { errorMessage: debugErrorMessage(error) },
+        'H2'
+      )
+      // #endregion
+      throw error
+    }
+
+    // #region agent log
+    options.onDebug?.(
+      'src/instance/minecraft/microsoft-ias-auth.ts:authenticate',
+      'IAS Microsoft token refresh succeeded',
+      {
+        expiresInSeconds: microsoftToken.expires_in,
+        refreshTokenRotated: microsoftToken.refresh_token !== refreshToken,
+        hasScope: typeof microsoftToken.scope === 'string'
+      },
+      'H2,H3'
+    )
+    // #endregion
 
     // Store the new refresh token (Microsoft rotates it on each refresh)
     storeRefreshToken(cache, instanceName, microsoftToken.refresh_token)
@@ -124,6 +177,19 @@ async function authenticate(client: Client, clientOptions: ClientOptions, option
     storeProfile(cache, instanceName, profile)
   }
 
+  // #region agent log
+  options.onDebug?.(
+    'src/instance/minecraft/microsoft-ias-auth.ts:authenticate',
+    'IAS auth session prepared',
+    {
+      profileName: profile.name,
+      profileIdLength: profile.id.length,
+      mcTokenExpiresInMs: mcToken.expiresAt - Date.now()
+    },
+    'H5'
+  )
+  // #endregion
+
   const session = {
     accessToken: mcToken.accessToken,
     selectedProfile: {
@@ -142,6 +208,10 @@ async function authenticate(client: Client, clientOptions: ClientOptions, option
   client.username = profile.name
   client.emit('session', session)
   clientOptions.connect?.(client)
+}
+
+function debugErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500)
 }
 
 async function refreshMicrosoftToken(refreshToken: string): Promise<MicrosoftTokenResponse> {
