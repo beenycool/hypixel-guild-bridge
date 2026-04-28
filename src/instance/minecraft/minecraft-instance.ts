@@ -15,6 +15,8 @@ import { ConnectableInstance, Status } from '../../common/connectable-instance.j
 import type { MinecraftInstanceConfig } from '../../core/minecraft/sessions-manager'
 import type { Timeout } from '../../utility/timeout.js'
 
+import { createIasAuthFunction, type IasAuthCache } from './microsoft-ias-auth.js'
+
 import ChatManager from './chat-manager.js'
 import ClientSession from './client-session.js'
 import MessageAssociation from './common/message-association.js'
@@ -148,25 +150,41 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     const currentHost = this.defaultHosts[this.currentHostIndex]
     this.logger.info(`Connecting to ${currentHost} (host ${this.currentHostIndex + 1}/${this.defaultHosts.length})`)
 
+    const sessionsManager = this.application.core.minecraftSessions
+    const iasTokenCache = sessionsManager.getCacheSync(this.instanceName, 'iasRefreshToken')
+    const usesIasAuth = typeof iasTokenCache.token === 'string'
+
+    const authOption = usesIasAuth
+      ? createIasAuthFunction({
+          instanceName: this.instanceName,
+          cache: this.buildIasAuthCache(),
+          onError: (message) => {
+            this.logger.warn(`IAS auth error for ${this.instanceName}: ${message}`)
+          }
+        })
+      : 'microsoft'
+
     const client = createClient({
       host: currentHost,
       port: this.defaultPort,
       version: this.defaultVersion,
       username: this.config.name,
-      auth: 'microsoft',
+      auth: authOption,
       // @ts-expect-error profilesFolder is directly passed to 'prismarine-auth'.Authflow, which that library also allow a factory function
-      profilesFolder: this.application.core.minecraftSessions.getSessionsFactory(this.instanceName),
+      profilesFolder: usesIasAuth ? false : sessionsManager.getSessionsFactory(this.instanceName),
 
       ...resolveProxyIfExist(this.logger, this.config.proxy, {
         host: currentHost,
         port: this.defaultPort
       }),
-      onMsaCode: (code) => {
-        void this.broadcastInstanceMessage({
-          type: InstanceMessageType.MinecraftAuthenticationCode,
-          value: `${code.verification_uri}?otc=${code.user_code}`
-        }).catch(this.errorHandler.promiseCatch('broadcasting authentication code'))
-      }
+      onMsaCode: usesIasAuth
+        ? undefined
+        : (code) => {
+            void this.broadcastInstanceMessage({
+              type: InstanceMessageType.MinecraftAuthenticationCode,
+              value: `${code.verification_uri}?otc=${code.user_code}`
+            }).catch(this.errorHandler.promiseCatch('broadcasting authentication code'))
+          }
     })
 
     this.clientSession = new ClientSession(client)
@@ -258,6 +276,16 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       this.clientSession.client.chat(message)
     } else {
       this.logger.warn(`Dropping message due to client not being connected and ready: ${message}`)
+    }
+  }
+
+  private buildIasAuthCache(): IasAuthCache {
+    const sessionsManager = this.application.core.minecraftSessions
+    return {
+      getCacheSync: (name: string, cacheName: string) => sessionsManager.getCacheSync(name, cacheName),
+      setSession: (instanceName: string, name: string, cacheName: string, value: Record<string, unknown>) =>
+        sessionsManager.setSession(instanceName, name, cacheName, value),
+      deleteSingleCache: (name: string, cacheName: string) => sessionsManager.deleteSingleCache(name, cacheName)
     }
   }
 }

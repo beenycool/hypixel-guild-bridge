@@ -551,6 +551,12 @@ function translateInstanceMessageForBridge(
     case InstanceMessageType.MinecraftGuildKicked: {
       return t('instance.message.guild-kicked')
     }
+    case InstanceMessageType.MinecraftAuthExpired: {
+      return t('instance.message.auth-expired')
+    }
+    case InstanceMessageType.MinecraftAuthInvalid: {
+      return t('instance.message.auth-invalid')
+    }
     default: {
       throw new Error(`Unknown instance message type: ${JSON.stringify(key)}`)
     }
@@ -3183,6 +3189,18 @@ function fetchMinecraftOptions(application: Application, context: DiscordCommand
               void helpers
               return minecraftInstanceImportAuthCache(application, interaction, errorHandler, context.bridgeId)
             }
+          },
+          {
+            type: OptionType.Action,
+            name: 'Import IAS Refresh Token',
+            description:
+              'Import a Microsoft refresh token from InGameAccountSwitcher to authenticate with IAS-style Microsoft auth flow.',
+            label: 'import IAS',
+            style: ButtonStyle.Secondary,
+            onInteraction: (interaction: ButtonInteraction, errorHandler: UnexpectedErrorHandler, helpers) => {
+              void helpers
+              return minecraftInstanceImportIasToken(application, interaction, errorHandler, context.bridgeId)
+            }
           }
         ] as ActionOption[]
       }
@@ -3621,6 +3639,141 @@ async function minecraftInstanceRemove(
   }
 
   await deferredReply.edit({ embeds: [embed] })
+
+  return true
+}
+
+async function minecraftInstanceImportIasToken(
+  application: Application,
+  interaction: ButtonInteraction,
+  errorHandler: UnexpectedErrorHandler,
+  bridgeId?: string
+): Promise<boolean> {
+  const embedTitle = 'Import IAS Refresh Token'
+
+  await interaction.showModal({
+    customId: `minecraft-instance-import-ias-${Date.now()}`,
+    title: embedTitle,
+    components: [
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.TextInput,
+            customId: 'instance-name',
+            style: TextInputStyle.Short,
+            label: 'Instance Name',
+            placeholder: 'e.g. myinstance',
+            minLength: 1,
+            maxLength: 128,
+            required: true
+          }
+        ]
+      },
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.TextInput,
+            customId: 'refresh-token',
+            style: TextInputStyle.Paragraph,
+            label: 'IAS Refresh Token',
+            placeholder: 'Paste your refresh token from InGameAccountSwitcher',
+            minLength: 1,
+            maxLength: 4000,
+            required: true
+          }
+        ]
+      }
+    ]
+  })
+
+  const modalInteraction = await interaction.awaitModalSubmit({
+    time: 300_000,
+    filter: (modalInteraction) => modalInteraction.user.id === interaction.user.id
+  })
+
+  const instanceName = modalInteraction.fields.getTextInputValue('instance-name').trim()
+  const refreshToken = modalInteraction.fields.getTextInputValue('refresh-token').trim()
+
+  try {
+    application.applicationIntegrity.ensureInstanceName({
+      instanceName,
+      instanceType: InstanceType.Minecraft
+    })
+  } catch {
+    await modalInteraction.reply({
+      embeds: [
+        {
+          title: embedTitle,
+          description:
+            'Instance name must be a single word with no spaces or special characters besides alphanumerical letters: A-Z and a-z and 0-9 and "_"',
+          color: Color.Error,
+          footer: { text: DefaultCommandFooter }
+        } satisfies APIEmbed
+      ],
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  const instance = application.core.minecraftSessions.getInstance(instanceName)
+  if (!instance) {
+    await modalInteraction.reply({
+      embeds: [
+        {
+          title: embedTitle,
+          description: `Instance "${escapeMarkdown(instanceName)}" does not exist. Please create it first using "Instance Add".`,
+          color: Color.Error,
+          footer: { text: DefaultCommandFooter }
+        } satisfies APIEmbed
+      ],
+      flags: MessageFlags.Ephemeral
+    })
+    return true
+  }
+
+  if (bridgeId) {
+    const bridgeInstances = application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
+    if (!bridgeInstances.includes(instanceName)) {
+      await modalInteraction.reply({
+        embeds: [
+          {
+            title: embedTitle,
+            description: `Instance "${escapeMarkdown(instanceName)}" is not associated with this bridge.`,
+            color: Color.Error,
+            footer: { text: DefaultCommandFooter }
+          } satisfies APIEmbed
+        ],
+        flags: MessageFlags.Ephemeral
+      })
+      return true
+    }
+  }
+
+  const sessions = application.core.minecraftSessions
+  // Clear old prismarine-auth caches to avoid conflicts
+  sessions.clearCachedSessions(instanceName)
+  // Store the IAS refresh token
+  sessions.setSession(instanceName, instanceName, 'iasRefreshToken', { token: refreshToken })
+  // Also clear any stale IAS tokens
+  sessions.deleteSingleCache(instanceName, 'iasMcToken')
+  sessions.deleteSingleCache(instanceName, 'iasProfile')
+
+  await modalInteraction.reply({
+    embeds: [
+      {
+        title: embedTitle,
+        description:
+          `IAS refresh token has been stored for instance **${escapeMarkdown(instanceName)}**.\n\n` +
+          'The instance will now use the IAS-style Microsoft auth flow on next reconnect.\n' +
+          'Tokens will be automatically refreshed when needed.',
+        color: Color.Good,
+        footer: { text: DefaultCommandFooter }
+      } satisfies APIEmbed
+    ],
+    flags: MessageFlags.Ephemeral
+  })
 
   return true
 }

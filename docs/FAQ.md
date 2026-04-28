@@ -67,6 +67,10 @@ till the application restarts or slash command `/reconnect` is executed on Disco
 
 ## How to add a Minecraft Account
 
+There are two methods to authenticate:
+
+### Method A: Interactive Browser Auth (Default)
+
 Log out from Hypixel Network before anything.
 
 Execute Discord slash command `/settings`, then press `Minecraft` category button.
@@ -81,6 +85,20 @@ After you finish filling the information, press enter.
 The process of creating the Minecraft instance will start.
 After the initiation, the application will generate a Microsoft URL link that you can use on browser to authenticate the Minecraft account.
 Make sure you use incognito/private browsing when opening the URL link, so you don't accidentally authenticate a different account such as your main account.
+
+### Method B: IAS Refresh Token (Alternative)
+
+If you use InGameAccountSwitcher (IAS), you can import your Microsoft refresh token directly.
+
+1. Execute `/settings` → `Minecraft` → `Instances` → `add` to create a new instance (or use an existing one)
+2. Under the same `Instances` section, press `Import IAS Refresh Token`
+3. Enter the instance name and paste your IAS refresh token
+4. The bot will now authenticate using the IAS-style Microsoft flow. Tokens refresh automatically - no manual intervention needed.
+
+To find your IAS refresh token:
+
+- InGameAccountSwitcher stores tokens in `.iasms_v2` files at `.minecraft/ias/`
+- Each entry in the list has a `refreshToken` field you can copy
 
 ## How to manage the Minecraft account after it is added
 

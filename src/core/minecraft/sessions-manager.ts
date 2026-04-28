@@ -746,7 +746,7 @@ class Session implements Cache {
     await Promise.resolve()
 
     const partial = this.sessionsManager.getCacheSync(this.name, this.cacheName)
-    this.sessionsManager.setSession(this.instanceName, this.name, this.cacheName, { partial, ...value })
+    this.sessionsManager.setSession(this.instanceName, this.name, this.cacheName, { ...partial, ...value })
   }
 }
 
