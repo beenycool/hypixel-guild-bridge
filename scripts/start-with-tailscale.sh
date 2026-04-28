@@ -13,8 +13,7 @@ fi
 echo "[tailscale] Starting daemon..."
 "$TS_DIR/tailscaled" \
     --state=mem \
-    --tun=userspace-networking \
-    --socket="$TS_DIR/ts.sock" &
+    --tun=userspace-networking &
 
 sleep 3
 
