@@ -206,6 +206,23 @@ async function authenticate(client: Client, clientOptions: ClientOptions, option
 
   client.session = session
   client.username = profile.name
+  const authClientOptions = clientOptions as ClientOptions & { accessToken?: string; haveCredentials?: boolean }
+  authClientOptions.accessToken = mcToken.accessToken
+  authClientOptions.haveCredentials = true
+
+  // #region agent log
+  options.onDebug?.(
+    'src/instance/minecraft/microsoft-ias-auth.ts:authenticate',
+    'IAS auth credentials attached to protocol options',
+    {
+      hasSession: client.session !== undefined,
+      hasAccessTokenOption: authClientOptions.accessToken !== undefined,
+      haveCredentials: authClientOptions.haveCredentials
+    },
+    'H6'
+  )
+  // #endregion
+
   client.emit('session', session)
   clientOptions.connect?.(client)
 }
