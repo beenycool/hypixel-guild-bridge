@@ -444,6 +444,24 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   }
 
   /**
+   * Minecraft bot used for Discord `/ping` tab latency: prefer instances for `bridgeId`, otherwise first connected bot.
+   */
+  public resolveMinecraftInstanceForDiscordPing(bridgeId?: string): MinecraftInstance | undefined {
+    const all = this.minecraftManager.getAllInstances()
+    if (all.length === 0) return undefined
+
+    let pool: MinecraftInstance[]
+    if (bridgeId === undefined) {
+      pool = all
+    } else {
+      const bridged = all.filter((instance) => instance.bridgeId === bridgeId)
+      pool = bridged.length > 0 ? bridged : all
+    }
+
+    return pool.find((instance) => instance.currentStatus() === Status.Connected) ?? pool[0]
+  }
+
+  /**
    * Get all instances {@link InstanceIdentifier} exist in this application.
    * This includes all internal and public instances as well as plugins and utilities.
    */

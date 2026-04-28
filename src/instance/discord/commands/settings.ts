@@ -3693,6 +3693,8 @@ async function minecraftInstanceImportIasToken(
     filter: (modalInteraction) => modalInteraction.user.id === interaction.user.id
   })
 
+  const deferredReply = await modalInteraction.deferReply({ flags: MessageFlags.Ephemeral })
+
   const instanceName = modalInteraction.fields.getTextInputValue('instance-name').trim()
   const refreshToken = modalInteraction.fields.getTextInputValue('refresh-token').trim()
 
@@ -3702,7 +3704,7 @@ async function minecraftInstanceImportIasToken(
       instanceType: InstanceType.Minecraft
     })
   } catch {
-    await modalInteraction.reply({
+    await deferredReply.edit({
       embeds: [
         {
           title: embedTitle,
@@ -3711,15 +3713,14 @@ async function minecraftInstanceImportIasToken(
           color: Color.Error,
           footer: { text: DefaultCommandFooter }
         } satisfies APIEmbed
-      ],
-      flags: MessageFlags.Ephemeral
+      ]
     })
     return true
   }
 
   const instance = application.core.minecraftSessions.getInstance(instanceName)
   if (!instance) {
-    await modalInteraction.reply({
+    await deferredReply.edit({
       embeds: [
         {
           title: embedTitle,
@@ -3727,8 +3728,7 @@ async function minecraftInstanceImportIasToken(
           color: Color.Error,
           footer: { text: DefaultCommandFooter }
         } satisfies APIEmbed
-      ],
-      flags: MessageFlags.Ephemeral
+      ]
     })
     return true
   }
@@ -3736,7 +3736,7 @@ async function minecraftInstanceImportIasToken(
   if (bridgeId) {
     const bridgeInstances = application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
     if (!bridgeInstances.includes(instanceName)) {
-      await modalInteraction.reply({
+      await deferredReply.edit({
         embeds: [
           {
             title: embedTitle,
@@ -3744,8 +3744,7 @@ async function minecraftInstanceImportIasToken(
             color: Color.Error,
             footer: { text: DefaultCommandFooter }
           } satisfies APIEmbed
-        ],
-        flags: MessageFlags.Ephemeral
+        ]
       })
       return true
     }
@@ -3760,7 +3759,7 @@ async function minecraftInstanceImportIasToken(
   sessions.deleteSingleCache(instanceName, 'iasMcToken')
   sessions.deleteSingleCache(instanceName, 'iasProfile')
 
-  await modalInteraction.reply({
+  await deferredReply.edit({
     embeds: [
       {
         title: embedTitle,
@@ -3771,8 +3770,7 @@ async function minecraftInstanceImportIasToken(
         color: Color.Good,
         footer: { text: DefaultCommandFooter }
       } satisfies APIEmbed
-    ],
-    flags: MessageFlags.Ephemeral
+    ]
   })
 
   return true

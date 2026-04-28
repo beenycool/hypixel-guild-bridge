@@ -1,5 +1,6 @@
 import { setImmediate } from 'node:timers/promises'
 
+import type { Client } from 'minecraft-protocol'
 import { createClient, states } from 'minecraft-protocol'
 
 import type Application from '../../application.js'
@@ -15,8 +16,6 @@ import { ConnectableInstance, Status } from '../../common/connectable-instance.j
 import type { MinecraftInstanceConfig } from '../../core/minecraft/sessions-manager'
 import type { Timeout } from '../../utility/timeout.js'
 
-import { createIasAuthFunction, type IasAuthCache } from './microsoft-ias-auth.js'
-
 import ChatManager from './chat-manager.js'
 import ClientSession from './client-session.js'
 import MessageAssociation from './common/message-association.js'
@@ -29,6 +28,7 @@ import PunishmentHandler from './handlers/punishment-handler'
 import Reaction from './handlers/reaction.js'
 import SelfbroadcastHandler from './handlers/selfbroadcast-handler.js'
 import StateHandler, { QuitOwnVolition } from './handlers/state-handler.js'
+import { createIasAuthFunction, type IasAuthCache } from './microsoft-ias-auth.js'
 import MinecraftBridge from './minecraft-bridge.js'
 
 export default class MinecraftInstance extends ConnectableInstance<InstanceType.Minecraft> {
@@ -53,6 +53,9 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private readonly sendQueue: SendQueue
 
   private readonly config: MinecraftInstanceConfig
+
+  /** Latest tab-list ping (ms) from Hypixel `player_info` for this bot; reset on reconnect. */
+  private latestTabPingMs: number | undefined
 
   constructor(app: Application, instanceName: string, config: MinecraftInstanceConfig) {
     // Resolve the bridge ID for this instance from the application's bridge resolver
@@ -128,6 +131,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       this.clientSession.client.end(QuitOwnVolition)
     }
 
+    this.latestTabPingMs = undefined
     this.stateHandler.resetLoginAttempts()
     this.currentHostIndex = 0
     await this.automaticReconnect()
@@ -149,6 +153,8 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
     const currentHost = this.defaultHosts[this.currentHostIndex]
     this.logger.info(`Connecting to ${currentHost} (host ${this.currentHostIndex + 1}/${this.defaultHosts.length})`)
+
+    this.latestTabPingMs = undefined
 
     const sessionsManager = this.application.core.minecraftSessions
     const iasTokenCache = sessionsManager.getCacheSync(this.instanceName, 'iasRefreshToken')
@@ -188,6 +194,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     })
 
     this.clientSession = new ClientSession(client)
+    this.registerTabPingTracking(client)
 
     this.selfbroadcastHandler.registerEvents(this.clientSession)
     this.stateHandler.registerEvents(this.clientSession)
@@ -201,6 +208,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   }
 
   async disconnect(): Promise<void> {
+    this.latestTabPingMs = undefined
     this.clientSession?.client.end(QuitOwnVolition)
 
     // wait till next cycle to let the clients close properly
@@ -215,6 +223,18 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   uuid(): string | undefined {
     const uuid = this.clientSession?.client.uuid
     return uuid == undefined ? undefined : uuid.split('-').join('')
+  }
+
+  /**
+   * In-game/tab-list latency (ms) for this bot as reported by Hypixel via `player_info`.
+   * Undefined when not in play, disconnected, or before the first tab ping update.
+   */
+  public getTabPingMs(): number | undefined {
+    if (this.currentStatus() !== Status.Connected) return undefined
+    const client = this.clientSession?.client
+    if (client === undefined || client.state !== states.PLAY) return undefined
+    if (this.latestTabPingMs === undefined) return undefined
+    return this.latestTabPingMs
   }
 
   notifyChatEvent(channel: ChannelType, message: string): void {
@@ -279,12 +299,47 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     }
   }
 
+  /**
+   * Hypixel sends tab ping via `player_info` (`add_player` / `update_latency`, etc.).
+   * Do not use `client.latency` — minecraft-protocol does not update it on the client for keep-alive in this stack.
+   */
+  private registerTabPingTracking(client: Client): void {
+    client.on('player_info', (packet: unknown) => {
+      if (packet === null || typeof packet !== 'object') return
+      const data = (packet as { data?: unknown }).data
+      if (!Array.isArray(data)) return
+
+      const botUuidNormalized = MinecraftInstance.normalizeUuidForCompare(client.uuid)
+      if (botUuidNormalized === undefined) return
+
+      for (const raw of data) {
+        if (raw === null || typeof raw !== 'object') continue
+        const entry = raw as { uuid?: unknown; ping?: unknown; latency?: unknown }
+        if (typeof entry.uuid !== 'string') continue
+        const entryUuid = MinecraftInstance.normalizeUuidForCompare(entry.uuid)
+        if (entryUuid !== botUuidNormalized) continue
+
+        const pingRaw = entry.ping ?? entry.latency
+        if (typeof pingRaw === 'number' && Number.isFinite(pingRaw)) {
+          this.latestTabPingMs = Math.round(pingRaw)
+        }
+        break
+      }
+    })
+  }
+
+  private static normalizeUuidForCompare(uuid: string | undefined): string | undefined {
+    if (uuid === undefined || uuid.length === 0) return undefined
+    return uuid.replaceAll('-', '').toLowerCase()
+  }
+
   private buildIasAuthCache(): IasAuthCache {
     const sessionsManager = this.application.core.minecraftSessions
     return {
       getCacheSync: (name: string, cacheName: string) => sessionsManager.getCacheSync(name, cacheName),
-      setSession: (instanceName: string, name: string, cacheName: string, value: Record<string, unknown>) =>
-        sessionsManager.setSession(instanceName, name, cacheName, value),
+      setSession: (instanceName: string, name: string, cacheName: string, value: Record<string, unknown>) => {
+        sessionsManager.setSession(instanceName, name, cacheName, value)
+      },
       deleteSingleCache: (name: string, cacheName: string) => sessionsManager.deleteSingleCache(name, cacheName)
     }
   }

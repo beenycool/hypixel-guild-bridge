@@ -8,3 +8,8 @@ config
 .vscode
 /plugins/
 hypixel-guild-dscord-chat-bridge.publishsettings
+.iasms_v2
+.iasp
+IasTokenExtractor*.class
+IasTokenExtractor*.java
+InGameAccountSwitcher-Forge-1.8.9-7.1.2.jar

@@ -1,45 +1,48 @@
 import type { APIEmbed } from 'discord.js'
 import { SlashCommandBuilder } from 'discord.js'
-import minecraftProtocol from 'minecraft-protocol'
 
 import { Color } from '../../../common/application-event.js'
-import type { DiscordCommandHandler } from '../../../common/commands.js'
+import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
+import { Status } from '../../../common/connectable-instance.js'
 import { DefaultCommandFooter } from '../common/discord-config.js'
 
-const { ping: minecraftServerPing } = minecraftProtocol
+type HypixelPingDisplay =
+  | { kind: 'value'; ms: number }
+  | { kind: 'no_instances' }
+  | { kind: 'not_connected' }
+  | { kind: 'no_tab_ping' }
 
-/** Same join target as MinecraftInstance primary host. */
-const HypixelStatusHost = 'me.hypixel.net'
-const HypixelStatusPort = 25_565
-const HypixelProtocolVersion = '1.8.9'
+function resolveHypixelTabPing(context: DiscordCommandContext): HypixelPingDisplay {
+  const instance = context.application.resolveMinecraftInstanceForDiscordPing(context.bridgeId)
+  if (instance === undefined) return { kind: 'no_instances' }
+  if (instance.currentStatus() !== Status.Connected) return { kind: 'not_connected' }
+  const ms = instance.getTabPingMs()
+  if (ms === undefined) return { kind: 'no_tab_ping' }
+  return { kind: 'value', ms }
+}
 
-async function measureHypixelStatusPingMs(): Promise<number | undefined> {
-  try {
-    const result = await minecraftServerPing({
-      host: HypixelStatusHost,
-      port: HypixelStatusPort,
-      version: HypixelProtocolVersion,
-      closeTimeout: 12_000,
-      noPongTimeout: 5_000
-    })
-    const ms = (result as { latency?: number }).latency
-    return typeof ms === 'number' && Number.isFinite(ms) ? Math.round(ms) : undefined
-  } catch {
-    return undefined
+function formatHypixelTabPingLine(display: HypixelPingDisplay): string {
+  switch (display.kind) {
+    case 'value': {
+      return `**Hypixel — Minecraft bot tab ping:** ${display.ms}ms`
+    }
+    case 'no_instances': {
+      return '**Hypixel — Minecraft bot tab ping:** no Minecraft bot configured'
+    }
+    case 'not_connected': {
+      return '**Hypixel — Minecraft bot tab ping:** bot not connected'
+    }
+    case 'no_tab_ping': {
+      return '**Hypixel — Minecraft bot tab ping:** unavailable (no tab ping yet)'
+    }
+    default: {
+      const exhaustiveCheck: never = display
+      return exhaustiveCheck
+    }
   }
 }
 
-function createPing(
-  latency: number,
-  websocket: number,
-  lag: number,
-  hypixelStatusPingMs: number | undefined
-): APIEmbed {
-  const hypixelLine =
-    hypixelStatusPingMs === undefined
-      ? `**Hypixel (server list, ${HypixelStatusHost}):** unavailable`
-      : `**Hypixel (server list, ${HypixelStatusHost}):** ${hypixelStatusPingMs}ms`
-
+function createPing(latency: number, websocket: number, lag: number, hypixel: HypixelPingDisplay): APIEmbed {
   return {
     color: Color.Default,
     title: 'Ping',
@@ -47,8 +50,8 @@ function createPing(
       `**Discord — latency:** ${latency}ms\n` +
       `**Discord — websocket heartbeat:** ${websocket}ms\n` +
       `**Discord — server lag:** ${lag}ms\n\n` +
-      `${hypixelLine}\n` +
-      '_Hypixel line is status-protocol RTT from this bridge to the join host (not the same as in-game tab ping)._',
+      `${formatHypixelTabPingLine(hypixel)}\n` +
+      "_Hypixel line is the connected Minecraft bot's in-game/tab-list latency._",
     footer: {
       text: DefaultCommandFooter
     }
@@ -57,21 +60,19 @@ function createPing(
 
 export default {
   getCommandBuilder: () =>
-    new SlashCommandBuilder().setName('ping').setDescription('Discord and Hypixel status ping'),
+    new SlashCommandBuilder().setName('ping').setDescription('Discord and Hypixel Minecraft bot tab ping'),
 
   handler: async function (context) {
     const timestamp = Date.now()
 
     await context.interaction.deferReply()
-    const [defer, hypixelStatusPingMs] = await Promise.all([
-      context.interaction.fetchReply(),
-      measureHypixelStatusPingMs()
-    ])
+    const defer = await context.interaction.fetchReply()
+    const hypixel = resolveHypixelTabPing(context)
 
     const latency = defer.createdTimestamp - context.interaction.createdTimestamp
     const websocket = context.interaction.client.ws.ping
     const lag = timestamp - context.interaction.createdTimestamp
 
-    await context.interaction.editReply({ embeds: [createPing(latency, websocket, lag, hypixelStatusPingMs)] })
+    await context.interaction.editReply({ embeds: [createPing(latency, websocket, lag, hypixel)] })
   }
 } satisfies DiscordCommandHandler
