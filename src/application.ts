@@ -116,10 +116,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return merged
   }
 
-  public getAiChatConfig(): ApplicationConfig['aiChat'] {
-    return this.config.aiChat
-  }
-
   public getHypixelUpdatesConfig(): ApplicationConfig['hypixelUpdates'] {
     return this.config.hypixelUpdates
   }

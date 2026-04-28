@@ -19,8 +19,6 @@ import type {
 } from '../common/user'
 import { User } from '../common/user'
 
-import type { AiChatStorage } from '../common/ai-chat-storage'
-import { PostgresAiChatStorage } from './ai-chat-storage-postgres'
 import { ApplicationConfigurations } from './application-configurations'
 import { CommandsConfigurations } from './commands/commands-configurations'
 import { ConfigurationsManager } from './configurations'
@@ -87,9 +85,6 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly statusHistory: StatusHistory
   public readonly pendingReviewManager: PendingReviewManager
   public readonly rankupManager: RankupManager
-
-  // ai
-  public readonly aiChatStorage: AiChatStorage
 
   // misc
   public readonly applicationConfigurations: ApplicationConfigurations
@@ -164,7 +159,6 @@ export class Core extends Instance<InstanceType.Core> {
 
     this.verification = new Verification(this.databaseManager)
     this.inactivity = new Inactivity(this.databaseManager)
-    this.aiChatStorage = new PostgresAiChatStorage(this.databaseManager, this.bridgeConfigurations)
     this.scoresManager = new ScoresManager(
       application,
       this,
@@ -280,9 +274,6 @@ export class Core extends Instance<InstanceType.Core> {
     await this.punishments.initialize()
     await this.scoresManager.load()
     await this.autoComplete.load()
-    if (this.aiChatStorage instanceof PostgresAiChatStorage) {
-      await this.aiChatStorage.load()
-    }
   }
 
   /**

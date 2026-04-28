@@ -1,5 +1,4 @@
 import type { DynamicBridgeConfig } from '../../common/dynamic-bridge-config.js'
-import { debugSessionLog } from '../../utility/debug-session-log.js'
 import Duration from '../../utility/duration'
 import type { Configuration, ConfigurationsManager } from '../configurations'
 
@@ -998,21 +997,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       gracePeriod: number
     }[]
   ): void {
-    const previous = this.getRankupDemotionRules(bridgeId)
-    if (previous.length > 0 && rules.length === 0) {
-      // #region agent log
-      debugSessionLog({
-        hypothesisId: 'H8',
-        location: 'bridge-configurations.ts:setRankupDemotionRules',
-        message: 'Demotion rules cleared (non-empty to empty)',
-        data: {
-          bridgeId,
-          prevLen: previous.length,
-          stack: new Error('stack trace').stack?.split('\n').slice(0, 12).join('\n')
-        }
-      })
-      // #endregion
-    }
     this.configuration.setString(`${bridgeId}_rankupDemotionRules`, JSON.stringify(rules))
   }
 
@@ -1042,21 +1026,5 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setRankupExcludedPlayers(bridgeId: string, players: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_rankupExcludedPlayers`, players)
-  }
-
-  // ========== AI Chat Configurations ==========
-
-  /**
-   * Get whether the AI chat plugin is enabled for a specific bridge
-   */
-  public getAiChatEnabled(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_aiChatEnabled`, false)
-  }
-
-  /**
-   * Set whether the AI chat plugin is enabled for a specific bridge
-   */
-  public setAiChatEnabled(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_aiChatEnabled`, enabled)
   }
 }

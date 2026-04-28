@@ -20,7 +20,6 @@ import { ApplicationLanguages } from '../../../core/language-configurations'
 import type { ProxyConfig } from '../../../core/minecraft/sessions-manager'
 import { ProxyProtocol } from '../../../core/minecraft/sessions-manager'
 import { SpontaneousEventsNames } from '../../../core/spontanmous-events-configurations'
-import { debugSessionLog } from '../../../utility/debug-session-log.js'
 import Duration from '../../../utility/duration'
 import { SkyblockEventKeys } from '../../../utility/skyblock-calendar'
 import { Timeout } from '../../../utility/timeout.js'
@@ -60,25 +59,6 @@ interface GuildReactionMessageEditorConfig {
   fallbackMessages: string[]
   getMessages: () => string[]
   setMessages: (messages: string[]) => void
-  /** When set, included in persistence debug logs (per-bridge lists). */
-  debugContext?: { bridgeId?: string }
-}
-
-function logGuildReactionMessageListMutation(
-  config: GuildReactionMessageEditorConfig,
-  action: 'add' | 'edit' | 'delete',
-  data: Record<string, unknown>
-): void {
-  debugSessionLog({
-    hypothesisId: 'H-guild-msg-list',
-    location: `settings.ts:guildReactionMessages:${action}`,
-    message: `Guild reaction message list ${action}`,
-    data: {
-      listKey: config.key,
-      bridgeId: config.debugContext?.bridgeId,
-      ...data
-    }
-  })
 }
 
 function createGuildReactionMessageListOption(config: GuildReactionMessageEditorConfig): CategoryOption {
@@ -176,13 +156,8 @@ async function handleGuildReactionMessageDelete(
 
   const readBack = config.getMessages()
   if (!areMessageListsEqual(readBack, newMessages)) {
-    logGuildReactionMessageListMutation(config, 'delete', {
-      beforeLen: allMessages.length,
-      expectedLen: newMessages.length,
-      readBackLen: readBack.length,
-      ok: false
-    })
     config.setMessages(allMessages)
+
     await interaction.reply({
       content:
         '**Delete failed:** the message list could not be updated. Please try again or check database connectivity.',
@@ -197,12 +172,6 @@ async function handleGuildReactionMessageDelete(
     }
     return true
   }
-
-  logGuildReactionMessageListMutation(config, 'delete', {
-    beforeLen: allMessages.length,
-    afterLen: readBack.length,
-    ok: true
-  })
 
   await interaction.reply({
     content: `Deleted message: **${formatGuildReactionMessagePreview(removed)}**`,
@@ -292,12 +261,6 @@ async function handleGuildReactionMessageEdit(
 
   const readBack = config.getMessages()
   if (!areMessageListsEqual(readBack, newMessages)) {
-    logGuildReactionMessageListMutation(config, 'edit', {
-      index,
-      expectedLen: newMessages.length,
-      readBackLen: readBack.length,
-      ok: false
-    })
     config.setMessages(allMessages)
     await modalInteraction.reply({
       content:
@@ -306,12 +269,6 @@ async function handleGuildReactionMessageEdit(
     })
     return true
   }
-
-  logGuildReactionMessageListMutation(config, 'edit', {
-    index,
-    afterLen: readBack.length,
-    ok: true
-  })
 
   await modalInteraction.reply({
     content: `Updated message **#${index + 1}** in **${config.name}**: ${escapeMarkdown(formatGuildReactionMessagePreview(value))}`,
@@ -396,12 +353,6 @@ async function addGuildReactionMessage(
 
   const readBack = config.getMessages()
   if (!areMessageListsEqual(readBack, expected)) {
-    logGuildReactionMessageListMutation(config, 'add', {
-      beforeLen: allMessages.length,
-      expectedLen: expected.length,
-      readBackLen: readBack.length,
-      ok: false
-    })
     config.setMessages(allMessages)
     await modalInteraction.reply({
       content:
@@ -410,12 +361,6 @@ async function addGuildReactionMessage(
     })
     return true
   }
-
-  logGuildReactionMessageListMutation(config, 'add', {
-    beforeLen: allMessages.length,
-    afterLen: readBack.length,
-    ok: true
-  })
 
   await modalInteraction.reply({
     content: `Saved message **#${readBack.length}** in **${config.name}**: ${escapeMarkdown(formatGuildReactionMessagePreview(value))}`,
@@ -688,13 +633,8 @@ async function createBridgeOptionAsync(
         guildRanks = guild.ranks.map((r) => r.name)
       }
     }
-  } catch (error) {
-    debugSessionLog({
-      hypothesisId: 'H9',
-      location: 'settings.ts:createBridgeOptionAsync:guildRanks',
-      message: `Failed to fetch guild ranks for bridge ${bridgeId}`,
-      data: { bridgeId, error: errorMessage(error) }
-    })
+  } catch {
+    // Guild ranks unavailable
   }
 
   let cachedPromotionOptions: CategoryOption['options'] | undefined
@@ -717,14 +657,7 @@ async function createBridgeOptionAsync(
               key: `${bridgeId}_skyblockNotifiers`,
               value: { [key]: !(current[key] ?? true) }
             })
-            .catch((error: unknown) => {
-              debugSessionLog({
-                hypothesisId: 'H9',
-                location: 'settings.ts:skyblockNotifier:emit',
-                message: 'Failed to emit bridgeConfigChanged for skyblock notifier',
-                data: { bridgeId, key, error: errorMessage(error) }
-              })
-            })
+            .catch(() => {})
         }
       }) satisfies BooleanOption as BooleanOption
   )
@@ -1017,8 +950,7 @@ async function createBridgeOptionAsync(
                 getMessages: () => bridgeConfig.getRandomChatterMessages(bridgeId, []),
                 setMessages: (values) => {
                   bridgeConfig.setRandomChatterMessages(bridgeId, values)
-                },
-                debugContext: { bridgeId }
+                }
               }),
               {
                 type: OptionType.Number,
@@ -1092,14 +1024,7 @@ async function createBridgeOptionAsync(
                   key: `${bridgeId}_skyblockEventsEnabled`,
                   value: newValue
                 })
-                .catch((error: unknown) => {
-                  debugSessionLog({
-                    hypothesisId: 'H9',
-                    location: 'settings.ts:skyblockEvents:emit',
-                    message: 'Failed to emit bridgeConfigChanged for skyblock events enabled',
-                    data: { bridgeId, error: errorMessage(error) }
-                  })
-                })
+                .catch(() => {})
             }
           },
           {
@@ -1208,8 +1133,7 @@ async function createBridgeOptionAsync(
                   ),
                 setMessages: (values) => {
                   bridgeConfig.setGuildJoinReactionMessages(bridgeId, values)
-                },
-                debugContext: { bridgeId }
+                }
               }),
               createGuildReactionMessageListOption({
                 scopeId: bridgeId,
@@ -1224,8 +1148,7 @@ async function createBridgeOptionAsync(
                   ),
                 setMessages: (values) => {
                   bridgeConfig.setGuildLeaveReactionMessages(bridgeId, values)
-                },
-                debugContext: { bridgeId }
+                }
               }),
               createGuildReactionMessageListOption({
                 scopeId: bridgeId,
@@ -1240,8 +1163,7 @@ async function createBridgeOptionAsync(
                   ),
                 setMessages: (values) => {
                   bridgeConfig.setGuildKickReactionMessages(bridgeId, values)
-                },
-                debugContext: { bridgeId }
+                }
               })
             ]
           },
@@ -1522,24 +1444,6 @@ async function createBridgeOptionAsync(
           }
         ]
       },
-      // ========== AI Chatbot ==========
-      {
-        type: OptionType.Category,
-        name: 'AI Chatbot',
-        description: 'Configure the AI Chatbot plugin for this bridge',
-        header: `**AI Chatbot for ${bridgeId}**\n\nConfigure whether the AI chat plugin is enabled for this specific bridge.`,
-        options: [
-          {
-            type: OptionType.Boolean,
-            name: 'Enable AI Chatbot',
-            description: 'Enable or disable the AI chat plugin for this bridge.',
-            getOption: () => bridgeConfig.getAiChatEnabled(bridgeId),
-            toggleOption: () => {
-              bridgeConfig.setAiChatEnabled(bridgeId, !bridgeConfig.getAiChatEnabled(bridgeId))
-            }
-          }
-        ]
-      },
       // ========== Rankup Automation ==========
       {
         type: OptionType.Category,
@@ -1708,14 +1612,6 @@ async function createBridgeOptionAsync(
                         void errorHandler
                         void helpers
                         const previous = bridgeConfig.getRankupRules(bridgeId)
-                        // #region agent log
-                        debugSessionLog({
-                          hypothesisId: 'H6',
-                          location: 'settings.ts:promotion:deleteRule',
-                          message: 'Delete promotion rule',
-                          data: { bridgeId, index, prevLen: previous.length }
-                        })
-                        // #endregion
                         const newRules = [...previous]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupRules(bridgeId, newRules)
@@ -1770,24 +1666,6 @@ async function createBridgeOptionAsync(
 
               cachedDemotionOptions = []
               const demoRules = bridgeConfig.getRankupDemotionRules(bridgeId)
-              // #region agent log
-              debugSessionLog({
-                hypothesisId: 'H5',
-                location: 'settings.ts:demotionRules:getOptions:cacheMiss',
-                message: 'Demotion rules options rebuilt from config',
-                data: {
-                  bridgeId,
-                  ruleCount: demoRules.length,
-                  rules: demoRules.map((r) => ({
-                    fromRank: r.fromRank,
-                    action: r.action,
-                    targetRank: r.targetRank,
-                    maxWeeklyGexp: r.maxWeeklyGexp,
-                    gracePeriod: r.gracePeriod
-                  }))
-                }
-              })
-              // #endregion
 
               for (const [index, rule] of demoRules.entries()) {
                 const fromRankOption: OptionItem =
@@ -1838,19 +1716,6 @@ async function createBridgeOptionAsync(
                               setOption: (value) => {
                                 const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                                 const targetRank = value[0]
-                                // #region agent log
-                                debugSessionLog({
-                                  hypothesisId: 'H5',
-                                  location: 'settings.ts:demotion:targetRank:setOption',
-                                  message: 'Demotion targetRank set',
-                                  data: {
-                                    bridgeId,
-                                    index,
-                                    prevTarget: previous[index]?.targetRank,
-                                    nextTarget: targetRank
-                                  }
-                                })
-                                // #endregion
                                 const newRules = [...previous]
                                 newRules[index] = {
                                   ...newRules[index],
@@ -1871,19 +1736,6 @@ async function createBridgeOptionAsync(
                               setOption: (value) => {
                                 const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
                                 const targetRank = value
-                                // #region agent log
-                                debugSessionLog({
-                                  hypothesisId: 'H5',
-                                  location: 'settings.ts:demotion:targetRank:setOption',
-                                  message: 'Demotion targetRank set',
-                                  data: {
-                                    bridgeId,
-                                    index,
-                                    prevTarget: previous[index]?.targetRank,
-                                    nextTarget: targetRank
-                                  }
-                                })
-                                // #endregion
                                 const newRules = [...previous]
                                 newRules[index] = {
                                   ...newRules[index],
@@ -1939,20 +1791,6 @@ async function createBridgeOptionAsync(
                       getOption: () => bridgeConfig.getRankupDemotionRules(bridgeId)[index]?.maxWeeklyGexp ?? 0,
                       setOption: (value: number) => {
                         const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
-                        // #region agent log
-                        debugSessionLog({
-                          hypothesisId: 'H4_H5',
-                          location: 'settings.ts:demotion:maxWeeklyGexp:setOption',
-                          message: 'Demotion maxWeeklyGexp set',
-                          data: {
-                            bridgeId,
-                            index,
-                            prevMax: previous[index]?.maxWeeklyGexp,
-                            nextVal: value,
-                            prevRulesLen: previous.length
-                          }
-                        })
-                        // #endregion
                         const newRules = [...previous]
                         newRules[index] = { ...newRules[index], maxWeeklyGexp: value }
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
@@ -1982,14 +1820,6 @@ async function createBridgeOptionAsync(
                         void errorHandler
                         void helpers
                         const previous = bridgeConfig.getRankupDemotionRules(bridgeId)
-                        // #region agent log
-                        debugSessionLog({
-                          hypothesisId: 'H6',
-                          location: 'settings.ts:demotion:deleteRule',
-                          message: 'Delete demotion rule',
-                          data: { bridgeId, index, prevLen: previous.length }
-                        })
-                        // #endregion
                         const newRules = [...previous]
                         newRules.splice(index, 1)
                         bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
@@ -2022,14 +1852,6 @@ async function createBridgeOptionAsync(
                     maxWeeklyGexp: 0,
                     gracePeriod: 0
                   })
-                  // #region agent log
-                  debugSessionLog({
-                    hypothesisId: 'H4',
-                    location: 'settings.ts:demotion:addRule',
-                    message: 'Add demotion rule',
-                    data: { bridgeId, prevLen: previous.length, nextLen: newRules.length }
-                  })
-                  // #endregion
                   bridgeConfig.setRankupDemotionRules(bridgeId, newRules)
                   cachedDemotionOptions = undefined
                   await interaction.reply({
@@ -3465,18 +3287,8 @@ async function minecraftInstanceAdd(
     embed.description += `- Creating a fresh Minecraft instance\n`
     await application.minecraftManager.addAndStart({ name: instanceName, proxy: proxy })
 
-    // Persist settings to DB and log current DB state
+    // Persist settings to DB
     application.core.minecraftSessions.addInstance({ name: instanceName, proxy: proxy })
-    // Also log a quick DB snapshot for debugging
-    debugSessionLog({
-      hypothesisId: 'H9',
-      location: 'settings.ts:minecraftInstanceAdd:afterAdd',
-      message: 'Instance added and persisted',
-      data: {
-        instanceName,
-        configuredInstances: application.core.minecraftSessions.getAllInstances().map((index) => index.name)
-      }
-    })
     embed.description += `- Instance has been added to settings for future reboot\n`
 
     if (bridgeId) {
@@ -3485,12 +3297,6 @@ async function minecraftInstanceAdd(
         instances.push(instanceName)
         application.core.bridgeConfigurations.setMinecraftInstances(bridgeId, instances)
         embed.description += `- Instance has been associated with this bridge\n`
-        debugSessionLog({
-          hypothesisId: 'H9',
-          location: 'settings.ts:minecraftInstanceAdd:bridgeAssociation',
-          message: 'Instance associated to bridge after add',
-          data: { bridgeId, instanceName, instances }
-        })
         application.bridgeResolver.rebuildLookupMaps()
       }
     }
@@ -3600,25 +3406,6 @@ async function minecraftInstanceRemove(
         bridgeConfig.setMinecraftInstances(bid, instances)
         affectedBridges.push(bid)
       }
-    }
-    // Log bridge configuration change for debugging
-    if (affectedBridges.length > 0) {
-      debugSessionLog({
-        hypothesisId: 'H9',
-        location: 'settings.ts:minecraftInstanceRemove:affectedBridges',
-        message: 'Instance removed from one or more bridges',
-        data: { instanceName, affectedBridges }
-      })
-      debugSessionLog({
-        hypothesisId: 'H9',
-        location: 'settings.ts:minecraftInstanceRemove:bridgeSnapshot',
-        message: 'Bridge snapshot after instance removal',
-        data: {
-          bridges: bridgeConfig
-            .getAllBridgeIds()
-            .map((b) => ({ bridge: b, instances: bridgeConfig.getMinecraftInstances(b) }))
-        }
-      })
     }
     if (affectedBridges.length > 0) {
       application.bridgeResolver.rebuildLookupMaps()
