@@ -15,7 +15,7 @@ if [ -n "$TAILSCALE_AUTH_KEY" ] && [ -n "$TAILSCALE_EXIT_NODE" ]; then
 
   "$TS_DIR/tailscaled" --state=mem --tun=userspace-networking --socket="$TS_DIR/ts.sock" &
   sleep 3
-  "$TS_DIR/tailscale" up --auth-key="$TAILSCALE_AUTH_KEY" --exit-node="$TAILSCALE_EXIT_NODE" --socket="$TS_DIR/ts.sock"
+  "$TS_DIR/tailscale" up --auth-key="$TAILSCALE_AUTH_KEY" --exit-node="$TAILSCALE_EXIT_NODE"
 fi
 
 while true; do
