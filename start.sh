@@ -3,6 +3,21 @@
 # Unset problematic npm config that causes warnings/failures on some platforms
 unset npm_config_before
 
+# Start Tailscale (if env vars are set)
+if [ -n "$TAILSCALE_AUTH_KEY" ] && [ -n "$TAILSCALE_EXIT_NODE" ]; then
+  TS_DIR=/tmp/tailscale
+  mkdir -p "$TS_DIR"
+
+  if [ ! -f "$TS_DIR/tailscale" ]; then
+    curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz \
+      | tar xz -C "$TS_DIR" --strip-components=1
+  fi
+
+  "$TS_DIR/tailscaled" --state=mem --tun=userspace-networking --socket="$TS_DIR/ts.sock" &
+  sleep 3
+  "$TS_DIR/tailscale" up --auth-key="$TAILSCALE_AUTH_KEY" --exit-node="$TAILSCALE_EXIT_NODE" --socket="$TS_DIR/ts.sock"
+fi
+
 while true; do
   # Delete any temporarily changes such as from package-lock.json
   # This will not delete logs or configurations
