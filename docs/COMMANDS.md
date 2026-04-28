@@ -137,7 +137,7 @@
 | `/list`               | List players in your guild(s)                                    |
 | `/log`                | View guild activity logs                                         |
 | `/names`              | View a player's name history                                     |
-| `/ping`               | Discord Ping                                                     |
+| `/ping`               | Discord and Hypixel status (server list) ping                    |
 | `/player`             | View a player's Hypixel profile                                  |
 | `/profanity`          | Manage application profanity filter                              |
 | `/promote`            | promote guild member in-game                                     |
