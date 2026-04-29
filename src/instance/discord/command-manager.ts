@@ -6,7 +6,7 @@ import type {
   Client,
   RESTPostAPIChatInputApplicationCommandsJSONBody
 } from 'discord.js'
-import { Collection, escapeMarkdown, MessageFlags, REST, Routes } from 'discord.js'
+import { Collection, DiscordAPIError, escapeMarkdown, MessageFlags, REST, Routes } from 'discord.js'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -355,17 +355,24 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     } catch (error) {
       this.logger.error(error)
 
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({
-          content: 'There was an error while executing command'
-        })
-        return
-      } else {
-        await interaction.reply({
-          content: 'There was an error while executing command',
-          flags: MessageFlags.Ephemeral
-        })
-        return
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply({
+            content: 'There was an error while executing command'
+          })
+          return
+        } else {
+          await interaction.reply({
+            content: 'There was an error while executing command',
+            flags: MessageFlags.Ephemeral
+          })
+          return
+        }
+      } catch (replyError) {
+        if (replyError instanceof DiscordAPIError && replyError.code === 10_062) {
+          return
+        }
+        throw replyError
       }
     }
   }
