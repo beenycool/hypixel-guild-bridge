@@ -1,13 +1,7 @@
+import type { Player } from 'hypixel-api-reborn'
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  calculateDuelsDivision,
-  type DuelsDivisionMode,
-  getUuidIfExists,
-  playerNeverPlayedHypixel,
-  shortenNumber,
-  usernameNotExists
-} from '../common/utility'
+import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
+import { calculateDuelsDivision, type DuelsDivisionMode, shortenNumber } from '../common/utility'
 
 import type { BridgeSubMode } from './duels-bridge-modes.js'
 import { BridgeSubModeAliases, BridgeSubModeDisplayNames, ValidBridgeSubModes } from './duels-bridge-modes.js'
@@ -32,8 +26,6 @@ type DuelType =
   | 'quake'
   | 'bedwars'
 
-// Bridge, Boxing, MegaWalls, NoDebuff, and Parkour use halved win thresholds
-// compared to short modes — see: https://hypixel.fandom.com/wiki/Duels
 const LongModeDuelTypes: ReadonlySet<DuelType> = new Set(['bridge', 'boxing', 'megawalls', 'nodebuff', 'parkour'])
 
 interface GamemodeStats {
@@ -44,7 +36,7 @@ interface GamemodeStats {
   WLRatio: number
 }
 
-export default class Duels extends ChatCommandHandler {
+export default class Duels extends HypixelPlayerCommand {
   private static readonly ValidDuelTypes: ReadonlySet<DuelType> = new Set([
     'blitz',
     'uhc',
@@ -95,35 +87,42 @@ export default class Duels extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
+  protected override resolveUsername(context: ChatCommandContext): string {
+    return this.parseArgs(context).username
+  }
+
+  private parseArgs(context: ChatCommandContext): {
+    duelType: DuelType | undefined
+    bridgeSubMode: BridgeSubMode | undefined
+    username: string
+  } {
     const commandArguments = context.args
 
-    // Parse duel type and username from arguments
     const firstArgument = commandArguments[0]?.toLowerCase()
     const isFirstArgumentDuelType = firstArgument && Duels.ValidDuelTypes.has(firstArgument as DuelType)
 
     const duelType: DuelType | undefined = isFirstArgumentDuelType ? (firstArgument as DuelType) : undefined
+
     let givenUsername = isFirstArgumentDuelType
       ? (commandArguments[1] ?? context.username)
       : (commandArguments[0] ?? context.username)
 
-    // Check for bridge sub-mode: when duelType is 'bridge', the next arg may be a sub-mode
     let bridgeSubMode: BridgeSubMode | undefined
-    if (duelType === 'bridge') {
+    if (isFirstArgumentDuelType && firstArgument === 'bridge') {
       const secondArgument = commandArguments[1]?.toLowerCase()
       const resolvedSubMode = secondArgument ? BridgeSubModeAliases.get(secondArgument) : undefined
       const isValidSubMode = secondArgument && ValidBridgeSubModes.has(secondArgument as BridgeSubMode)
       if (resolvedSubMode || isValidSubMode) {
-        bridgeSubMode = resolvedSubMode ?? (secondArgument as BridgeSubMode)
         givenUsername = commandArguments[2] ?? context.username
+        bridgeSubMode = resolvedSubMode ?? (secondArgument as BridgeSubMode)
       }
     }
 
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
+    return { duelType, bridgeSubMode, username: givenUsername }
+  }
 
-    const player = await context.app.hypixelApi.getPlayer(uuid, {}).catch(() => undefined)
-    if (player == undefined) return playerNeverPlayedHypixel(context, givenUsername)
+  async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
+    const { duelType, bridgeSubMode } = this.parseArgs(context)
 
     const stats = player.stats?.duels
     if (stats === undefined) return `${givenUsername} has never played Duels.`

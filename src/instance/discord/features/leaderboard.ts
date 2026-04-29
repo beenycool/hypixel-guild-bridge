@@ -3,13 +3,8 @@ import assert from 'node:assert'
 import type { APIEmbed, ButtonInteraction, Client, MessageActionRowComponentData } from 'discord.js'
 import { ButtonStyle, ComponentType, DiscordAPIError, escapeMarkdown, MessageFlags, userMention } from 'discord.js'
 import type { Guild } from 'hypixel-api-reborn'
-import type { Logger } from 'log4js'
-
-import type Application from '../../../application.js'
 import type { InstanceType } from '../../../common/application-event.js'
-import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import type { User } from '../../../common/user'
 import type { LeaderboardEntry } from '../../../core/discord/discord-leaderboards'
 import Duration from '../../../utility/duration'
@@ -25,14 +20,8 @@ export default class Leaderboard extends SubInstance<DiscordInstance, InstanceTy
   private static readonly UpdateEvery = Duration.minutes(30)
   private static readonly MyPositionId = 'my-position'
 
-  constructor(
-    application: Application,
-    clientInstance: DiscordInstance,
-    eventHelper: EventHelper<InstanceType.Discord>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: DiscordInstance) {
+    super(clientInstance)
 
     setIntervalAsync(async () => this.updateLeaderboards(), {
       delay: Leaderboard.CheckUpdateEvery,

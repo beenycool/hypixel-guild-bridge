@@ -1,17 +1,11 @@
+import type { Player } from 'hypixel-api-reborn'
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  capitalize,
-  formatStatNumber,
-  getUuidIfExists,
-  playerNeverPlayedHypixel,
-  shortenNumber,
-  usernameNotExists
-} from '../common/utility'
+import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
+import { capitalize, formatStatNumber, shortenNumber } from '../common/utility'
 
 type BedwarsMode = 'overall' | 'solo' | 'doubles' | 'threes' | 'fours' | '4v4'
 
-export default class Bedwars extends ChatCommandHandler {
+export default class Bedwars extends HypixelPlayerCommand {
   private static readonly ValidModes: readonly BedwarsMode[] = ['overall', 'solo', 'doubles', 'threes', 'fours', '4v4']
   constructor() {
     super({
@@ -21,36 +15,30 @@ export default class Bedwars extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const commandArguments = context.args
+  protected override resolveUsername(context: ChatCommandContext): string {
+    return this.parseArgs(context).username
+  }
 
-    // Parse mode and username from arguments
-    const firstArgument = commandArguments[0]?.toLowerCase()
+  private parseArgs(context: ChatCommandContext): { mode: BedwarsMode; username: string } {
+    const firstArgument = context.args[0]?.toLowerCase()
     const isFirstArgumentMode = firstArgument && Bedwars.ValidModes.includes(firstArgument as BedwarsMode)
+    return {
+      mode: isFirstArgumentMode ? (firstArgument as BedwarsMode) : 'overall',
+      username: isFirstArgumentMode ? (context.args[1] ?? context.username) : (context.args[0] ?? context.username)
+    }
+  }
 
-    const mode: BedwarsMode = isFirstArgumentMode ? (firstArgument as BedwarsMode) : 'overall'
-    const givenUsername = isFirstArgumentMode
-      ? (commandArguments[1] ?? context.username)
-      : (commandArguments[0] ?? context.username)
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const player = await context.app.hypixelApi.getPlayer(uuid, {}).catch(() => {
-      /* return undefined */
-    })
-    if (player == undefined) return playerNeverPlayedHypixel(context, givenUsername)
+  async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
+    const { mode } = this.parseArgs(context)
 
     const stats = player.stats?.bedwars
     if (stats === undefined) return `${givenUsername} has never played Bed Wars before?`
 
-    // Get mode-specific or overall stats
     const modeStats = mode === 'overall' ? stats : (stats as unknown as Record<string, unknown>)[mode]
     if (modeStats === undefined) {
       return `${givenUsername} has no ${capitalize(mode)} Bed Wars stats.`
     }
 
-    // Extract stats based on mode
     const level = stats.level
     const finalKills = this.getStat(modeStats, 'finalKills') ?? 0
     const finalKDRatio = this.getStat(modeStats, 'finalKDRatio') ?? 0

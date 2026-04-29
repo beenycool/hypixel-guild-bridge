@@ -33,7 +33,6 @@ import { CommandsInstance } from './instance/commands/commands-instance.js'
 import DiscordInstance from './instance/discord/discord-instance.js'
 import { PluginsManager } from './instance/features/plugins-manager.js'
 import HypixelUpdates from './instance/hypixel-updates'
-import MetricsInstance from './instance/metrics/metrics-instance.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
@@ -48,7 +47,6 @@ export type AllInstances =
   | DiscordInstance
   | PrometheusInstance
   | WebServer
-  | MetricsInstance
   | Core
   | MinecraftInstance
   | PluginInstance
@@ -149,7 +147,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly bridgeResolver: BridgeResolver
   private readonly prometheusInstance: PrometheusInstance | undefined
   private readonly webServer: WebServer | undefined
-  private readonly metricsInstance: MetricsInstance
 
   private readonly skyblockReminders: SkyblockReminders
   private readonly hypixelUpdates: HypixelUpdates
@@ -201,7 +198,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       ? new PrometheusInstance(this, this.config.prometheus)
       : undefined
     this.webServer = this.config.web?.enabled ? new WebServer(this, this.config.web) : undefined
-    this.metricsInstance = new MetricsInstance(this)
     this.commandsInstance = new CommandsInstance(this)
 
     this.skyblockReminders = new SkyblockReminders(this)
@@ -302,11 +298,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       // https://github.com/microsoft/TypeScript/issues/30650#issuecomment-486680485
       const checkedInstance = instance
 
-      if (checkedInstance instanceof MetricsInstance) {
-        if (this.config.general.shareMetrics) {
-          await checkedInstance.connect()
-        }
-      } else if (checkedInstance instanceof ConnectableInstance) {
+      if (checkedInstance instanceof ConnectableInstance) {
         this.logger.debug(`Connecting instance type=${instance.instanceType},name=${instance.instanceName}`)
         await checkedInstance.connect()
       } else if (instance instanceof PluginInstance) {
@@ -493,7 +485,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
       this.prometheusInstance,
       this.webServer,
-      this.metricsInstance,
       this.commandsInstance,
       ...this.minecraftManager.getAllInstances(),
       this.skyblockReminders,

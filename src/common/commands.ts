@@ -237,7 +237,7 @@ export function calculateSimilarityScore(query: string, target: string): number 
  * @param string2 - The second string to compare
  * @returns The Levenshtein distance
  */
-function calculateLevenshteinDistance(string1: string, string2: string): number {
+export function calculateLevenshteinDistance(string1: string, string2: string): number {
   const matrix: number[][] = Array.from({ length: string2.length + 1 }, () =>
     Array.from({ length: string1.length + 1 }, () => 0)
   )

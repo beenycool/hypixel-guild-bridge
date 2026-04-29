@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
+import { calculateLevenshteinDistance, ChatCommandHandler } from '../../../common/commands.js'
 import { search } from '../../../utility/shared-utility'
 import {
   getSelectedSkyblockProfileRaw,
@@ -61,7 +61,26 @@ export default class Collection extends ChatCommandHandler {
     }
 
     const translatedWord = search(query, translated.keys().toArray()).at(0)
-    if (translatedWord === undefined) return `${givenUsername} not such a collection: ${query}`
+    if (translatedWord === undefined) {
+      const suggestions = translated
+        .keys()
+        .toArray()
+        .map((key) => ({
+          key,
+          distance: calculateLevenshteinDistance(query.toLowerCase(), key.toLowerCase())
+        }))
+        .filter((s) => s.distance <= 2)
+        .toSorted((a, b) => a.distance - b.distance)
+
+      if (suggestions.length > 0) {
+        const suggestionKey = translated.get(suggestions[0].key)
+        if (suggestionKey !== undefined) {
+          const suggestion = this.beautify(suggestionKey)
+          return `${givenUsername} not such a collection: ${query}. Did you mean ${suggestion}?`
+        }
+      }
+      return `${givenUsername} not such a collection: ${query}`
+    }
 
     const collectionKey = translated.get(translatedWord)
     assert.ok(collectionKey !== undefined)

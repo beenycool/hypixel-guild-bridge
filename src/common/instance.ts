@@ -20,10 +20,10 @@ export abstract class Instance<T extends InstanceType> implements InstanceIdenti
 
   private readonly bridgeIdInternal?: string
 
-  protected readonly application: Application
-  protected readonly logger: Logger
-  protected readonly errorHandler: UnexpectedErrorHandler
-  protected readonly eventHelper: EventHelper<T>
+  readonly application: Application
+  readonly logger: Logger
+  readonly errorHandler: UnexpectedErrorHandler
+  readonly eventHelper: EventHelper<T>
 
   protected constructor(application: Application, instanceName: string, instanceType: T, bridgeId?: string) {
     this.application = application

@@ -1,320 +1,692 @@
 {
-  "uid": "GUILD_UID",
-  "title": "GUILD_NAME - Full Dashboard",
-  "tags": ["hypixel", "bridge", "guild", "GUILD_NAME"],
+  "uid": "hypixel-bridge-guild-master",
+  "title": "Hypixel Bridge – Guild (master)",
+  "tags": [
+    "hypixel",
+    "bridge",
+    "guild",
+    "master"
+  ],
   "schemaVersion": 39,
   "version": 1,
-  "time": { "from": "now-24h", "to": "now" },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
   "refresh": "30s",
   "timezone": "browser",
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "pluginId": "prometheus",
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "type": "query",
+        "name": "guild",
+        "label": "Guild",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(hypixel_bridge_guild_members, name)",
+        "definition": "label_values(hypixel_bridge_guild_members, name)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "type": "query",
+        "name": "discord_guild",
+        "label": "Discord server",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(hypixel_bridge_discord_role_members, guild_id)",
+        "definition": "label_values(hypixel_bridge_discord_role_members, guild_id)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
   },
   "panels": [
     {
       "id": 1,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "stat",
       "title": "Total Members",
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
-      "targets": [{ "expr": "hypixel_bridge_guild_members{name=\"GUILD_NAME\"}", "refId": "A", "instant": true }],
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(hypixel_bridge_guild_members{name=~\"$guild\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "orientation": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
     {
       "id": 2,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "stat",
       "title": "Online Now",
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
       "targets": [
-        { "expr": "hypixel_bridge_guild_members_online{name=\"GUILD_NAME\"}", "refId": "A", "instant": true }
+        {
+          "expr": "sum(hypixel_bridge_guild_members_online{name=~\"$guild\"})",
+          "refId": "A",
+          "instant": true
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "orientation": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
     {
       "id": 3,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "stat",
       "title": "Total GEXP",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
-      "targets": [{ "expr": "hypixel_bridge_guild_gexp_total{name=\"GUILD_NAME\"}", "refId": "A", "instant": true }],
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(hypixel_bridge_guild_gexp_total{name=~\"$guild\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "orientation": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
     {
       "id": 4,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "stat",
       "title": "Weekly GEXP",
-      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
-      "targets": [{ "expr": "hypixel_bridge_guild_gexp_weekly{name=\"GUILD_NAME\"}", "refId": "A", "instant": true }],
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(hypixel_bridge_guild_gexp_weekly{name=~\"$guild\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "orientation": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "purple",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
     {
       "id": 5,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "stat",
       "title": "Chat Messages (24h)",
-      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sum(increase(hypixel_bridge_chat{instance=\"GUILD_NAME\"}[24h]))", "refId": "A", "instant": true }
+        {
+          "expr": "sum(increase(hypixel_bridge_chat{instance=~\"$guild\"}[24h]))",
+          "refId": "A",
+          "instant": true
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "orientation": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
     {
       "id": 6,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "stat",
       "title": "Commands Used (24h)",
-      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
       "targets": [
-        { "expr": "sum(increase(hypixel_bridge_command{instance=\"GUILD_NAME\"}[24h]))", "refId": "A", "instant": true }
+        {
+          "expr": "sum(increase(hypixel_bridge_command{instance=~\"$guild\"}[24h]))",
+          "refId": "A",
+          "instant": true
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "orientation": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "cyan", "value": null }] }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "cyan",
+                "value": null
+              }
+            ]
+          }
         }
       }
     },
     {
       "id": 10,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "row",
       "title": "GEXP Trends",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
       "collapsed": false,
       "panels": []
     },
     {
       "id": 11,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "timeseries",
       "title": "Weekly GEXP Over Time",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
       "targets": [
-        { "expr": "hypixel_bridge_guild_gexp_weekly{name=\"GUILD_NAME\"}", "refId": "A", "legendFormat": "Weekly GEXP" }
+        {
+          "expr": "hypixel_bridge_guild_gexp_weekly{name=~\"$guild\"}",
+          "refId": "A",
+          "legendFormat": "Weekly GEXP"
+        }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "spanNulls": false, "insertNulls": false },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "spanNulls": false,
+            "insertNulls": false
+          },
           "unit": "short"
         }
       }
     },
     {
       "id": 12,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "timeseries",
       "title": "Total GEXP Over Time",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
       "targets": [
-        { "expr": "hypixel_bridge_guild_gexp_total{name=\"GUILD_NAME\"}", "refId": "A", "legendFormat": "Total GEXP" }
+        {
+          "expr": "hypixel_bridge_guild_gexp_total{name=~\"$guild\"}",
+          "refId": "A",
+          "legendFormat": "Total GEXP"
+        }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "spanNulls": false, "insertNulls": false },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "spanNulls": false,
+            "insertNulls": false
+          },
           "unit": "short"
         }
       }
     },
     {
       "id": 20,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "row",
       "title": "Member Activity",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 49
+      },
       "collapsed": false,
       "panels": []
     },
     {
       "id": 21,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "timeseries",
       "title": "Members & Online Trend",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 50
+      },
       "targets": [
-        { "expr": "hypixel_bridge_guild_members{name=\"GUILD_NAME\"}", "refId": "A", "legendFormat": "Total Members" },
-        { "expr": "hypixel_bridge_guild_members_online{name=\"GUILD_NAME\"}", "refId": "B", "legendFormat": "Online" }
+        {
+          "expr": "hypixel_bridge_guild_members{name=~\"$guild\"}",
+          "refId": "A",
+          "legendFormat": "Total Members"
+        },
+        {
+          "expr": "hypixel_bridge_guild_members_online{name=~\"$guild\"}",
+          "refId": "B",
+          "legendFormat": "Online"
+        }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "spanNulls": false, "insertNulls": false },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "spanNulls": false,
+            "insertNulls": false
+          },
           "unit": "short"
         }
       }
     },
     {
       "id": 22,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "timeseries",
       "title": "Guild Events",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 50
+      },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_event{instance=\"GUILD_NAME\",event=\"join\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"join\"}[1h])",
           "refId": "A",
           "legendFormat": "Joins"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=\"GUILD_NAME\",event=\"leave\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"leave\"}[1h])",
           "refId": "B",
           "legendFormat": "Leaves"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=\"GUILD_NAME\",event=\"kick\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"kick\"}[1h])",
           "refId": "C",
           "legendFormat": "Kicks"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=\"GUILD_NAME\",event=\"online\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"online\"}[1h])",
           "refId": "D",
           "legendFormat": "Online Events"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=\"GUILD_NAME\",event=\"offline\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"offline\"}[1h])",
           "refId": "E",
           "legendFormat": "Offline Events"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "spanNulls": false, "insertNulls": false },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "spanNulls": false,
+            "insertNulls": false
+          },
           "unit": "short"
         }
       }
     },
     {
       "id": 30,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "row",
       "title": "Chat & Commands",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 58
+      },
       "collapsed": false,
       "panels": []
     },
     {
       "id": 31,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "timeseries",
       "title": "Chat by Scope",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 59
+      },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_chat{instance=\"GUILD_NAME\",scope=\"public\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=~\"$guild\",scope=\"public\"}[1h])",
           "refId": "A",
           "legendFormat": "Public"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{instance=\"GUILD_NAME\",scope=\"officer\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=~\"$guild\",scope=\"officer\"}[1h])",
           "refId": "B",
           "legendFormat": "Officer"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{instance=\"GUILD_NAME\",scope=\"discord\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=~\"$guild\",scope=\"discord\"}[1h])",
           "refId": "C",
           "legendFormat": "Discord"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "spanNulls": false, "insertNulls": false },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "spanNulls": false,
+            "insertNulls": false
+          },
           "unit": "short"
         }
       }
     },
     {
       "id": 32,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "timeseries",
       "title": "Commands Over Time",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 59
+      },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_command{instance=\"GUILD_NAME\"}[1h])",
+          "expr": "increase(hypixel_bridge_command{instance=~\"$guild\"}[1h])",
           "refId": "A",
           "legendFormat": "Commands"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineInterpolation": "linear", "spanNulls": false, "insertNulls": false },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "spanNulls": false,
+            "insertNulls": false
+          },
           "unit": "short"
         }
       }
     },
     {
       "id": 40,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "row",
       "title": "Leaderboards",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 67
+      },
       "collapsed": false,
       "panels": []
     },
     {
       "id": 41,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "table",
       "title": "Top Members by Weekly GEXP",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 32 },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 68
+      },
       "targets": [
         {
-          "expr": "topk(25, hypixel_bridge_guild_member_gexp_weekly{name=\"GUILD_NAME\"})",
+          "expr": "topk(25, hypixel_bridge_guild_member_gexp_weekly{name=~\"$guild\"})",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -324,22 +696,43 @@
         {
           "id": "organize",
           "options": {
-            "indexByName": { "member_name": 0, "Value": 1 },
-            "renameByName": { "member_name": "Member", "Value": "Weekly GEXP" }
+            "indexByName": {
+              "member_name": 0,
+              "Value": 1
+            },
+            "renameByName": {
+              "member_name": "Member",
+              "Value": "Weekly GEXP"
+            }
           }
         }
       ],
-      "fieldConfig": { "defaults": { "custom": { "align": "auto", "displayMode": "auto" } } }
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          }
+        }
+      }
     },
     {
       "id": 42,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "table",
       "title": "Top Members by Daily GEXP",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 32 },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 68
+      },
       "targets": [
         {
-          "expr": "topk(25, hypixel_bridge_guild_member_gexp_daily{name=\"GUILD_NAME\"})",
+          "expr": "topk(25, hypixel_bridge_guild_member_gexp_daily{name=~\"$guild\"})",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -349,22 +742,43 @@
         {
           "id": "organize",
           "options": {
-            "indexByName": { "member_name": 0, "Value": 1 },
-            "renameByName": { "member_name": "Member", "Value": "Daily GEXP" }
+            "indexByName": {
+              "member_name": 0,
+              "Value": 1
+            },
+            "renameByName": {
+              "member_name": "Member",
+              "Value": "Daily GEXP"
+            }
           }
         }
       ],
-      "fieldConfig": { "defaults": { "custom": { "align": "auto", "displayMode": "auto" } } }
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          }
+        }
+      }
     },
     {
       "id": 43,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "table",
       "title": "Currently Online Members",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 42 },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 78
+      },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_member_online{name=\"GUILD_NAME\"} == 1",
+          "expr": "hypixel_bridge_guild_member_online{name=~\"$guild\"} == 1",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -374,22 +788,43 @@
         {
           "id": "organize",
           "options": {
-            "indexByName": { "member_name": 0, "Value": 1 },
-            "renameByName": { "member_name": "Member", "Value": "Online" }
+            "indexByName": {
+              "member_name": 0,
+              "Value": 1
+            },
+            "renameByName": {
+              "member_name": "Member",
+              "Value": "Online"
+            }
           }
         }
       ],
-      "fieldConfig": { "defaults": { "custom": { "align": "auto", "displayMode": "auto" } } }
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          }
+        }
+      }
     },
     {
       "id": 44,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "table",
       "title": "Member Tenure (Join Date)",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 42 },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 78
+      },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_member_joined_at{name=\"GUILD_NAME\"}",
+          "expr": "hypixel_bridge_guild_member_joined_at{name=~\"$guild\"}",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -399,39 +834,575 @@
         {
           "id": "organize",
           "options": {
-            "indexByName": { "member_name": 0, "Value": 1 },
-            "renameByName": { "member_name": "Member", "Value": "Joined At (Unix)" }
+            "indexByName": {
+              "member_name": 0,
+              "Value": 1
+            },
+            "renameByName": {
+              "member_name": "Member",
+              "Value": "Joined At (Unix)"
+            }
           }
         }
       ],
-      "fieldConfig": { "defaults": { "custom": { "align": "auto", "displayMode": "auto" } } }
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          }
+        }
+      }
     },
     {
       "id": 50,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "row",
       "title": "Discord",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 52 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 88
+      },
       "collapsed": false,
       "panels": []
     },
     {
       "id": 51,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "type": "table",
       "title": "Discord Role Sizes",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 53 },
-      "targets": [{ "expr": "hypixel_bridge_discord_role_members", "refId": "A", "format": "table", "instant": true }],
+      "description": "Filter with **Discord server** (variable). Pick one `guild_id` when the bot is in multiple Discord servers.",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 89
+      },
+      "targets": [
+        {
+          "expr": "hypixel_bridge_discord_role_members{guild_id=~\"$discord_guild\"}",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ],
       "transformations": [
         {
           "id": "organize",
           "options": {
-            "indexByName": { "role_name": 0, "Value": 1 },
-            "renameByName": { "role_name": "Role", "Value": "Members" }
+            "indexByName": {
+              "role_name": 0,
+              "Value": 1
+            },
+            "renameByName": {
+              "role_name": "Role",
+              "Value": "Members"
+            }
           }
         }
       ],
-      "fieldConfig": { "defaults": { "custom": { "align": "auto", "displayMode": "auto" } } }
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          }
+        }
+      }
+    },
+    {
+      "id": 60,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "stat",
+      "title": "Active inactivity notices",
+      "description": "Guild members with an active /inactivity notice",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(hypixel_bridge_guild_active_inactivity_notices{name=~\"$guild\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 61,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "stat",
+      "title": "Pending rankup reviews",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 4,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(hypixel_bridge_guild_pending_rankup_reviews{name=~\"$guild\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 6
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 62,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "stat",
+      "title": "Active mutes (guild members)",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 8,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(hypixel_bridge_guild_active_punishments{name=~\"$guild\",type=\"mute\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 63,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "stat",
+      "title": "Active bans (guild members)",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(hypixel_bridge_guild_active_punishments{name=~\"$guild\",type=\"ban\"})",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 64,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "piechart",
+      "title": "In-game rank distribution",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "hypixel_bridge_guild_rank_members{name=~\"$guild\"}",
+          "refId": "A",
+          "legendFormat": "{{rank_name}}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "pieType": "pie",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      }
+    },
+    {
+      "id": 65,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "row",
+      "title": "Retention & GEXP balance",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 66,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "table",
+      "title": "Slackers (>7 days since last seen)",
+      "description": "Uses hypixel_bridge_guild_member_last_seen_at (Unix milliseconds). PromQL compares to time()*1000. Sort by Value descending in panel options.",
+      "gridPos": {
+        "h": 11,
+        "w": 14,
+        "x": 0,
+        "y": 13
+      },
+      "targets": [
+        {
+          "expr": "((time() * 1000 - hypixel_bridge_guild_member_last_seen_at{name=~\"$guild\"}) / 86400000) > 7",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "member_name": 0,
+              "Value": 1
+            },
+            "renameByName": {
+              "member_name": "Member",
+              "Value": "Days inactive"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "decimals": 1
+        }
+      }
+    },
+    {
+      "id": 67,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "piechart",
+      "title": "Weekly GEXP – top 5 vs rest",
+      "gridPos": {
+        "h": 11,
+        "w": 10,
+        "x": 14,
+        "y": 13
+      },
+      "targets": [
+        {
+          "expr": "sum(topk(5, hypixel_bridge_guild_member_gexp_weekly{name=~\"$guild\"}))",
+          "refId": "A",
+          "legendFormat": "Top 5 contributors",
+          "instant": true
+        },
+        {
+          "expr": "sum(hypixel_bridge_guild_gexp_weekly{name=~\"$guild\"}) - sum(topk(5, hypixel_bridge_guild_member_gexp_weekly{name=~\"$guild\"}))",
+          "refId": "B",
+          "legendFormat": "Everyone else",
+          "instant": true
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 68,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "barchart",
+      "title": "Guild churn (30 days)",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(hypixel_bridge_event{instance=~\"$guild\",event=\"join\"}[30d]))",
+          "refId": "A",
+          "legendFormat": "Joins",
+          "instant": true
+        },
+        {
+          "expr": "-sum(increase(hypixel_bridge_event{instance=~\"$guild\",event=~\"leave|kick\"}[30d]))",
+          "refId": "B",
+          "legendFormat": "Leaves + kicks (down)",
+          "instant": true
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "stacking": "normal",
+        "xTickLabelRotation": 0,
+        "barWidth": 0.97
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 69,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "type": "timeseries",
+      "title": "Chat activity by scope (messages/hour)",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "sum by (scope) (rate(hypixel_bridge_chat{instance=~\"$guild\"}[1h]))",
+          "refId": "A",
+          "legendFormat": "{{scope}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": 70,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "description": "Rows are chat scopes (public, officer, discord, …); color intensity is message rate. Highlights peak windows over the dashboard time range. A true hour-of-clock matrix would need extra metric labels or recording rules.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "options": {
+        "calculate": false,
+        "cellGap": 2,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Spectral",
+          "steps": 64
+        },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-9
+        },
+        "legend": {
+          "show": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "mode": "single",
+          "showColorScale": false,
+          "yHistogram": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "reverse": false,
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum by (scope) (rate(hypixel_bridge_chat{instance=~\"$guild\"}[30m]))",
+          "legendFormat": "{{scope}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Chat activity heatmap (time × scope)",
+      "type": "heatmap"
     }
   ]
 }

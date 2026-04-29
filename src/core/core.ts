@@ -138,7 +138,7 @@ export class Core extends Instance<InstanceType.Core> {
     this.profanity = new Profanity(this.moderationConfiguration)
     this.punishments = new Punishments(this.databaseManager, application, this.logger)
     this.commandsHeat = new CommandsHeat(this.databaseManager, this.moderationConfiguration, this.logger)
-    this.enforcer = new PunishmentsEnforcer(application, this, this.eventHelper, this.logger, this.errorHandler)
+    this.enforcer = new PunishmentsEnforcer(this)
 
     this.rankupManager = new RankupManager(
       application,
@@ -147,26 +147,12 @@ export class Core extends Instance<InstanceType.Core> {
       this.logger
     )
 
-    this.guildManager = new GuildManager(application, this, this.eventHelper, this.logger, this.errorHandler)
-    this.autoComplete = new Autocomplete(
-      application,
-      this,
-      this.eventHelper,
-      this.logger,
-      this.errorHandler,
-      this.databaseManager
-    )
+    this.guildManager = new GuildManager(this)
+    this.autoComplete = new Autocomplete(this, this.databaseManager)
 
     this.verification = new Verification(this.databaseManager)
     this.inactivity = new Inactivity(this.databaseManager)
-    this.scoresManager = new ScoresManager(
-      application,
-      this,
-      this.eventHelper,
-      this.logger,
-      this.errorHandler,
-      this.databaseManager
-    )
+    this.scoresManager = new ScoresManager(this, this.databaseManager)
 
     this.ready = this.initialize()
   }

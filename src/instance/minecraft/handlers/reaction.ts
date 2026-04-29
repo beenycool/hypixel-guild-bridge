@@ -1,10 +1,5 @@
-import type { Logger } from 'log4js'
-
-import type Application from '../../../application.js'
 import { ChannelType, Color, GuildPlayerEventType, type InstanceType } from '../../../common/application-event.js'
-import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'
 
@@ -38,14 +33,8 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
     'Goodbye {username}. Forever.'
   ]
 
-  constructor(
-    application: Application,
-    clientInstance: MinecraftInstance,
-    eventHelper: EventHelper<InstanceType.Minecraft>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: MinecraftInstance) {
+    super(clientInstance)
 
     this.application.on('guildPlayer', async (event) => {
       if (

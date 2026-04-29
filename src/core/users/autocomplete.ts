@@ -1,14 +1,9 @@
 import assert from 'node:assert'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application'
 import { InstanceType } from '../../common/application-event'
 import { Status } from '../../common/connectable-instance'
 import type { DatabaseManager } from '../../common/database-manager'
-import type EventHelper from '../../common/event-helper'
 import SubInstance from '../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../common/unexpected-error-handler'
 import Duration from '../../utility/duration'
 import { setIntervalAsync, setTimeoutAsync } from '../../utility/scheduling'
 import type { Core } from '../core'
@@ -17,25 +12,21 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
   private static readonly MaxLife = Duration.years(1)
 
   constructor(
-    application: Application,
     clientInstance: Core,
-    eventHelper: EventHelper<InstanceType.Core>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler,
     private readonly databaseManager: DatabaseManager
   ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+    super(clientInstance)
 
-    application.on('chat', (event) => {
+    this.application.on('chat', (event) => {
       this.addUsernames([event.user.displayName()])
     })
-    application.on('guildPlayer', (event) => {
+    this.application.on('guildPlayer', (event) => {
       this.addUsernames([event.user.mojangProfile().name])
     })
-    application.on('command', (event) => {
+    this.application.on('command', (event) => {
       this.addUsernames([event.user.displayName()])
     })
-    application.on('commandFeedback', (event) => {
+    this.application.on('commandFeedback', (event) => {
       this.addUsernames([event.user.displayName()])
     })
 
@@ -48,10 +39,10 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
       delay: Duration.seconds(10),
       errorHandler: this.errorHandler.promiseCatch('resolving guild ranks')
     })
-    application.on('minecraftSelfBroadcast', (): void => {
+    this.application.on('minecraftSelfBroadcast', (): void => {
       ranksResolver.refresh()
     })
-    application.on('instanceAnnouncement', (event): void => {
+    this.application.on('instanceAnnouncement', (event): void => {
       if (event.instanceType === InstanceType.Minecraft) {
         ranksResolver.refresh()
       }

@@ -26,15 +26,8 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private readonly messageAssociation: MessageAssociation
   private readonly lastMuteWarn = new Map<string, number>()
 
-  constructor(
-    application: Application,
-    clientInstance: DiscordInstance,
-    messageAssociation: MessageAssociation,
-    eventHelper: EventHelper<InstanceType.Discord>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: DiscordInstance, messageAssociation: MessageAssociation) {
+    super(clientInstance)
     this.messageAssociation = messageAssociation
   }
 

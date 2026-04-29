@@ -1,10 +1,10 @@
 import assert from 'node:assert'
 
+import type { Player } from 'hypixel-api-reborn'
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import { getUuidIfExists, playerNeverPlayedHypixel, usernameNotExists } from '../common/utility'
+import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 
-export default class Buildbattle extends ChatCommandHandler {
+export default class Buildbattle extends HypixelPlayerCommand {
   private static readonly Titles = [
     { value: 0, score: 'Rookie' },
     { value: 100, score: 'Untrained' },
@@ -36,23 +36,13 @@ export default class Buildbattle extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const player = await context.app.hypixelApi.getPlayer(uuid, {}).catch(() => {
-      /* return undefined */
-    })
-    if (player == undefined) return playerNeverPlayedHypixel(context, givenUsername)
-
+  async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stat = player.stats?.buildbattle
     if (stat === undefined) return `${givenUsername} has never played Build Battle before?`
 
     const score = stat.score
     const wins = stat.wins.gtb + stat.wins.pro + stat.wins.solo + stat.wins.teams
-    const title = await this.getTitle(context, uuid, score)
+    const title = await this.getTitle(context, player.uuid, score)
 
     return `${title} ${givenUsername}'s Build Battle score is ${score.toLocaleString('en-US')} with ${wins.toLocaleString('en-US')} wins.`
   }

@@ -1,14 +1,9 @@
+import type { Player } from 'hypixel-api-reborn'
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  formatStatNumber,
-  getUuidIfExists,
-  playerNeverPlayedHypixel,
-  shortenNumber,
-  usernameNotExists
-} from '../common/utility'
+import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
+import { formatStatNumber, shortenNumber } from '../common/utility'
 
-export default class Warlords extends ChatCommandHandler {
+export default class Warlords extends HypixelPlayerCommand {
   constructor() {
     super({
       triggers: ['warlords', 'wl'],
@@ -17,15 +12,7 @@ export default class Warlords extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const player = await context.app.hypixelApi.getPlayer(uuid, {}).catch(() => undefined)
-    if (player == undefined) return playerNeverPlayedHypixel(context, givenUsername)
-
+  async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.warlords
     if (stats === undefined) return `${givenUsername} has never played Warlords.`
 

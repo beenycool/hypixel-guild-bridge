@@ -1,15 +1,12 @@
 import assert from 'node:assert'
 
-import type { Logger } from 'log4js'
 import PromiseQueue from 'promise-queue'
 
 import type Application from '../../application'
 import { ChannelType, InstanceType } from '../../common/application-event'
 import { Status } from '../../common/connectable-instance'
 import type { DatabaseManager } from '../../common/database-manager'
-import type EventHelper from '../../common/event-helper'
 import SubInstance from '../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../common/unexpected-error-handler'
 import Duration from '../../utility/duration'
 import { setIntervalAsync } from '../../utility/scheduling'
 import type { Core } from '../core'
@@ -34,16 +31,12 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
   private readonly database: ScoreDatabase
 
   constructor(
-    application: Application,
     clientInstance: Core,
-    eventHelper: EventHelper<InstanceType.Core>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler,
-    databaseManager: DatabaseManager
+    private readonly databaseManager: DatabaseManager
   ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+    super(clientInstance)
 
-    this.database = new ScoreDatabase(this, application, databaseManager)
+    this.database = new ScoreDatabase(this, this.application, databaseManager)
 
     this.application.on('minecraftSelfBroadcast', (event) => {
       this.database.addBotUuid(event.uuid)

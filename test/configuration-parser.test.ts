@@ -15,7 +15,6 @@ function buildMinimalConfig(adminIds: string[] | bigint[]) {
   return `version: 2
 general:
   hypixelApiKey: "test-key"
-  shareMetrics: false
 discord:
   key: "discord-key"
   adminIds: ${JSON.stringify(adminIds)}
