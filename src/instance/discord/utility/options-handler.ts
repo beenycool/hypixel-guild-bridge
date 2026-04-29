@@ -9,6 +9,7 @@ import type {
   ComponentInContainerData,
   ContainerComponentData,
   InteractionResponse,
+  Message,
   MessageComponentInteraction,
   ModalMessageModalSubmitInteraction,
   SectionComponentData
@@ -170,7 +171,7 @@ interface OptionId {
 export class OptionsHandler {
   public static readonly BackButton = 'back-button'
   private static readonly InactivityTime = 600_000
-  private originalReply: InteractionResponse | undefined
+  private originalReply: InteractionResponse | Message | undefined
   private enabled = true
   private path: string[] = []
   private ids = new Map<string, OptionId>()
@@ -255,24 +256,40 @@ export class OptionsHandler {
   }
 
   public async forwardInteraction(interaction: ChatInputCommandInteraction, errorHandler: UnexpectedErrorHandler) {
-    const originalReply = await interaction.reply({
-      components: [
-        new ViewBuilder(
-          this.mainCategory,
-          this.ids,
-          this.path,
-          this.enabled,
-          this.pages.get(this.getPathKey()) ?? 0,
-          DEFAULT_PAGE_SIZE
-        ).create()
-      ],
-      flags: MessageFlags.IsComponentsV2,
-      allowedMentions: { parse: [] }
-    })
+    const viewComponents = [
+      new ViewBuilder(
+        this.mainCategory,
+        this.ids,
+        this.path,
+        this.enabled,
+        this.pages.get(this.getPathKey()) ?? 0,
+        DEFAULT_PAGE_SIZE
+      ).create()
+    ]
 
-    this.originalReply = originalReply
-    const replyId = await originalReply.fetch().then((message) => message.id)
-    const collector = originalReply.createMessageComponentCollector({
+    let replyId: string
+    let originalReplyOrMessage: InteractionResponse | Message
+
+    if (interaction.deferred || interaction.replied) {
+      const message = await interaction.editReply({
+        components: viewComponents,
+        flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { parse: [] }
+      })
+      originalReplyOrMessage = message
+      this.originalReply = message
+      replyId = message.id
+    } else {
+      const originalReply = await interaction.reply({
+        components: viewComponents,
+        flags: MessageFlags.IsComponentsV2,
+        allowedMentions: { parse: [] }
+      })
+      originalReplyOrMessage = originalReply
+      this.originalReply = originalReply
+      replyId = await originalReply.fetch().then((message) => message.id)
+    }
+    const collector = originalReplyOrMessage.createMessageComponentCollector({
       filter: (messageInteraction) =>
         messageInteraction.user.id === interaction.user.id && messageInteraction.message.id === replyId
     })

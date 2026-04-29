@@ -525,6 +525,8 @@ export default {
       return
     }
 
+    await context.interaction.deferReply()
+
     const bridgeOptions = await fetchBridgeOptions(context.application, context)
 
     const optionsList: Exclude<OptionItem, EmbedCategoryOption>[] = [
