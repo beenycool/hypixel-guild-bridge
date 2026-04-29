@@ -32,7 +32,7 @@ import { createIasAuthFunction, type IasAuthCache } from './microsoft-ias-auth.j
 import MinecraftBridge from './minecraft-bridge.js'
 
 export default class MinecraftInstance extends ConnectableInstance<InstanceType.Minecraft> {
-  readonly defaultHosts = ['me.hypixel.net', 'free.stopthelag.lol']
+  readonly defaultHosts = ['me.hypixel.net']
   readonly defaultPort = 25_565
   readonly defaultVersion = '1.8.9'
   public currentHostIndex = 0
