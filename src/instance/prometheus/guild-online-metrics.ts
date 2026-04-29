@@ -2,7 +2,7 @@ import type { Registry } from 'prom-client'
 import { Gauge } from 'prom-client'
 
 import type Application from '../../application.js'
-import { InstanceType } from '../../common/application-event.js'
+import { InstanceType, PunishmentType } from '../../common/application-event.js'
 import Duration from '../../utility/duration'
 import { setIntervalAsync } from '../../utility/scheduling'
 
@@ -33,6 +33,10 @@ export default class GuildOnlineMetrics {
   private readonly memberLastSeenAt: Gauge
   private readonly memberOnline: Gauge
   private readonly discordRoleMembers: Gauge
+  private readonly guildRankMembers: Gauge
+  private readonly guildActiveInactivityNotices: Gauge
+  private readonly guildPendingRankupReviews: Gauge
+  private readonly guildActivePunishments: Gauge
 
   constructor(
     register: Registry,
@@ -91,7 +95,7 @@ export default class GuildOnlineMetrics {
 
     this.memberLastSeenAt = new Gauge({
       name: prefix + 'guild_member_last_seen_at',
-      help: 'Member last seen time as unix seconds',
+      help: 'Member last seen time as Unix milliseconds (use time()*1000 in PromQL with time())',
       labelNames: ['name', 'member_uuid', 'member_name']
     })
     register.registerMetric(this.memberLastSeenAt)
@@ -109,6 +113,34 @@ export default class GuildOnlineMetrics {
       labelNames: ['guild_id', 'role_id', 'role_name']
     })
     register.registerMetric(this.discordRoleMembers)
+
+    this.guildRankMembers = new Gauge({
+      name: prefix + 'guild_rank_members',
+      help: 'Guild member count per Hypixel in-game rank',
+      labelNames: ['name', 'rank_name']
+    })
+    register.registerMetric(this.guildRankMembers)
+
+    this.guildActiveInactivityNotices = new Gauge({
+      name: prefix + 'guild_active_inactivity_notices',
+      help: 'Active /inactivity notices for members currently in the guild',
+      labelNames: ['name']
+    })
+    register.registerMetric(this.guildActiveInactivityNotices)
+
+    this.guildPendingRankupReviews = new Gauge({
+      name: prefix + 'guild_pending_rankup_reviews',
+      help: 'Pending manual rankup reviews for the bridge tied to this Minecraft instance',
+      labelNames: ['name']
+    })
+    register.registerMetric(this.guildPendingRankupReviews)
+
+    this.guildActivePunishments = new Gauge({
+      name: prefix + 'guild_active_punishments',
+      help: 'Active punishments for guild members (by Minecraft UUID)',
+      labelNames: ['name', 'type']
+    })
+    register.registerMetric(this.guildActivePunishments)
 
     this.app.core.databaseManager.registerCleaner(() => this.clean())
 
@@ -150,6 +182,8 @@ export default class GuildOnlineMetrics {
           this.guildTotalExperience.set({ name: instanceName }, hypixelGuild.experience)
           this.guildWeeklyExperience.set({ name: instanceName }, hypixelGuild.totalWeeklyGexp)
 
+          await this.recordGuildManagementMetrics(instanceName, hypixelGuild, app)
+
           if (!this.exportPerMember) return
 
           // Try to get online status from guild list, but don't fail if disconnected
@@ -162,6 +196,12 @@ export default class GuildOnlineMetrics {
           } catch {
             // Bot disconnected – all members appear offline
           }
+
+          const lastSeenRows = await app.core.databaseManager.queryRows<{ memberUuid: string; lastSeenAt: number }>(
+            'SELECT "memberUuid", "lastSeenAt" FROM "guildMemberStates" WHERE "instanceName" = $1',
+            [instanceName]
+          )
+          const lastSeenByUuid = new Map(lastSeenRows.map((row) => [row.memberUuid, row.lastSeenAt]))
 
           for (const member of hypixelGuild.members) {
             const sortedHistory = member.expHistory.toSorted((a, b) => b.date.getTime() - a.date.getTime())
@@ -177,7 +217,8 @@ export default class GuildOnlineMetrics {
             this.memberWeeklyExperience.set(labels, member.weeklyExperience)
             this.memberDailyExperience.set(labels, sortedHistory[0]?.exp ?? 0)
             this.memberJoinedAt.set(labels, member.joinedAtTimestamp)
-            this.memberLastSeenAt.set(labels, online ? Date.now() : member.joinedAtTimestamp)
+            const lastSeenAt = online ? Date.now() : (lastSeenByUuid.get(member.uuid) ?? member.joinedAtTimestamp)
+            this.memberLastSeenAt.set(labels, lastSeenAt)
             this.memberOnline.set(labels, online ? 1 : 0)
           }
         })().catch(() => undefined)
@@ -329,6 +370,53 @@ export default class GuildOnlineMetrics {
     return await this.app.mojangApi.profilesByUsername(new Set(usernames))
   }
 
+  private bridgeIdForMinecraftInstance(instanceName: string): string | undefined {
+    for (const bridgeId of this.app.core.bridgeConfigurations.getAllBridgeIds()) {
+      if (this.app.core.bridgeConfigurations.getMinecraftInstances(bridgeId).includes(instanceName)) {
+        return bridgeId
+      }
+    }
+    return undefined
+  }
+
+  private async recordGuildManagementMetrics(
+    instanceName: string,
+    hypixelGuild: { members: readonly { uuid: string; rank: string }[] },
+    app: Application
+  ): Promise<void> {
+    const rankCounts = new Map<string, number>()
+    const memberUuids = new Set<string>()
+    for (const member of hypixelGuild.members) {
+      memberUuids.add(member.uuid)
+      const rankLabel = member.rank.length > 0 ? member.rank : 'UNKNOWN'
+      rankCounts.set(rankLabel, (rankCounts.get(rankLabel) ?? 0) + 1)
+    }
+    for (const [rankName, count] of rankCounts) {
+      this.guildRankMembers.set({ name: instanceName, rank_name: rankName }, count)
+    }
+
+    let inactivityForGuild = 0
+    for (const entry of app.core.inactivity.getAllActive()) {
+      if (memberUuids.has(entry.uuid)) inactivityForGuild++
+    }
+    this.guildActiveInactivityNotices.set({ name: instanceName }, inactivityForGuild)
+
+    const bridgeId = this.bridgeIdForMinecraftInstance(instanceName)
+    const pendingCount =
+      bridgeId !== undefined ? app.core.pendingReviewManager.getReviews(bridgeId).length : 0
+    this.guildPendingRankupReviews.set({ name: instanceName }, pendingCount)
+
+    let muteCount = 0
+    let banCount = 0
+    for (const punishment of app.core.allPunishments()) {
+      if (!memberUuids.has(punishment.userId)) continue
+      if (punishment.type === PunishmentType.Mute) muteCount++
+      else if (punishment.type === PunishmentType.Ban) banCount++
+    }
+    this.guildActivePunishments.set({ name: instanceName, type: 'mute' }, muteCount)
+    this.guildActivePunishments.set({ name: instanceName, type: 'ban' }, banCount)
+  }
+
   private resetMetrics(): void {
     this.guildTotalMembersCount.reset()
     this.guildOnlineMembersCount.reset()
@@ -340,6 +428,10 @@ export default class GuildOnlineMetrics {
     this.memberLastSeenAt.reset()
     this.memberOnline.reset()
     this.discordRoleMembers.reset()
+    this.guildRankMembers.reset()
+    this.guildActiveInactivityNotices.reset()
+    this.guildPendingRankupReviews.reset()
+    this.guildActivePunishments.reset()
   }
 
   private async clean(): Promise<void> {

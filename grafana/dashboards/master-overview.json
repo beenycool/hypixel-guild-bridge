@@ -8,12 +8,28 @@
   "refresh": "30s",
   "timezone": "browser",
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "pluginId": "prometheus",
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
   },
   "panels": [
     {
       "id": 1,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "stat",
       "title": "Total Members (All Guilds)",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
@@ -32,7 +48,7 @@
     },
     {
       "id": 2,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "stat",
       "title": "Total Online (All Guilds)",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
@@ -51,7 +67,7 @@
     },
     {
       "id": 3,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "stat",
       "title": "Total GEXP (All Guilds)",
       "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
@@ -70,7 +86,7 @@
     },
     {
       "id": 4,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "stat",
       "title": "Weekly GEXP (All Guilds)",
       "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
@@ -89,7 +105,7 @@
     },
     {
       "id": 5,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "stat",
       "title": "Total Chat Messages",
       "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
@@ -108,7 +124,7 @@
     },
     {
       "id": 6,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "stat",
       "title": "Total Commands",
       "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
@@ -127,7 +143,7 @@
     },
     {
       "id": 10,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "row",
       "title": "Guild Comparison",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
@@ -136,7 +152,7 @@
     },
     {
       "id": 11,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "timeseries",
       "title": "Members by Guild",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 5 },
@@ -153,7 +169,7 @@
     },
     {
       "id": 12,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "timeseries",
       "title": "Weekly GEXP by Guild",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 5 },
@@ -167,7 +183,7 @@
     },
     {
       "id": 13,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "timeseries",
       "title": "Total GEXP by Guild",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 5 },
@@ -181,7 +197,7 @@
     },
     {
       "id": 20,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "row",
       "title": "Activity & Events",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
@@ -190,7 +206,7 @@
     },
     {
       "id": 21,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "timeseries",
       "title": "Guild Events (Join/Leave/Kick)",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
@@ -220,7 +236,7 @@
     },
     {
       "id": 22,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "timeseries",
       "title": "Chat Activity by Scope",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
@@ -236,7 +252,7 @@
     },
     {
       "id": 30,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "row",
       "title": "Top Performers",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
@@ -245,7 +261,7 @@
     },
     {
       "id": 31,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "table",
       "title": "Top Members by Weekly GEXP",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
@@ -269,7 +285,7 @@
     },
     {
       "id": 32,
-      "datasource": { "type": "prometheus", "uid": "afk9lkruxq77kf" },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "type": "table",
       "title": "Discord Role Sizes",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
