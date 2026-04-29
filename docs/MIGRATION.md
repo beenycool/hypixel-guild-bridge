@@ -12,7 +12,6 @@ somewhere else.
 Most notable changes:
 
 - Add `version: 2`
-- Add `shareMetrics` to `general`
 - Move `discord.adminId` to `discord.adminIds` and make it into a list
 - Elements of `discord.adminIds` must be **strings** (quote them); numeric values will be coerced to strings at runtime
 - Remove all options in `discord` section except `key` and `adminIds`

@@ -38,7 +38,17 @@ await describe('Application.start', async () => {
           /* noop */
         }
       },
-      config: { general: { shareMetrics: false } }
+      errorHandler: {
+        promiseCatch: () => () => {
+          /* noop */
+        }
+      },
+      randomChatter: {
+        start: () => {
+          /* noop */
+        }
+      },
+      config: { general: {} }
     }
 
     await Application.prototype.start.call(application as unknown as Application)

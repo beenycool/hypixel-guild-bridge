@@ -1,14 +1,10 @@
 import assert from 'node:assert'
 
-import type { Logger } from 'log4js'
 import GetMinecraftData from 'minecraft-data'
 import type { ChatMessage } from 'prismarine-chat'
 
-import type Application from '../../application.js'
 import type { InstanceType } from '../../common/application-event.js'
-import type EventHelper from '../../common/event-helper.js'
 import SubInstance from '../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.js'
 
 import AdvertiseChat from './chat/advertise.js'
 import BlockChat from './chat/block.js'
@@ -48,14 +44,10 @@ export default class ChatManager extends SubInstance<MinecraftInstance, Instance
   private readonly minecraftData
 
   constructor(
-    application: Application,
     clientInstance: MinecraftInstance,
-    eventHelper: EventHelper<InstanceType.Minecraft>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler,
     private readonly messageAssociation: MessageAssociation
   ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+    super(clientInstance)
 
     this.minecraftData = GetMinecraftData(clientInstance.defaultVersion)
 

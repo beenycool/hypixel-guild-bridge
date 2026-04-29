@@ -70,33 +70,14 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       this.sendNow(command)
     })
 
-    this.stateHandler = new StateHandler(this.application, this, this.eventHelper, this.logger, this.errorHandler)
-    this.selfbroadcastHandler = new SelfbroadcastHandler(
-      this.application,
-      this,
-      this.eventHelper,
-      this.logger,
-      this.errorHandler
-    )
-    this.chatManager = new ChatManager(
-      this.application,
-      this,
-      this.eventHelper,
-      this.logger,
-      this.errorHandler,
-      this.messageAssociation
-    )
-    this.gameToggle = new GameTogglesHandler(this.application, this, this.eventHelper, this.logger, this.errorHandler)
-    this.punishmentHandler = new PunishmentHandler(
-      this.application,
-      this,
-      this.eventHelper,
-      this.logger,
-      this.errorHandler
-    )
-    this.limboHandler = new LimboHandler(this.application, this, this.eventHelper, this.logger, this.errorHandler)
-    this.reactionHandler = new Reaction(this.application, this, this.eventHelper, this.logger, this.errorHandler)
-    this.playerMuted = new PlayerMuted(this.application, this, this.eventHelper, this.logger, this.errorHandler)
+    this.stateHandler = new StateHandler(this)
+    this.selfbroadcastHandler = new SelfbroadcastHandler(this)
+    this.chatManager = new ChatManager(this, this.messageAssociation)
+    this.gameToggle = new GameTogglesHandler(this)
+    this.punishmentHandler = new PunishmentHandler(this)
+    this.limboHandler = new LimboHandler(this)
+    this.reactionHandler = new Reaction(this)
+    this.playerMuted = new PlayerMuted(this)
   }
 
   override async signal(type: InstanceSignalType): Promise<void> {

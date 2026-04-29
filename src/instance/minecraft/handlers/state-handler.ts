@@ -1,12 +1,7 @@
-import type { Logger } from 'log4js'
-
-import type Application from '../../../application.js'
 import type { InstanceStatus, InstanceType } from '../../../common/application-event.js'
 import { InstanceMessageType } from '../../../common/application-event.js'
 import { Status } from '../../../common/connectable-instance.js'
-import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import Duration from '../../../utility/duration'
 import { setTimeoutAsync } from '../../../utility/scheduling'
 import { formatTime } from '../../../utility/shared-utility'
@@ -27,14 +22,8 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   private authenticationCodeRequested: boolean
   private instanceStatusListener: ((event: InstanceStatus) => void) | undefined
 
-  constructor(
-    application: Application,
-    clientInstance: MinecraftInstance,
-    eventHelper: EventHelper<InstanceType.Minecraft>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: MinecraftInstance) {
+    super(clientInstance)
 
     this.loginAttempts = 0
     this.loggedIn = false

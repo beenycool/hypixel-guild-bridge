@@ -15,18 +15,12 @@ export default abstract class SubInstance<K extends ConnectableInstance<T> | Ins
   protected logger: Logger
   protected errorHandler: UnexpectedErrorHandler
 
-  public constructor(
-    application: Application,
-    clientInstance: K,
-    eventHelper: EventHelper<T>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    this.application = application
+  public constructor(clientInstance: K) {
     this.clientInstance = clientInstance
-    this.eventHelper = eventHelper
-    this.logger = logger
-    this.errorHandler = errorHandler
+    this.application = clientInstance.application
+    this.eventHelper = clientInstance.eventHelper
+    this.logger = clientInstance.logger
+    this.errorHandler = clientInstance.errorHandler
   }
 
   /**

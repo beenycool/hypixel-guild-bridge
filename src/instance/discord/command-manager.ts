@@ -66,14 +66,8 @@ import type DiscordInstance from './discord-instance.js'
 export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   readonly commands = new Collection<string, DiscordCommandHandler>()
 
-  constructor(
-    application: Application,
-    clientInstance: DiscordInstance,
-    eventHelper: EventHelper<InstanceType.Discord>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: DiscordInstance) {
+    super(clientInstance)
     this.addDefaultCommands()
   }
 

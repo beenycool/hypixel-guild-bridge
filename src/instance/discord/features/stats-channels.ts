@@ -1,14 +1,9 @@
 import type { Channel, Client, Guild } from 'discord.js'
 import { DiscordAPIError, GuildChannel } from 'discord.js'
 import type { Guild as HypixelGuild } from 'hypixel-api-reborn'
-import type { Logger } from 'log4js'
-
 import type { StatsChannelsConfig } from '../../../application-config.js'
-import type Application from '../../../application.js'
 import type { InstanceType } from '../../../common/application-event.js'
-import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import Duration from '../../../utility/duration'
 import { setIntervalAsync } from '../../../utility/scheduling'
 import type DiscordInstance from '../discord-instance.js'
@@ -28,14 +23,8 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 
   private readonly updateInterval: Duration
 
-  constructor(
-    application: Application,
-    clientInstance: DiscordInstance,
-    eventHelper: EventHelper<InstanceType.Discord>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: DiscordInstance) {
+    super(clientInstance)
 
     this.updateInterval = StatsChannels.resolveUpdateInterval(this.application.getStatsChannelsConfig())
 

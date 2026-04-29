@@ -1,25 +1,14 @@
 import type { Client } from 'discord.js'
 import { escapeMarkdown } from 'discord.js'
-import type { Logger } from 'log4js'
-
-import type Application from '../../../application.js'
 import type { InstanceType } from '../../../common/application-event.js'
 import { GuildPlayerEventType } from '../../../common/application-event.js'
 import { Status } from '../../../common/connectable-instance.js'
-import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import type DiscordInstance from '../discord-instance.js'
 
 export default class LoggerManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
-  constructor(
-    application: Application,
-    clientInstance: DiscordInstance,
-    eventHelper: EventHelper<InstanceType.Discord>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: DiscordInstance) {
+    super(clientInstance)
 
     this.application.on('guildPlayer', async (event) => {
       if (event.type == GuildPlayerEventType.Online || event.type == GuildPlayerEventType.Offline) return

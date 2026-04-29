@@ -1,15 +1,11 @@
 import assert from 'node:assert'
 
-import type { Logger } from 'log4js'
 import type { Client } from 'minecraft-protocol'
 import PromiseQueue from 'promise-queue'
 
-import type Application from '../../../application.js'
 import type { InstanceType, MinecraftRawChatEvent } from '../../../common/application-event.js'
 import { ChannelType, Color, MinecraftSendChatPriority } from '../../../common/application-event.js'
-import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import type { GameToggleConfig } from '../../../core/minecraft/minecraft-accounts'
 import Duration from '../../../utility/duration'
 import { setIntervalAsync, setTimeoutAsync } from '../../../utility/scheduling'
@@ -38,14 +34,8 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
   private config: GameToggleConfig | undefined
   private lastUuid: string | undefined = undefined
 
-  constructor(
-    application: Application,
-    clientInstance: MinecraftInstance,
-    eventHelper: EventHelper<InstanceType.Minecraft>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: MinecraftInstance) {
+    super(clientInstance)
 
     setIntervalAsync(
       async () => {

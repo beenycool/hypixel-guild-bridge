@@ -1,9 +1,9 @@
+import type { Player as HypixelPlayer } from 'hypixel-api-reborn'
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
+import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 import { formatNumber } from '../../../common/helper-functions.js'
-import { getUuidIfExists, playerNeverPlayedHypixel, usernameNotExists } from '../common/utility'
 
-export default class Player extends ChatCommandHandler {
+export default class Player extends HypixelPlayerCommand {
   constructor() {
     super({
       triggers: ['player', 'general'],
@@ -12,18 +12,8 @@ export default class Player extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const player = await context.app.hypixelApi.getPlayer(uuid).catch(() => {
-      /* return undefined */
-    })
-    if (!player) return playerNeverPlayedHypixel(context, givenUsername)
-
-    const guild = await context.app.hypixelApi.getGuild('player', uuid).catch(() => undefined)
+  async onPlayer(context: ChatCommandContext, givenUsername: string, player: HypixelPlayer): Promise<string> {
+    const guild = await context.app.hypixelApi.getGuild('player', player.uuid).catch(() => undefined)
     const guildName = guild?.name ?? 'None'
 
     const rank = player.rank

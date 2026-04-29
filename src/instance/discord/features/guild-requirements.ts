@@ -1,14 +1,9 @@
 import type { ButtonInteraction, Client } from 'discord.js'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown, MessageFlags } from 'discord.js'
-import type { Logger } from 'log4js'
-
 import type { GuildRequirementsConfig } from '../../../application-config.js'
-import type Application from '../../../application.js'
 import type { GuildPlayerEvent, InstanceType } from '../../../common/application-event.js'
 import { GuildPlayerEventType, MinecraftSendChatPriority, Permission } from '../../../common/application-event.js'
-import type EventHelper from '../../../common/event-helper.js'
 import SubInstance from '../../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import { checkChatTriggers, InviteAcceptChat } from '../../../utility/chat-triggers.js'
 import { formatChatTriggerResponse } from '../common/chattrigger-format.js'
 import {
@@ -26,14 +21,8 @@ interface AcceptRequestPayload {
 export default class GuildRequirements extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   private static readonly AcceptButtonPrefix = 'guild-req-accept'
 
-  constructor(
-    application: Application,
-    clientInstance: DiscordInstance,
-    eventHelper: EventHelper<InstanceType.Discord>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, clientInstance, eventHelper, logger, errorHandler)
+  constructor(clientInstance: DiscordInstance) {
+    super(clientInstance)
 
     this.application.on('guildPlayer', (event) => {
       if (event.type !== GuildPlayerEventType.Request) return

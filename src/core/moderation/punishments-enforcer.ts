@@ -1,6 +1,3 @@
-import type { Logger } from 'log4js'
-
-import type Application from '../../application'
 import type { GuildPlayerEvent, Punishment, PunishmentForgive } from '../../common/application-event'
 import {
   GuildPlayerEventType,
@@ -8,9 +5,7 @@ import {
   MinecraftSendChatPriority,
   PunishmentType
 } from '../../common/application-event'
-import type EventHelper from '../../common/event-helper'
 import SubInstance from '../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../common/unexpected-error-handler'
 import type { MinecraftUser } from '../../common/user'
 import Duration from '../../utility/duration'
 import { durationToMinecraftDuration } from '../../utility/shared-utility'
@@ -19,14 +14,8 @@ import type { Core } from '../core'
 export default class PunishmentsEnforcer extends SubInstance<Core, InstanceType.Core, void> {
   private static readonly LagLeniency = Duration.seconds(30)
 
-  constructor(
-    application: Application,
-    instance: Core,
-    eventHelper: EventHelper<InstanceType.Core>,
-    logger: Logger,
-    errorHandler: UnexpectedErrorHandler
-  ) {
-    super(application, instance, eventHelper, logger, errorHandler)
+  constructor(instance: Core) {
+    super(instance)
 
     this.application.on('guildPlayer', async (event) => {
       await this.onGuildPlayer(event).catch(this.errorHandler.promiseCatch('handling guildPlayer event'))
