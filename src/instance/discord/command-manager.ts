@@ -6,7 +6,7 @@ import type {
   Client,
   RESTPostAPIChatInputApplicationCommandsJSONBody
 } from 'discord.js'
-import { Collection, DiscordAPIError, escapeMarkdown, MessageFlags, REST, Routes } from 'discord.js'
+import { Collection, DiscordAPIError, escapeMarkdown, MessageFlags, REST, RESTJSONErrorCodes, Routes } from 'discord.js'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -369,7 +369,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
           return
         }
       } catch (replyError) {
-        if (replyError instanceof DiscordAPIError && replyError.code === 10_062) {
+        if (replyError instanceof DiscordAPIError && replyError.code === RESTJSONErrorCodes.UnknownInteraction) {
           return
         }
         throw replyError

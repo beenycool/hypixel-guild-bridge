@@ -215,6 +215,8 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
   }
 
   private async handleCommand(event: CommandEvent, feedback: boolean) {
+    if (!this.shouldProcessEvent(event)) return
+
     const reply = this.messageAssociation.getMessageId(event.originEventId)
     if (reply === undefined) {
       this.logger.error(

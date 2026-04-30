@@ -107,13 +107,21 @@ export default class Duels extends HypixelPlayerCommand {
       ? (commandArguments[1] ?? context.username)
       : (commandArguments[0] ?? context.username)
 
-    let bridgeSubMode: BridgeSubMode | undefined
     if (isFirstArgumentDuelType && firstArgument === 'bridge') {
       const secondArgument = commandArguments[1]?.toLowerCase()
       const resolvedSubMode = secondArgument ? BridgeSubModeAliases.get(secondArgument) : undefined
       const isValidSubMode = secondArgument && ValidBridgeSubModes.has(secondArgument as BridgeSubMode)
       if (resolvedSubMode || isValidSubMode) {
         givenUsername = commandArguments[2] ?? context.username
+      }
+    }
+
+    let bridgeSubMode: BridgeSubMode | undefined
+    if (isFirstArgumentDuelType && firstArgument === 'bridge') {
+      const secondArgument = commandArguments[1]?.toLowerCase()
+      const resolvedSubMode = secondArgument ? BridgeSubModeAliases.get(secondArgument) : undefined
+      const isValidSubMode = secondArgument && ValidBridgeSubModes.has(secondArgument as BridgeSubMode)
+      if (resolvedSubMode || isValidSubMode) {
         bridgeSubMode = resolvedSubMode ?? (secondArgument as BridgeSubMode)
       }
     }
