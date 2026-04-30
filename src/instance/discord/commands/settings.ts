@@ -3162,7 +3162,8 @@ async function minecraftInstanceAdd(
 
   const modalInteraction = await interaction.awaitModalSubmit({
     time: 300_000,
-    filter: (modalInteraction) => modalInteraction.user.id === interaction.user.id
+    filter: (modalInteraction) =>
+      modalInteraction.customId === 'minecraft-instance-add' && modalInteraction.user.id === interaction.user.id
   })
 
   const instanceName = modalInteraction.fields.getTextInputValue('instance-name').trim()
@@ -3346,7 +3347,8 @@ async function minecraftInstanceRemove(
 
   const modalInteraction = await interaction.awaitModalSubmit({
     time: 300_000,
-    filter: (modalInteraction) => modalInteraction.user.id === interaction.user.id
+    filter: (modalInteraction) =>
+      modalInteraction.customId === 'minecraft-instance-remove' && modalInteraction.user.id === interaction.user.id
   })
 
   const instanceName = modalInteraction.fields.getTextInputValue('instance-name')
@@ -3440,8 +3442,9 @@ async function minecraftInstanceImportIasToken(
 ): Promise<boolean> {
   const embedTitle = 'Import IAS Refresh Token'
 
+  const modalId = `minecraft-instance-import-ias-${Date.now()}`
   await interaction.showModal({
-    customId: `minecraft-instance-import-ias-${Date.now()}`,
+    customId: modalId,
     title: embedTitle,
     components: [
       {
@@ -3479,7 +3482,8 @@ async function minecraftInstanceImportIasToken(
 
   const modalInteraction = await interaction.awaitModalSubmit({
     time: 300_000,
-    filter: (modalInteraction) => modalInteraction.user.id === interaction.user.id
+    filter: (modalInteraction) =>
+      modalInteraction.customId === modalId && modalInteraction.user.id === interaction.user.id
   })
 
   const deferredReply = await modalInteraction.deferReply({ flags: MessageFlags.Ephemeral })
