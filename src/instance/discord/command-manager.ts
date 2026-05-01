@@ -369,7 +369,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
           return
         }
       } catch (replyError) {
-        if (replyError instanceof DiscordAPIError && replyError.code === 10_062) {
+        if (replyError instanceof DiscordAPIError && (replyError.code === 10_062 || replyError.code === 10_008)) {
           return
         }
         throw replyError
