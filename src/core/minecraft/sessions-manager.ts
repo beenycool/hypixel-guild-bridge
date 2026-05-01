@@ -274,9 +274,70 @@ export class SessionsManager {
         try {
           parsedData = JSON.parse(jsonData) as Record<string, unknown>
         } catch (parseError) {
-          const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
-          errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
-          return { imported, errors }
+          const trimmed = jsonData.trim()
+          const hasTopLevelCommas = trimmed.startsWith('{') && trimmed.match(/,"[^"]+":/g)
+          const hasConcatenatedObjects = trimmed.match(/\}\s*\{/g)
+          const isSingleObject =
+            hasTopLevelCommas &&
+            (hasConcatenatedObjects === null || hasTopLevelCommas.length > hasConcatenatedObjects.length)
+
+          let fixedParsed: Record<string, unknown> | undefined
+          const fixedJson = this.tryFixJson(jsonData)
+          if (fixedJson !== jsonData) {
+            try {
+              fixedParsed = JSON.parse(fixedJson) as Record<string, unknown>
+              errors.push('Fixed JSON formatting issues (added missing closing braces)')
+            } catch {
+              // ignore
+            }
+          }
+
+          if (!fixedParsed && (isSingleObject || trimmed.startsWith('{'))) {
+            const moreFixedJson = this.tryFixJsonAggressive(trimmed)
+            if (moreFixedJson !== trimmed) {
+              try {
+                fixedParsed = JSON.parse(moreFixedJson) as Record<string, unknown>
+                errors.push('Fixed JSON formatting issues (added missing closing braces)')
+              } catch {
+                // ignore
+              }
+            }
+          }
+
+          if (fixedParsed) {
+            parsedData = fixedParsed
+          } else if (!isSingleObject && hasConcatenatedObjects) {
+            parsedData = this.parseConcatenatedJsonObjects(jsonData, errors)
+            if (Object.keys(parsedData).length === 0) {
+              return { imported, errors }
+            }
+          } else {
+            if (isSingleObject) {
+              const normalized = trimmed
+                .replace(/^\uFEFF/, '')
+                .replaceAll(/[\u200B-\u200D\uFEFF]/g, '')
+                .trim()
+
+              if (normalized === trimmed) {
+                const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+                errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
+                return { imported, errors }
+              } else {
+                try {
+                  parsedData = JSON.parse(normalized) as Record<string, unknown>
+                  errors.push('Fixed JSON formatting issues (removed invisible characters)')
+                } catch {
+                  const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+                  errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
+                  return { imported, errors }
+                }
+              }
+            } else {
+              const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+              errors.push(`Failed to parse JSON: ${parseErrorMessage}`)
+              return { imported, errors }
+            }
+          }
         }
       } else {
         parsedData = jsonData
@@ -331,6 +392,283 @@ export class SessionsManager {
     }
 
     return { imported, errors }
+  }
+
+  private looksLikeSingleObject(jsonString: string): boolean {
+    let depth = 0
+    let inString = false
+    let escapeNext = false
+    let topLevelCommas = 0
+    let hasMultipleKeys = false
+
+    for (const char of jsonString) {
+      if (escapeNext) {
+        escapeNext = false
+        continue
+      }
+
+      if (char === '\\') {
+        escapeNext = true
+        continue
+      }
+
+      if (char === '"') {
+        inString = !inString
+        continue
+      }
+
+      if (!inString) {
+        if (char === '{' || char === '[') {
+          depth++
+        } else if (char === '}' || char === ']') {
+          depth--
+        } else if (char === ',' && depth === 1) {
+          topLevelCommas++
+          hasMultipleKeys = true
+        }
+      }
+    }
+
+    return hasMultipleKeys && topLevelCommas > 0
+  }
+
+  private tryFixJsonAggressive(jsonString: string): string {
+    const trimmed = jsonString.trim()
+    if (!trimmed.startsWith('{')) {
+      return jsonString
+    }
+
+    let depth = 0
+    let inString = false
+    let escapeNext = false
+    let lastNonWhitespacePos = -1
+
+    let index = 0
+    for (const char of trimmed) {
+      if (escapeNext) {
+        escapeNext = false
+        if (!/\s/.test(char)) {
+          lastNonWhitespacePos = index
+        }
+        index++
+        continue
+      }
+
+      if (char === '\\') {
+        escapeNext = true
+        index++
+        continue
+      }
+
+      if (char === '"') {
+        inString = !inString
+        lastNonWhitespacePos = index
+        index++
+        continue
+      }
+
+      if (!inString) {
+        if (char === '{') {
+          depth++
+          lastNonWhitespacePos = index
+        } else if (char === '}') {
+          depth--
+          lastNonWhitespacePos = index
+        } else if (!/\s/.test(char)) {
+          lastNonWhitespacePos = index
+        }
+      } else if (!/\s/.test(char)) {
+        lastNonWhitespacePos = index
+      }
+      index++
+    }
+
+    if (depth > 0 && depth <= 10 && lastNonWhitespacePos >= 0 && !inString) {
+      const lastChar = trimmed[lastNonWhitespacePos]
+      const canClose =
+        (lastChar === '}' ||
+          lastChar === '"' ||
+          lastChar === ']' ||
+          (lastChar >= '0' && lastChar <= '9') ||
+          lastChar === 'e' ||
+          lastChar === 'E' ||
+          /(true|false|null)$/.exec(trimmed.slice(Math.max(0, lastNonWhitespacePos - 4), lastNonWhitespacePos + 1))) ??
+        lastChar === ','
+
+      if (canClose) {
+        let fixed = trimmed.slice(0, Math.max(0, lastNonWhitespacePos + 1)).replace(/,\s*$/, '')
+        fixed += '}'.repeat(depth)
+        return fixed
+      }
+    }
+
+    return jsonString
+  }
+
+  private tryFixJson(jsonString: string): string {
+    const trimmed = jsonString.trim()
+    if (!trimmed.startsWith('{')) {
+      return jsonString
+    }
+
+    let depth = 0
+    let inString = false
+    let escapeNext = false
+
+    for (const char of trimmed) {
+      if (escapeNext) {
+        escapeNext = false
+        continue
+      }
+
+      if (char === '\\') {
+        escapeNext = true
+        continue
+      }
+
+      if (char === '"') {
+        inString = !inString
+        continue
+      }
+
+      if (!inString) {
+        if (char === '{') {
+          depth++
+        } else if (char === '}') {
+          depth--
+        }
+      }
+    }
+
+    if (depth > 0 && depth <= 10) {
+      let fixed = trimmed.replace(/,\s*$/, '')
+      fixed += '}'.repeat(depth)
+      return fixed
+    }
+
+    return jsonString
+  }
+
+  private parseConcatenatedJsonObjects(jsonString: string, errors: string[]): Record<string, unknown> {
+    const merged: Record<string, unknown> = {}
+    let position = 0
+    const trimmed = jsonString.trim()
+    let objectCount = 0
+
+    while (position < trimmed.length) {
+      while (position < trimmed.length && /\s/.test(trimmed[position])) {
+        position++
+      }
+
+      if (position >= trimmed.length) {
+        break
+      }
+
+      if (trimmed[position] !== '{') {
+        const nextBrace = trimmed.indexOf('{', position)
+        if (nextBrace === -1) {
+          if (objectCount === 0) {
+            errors.push(`Unexpected character at position ${position}: expected '{'`)
+          }
+          break
+        }
+        const skipped = trimmed.slice(position, nextBrace).trim()
+        if (skipped.length > 0 && !/^[,:]\s*$/.test(skipped)) {
+          errors.push(
+            `Skipped unexpected content between JSON objects: "${skipped.slice(0, 50)}${skipped.length > 50 ? '...' : ''}"`
+          )
+        }
+        position = nextBrace
+      }
+
+      let depth = 0
+      const startPos = position
+      let inString = false
+      let escapeNext = false
+      let foundEnd = false
+
+      for (let index = position; index < trimmed.length; index++) {
+        const char = trimmed[index]
+
+        if (escapeNext) {
+          escapeNext = false
+          continue
+        }
+
+        if (char === '\\') {
+          escapeNext = true
+          continue
+        }
+
+        if (char === '"') {
+          inString = !inString
+          continue
+        }
+
+        if (!inString) {
+          if (char === '{') {
+            depth++
+          } else if (char === '}') {
+            depth--
+            if (depth === 0) {
+              const jsonObjectString = trimmed.slice(startPos, index + 1)
+              try {
+                const parsed = JSON.parse(jsonObjectString) as Record<string, unknown>
+                Object.assign(merged, parsed)
+                objectCount++
+              } catch (parseError) {
+                const errorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+                errors.push(`Failed to parse JSON object at position ${startPos}: ${errorMessage}`)
+              }
+              position = index + 1
+              foundEnd = true
+              break
+            }
+          }
+        }
+      }
+
+      if (!foundEnd) {
+        if (depth === 0) {
+          break
+        } else {
+          const endPos = Math.min(startPos + 200, trimmed.length)
+          const partial = trimmed.slice(startPos, endPos)
+          const objectPreview = partial.slice(0, 100)
+          const cacheNameMatch = /"([^"]+)":\s*\{/.exec(partial)
+          const cacheName = cacheNameMatch ? cacheNameMatch[1] : 'unknown'
+          const isNearEnd = position >= trimmed.length - 100
+          const truncationWarning = isNearEnd
+            ? " The JSON appears to be truncated (likely due to Discord's 4000 character limit). Consider splitting your cache entries into multiple imports."
+            : ''
+
+          errors.push(
+            `Unclosed JSON object "${cacheName}" starting at position ${startPos} (missing ${depth} closing brace${depth > 1 ? 's' : ''}).${truncationWarning} ` +
+              `Partial content: "${objectPreview}${objectPreview.length < 100 ? '' : '...'}"`
+          )
+
+          if (isNearEnd && depth > 0 && depth <= 10) {
+            const healedJson = trimmed.slice(Math.max(0, startPos)) + '}'.repeat(depth)
+            try {
+              const parsed = JSON.parse(healedJson) as Record<string, unknown>
+              Object.assign(merged, parsed)
+              objectCount++
+              errors.pop()
+              errors.push(
+                `Recovered partial data for "${cacheName}" by closing ${depth} missing brace${depth > 1 ? 's' : ''}. Data may be incomplete due to truncation.`
+              )
+              break
+            } catch {
+              // ignore heal failure
+            }
+          }
+
+          break
+        }
+      }
+    }
+
+    return merged
   }
 }
 

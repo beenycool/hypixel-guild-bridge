@@ -1,12 +1,7 @@
 {
   "uid": "hypixel-bridge-guild-master",
   "title": "Hypixel Bridge – Guild (master)",
-  "tags": [
-    "hypixel",
-    "bridge",
-    "guild",
-    "master"
-  ],
+  "tags": ["hypixel", "bridge", "guild", "master"],
   "schemaVersion": 39,
   "version": 1,
   "time": {
@@ -91,16 +86,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_members{name=~\"$guild\"})",
+          "expr": "sum(hypixel_bridge_guild_members{name=\"$guild\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -140,16 +133,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_members_online{name=~\"$guild\"})",
+          "expr": "sum(hypixel_bridge_guild_members_online{name=\"$guild\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -189,16 +180,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_gexp_total{name=~\"$guild\"})",
+          "expr": "sum(hypixel_bridge_guild_gexp_total{name=\"$guild\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -238,16 +227,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_gexp_weekly{name=~\"$guild\"})",
+          "expr": "sum(hypixel_bridge_guild_gexp_weekly{name=\"$guild\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -287,16 +274,14 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(hypixel_bridge_chat{instance=~\"$guild\"}[24h]))",
+          "expr": "sum(increase(hypixel_bridge_chat{instance=\"$guild\"}[24h]))",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -336,16 +321,14 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(hypixel_bridge_command{instance=~\"$guild\"}[24h]))",
+          "expr": "sum(increase(hypixel_bridge_command{instance=\"$guild\"}[24h]))",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -402,7 +385,7 @@
       },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_gexp_weekly{name=~\"$guild\"}",
+          "expr": "hypixel_bridge_guild_gexp_weekly{name=\"$guild\"}",
           "refId": "A",
           "legendFormat": "Weekly GEXP"
         }
@@ -435,7 +418,7 @@
       },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_gexp_total{name=~\"$guild\"}",
+          "expr": "hypixel_bridge_guild_gexp_total{name=\"$guild\"}",
           "refId": "A",
           "legendFormat": "Total GEXP"
         }
@@ -485,12 +468,12 @@
       },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_members{name=~\"$guild\"}",
+          "expr": "hypixel_bridge_guild_members{name=\"$guild\"}",
           "refId": "A",
           "legendFormat": "Total Members"
         },
         {
-          "expr": "hypixel_bridge_guild_members_online{name=~\"$guild\"}",
+          "expr": "hypixel_bridge_guild_members_online{name=\"$guild\"}",
           "refId": "B",
           "legendFormat": "Online"
         }
@@ -523,27 +506,27 @@
       },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"join\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"$guild\",event=\"join\"}[1h])",
           "refId": "A",
           "legendFormat": "Joins"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"leave\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"$guild\",event=\"leave\"}[1h])",
           "refId": "B",
           "legendFormat": "Leaves"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"kick\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"$guild\",event=\"kick\"}[1h])",
           "refId": "C",
           "legendFormat": "Kicks"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"online\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"$guild\",event=\"online\"}[1h])",
           "refId": "D",
           "legendFormat": "Online Events"
         },
         {
-          "expr": "increase(hypixel_bridge_event{instance=~\"$guild\",event=\"offline\"}[1h])",
+          "expr": "increase(hypixel_bridge_event{instance=\"$guild\",event=\"offline\"}[1h])",
           "refId": "E",
           "legendFormat": "Offline Events"
         }
@@ -593,17 +576,17 @@
       },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_chat{instance=~\"$guild\",scope=\"public\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"$guild\",scope=\"public\"}[1h])",
           "refId": "A",
           "legendFormat": "Public"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{instance=~\"$guild\",scope=\"officer\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"$guild\",scope=\"officer\"}[1h])",
           "refId": "B",
           "legendFormat": "Officer"
         },
         {
-          "expr": "increase(hypixel_bridge_chat{instance=~\"$guild\",scope=\"discord\"}[1h])",
+          "expr": "increase(hypixel_bridge_chat{instance=\"$guild\",scope=\"discord\"}[1h])",
           "refId": "C",
           "legendFormat": "Discord"
         }
@@ -636,7 +619,7 @@
       },
       "targets": [
         {
-          "expr": "increase(hypixel_bridge_command{instance=~\"$guild\"}[1h])",
+          "expr": "increase(hypixel_bridge_command{instance=\"$guild\"}[1h])",
           "refId": "A",
           "legendFormat": "Commands"
         }
@@ -686,7 +669,7 @@
       },
       "targets": [
         {
-          "expr": "topk(25, hypixel_bridge_guild_member_gexp_weekly{name=~\"$guild\"})",
+          "expr": "topk(25, hypixel_bridge_guild_member_gexp_weekly{name=\"$guild\"})",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -732,7 +715,7 @@
       },
       "targets": [
         {
-          "expr": "topk(25, hypixel_bridge_guild_member_gexp_daily{name=~\"$guild\"})",
+          "expr": "topk(25, hypixel_bridge_guild_member_gexp_daily{name=\"$guild\"})",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -778,7 +761,7 @@
       },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_member_online{name=~\"$guild\"} == 1",
+          "expr": "hypixel_bridge_guild_member_online{name=\"$guild\"} == 1",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -824,7 +807,7 @@
       },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_member_joined_at{name=~\"$guild\"}",
+          "expr": "hypixel_bridge_guild_member_joined_at{name=\"$guild\"}",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -935,16 +918,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_active_inactivity_notices{name=~\"$guild\"})",
+          "expr": "sum(hypixel_bridge_guild_active_inactivity_notices{name=\"$guild\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -984,16 +965,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_pending_rankup_reviews{name=~\"$guild\"})",
+          "expr": "sum(hypixel_bridge_guild_pending_rankup_reviews{name=\"$guild\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -1041,16 +1020,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_active_punishments{name=~\"$guild\",type=\"mute\"})",
+          "expr": "sum(hypixel_bridge_guild_active_punishments{name=\"$guild\",type=\"mute\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -1087,16 +1064,14 @@
       },
       "targets": [
         {
-          "expr": "sum(hypixel_bridge_guild_active_punishments{name=~\"$guild\",type=\"ban\"})",
+          "expr": "sum(hypixel_bridge_guild_active_punishments{name=\"$guild\",type=\"ban\"})",
           "refId": "A",
           "instant": true
         }
       ],
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -1133,7 +1108,7 @@
       },
       "targets": [
         {
-          "expr": "hypixel_bridge_guild_rank_members{name=~\"$guild\"}",
+          "expr": "hypixel_bridge_guild_rank_members{name=\"$guild\"}",
           "refId": "A",
           "legendFormat": "{{rank_name}}",
           "instant": true
@@ -1184,7 +1159,7 @@
       },
       "targets": [
         {
-          "expr": "((time() * 1000 - hypixel_bridge_guild_member_last_seen_at{name=~\"$guild\"}) / 86400000) > 7",
+          "expr": "((time() * 1000 - hypixel_bridge_guild_member_last_seen_at{name=\"$guild\"}) / 86400000) > 7",
           "refId": "A",
           "format": "table",
           "instant": true
@@ -1200,7 +1175,7 @@
             },
             "renameByName": {
               "member_name": "Member",
-              "Value": "Days inactive"
+              "Value": "Inactive >7d"
             }
           }
         }
@@ -1231,13 +1206,13 @@
       },
       "targets": [
         {
-          "expr": "sum(topk(5, hypixel_bridge_guild_member_gexp_weekly{name=~\"$guild\"}))",
+          "expr": "sum(topk(5, hypixel_bridge_guild_member_gexp_weekly{name=\"$guild\"}))",
           "refId": "A",
           "legendFormat": "Top 5 contributors",
           "instant": true
         },
         {
-          "expr": "sum(hypixel_bridge_guild_gexp_weekly{name=~\"$guild\"}) - sum(topk(5, hypixel_bridge_guild_member_gexp_weekly{name=~\"$guild\"}))",
+          "expr": "sum(hypixel_bridge_guild_gexp_weekly{name=\"$guild\"}) - sum(topk(5, hypixel_bridge_guild_member_gexp_weekly{name=\"$guild\"}))",
           "refId": "B",
           "legendFormat": "Everyone else",
           "instant": true
@@ -1270,13 +1245,13 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(hypixel_bridge_event{instance=~\"$guild\",event=\"join\"}[30d]))",
+          "expr": "sum(increase(hypixel_bridge_event{instance=\"$guild\",event=\"join\"}[30d]))",
           "refId": "A",
           "legendFormat": "Joins",
           "instant": true
         },
         {
-          "expr": "-sum(increase(hypixel_bridge_event{instance=~\"$guild\",event=~\"leave|kick\"}[30d]))",
+          "expr": "-sum(increase(hypixel_bridge_event{instance=\"$guild\",event=~\"leave|kick\"}[30d]))",
           "refId": "B",
           "legendFormat": "Leaves + kicks (down)",
           "instant": true
@@ -1310,7 +1285,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (scope) (rate(hypixel_bridge_chat{instance=~\"$guild\"}[1h]))",
+          "expr": "sum by (scope) (rate(hypixel_bridge_chat{instance=\"$guild\"}[1h]))",
           "refId": "A",
           "legendFormat": "{{scope}}"
         }
@@ -1395,7 +1370,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (scope) (rate(hypixel_bridge_chat{instance=~\"$guild\"}[30m]))",
+          "expr": "sum by (scope) (rate(hypixel_bridge_chat{instance=\"$guild\"}[30m]))",
           "legendFormat": "{{scope}}",
           "range": true,
           "refId": "A"

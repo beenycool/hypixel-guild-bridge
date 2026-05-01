@@ -53,12 +53,12 @@ Then paste the **same token** into the Grafana Cloud scrape job (Bearer token fi
 **Guild master dashboard variables**
 
 - **Prometheus** (`DS_PROMETHEUS`) — your metrics data source (same as above).
-- **Guild** — `label_values(hypixel_bridge_guild_members, name)`; use **All** or one Minecraft instance name.
+- **Guild** — `label_values(hypixel_bridge_guild_members, name)`; use **All** or one guild name.
 - **Discord server** — `label_values(hypixel_bridge_discord_role_members, guild_id)`; filters the **Discord Role Sizes** table when the bot is in multiple Discord guilds.
 
 4. Click **Import** after each file.
 
-Use the **Guild** dropdown on the master guild dashboard to filter by Minecraft instance name, or choose **All**.
+Use the **Guild** dropdown on the master guild dashboard to filter by guild name, or choose **All**.
 
 ## 5. Data source in Grafana Cloud
 

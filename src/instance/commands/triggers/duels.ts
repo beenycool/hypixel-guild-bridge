@@ -131,7 +131,6 @@ export default class Duels extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const { duelType, bridgeSubMode } = this.parseArgs(context)
-
     const stats = player.stats?.duels
     if (stats === undefined) return `${givenUsername} has never played Duels.`
 

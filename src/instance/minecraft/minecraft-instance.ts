@@ -276,7 +276,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       this.logger.debug(`Sending message now: ${message}`)
       this.clientSession.client.chat(message)
     } else {
-      this.logger.debug(`Dropping message due to client not being connected and ready: ${message}`)
+      this.logger.warn(`Dropping message due to client not being connected and ready: ${message}`)
     }
   }
 

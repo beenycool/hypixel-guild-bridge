@@ -372,7 +372,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
         if (replyError instanceof DiscordAPIError && replyError.code === RESTJSONErrorCodes.UnknownInteraction) {
           return
         }
-        throw replyError
+        this.logger.error('Failed to send error reply:', replyError)
       }
     }
   }

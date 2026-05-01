@@ -60,7 +60,7 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
       if (event.instanceName !== this.clientInstance.instanceName) return
 
       const uuid = this.clientInstance.uuid()
-      assert.ok(uuid !== undefined)
+      if (uuid === undefined) return
       const config = this.getConfig(uuid)
 
       if (event.channelType === ChannelType.Public || event.channelType === ChannelType.Officer) {
