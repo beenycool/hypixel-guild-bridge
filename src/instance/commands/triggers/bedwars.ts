@@ -16,18 +16,20 @@ export default class Bedwars extends HypixelPlayerCommand {
   }
 
   protected override resolveUsername(context: ChatCommandContext): string {
+    return this.parseArgs(context).username
+  }
+
+  private parseArgs(context: ChatCommandContext): { mode: BedwarsMode; username: string } {
     const firstArgument = context.args[0]?.toLowerCase()
     const isFirstArgumentMode = firstArgument && Bedwars.ValidModes.includes(firstArgument as BedwarsMode)
-    return isFirstArgumentMode ? (context.args[1] ?? context.username) : (context.args[0] ?? context.username)
+    return {
+      mode: isFirstArgumentMode ? (firstArgument as BedwarsMode) : 'overall',
+      username: isFirstArgumentMode ? (context.args[1] ?? context.username) : (context.args[0] ?? context.username)
+    }
   }
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
-    const commandArguments = context.args
-
-    const firstArgument = commandArguments[0]?.toLowerCase()
-    const isFirstArgumentMode = firstArgument && Bedwars.ValidModes.includes(firstArgument as BedwarsMode)
-
-    const mode: BedwarsMode = isFirstArgumentMode ? (firstArgument as BedwarsMode) : 'overall'
+    const { mode } = this.parseArgs(context)
 
     const stats = player.stats?.bedwars
     if (stats === undefined) return `${givenUsername} has never played Bed Wars before?`

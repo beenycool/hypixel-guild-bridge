@@ -88,11 +88,20 @@ export default class Duels extends HypixelPlayerCommand {
   }
 
   protected override resolveUsername(context: ChatCommandContext): string {
+    return this.parseArgs(context).username
+  }
+
+  private parseArgs(context: ChatCommandContext): {
+    duelType: DuelType | undefined
+    bridgeSubMode: BridgeSubMode | undefined
+    username: string
+  } {
     const commandArguments = context.args
 
     const firstArgument = commandArguments[0]?.toLowerCase()
     const isFirstArgumentDuelType = firstArgument && Duels.ValidDuelTypes.has(firstArgument as DuelType)
 
+    const duelType: DuelType | undefined = isFirstArgumentDuelType ? (firstArgument as DuelType) : undefined
     let givenUsername = isFirstArgumentDuelType
       ? (commandArguments[1] ?? context.username)
       : (commandArguments[0] ?? context.username)
@@ -106,19 +115,8 @@ export default class Duels extends HypixelPlayerCommand {
       }
     }
 
-    return givenUsername
-  }
-
-  async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
-    const commandArguments = context.args
-
-    const firstArgument = commandArguments[0]?.toLowerCase()
-    const isFirstArgumentDuelType = firstArgument && Duels.ValidDuelTypes.has(firstArgument as DuelType)
-
-    const duelType: DuelType | undefined = isFirstArgumentDuelType ? (firstArgument as DuelType) : undefined
-
     let bridgeSubMode: BridgeSubMode | undefined
-    if (duelType === 'bridge') {
+    if (isFirstArgumentDuelType && firstArgument === 'bridge') {
       const secondArgument = commandArguments[1]?.toLowerCase()
       const resolvedSubMode = secondArgument ? BridgeSubModeAliases.get(secondArgument) : undefined
       const isValidSubMode = secondArgument && ValidBridgeSubModes.has(secondArgument as BridgeSubMode)
@@ -127,6 +125,11 @@ export default class Duels extends HypixelPlayerCommand {
       }
     }
 
+    return { duelType, bridgeSubMode, username: givenUsername }
+  }
+
+  async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
+    const { duelType, bridgeSubMode } = this.parseArgs(context)
     const stats = player.stats?.duels
     if (stats === undefined) return `${givenUsername} has never played Duels.`
 

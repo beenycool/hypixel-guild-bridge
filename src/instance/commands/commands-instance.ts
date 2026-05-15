@@ -436,6 +436,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
           originEventId: event.eventId,
           user: event.user,
 
+          bridgeId: event.bridgeId,
+
           commandName: commandName,
           commandResponse: response
         }
@@ -453,6 +455,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
           originEventId: event.eventId,
           user: event.user,
 
+          bridgeId: event.bridgeId,
+
           commandName: commandName,
           commandResponse: response
         }
@@ -469,6 +473,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
           channelType: event.channelType,
           originEventId: event.eventId,
           user: event.user,
+
+          bridgeId: event.bridgeId,
 
           commandName: commandName,
           commandResponse: response

@@ -19,6 +19,7 @@ import {
   ButtonStyle,
   ChannelType,
   ComponentType,
+  DiscordAPIError,
   escapeMarkdown,
   MessageFlags,
   SelectMenuDefaultValueType,
@@ -325,6 +326,11 @@ export class OptionsHandler {
               }))
         })
         .catch((error) => {
+          if (error instanceof DiscordAPIError && error.code === 10_008) return
+          if (error instanceof Error && error.name === 'InteractionCollectorError') {
+            this.enabled = false
+            return
+          }
           // Log the error but don't try to acknowledge the interaction again
           errorHandler.promiseCatch('updating container')(error)
           // If interaction is still valid, try to update it with error state

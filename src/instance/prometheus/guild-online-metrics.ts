@@ -371,12 +371,7 @@ export default class GuildOnlineMetrics {
   }
 
   private bridgeIdForMinecraftInstance(instanceName: string): string | undefined {
-    for (const bridgeId of this.app.core.bridgeConfigurations.getAllBridgeIds()) {
-      if (this.app.core.bridgeConfigurations.getMinecraftInstances(bridgeId).includes(instanceName)) {
-        return bridgeId
-      }
-    }
-    return undefined
+    return this.app.bridgeResolver.getBridgeIdForInstance(instanceName)
   }
 
   private async recordGuildManagementMetrics(
@@ -402,8 +397,7 @@ export default class GuildOnlineMetrics {
     this.guildActiveInactivityNotices.set({ name: instanceName }, inactivityForGuild)
 
     const bridgeId = this.bridgeIdForMinecraftInstance(instanceName)
-    const pendingCount =
-      bridgeId !== undefined ? app.core.pendingReviewManager.getReviews(bridgeId).length : 0
+    const pendingCount = bridgeId !== undefined ? app.core.pendingReviewManager.getReviews(bridgeId).length : 0
     this.guildPendingRankupReviews.set({ name: instanceName }, pendingCount)
 
     let muteCount = 0

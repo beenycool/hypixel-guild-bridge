@@ -77,7 +77,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
    * So all data must be "whole" across cycles at all times.
    */
   private async listNow(instanceName: string): Promise<Readonly<GuildFetch>> {
-    const timeout = new Timeout<Error | undefined>(10_000)
+    const timeout = new Timeout<Error | undefined>(30_000)
     const guild: GuildFetch = { fetchedAt: Date.now(), name: '', members: [] }
 
     let currentRank: string | undefined = undefined
