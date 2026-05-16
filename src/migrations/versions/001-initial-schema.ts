@@ -1,4 +1,4 @@
-import type { QueryInterface } from './runner.js'
+import type { QueryInterface } from '../runner.js'
 
 export async function up(query: QueryInterface): Promise<void> {
   await query.execute(

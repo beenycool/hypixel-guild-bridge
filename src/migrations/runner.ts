@@ -47,7 +47,7 @@ export async function runMigrations(query: QueryFunction): Promise<void> {
 
   const umzug = new Umzug({
     migrations: {
-      glob: ['*.{js,ts,mjs}', { cwd: dirname, ignore: ['runner.*'] }],
+      glob: ['versions/*.{js,ts,mjs}', { cwd: dirname }],
       resolve: ({ name, path: filepath }) => {
         if (!filepath) throw new Error('Migration file path is required')
 
