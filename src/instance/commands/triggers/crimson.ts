@@ -1,15 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverEnteredCrimson,
-  playerNeverPlayedSkyblock,
-  shortenNumber,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Crimson extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { playerNeverEnteredCrimson, shortenNumber } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Crimson extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['crimson', 'nether', 'isle'],
@@ -18,17 +13,13 @@ export default class Crimson extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const netherData = selectedProfile.nether_island_player_data
-    if (!netherData) return playerNeverEnteredCrimson(givenUsername)
+    if (!netherData) return playerNeverEnteredCrimson(username)
 
     const faction = netherData.selected_faction ?? 'None'
     const magesRep = netherData.mages_reputation ?? 0
@@ -43,7 +34,7 @@ export default class Crimson extends ChatCommandHandler {
       (kuudraTiers.infernal ?? 0)
 
     return (
-      `${givenUsername}'s Crimson Isle: Faction: ${faction} | ` +
+      `${username}'s Crimson Isle: Faction: ${faction} | ` +
       `Mages Rep: ${shortenNumber(magesRep)} | Barbs Rep: ${shortenNumber(barbariansRep)} | ` +
       `Total Kuudra: ${totalKuudra}`
     )

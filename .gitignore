@@ -6,7 +6,6 @@ config.yaml
 build
 config
 .vscode
-/plugins/
 hypixel-guild-dscord-chat-bridge.publishsettings
 .iasms_v2
 .iasp

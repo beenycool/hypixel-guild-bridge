@@ -3,7 +3,7 @@
  Discord: Aura#5051
  Minecraft username: _aura
 */
-import { evalExpression } from '@hkh12/node-calc'
+import { evaluate } from 'mathjs'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
@@ -27,7 +27,7 @@ export default class Calculate extends ChatCommandHandler {
       .replaceAll(',', '') // removes commas from numbers
 
     try {
-      const result = evalExpression(expression)
+      const result = evaluate(expression)
 
       // The following if-statement is purely an Easter egg
       // It can be removed without causing any adverse affects on the bridge

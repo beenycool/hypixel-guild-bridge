@@ -1,15 +1,10 @@
 import assert from 'node:assert'
 
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getDungeonLevelWithOverflow,
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedDungeons,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import { getDungeonLevelWithOverflow, playerNeverPlayedDungeons } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
 // Credit: https://adjectils.com/dungeon.html
 const FloorsBaseExp = {
@@ -24,7 +19,7 @@ const FloorsBaseExp = {
 
 type ClassName = 'healer' | 'berserk' | 'mage' | 'archer' | 'tank'
 
-export default class RunsToClassAverage extends ChatCommandHandler {
+export default class RunsToClassAverage extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['rtca'],
@@ -33,22 +28,19 @@ export default class RunsToClassAverage extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const selectedFloor = context.args[1]?.toLowerCase() ?? 'm7'
     const targetAverage = context.args[2] ? Number.parseInt(context.args[2], 10) : 50
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
     if (!(selectedFloor in FloorsBaseExp)) return `Invalid floor selected: ${selectedFloor}`
     const xpPerRun = FloorsBaseExp[selectedFloor as keyof typeof FloorsBaseExp]
 
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
     if (selectedProfile.dungeons?.player_classes === undefined) {
-      return playerNeverPlayedDungeons(givenUsername)
+      return playerNeverPlayedDungeons(username)
     }
 
     const heartOfGold = selectedProfile.essence?.perks?.heart_of_gold ?? 0
@@ -118,15 +110,15 @@ export default class RunsToClassAverage extends ChatCommandHandler {
       totalRuns++
 
       if (totalRuns > 15_000) {
-        return `${givenUsername} needs more than 15,000 runs to reach the average class level of ${targetAverage}.`
+        return `${username} needs more than 15,000 runs to reach the average class level of ${targetAverage}.`
       }
     }
 
     if (totalRuns === 0) {
-      return `${givenUsername} has reached c.a. ${targetAverage} already!`
+      return `${username} has reached c.a. ${targetAverage} already!`
     }
 
-    return `${givenUsername} is ${totalRuns} ${selectedFloor.toUpperCase()} away from c.a. ${targetAverage} (${classes
+    return `${username} is ${totalRuns} ${selectedFloor.toUpperCase()} away from c.a. ${targetAverage} (${classes
       .filter((c) => runsDone[c] > 0)
       .map((c) => `${c} ${runsDone[c]}`)
       .join(' | ')})`

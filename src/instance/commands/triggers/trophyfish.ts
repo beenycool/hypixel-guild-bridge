@@ -1,13 +1,9 @@
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
 import { formatNumber } from '../../../common/helper-functions.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverEnteredCrimson,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import { playerNeverEnteredCrimson } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
 interface TrophyFishProfile {
   rewards?: number[]
@@ -17,7 +13,7 @@ interface TrophyFishProfile {
 
 const TrophyRanks = ['None', 'Bronze', 'Silver', 'Gold', 'Diamond'] as const
 
-export default class TrophyFish extends ChatCommandHandler {
+export default class TrophyFish extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['trophyfish', 'trophyfishing', 'trophy', 'tf'],
@@ -26,18 +22,14 @@ export default class TrophyFish extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const rawProfile = selectedProfile as unknown as Record<string, unknown>
     const trophyFish = rawProfile.trophy_fish as TrophyFishProfile | undefined
-    if (!trophyFish) return playerNeverEnteredCrimson(givenUsername)
+    if (!trophyFish) return playerNeverEnteredCrimson(username)
 
     const trophyKeys = Object.keys(trophyFish)
     const rewards = Array.isArray(trophyFish.rewards) ? trophyFish.rewards : []
@@ -53,7 +45,7 @@ export default class TrophyFish extends ChatCommandHandler {
     const diamond = trophyKeys.filter((key) => key.endsWith('_diamond')).length
 
     return (
-      `${givenUsername}'s Trophy Fishing rank: ${rank} | ` +
+      `${username}'s Trophy Fishing rank: ${rank} | ` +
       `Caught: ${formatNumber(caughtTotal)} | ` +
       `Bronze: ${formatNumber(bronze)} / 18 | ` +
       `Silver: ${formatNumber(silver)} / 18 | ` +

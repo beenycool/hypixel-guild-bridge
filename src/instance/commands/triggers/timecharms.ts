@@ -1,13 +1,9 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Timecharms extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Timecharms extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['timecharm', 'timecharms', 'charm', 'charms', 'riftcharm', 'riftcharms'],
@@ -16,18 +12,14 @@ export default class Timecharms extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const trophies = selectedProfile.rift?.gallery?.secured_trophies
     if (trophies === undefined || trophies.length === 0) {
-      return `${givenUsername} has not secured any timecharm yet?`
+      return `${username} has not secured any timecharm yet?`
     }
 
     let lastCharm = trophies[0]
@@ -70,6 +62,6 @@ export default class Timecharms extends ChatCommandHandler {
       }
     }
 
-    return `${givenUsername} obtained ${displayName} - Total ${trophies.length}`
+    return `${username} obtained ${displayName} - Total ${trophies.length}`
   }
 }

@@ -1,15 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  formatStatNumber,
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedDungeons,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Secrets extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { formatStatNumber, getUuidIfExists, playerNeverPlayedDungeons, usernameNotExists } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Secrets extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['secrets', 's', 'sec'],
@@ -18,17 +13,17 @@ export default class Secrets extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
+    const uuid = await getUuidIfExists(context.app.mojangApi, username)
+    if (uuid == undefined) return usernameNotExists(context, username)
 
     const hypixelProfile = await context.app.hypixelApi.getPlayer(uuid)
-    const skyblockProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!skyblockProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
-    const dungeon = skyblockProfile.dungeons?.dungeon_types
-    if (!dungeon) return playerNeverPlayedDungeons(givenUsername)
+    const dungeon = selectedProfile.dungeons?.dungeon_types
+    if (!dungeon) return playerNeverPlayedDungeons(username)
 
     const catacombRuns = dungeon.catacombs.tier_completions
     const mastermodeRuns = dungeon.master_catacombs.tier_completions
@@ -38,9 +33,7 @@ export default class Secrets extends ChatCommandHandler {
     const secrets = hypixelProfile.achievements.skyblockTreasureHunter as number
     const averageSecrets = secrets / totalRuns
 
-    return `${givenUsername}'s secrets: ${secrets.toLocaleString() || 0} Total ${formatStatNumber(
-      averageSecrets
-    )} Average`
+    return `${username}'s secrets: ${secrets.toLocaleString() || 0} Total ${formatStatNumber(averageSecrets)} Average`
   }
 
   private getTotalRuns(runs: Record<string, number | undefined> | undefined): number {

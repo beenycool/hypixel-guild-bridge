@@ -1,17 +1,16 @@
-import type { DungeonFloors, DungeonFloorsWithEntrance, SkyblockV2DungeonsTypes } from 'hypixel-api-reborn'
+import type {
+  DungeonFloors,
+  DungeonFloorsWithEntrance,
+  SkyblockV2DungeonsTypes,
+  SkyblockV2Member
+} from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
 import { formatTime } from '../../../utility/shared-utility'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedDungeons,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import { playerNeverPlayedDungeons } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
-export default class PersonalBest extends ChatCommandHandler {
+export default class PersonalBest extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['pb', 'pbr', 'personalbest'],
@@ -20,23 +19,20 @@ export default class PersonalBest extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const givenFloor = context.args[1]
 
     const resolvedFloor = this.getDungeonFloor(givenFloor)
     if (resolvedFloor.error) return resolvedFloor.error
 
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
+    const dungeon = selectedProfile.dungeons?.dungeon_types
+    if (!dungeon) return playerNeverPlayedDungeons(username)
 
-    const skyblockProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!skyblockProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
-    const dungeon = skyblockProfile.dungeons?.dungeon_types
-    if (!dungeon) return playerNeverPlayedDungeons(givenUsername)
-
-    return PersonalBest.formatMessage(givenUsername, resolvedFloor, dungeon)
+    return PersonalBest.formatMessage(username, resolvedFloor, dungeon)
   }
 
   private static formatMessage(username: string, floor: DungeonFloorResolve, dungeon: SkyblockV2DungeonsTypes): string {

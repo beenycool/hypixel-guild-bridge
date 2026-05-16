@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { createRequire } from 'node:module'
 import assert from 'node:assert'
 
 import GetMinecraftData from 'minecraft-data'
@@ -6,33 +9,6 @@ import type { ChatMessage } from 'prismarine-chat'
 import type { InstanceType } from '../../common/application-event.js'
 import SubInstance from '../../common/sub-instance'
 
-import AdvertiseChat from './chat/advertise.js'
-import BlockChat from './chat/block.js'
-import DemoteChat from './chat/demote.js'
-import GuildKick from './chat/guild-kick'
-import GuildMute from './chat/guild-mute'
-import GuildMuted from './chat/guild-muted'
-import GuildUnmute from './chat/guild-unmute'
-import JoinChat from './chat/join.js'
-import JoinedChat from './chat/joined'
-import KickChat from './chat/kick.js'
-import LeaveChat from './chat/leave.js'
-import LevelChat from './chat/level'
-import MuteChat from './chat/mute.js'
-import MutedChat from './chat/muted.js'
-import NoOfficerChat from './chat/no-officer.js'
-import OfficerChat from './chat/officer.js'
-import OfflineChat from './chat/offline.js'
-import OnlineChat from './chat/online.js'
-import PrivateChat from './chat/private.js'
-import PromoteChat from './chat/promote.js'
-import PublicChat from './chat/public.js'
-import QuestChat from './chat/quest.js'
-import RankGiftChat from './chat/rank-gift'
-import RepeatChat from './chat/repeat.js'
-import RequestChat from './chat/request.js'
-import RequireGuildChat from './chat/require-guild.js'
-import UnmuteChat from './chat/unmute.js'
 import type ClientSession from './client-session.js'
 import type { MinecraftChatMessage } from './common/chat-interface.js'
 import type MessageAssociation from './common/message-association.js'
@@ -51,35 +27,21 @@ export default class ChatManager extends SubInstance<MinecraftInstance, Instance
 
     this.minecraftData = GetMinecraftData(clientInstance.defaultVersion)
 
-    this.chatModules = [
-      AdvertiseChat,
-      BlockChat,
-      DemoteChat,
-      GuildKick,
-      GuildMute,
-      GuildMuted,
-      GuildUnmute,
-      JoinChat,
-      JoinedChat,
-      KickChat,
-      LeaveChat,
-      LevelChat,
-      MuteChat,
-      MutedChat,
-      NoOfficerChat,
-      OfficerChat,
-      OfflineChat,
-      OnlineChat,
-      PrivateChat,
-      PromoteChat,
-      QuestChat,
-      PublicChat,
-      RankGiftChat,
-      RepeatChat,
-      RequestChat,
-      RequireGuildChat,
-      UnmuteChat
-    ]
+    const require = createRequire(import.meta.url)
+    const chatDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), 'chat')
+    const files = fs.readdirSync(chatDir).filter((f) => f.endsWith('.ts'))
+
+    this.chatModules = files
+      .map((file) => {
+        try {
+          const mod = require(path.join(chatDir, file))
+          return mod.default as MinecraftChatMessage
+        } catch (err) {
+          this.logger.error(`Failed to load chat module ${file}:`, err)
+          return undefined
+        }
+      })
+      .filter((m): m is MinecraftChatMessage => m !== undefined)
   }
 
   override registerEvents(clientSession: ClientSession): void {

@@ -8,6 +8,10 @@ import type Application from '../application.js'
 
 type QueryValues = readonly unknown[]
 
+export interface QueryInterface {
+  execute(text: string, values?: readonly unknown[]): Promise<number>
+}
+
 interface Queryable {
   query<T extends QueryResultRow = QueryResultRow>(text: string, values?: QueryValues): Promise<QueryResult<T>>
 }
@@ -75,16 +79,14 @@ export class DatabaseManager {
   public enqueueWrite(description: string, callback: (database: Queryable) => Promise<void>): void {
     if (this.closed) return
 
-    this.writeQueue = this.writeQueue
-      .catch(() => undefined)
-      .then(async () => {
-        await this.awaitReady()
+    this.awaitReady()
+      .then(() => {
         const pool = this.getPool()
 
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Database write operation timed out')), 15000)
         )
-        await Promise.race([callback(pool), timeoutPromise])
+        return Promise.race([callback(pool), timeoutPromise])
       })
       .catch((error: unknown) => {
         this.logger.error(`Database write failed during ${description}`)
@@ -124,7 +126,6 @@ export class DatabaseManager {
 
   public async flushWrites(): Promise<void> {
     await this.awaitReady()
-    await this.writeQueue
   }
 
   public async transaction<T>(callback: (database: Queryable) => Promise<T>): Promise<T> {
@@ -144,6 +145,16 @@ export class DatabaseManager {
     }
   }
 
+  public async runMigrations(): Promise<void> {
+    await this.awaitReady()
+
+    const { runMigrations: run } = await import('../migrations/runner.js')
+
+    await run(async (sql: string, values?: readonly unknown[]) => {
+      return await this.query(sql, values)
+    })
+  }
+
   public async close(): Promise<void> {
     if (this.closed) return
 
@@ -151,11 +162,6 @@ export class DatabaseManager {
       clearInterval(this.cleanTimer)
       this.cleanTimer = undefined
     }
-
-    await this.flushWrites().catch((error: unknown) => {
-      this.logger.error('Failed while flushing queued database writes during shutdown')
-      this.logger.error(error)
-    })
 
     this.closed = true
 

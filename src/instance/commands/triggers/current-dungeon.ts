@@ -1,21 +1,19 @@
 import assert from 'node:assert'
 
-import type { SkyblockV2Dungeons } from 'hypixel-api-reborn'
+import type { SkyblockV2Dungeons, SkyblockV2Member } from 'hypixel-api-reborn'
 import Moment from 'moment'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
 import type { MojangApi } from '../../../core/users/mojang'
 import {
   getDungeonLevelWithOverflow,
-  getSelectedSkyblockProfileRaw,
   getUuidIfExists,
   playerNeverPlayedDungeons,
-  playerNeverPlayedSkyblock,
   usernameNotExists
 } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
-export default class CurrentDungeon extends ChatCommandHandler {
+export default class CurrentDungeon extends SkyblockPlayerCommand {
   private static readonly ShowTimeAfter = 30 * 60 * 1000
 
   constructor() {
@@ -26,20 +24,19 @@ export default class CurrentDungeon extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
+    const uuid = await getUuidIfExists(context.app.mojangApi, username)
+    if (uuid == undefined) return usernameNotExists(context, username)
 
     const dungeons = selectedProfile.dungeons
-    if (dungeons === undefined) return playerNeverPlayedDungeons(givenUsername)
+    if (dungeons === undefined) return playerNeverPlayedDungeons(username)
 
     let runs = dungeons.treasures?.runs
-    if (runs === undefined || runs.length === 0) return `${givenUsername} hasn't done any dungeon runs lately.`
+    if (runs === undefined || runs.length === 0) return `${username} hasn't done any dungeon runs lately.`
 
     if (runs.length > 1) {
       // runs aren't always chronologically ordered

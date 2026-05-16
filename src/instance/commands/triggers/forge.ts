@@ -1,14 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import { getForgeItems } from '../common/forge'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Forge extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { getForgeItems } from '../common/forge'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Forge extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['forge'],
@@ -17,25 +13,21 @@ export default class Forge extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const forgeItems = getForgeItems(selectedProfile)
     if (forgeItems == undefined) {
-      return `${givenUsername} has never gone to the Dwarven Mines on this profile.`
+      return `${username} has never gone to the Dwarven Mines on this profile.`
     }
-    if (forgeItems.length === 0) return `${givenUsername} has no items in their forge.`
+    if (forgeItems.length === 0) return `${username} has no items in their forge.`
 
     const formatted = forgeItems
       .toSorted((a, b) => a.slot - b.slot)
       .map((item) => `${item.slot}: ${item.name}${item.timeFinishedText}`)
 
-    return `${givenUsername}'s Forge: ${formatted.join(' | ')}`
+    return `${username}'s Forge: ${formatted.join(' | ')}`
   }
 }

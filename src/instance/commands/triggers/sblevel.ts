@@ -1,14 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  formatStatNumber,
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Sblevel extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { formatStatNumber } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Sblevel extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['sblevel', 'sblvl'],
@@ -17,18 +13,14 @@ export default class Sblevel extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const experience = selectedProfile.leveling?.experience ?? 0
     const level = experience > 0 ? experience / 100 : 0
 
-    return `${givenUsername}'s Skyblock Level: ${formatStatNumber(level)}`
+    return `${username}'s Skyblock Level: ${formatStatNumber(level)}`
   }
 }

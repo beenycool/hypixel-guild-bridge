@@ -1,16 +1,13 @@
 import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { calculateLevenshteinDistance, ChatCommandHandler } from '../../../common/commands.js'
-import { search } from '../../../utility/shared-utility'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Collection extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { calculateLevenshteinDistance } from '../../../common/commands.js'
+import { search } from '../../../utility/shared-utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Collection extends SkyblockPlayerCommand {
   private static readonly Translator: Record<string, string> = {
     /* eslint-disable @typescript-eslint/naming-convention */
     LOG: 'OAK_LOG',
@@ -42,17 +39,13 @@ export default class Collection extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const collections = selectedProfile.collection
-    if (collections === undefined) return `${givenUsername} has their Collections API disabled.`
+    if (collections === undefined) return `${username} has their Collections API disabled.`
 
     const query = context.args.slice(1).join(' ')
     const translated = new Map<string, string>()
@@ -76,10 +69,10 @@ export default class Collection extends ChatCommandHandler {
         const suggestionKey = translated.get(suggestions[0].key)
         if (suggestionKey !== undefined) {
           const suggestion = this.beautify(suggestionKey)
-          return `${givenUsername} not such a collection: ${query}. Did you mean ${suggestion}?`
+          return `${username} not such a collection: ${query}. Did you mean ${suggestion}?`
         }
       }
-      return `${givenUsername} not such a collection: ${query}`
+      return `${username} not such a collection: ${query}`
     }
 
     const collectionKey = translated.get(translatedWord)
@@ -87,7 +80,7 @@ export default class Collection extends ChatCommandHandler {
 
     const collection = collections[collectionKey]
     const displayCollectionName = this.beautify(collectionKey)
-    return `${givenUsername}'s ${displayCollectionName} collection: ${collection.toLocaleString('en-US')}.`
+    return `${username}'s ${displayCollectionName} collection: ${collection.toLocaleString('en-US')}.`
   }
 
   private normalize(word: string): string {

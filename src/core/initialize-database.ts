@@ -295,13 +295,7 @@ const DisconnectLogsSchemaStatements = [
 export async function initializeCoreDatabase(databaseManager: DatabaseManager): Promise<void> {
   await databaseManager.awaitReady()
 
-  for (const statement of SchemaStatements) {
-    await databaseManager.execute(statement)
-  }
-
-  for (const statement of DisconnectLogsSchemaStatements) {
-    await databaseManager.execute(statement)
-  }
+  await databaseManager.runMigrations()
 
   await syncSequences(databaseManager)
 }

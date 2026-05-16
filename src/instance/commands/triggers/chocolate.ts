@@ -1,14 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  shortenNumber,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Chocolate extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { shortenNumber } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Chocolate extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['chocolate', 'chocolates', 'cf'],
@@ -17,20 +13,16 @@ export default class Chocolate extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const easter = selectedProfile.events?.easter
     const totalChocolate = easter?.total_chocolate ?? 0
     const chocolateSpent = easter?.shop?.chocolate_spent ?? 0
-    if (totalChocolate === 0) return `${givenUsername} does not have a chocolate factory.`
+    if (totalChocolate === 0) return `${username} does not have a chocolate factory.`
 
-    return `${givenUsername} has produced ${shortenNumber(totalChocolate)} chocolate and spent ${shortenNumber(chocolateSpent)}.`
+    return `${username} has produced ${shortenNumber(totalChocolate)} chocolate and spent ${shortenNumber(chocolateSpent)}.`
   }
 }

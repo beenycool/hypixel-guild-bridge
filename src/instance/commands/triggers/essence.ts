@@ -1,13 +1,9 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Essence extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Essence extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['essence', 'ess'],
@@ -16,17 +12,13 @@ export default class Essence extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const essencePerks = selectedProfile.essence?.perks
-    if (!essencePerks) return `${givenUsername} has no essence perks.`
+    if (!essencePerks) return `${username} has no essence perks.`
 
     const perks: string[] = []
     if (essencePerks.cold_efficiency) perks.push(`Cold Eff: ${essencePerks.cold_efficiency}`)
@@ -35,8 +27,8 @@ export default class Essence extends ChatCommandHandler {
     if (essencePerks.toxophilite) perks.push(`Toxophilite: ${essencePerks.toxophilite}`)
     if (essencePerks.unbridled_rage) perks.push(`Rage: ${essencePerks.unbridled_rage}`)
 
-    if (perks.length === 0) return `${givenUsername} has no essence perks unlocked.`
+    if (perks.length === 0) return `${username} has no essence perks unlocked.`
 
-    return `${givenUsername}'s Essence Perks: ${perks.join(' | ')}`
+    return `${username}'s Essence Perks: ${perks.join(' | ')}`
   }
 }

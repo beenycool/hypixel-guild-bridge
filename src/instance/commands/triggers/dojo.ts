@@ -1,17 +1,13 @@
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
 import { formatNumber } from '../../../common/helper-functions.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverEnteredCrimson,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import { playerNeverEnteredCrimson } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
 type DojoData = Record<string, number | undefined>
 
-export default class Dojo extends ChatCommandHandler {
+export default class Dojo extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['dojo'],
@@ -20,16 +16,12 @@ export default class Dojo extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
-    if (!selectedProfile.nether_island_player_data) return playerNeverEnteredCrimson(givenUsername)
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
+    if (!selectedProfile.nether_island_player_data) return playerNeverEnteredCrimson(username)
 
     const dojo = (selectedProfile.nether_island_player_data as { dojo?: DojoData }).dojo ?? {}
     let totalPoints = 0
@@ -49,7 +41,7 @@ export default class Dojo extends ChatCommandHandler {
     const tenacity = dojo.dojo_points_fireball ?? 0
 
     return (
-      `${givenUsername}'s Belt: ${belt} | ` +
+      `${username}'s Belt: ${belt} | ` +
       `Best Force: ${formatNumber(force)} | ` +
       `Best Stamina: ${formatNumber(stamina)} | ` +
       `Best Mastery: ${formatNumber(mastery)} | ` +

@@ -1,19 +1,15 @@
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
 import { formatNumber, titleCase } from '../../../common/helper-functions.js'
 import { getLevelByXp } from '../common/skills'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedDungeons,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import { playerNeverPlayedDungeons } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
 const DungeonClasses = ['healer', 'mage', 'berserk', 'archer', 'tank'] as const
 type DungeonClass = (typeof DungeonClasses)[number]
 
-export default class Catacomb extends ChatCommandHandler {
+export default class Catacomb extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['catacombs', 'cata', 'dungeons'],
@@ -22,23 +18,19 @@ export default class Catacomb extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const dungeons = selectedProfile.dungeons
-    if (!dungeons) return playerNeverPlayedDungeons(givenUsername)
+    if (!dungeons) return playerNeverPlayedDungeons(username)
 
     const catacombsExperience = dungeons.dungeon_types.catacombs.experience
     const catacombsLevel = getLevelByXp(catacombsExperience, { type: 'dungeoneering' }).levelWithProgress
 
     const playerClasses = dungeons.player_classes
-    if (!playerClasses) return playerNeverPlayedDungeons(givenUsername)
+    if (!playerClasses) return playerNeverPlayedDungeons(username)
 
     const classLevels: { className: DungeonClass; level: number }[] = DungeonClasses.map((className) => {
       const experience = playerClasses[className]?.experience ?? 0
@@ -57,7 +49,7 @@ export default class Catacomb extends ChatCommandHandler {
     const secretsFound = dungeons.secrets ?? 0
 
     return (
-      `${givenUsername}'s Catacombs: ${formatNumber(catacombsLevel, 2)} | ` +
+      `${username}'s Catacombs: ${formatNumber(catacombsLevel, 2)} | ` +
       `Selected Class: ${selectedClass} | ` +
       `Class Average: ${formatNumber(classAverage, 2)} | ` +
       `Secrets Found: ${formatNumber(secretsFound, 0)} | ` +

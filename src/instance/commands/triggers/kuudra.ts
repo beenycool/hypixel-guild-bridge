@@ -1,14 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverEnteredCrimson,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Kuudra extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { playerNeverEnteredCrimson } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Kuudra extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['kuudra', 'k'],
@@ -17,16 +13,12 @@ export default class Kuudra extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
-    if (!selectedProfile.nether_island_player_data) return playerNeverEnteredCrimson(givenUsername)
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
+    if (!selectedProfile.nether_island_player_data) return playerNeverEnteredCrimson(username)
     const tiers = selectedProfile.nether_island_player_data.kuudra_completed_tiers
 
     const entries: string[] = []
@@ -36,7 +28,7 @@ export default class Kuudra extends ChatCommandHandler {
     if (tiers.fiery) entries.push(`Fiery ${tiers.fiery}`)
     if (tiers.infernal) entries.push(`Infernal ${tiers.infernal}`)
 
-    if (entries.length === 0) return `${givenUsername} has never done Kuudra before?`
+    if (entries.length === 0) return `${username} has never done Kuudra before?`
 
     const collection =
       (tiers.none ?? 1) +
@@ -45,6 +37,6 @@ export default class Kuudra extends ChatCommandHandler {
       (tiers.fiery ?? 0) * 4 +
       (tiers.infernal ?? 0) * 5
 
-    return `${givenUsername}: ${entries.join(' - ')} - Collection ${collection.toLocaleString('en-US')}`
+    return `${username}: ${entries.join(' - ')} - Collection ${collection.toLocaleString('en-US')}`
   }
 }

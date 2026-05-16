@@ -1,69 +1,28 @@
 import type { SkyblockV2Member, SkyblockV2Profile } from 'hypixel-api-reborn'
+import skillsData from '../../../resources/data/skills.json' with { type: 'json' }
 
-export const SkillOrder = [
-  'combat',
-  'farming',
-  'fishing',
-  'mining',
-  'foraging',
-  'enchanting',
-  'alchemy',
-  'carpentry',
-  'runecrafting',
-  'social',
-  'taming'
-] as const
-
+export const SkillOrder = skillsData.skillOrder as unknown as readonly [string, ...string[]] & string[]
 type SkillName = (typeof SkillOrder)[number]
 
-const CosmeticSkills = new Set<SkillName>(['runecrafting', 'social'])
+const CosmeticSkills = new Set<SkillName>(skillsData.cosmeticSkills as SkillName[])
 
-const DefaultSkillCaps: Record<string, number> = {
-  farming: 50,
-  mining: 60,
-  combat: 60,
-  foraging: 50,
-  fishing: 50,
-  enchanting: 60,
-  alchemy: 50,
-  taming: 50,
-  carpentry: 50,
-  runecrafting: 25,
-  social: 25,
-  dungeoneering: 50
-}
+const DefaultSkillCaps: Record<string, number> = skillsData.defaultSkillCaps as Record<string, number>
 
-const MaxedSkillCaps: Record<string, number> = {
-  farming: 60,
-  taming: 60
-}
+const MaxedSkillCaps: Record<string, number> = skillsData.maxedSkillCaps as Record<string, number>
 
-const InfiniteLeveling = new Set(['dungeoneering', 'skyblockLevel'])
+const InfiniteLeveling = new Set(skillsData.infiniteLeveling)
 
-const DefaultSkillXpTable = [
-  0, 50, 125, 200, 300, 500, 750, 1000, 1500, 2000, 3500, 5000, 7500, 10_000, 15_000, 20_000, 30_000, 50_000, 75_000,
-  100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 700_000, 800_000, 900_000, 1_000_000, 1_100_000, 1_200_000,
-  1_300_000, 1_400_000, 1_500_000, 1_600_000, 1_700_000, 1_800_000, 1_900_000, 2_000_000, 2_100_000, 2_200_000,
-  2_300_000, 2_400_000, 2_500_000, 2_600_000, 2_750_000, 2_900_000, 3_100_000, 3_400_000, 3_700_000, 4_000_000,
-  4_300_000, 4_600_000, 4_900_000, 5_200_000, 5_500_000, 5_800_000, 6_100_000, 6_400_000, 6_700_000, 7_000_000
-]
+const DefaultSkillXpTable = skillsData.defaultSkillXpTable
 
-const RunecraftingXpTable = [
-  0, 50, 100, 125, 160, 200, 250, 315, 400, 500, 625, 785, 1000, 1250, 1600, 2000, 2465, 3125, 4000, 5000, 6200, 7800,
-  9800, 12_200, 15_300, 19_050
-]
+const RunecraftingXpTable = skillsData.runecraftingXpTable
 
-const SocialXpTable = [
-  0, 50, 100, 150, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 3750, 4500, 6000, 8000, 10_000, 12_500, 15_000,
-  20_000, 25_000, 30_000, 35_000, 40_000, 50_000
-]
+const SocialXpTable = skillsData.socialXpTable
 
 function getXpTable(type = 'default'): number[] {
   if (type === 'runecrafting') return RunecraftingXpTable
   if (type === 'social') return SocialXpTable
   return DefaultSkillXpTable
 }
-
 export interface SkillLevel {
   xp: number
   level: number

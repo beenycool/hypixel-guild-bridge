@@ -1,13 +1,9 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Eggs extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Eggs extends SkyblockPlayerCommand {
   private static readonly DivineEggs = ['vega', 'starfire', 'orion', 'aurora', 'celestia']
   private static readonly MythicEggs = [
     'dante',
@@ -30,18 +26,14 @@ export default class Eggs extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const easter = selectedProfile.events?.easter
     const totalChocolate = easter?.total_chocolate ?? 0
-    if (totalChocolate === 0) return `${givenUsername} does not have a chocolate factory.`
+    if (totalChocolate === 0) return `${username} does not have a chocolate factory.`
 
     let totalEggs = 0
     let uniqueEggs = 0
@@ -68,6 +60,6 @@ export default class Eggs extends ChatCommandHandler {
       }
     }
 
-    return `${givenUsername} has collected ${totalEggs} chocolate eggs and unlocked ${mythicEggs} mythics and ${divineEggs} divines for a total of ${uniqueEggs}/512 rabbits`
+    return `${username} has collected ${totalEggs} chocolate eggs and unlocked ${mythicEggs} mythics and ${divineEggs} divines for a total of ${uniqueEggs}/512 rabbits`
   }
 }

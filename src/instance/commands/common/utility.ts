@@ -6,14 +6,46 @@ import type { MojangApi } from '../../../core/users/mojang'
 
 import type { ChatCommandContext } from 'src/common/commands'
 
-export async function getUuidIfExists(mojangApi: MojangApi, username: string): Promise<string | undefined> {
-  return await mojangApi
-    .profileByUsername(username)
-    .then((mojangProfile) => mojangProfile.id)
-    .catch(() => {
-      // eslint-disable-next-line unicorn/no-useless-undefined
-      return undefined
-    })
+export type ApiLookupResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; reason: 'not-found' | 'api-error'; message: string }
+
+export function apiDownMessage(): string {
+  return 'The Hypixel API is currently down. Please try again later.'
+}
+
+export function apiKeyInvalidMessage(): string {
+  return 'The Hypixel API key is invalid. Please check your API key.'
+}
+
+export function apiRateLimitedMessage(): string {
+  return 'The Hypixel API is currently rate-limiting. Please try again later.'
+}
+
+export function inventoryApiOffMessage(username: string): string {
+  return (
+    `I can't see ${username}'s items! ` +
+    `Please go to your Skyblock Menu -> Settings -> API Settings and enable 'Inventory API'.`
+  )
+}
+
+export function classifyHypixelApiError(err: unknown): string | undefined {
+  const status = (err as { response?: { status?: number } })?.response?.status
+  if (status === 429) return apiRateLimitedMessage()
+  if (status === 403) return apiKeyInvalidMessage()
+  if (status != undefined && status >= 500) return apiDownMessage()
+  const code = (err as { code?: string })?.code
+  if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND') return apiDownMessage()
+  return undefined
+}
+
+export async function getUuidIfExists(mojangApi: MojangApi, username: string): Promise<ApiLookupResult<string>> {
+  try {
+    const profile = await mojangApi.profileByUsername(username)
+    return { ok: true, data: profile.id }
+  } catch {
+    return { ok: false, reason: 'api-error', message: 'Could not reach Mojang API to verify username.' }
+  }
 }
 
 export async function getSelectedSkyblockProfileRaw(

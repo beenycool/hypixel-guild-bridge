@@ -1,14 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverEnteredCrimson,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Reputation extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { playerNeverEnteredCrimson } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Reputation extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['rep', 'reputation', 'faction'],
@@ -17,27 +13,23 @@ export default class Reputation extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     if (
       selectedProfile.nether_island_player_data === undefined ||
       !('selected_faction' in selectedProfile.nether_island_player_data)
     ) {
-      return playerNeverEnteredCrimson(givenUsername)
+      return playerNeverEnteredCrimson(username)
     }
 
     const selectedFaction: string | undefined = selectedProfile.nether_island_player_data.selected_faction
     const mageReputation: number | undefined = selectedProfile.nether_island_player_data.mages_reputation
     const barbarianReputation: number | undefined = selectedProfile.nether_island_player_data.barbarians_reputation
 
-    let message = givenUsername
+    let message = username
 
     message +=
       selectedFaction === undefined

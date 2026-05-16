@@ -1,14 +1,14 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedDungeons,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Runs extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { playerNeverPlayedDungeons } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Runs extends SkyblockPlayerCommand {
+  protected override resolveUsername(context: ChatCommandContext): string {
+    return context.args[1] ?? context.username
+  }
+
   constructor() {
     super({
       triggers: ['runs', 'r'],
@@ -17,9 +17,12 @@ export default class Runs extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const givenType = context.args[0]?.toLowerCase() ?? 'cata'
-    const givenUsername = context.args[1] ?? context.username
 
     let masterMode = false
     if (givenType == 'cata' || givenType === 'catacombs') {
@@ -30,23 +33,17 @@ export default class Runs extends ChatCommandHandler {
       return `${context.username}, invalid type. can be 'cata'/'mm' but not '${givenType}'`
     }
 
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
     const dungeon = selectedProfile.dungeons?.dungeon_types
     if (!dungeon) {
-      return playerNeverPlayedDungeons(givenUsername)
+      return playerNeverPlayedDungeons(username)
     }
 
     const runs = masterMode
       ? this.getTotalRuns(dungeon.master_catacombs.tier_completions)
       : this.getTotalRuns(dungeon.catacombs.tier_completions)
-    if (runs.length === 0) return `${givenUsername}: ${givenType} - never done runs in this type before?`
+    if (runs.length === 0) return `${username}: ${givenType} - never done runs in this type before?`
 
-    return `${givenUsername}: ${givenType} - ${runs.join('/')}`
+    return `${username}: ${givenType} - ${runs.join('/')}`
   }
 
   private getTotalRuns(runs: Record<string, number | undefined> | undefined): number[] {

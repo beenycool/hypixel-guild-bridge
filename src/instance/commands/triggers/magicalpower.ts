@@ -2,15 +2,9 @@ import type { SkyblockV2Member } from 'hypixel-api-reborn'
 import { parse } from 'prismarine-nbt'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
-export default class MagicalPower extends ChatCommandHandler {
+export default class MagicalPower extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['magicalpower', 'mp', 'power'],
@@ -19,21 +13,17 @@ export default class MagicalPower extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const magicalPower = selectedProfile.accessory_bag_storage?.highest_magical_power ?? 0
     const stone = selectedProfile.accessory_bag_storage?.selected_power ?? '(none)'
     const enrichments = await this.getEnrichments(selectedProfile)
     const tuning = selectedProfile.accessory_bag_storage?.tuning.slot_0
 
-    let result = `${givenUsername}:`
+    let result = `${username}:`
     result += ` MP ${magicalPower}`
     result += ` | Stone: ${stone}`
 

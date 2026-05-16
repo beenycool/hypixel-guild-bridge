@@ -1,13 +1,9 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Bestiary extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Bestiary extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['be', 'bestiary'],
@@ -16,19 +12,17 @@ export default class Bestiary extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const bestiaryName = context.args.at(1)
 
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (selectedProfile === undefined) return playerNeverPlayedSkyblock(context, givenUsername)
     const bestiary = selectedProfile.bestiary
-    if (bestiary === undefined) return `${givenUsername} has never killed on this profile.`
+    if (bestiary === undefined) return `${username} has never killed on this profile.`
 
-    let response = `${givenUsername} has `
+    let response = `${username} has `
     response +=
       bestiary.milestone?.last_claimed_milestone === undefined || bestiary.milestone.last_claimed_milestone === 0
         ? 'never claimed bestiary milestones on this profile.'
@@ -41,7 +35,7 @@ export default class Bestiary extends ChatCommandHandler {
         .map((key) => bestiary.kills[key])
         .reduce((a, b) => a + b, 0)
 
-      if (bestiaryStats === 0) return `${givenUsername} has never killed anything like that on this profile.`
+      if (bestiaryStats === 0) return `${username} has never killed anything like that on this profile.`
       response += ` ${bestiaryStats.toLocaleString('en-US')} total kill on ${bestiaryName}!`
     }
 

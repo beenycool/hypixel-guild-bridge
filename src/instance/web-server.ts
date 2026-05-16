@@ -1,4 +1,5 @@
 import http from 'node:http'
+import { timingSafeEqual } from 'node:crypto'
 
 import { HttpStatusCode } from 'axios'
 import type { RawData } from 'ws'
@@ -195,7 +196,11 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private async dispatchMessage(payload: WebMessagePayload): Promise<DispatchResult> {
-    if (!payload.token || payload.token !== this.config.token) {
+    if (
+      !payload.token ||
+      payload.token.length !== this.config.token.length ||
+      !timingSafeEqual(Buffer.from(payload.token), Buffer.from(this.config.token))
+    ) {
       return {
         status: HttpStatusCode.Unauthorized,
         body: { success: false, error: 'Invalid token' }

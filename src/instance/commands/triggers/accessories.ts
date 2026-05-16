@@ -1,14 +1,10 @@
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import {
-  getSelectedSkyblockProfileRaw,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  shortenNumber,
-  usernameNotExists
-} from '../common/utility'
+import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
-export default class Accessories extends ChatCommandHandler {
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { shortenNumber } from '../common/utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+
+export default class Accessories extends SkyblockPlayerCommand {
   constructor() {
     super({
       triggers: ['accessories', 'acc', 'talismans', 'talisman'],
@@ -17,17 +13,13 @@ export default class Accessories extends ChatCommandHandler {
     })
   }
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selectedProfile = await getSelectedSkyblockProfileRaw(context.app.hypixelApi, uuid)
-    if (!selectedProfile) return playerNeverPlayedSkyblock(context, givenUsername)
-
+  async onSkyblockPlayer(
+    context: ChatCommandContext,
+    username: string,
+    selectedProfile: SkyblockV2Member
+  ): Promise<string> {
     const accessoryStorage = selectedProfile.accessory_bag_storage
-    if (!accessoryStorage) return `${givenUsername} has no accessory data or API is off.`
+    if (!accessoryStorage) return `${username} has no accessory data or API is off.`
 
     const magicalPower = accessoryStorage.highest_magical_power
 
@@ -47,7 +39,7 @@ export default class Accessories extends ChatCommandHandler {
     const tuningDisplay = tuningStats.length > 0 ? tuningStats.join(', ') : 'None'
 
     return (
-      `${givenUsername}'s Accessories: ${shortenNumber(magicalPower)} MP | ` +
+      `${username}'s Accessories: ${shortenNumber(magicalPower)} MP | ` +
       `Power: ${selectedPower} | Tuning: ${tuningDisplay}`
     )
   }
