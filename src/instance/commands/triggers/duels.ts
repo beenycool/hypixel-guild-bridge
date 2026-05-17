@@ -199,12 +199,8 @@ export default class Duels extends HypixelPlayerCommand {
 
     let rawBridgeStats: Record<string, unknown> | undefined
     if (duelType === 'bridge') {
-      rawBridgeStats = (await fetch(
-        `https://api.hypixel.net/v2/player?key=${context.app.hypixelApiKey}&uuid=${player.uuid}`
-      )
-        .then((res) => res.json())
-        .then((json) => (json as any).player?.stats?.Duels)
-        .catch(() => undefined)) as Record<string, unknown> | undefined
+      const rawRes = (await context.app.hypixelApi.getPlayer(player.uuid, { raw: true }).catch(() => undefined)) as any
+      rawBridgeStats = rawRes?.player?.stats?.Duels as Record<string, unknown> | undefined
     }
 
     if (!duelType) {
