@@ -36,14 +36,6 @@ interface GamemodeStats {
   WLRatio: number
 }
 
-interface RawHypixelPlayerResponse {
-  player?: {
-    stats?: {
-      Duels?: Record<string, unknown>
-    }
-  }
-}
-
 const BridgeRawPrefixes: Record<BridgeSubMode, string> = {
   solo: 'bridge_duel',
   doubles: 'bridge_doubles',
@@ -207,10 +199,12 @@ export default class Duels extends HypixelPlayerCommand {
 
     let rawBridgeStats: Record<string, unknown> | undefined
     if (duelType === 'bridge') {
-      const rawPlayer = (await context.app.hypixelApi
-        .getPlayer(player.uuid, { raw: true, noCacheCheck: true, noCaching: true })
-        .catch(() => undefined)) as RawHypixelPlayerResponse | undefined
-      rawBridgeStats = rawPlayer?.player?.stats?.Duels
+      rawBridgeStats = (await fetch(
+        `https://api.hypixel.net/v2/player?key=${context.app.hypixelApiKey}&uuid=${player.uuid}`
+      )
+        .then((res) => res.json())
+        .then((json) => (json as any).player?.stats?.Duels)
+        .catch(() => undefined)) as Record<string, unknown> | undefined
     }
 
     if (!duelType) {
