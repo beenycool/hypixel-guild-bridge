@@ -39,12 +39,12 @@ export function classifyHypixelApiError(err: unknown): string | undefined {
   return undefined
 }
 
-export async function getUuidIfExists(mojangApi: MojangApi, username: string): Promise<ApiLookupResult<string>> {
+export async function getUuidIfExists(mojangApi: MojangApi, username: string): Promise<string | undefined> {
   try {
     const profile = await mojangApi.profileByUsername(username)
-    return { ok: true, data: profile.id }
+    return profile.id
   } catch {
-    return { ok: false, reason: 'api-error', message: 'Could not reach Mojang API to verify username.' }
+    return undefined
   }
 }
 

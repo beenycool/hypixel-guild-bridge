@@ -37,6 +37,9 @@ export default {
       linkedProfile && linkedProfile.name.toLowerCase() === username.toLowerCase()
         ? linkedProfile
         : await context.application.mojangApi.profileByUsername(username).catch(() => undefined)
+    context.logger.debug(
+      `discord requirements command mojang result username=${username} profile=${JSON.stringify(profile)}`
+    )
     if (!profile) {
       await context.interaction.editReply({ embeds: [formatInvalidUsername(username)] })
       return
@@ -44,6 +47,9 @@ export default {
 
     const requirements = config.requirements
     const result = await checkGuildRequirements(context.application, profile.id, requirements, profile.name)
+    context.logger.debug(
+      `discord requirements command hypixel result username=${username} result=${JSON.stringify(result)}`
+    )
     if (!result) {
       await context.interaction.editReply(`\`${escapeMarkdown(username)}\` has never played on Hypixel.`)
       return
@@ -61,9 +67,10 @@ export default {
   autoComplete: async function (context) {
     const option = context.interaction.options.getFocused(true)
     if (option.name === 'username') {
-      const response = (await context.application.core
-        .completeUsername(option.value, 25))
-        .map((choice) => ({ name: choice, value: choice }))
+      const response = (await context.application.core.completeUsername(option.value, 25)).map((choice) => ({
+        name: choice,
+        value: choice
+      }))
       await context.interaction.respond(response)
     }
   }

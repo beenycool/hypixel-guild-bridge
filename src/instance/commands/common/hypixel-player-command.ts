@@ -22,16 +22,47 @@ export abstract class HypixelPlayerCommand extends ChatCommandHandler {
 
   async handler(context: ChatCommandContext): Promise<string> {
     const givenUsername = this.resolveUsername(context)
+    context.logger.debug(
+      `hypixel-player-command start command=${this.triggers[0]} username=${givenUsername} args=${JSON.stringify(context.args)}`
+    )
 
     const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
+    context.logger.debug(
+      `hypixel-player-command mojang lookup command=${this.triggers[0]} username=${givenUsername} result=${String(uuid)}`
+    )
+    if (uuid == undefined) {
+      context.logger.debug(
+        `hypixel-player-command username missing command=${this.triggers[0]} username=${givenUsername}`
+      )
+      return usernameNotExists(context, givenUsername)
+    }
 
     try {
+      context.logger.debug(
+        `hypixel-player-command hypixel lookup command=${this.triggers[0]} username=${givenUsername} uuid=${uuid}`
+      )
       const player = await context.app.hypixelApi.getPlayer(uuid, {})
+      context.logger.debug(
+        `hypixel-player-command hypixel lookup success command=${this.triggers[0]} username=${givenUsername} uuid=${uuid} player=${player.nickname}`
+      )
       return this.onPlayer(context, givenUsername, player)
     } catch (err: unknown) {
+      context.logger.debug(
+        `hypixel-player-command hypixel lookup failed command=${this.triggers[0]} username=${givenUsername} error=${
+          err instanceof Error ? err.message : String(err)
+        }`
+      )
       const message = classifyHypixelError(err)
-      if (message != undefined) return message
+      if (message != undefined) {
+        context.logger.debug(
+          `hypixel-player-command classified hypixel error command=${this.triggers[0]} username=${givenUsername} message=${message}`
+        )
+        return message
+      }
+
+      context.logger.debug(
+        `hypixel-player-command falling back to never-played command=${this.triggers[0]} username=${givenUsername}`
+      )
       return playerNeverPlayedHypixel(context, givenUsername)
     }
   }

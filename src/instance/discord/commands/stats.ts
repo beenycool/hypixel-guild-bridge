@@ -66,8 +66,11 @@ export default {
     await context.interaction.deferReply()
 
     try {
+      context.logger.debug(`discord stats command start game=${game} username=${username}`)
+
       // Get UUID from Mojang API
       const uuid = await context.application.mojangApi.profileByUsername(username).catch(() => undefined)
+      context.logger.debug(`discord stats command mojang result username=${username} profile=${JSON.stringify(uuid)}`)
       if (!uuid) {
         await context.interaction.editReply(`Could not find player: \`${username}\``)
         return
@@ -75,6 +78,7 @@ export default {
 
       // Get player data from Hypixel API
       const player = await context.application.hypixelApi.getPlayer(uuid.id, {}).catch(() => undefined)
+      context.logger.debug(`discord stats command hypixel result username=${username} player=${JSON.stringify(player)}`)
       if (!player) {
         await context.interaction.editReply(`\`${username}\` has never played on Hypixel.`)
         return
