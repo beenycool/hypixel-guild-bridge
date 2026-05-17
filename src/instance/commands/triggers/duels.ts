@@ -36,6 +36,78 @@ interface GamemodeStats {
   WLRatio: number
 }
 
+interface RawHypixelPlayerResponse {
+  player?: {
+    stats?: {
+      Duels?: Record<string, unknown>
+    }
+  }
+}
+
+const BridgeRawPrefixes: Record<BridgeSubMode, string> = {
+  solo: 'bridge_duel',
+  doubles: 'bridge_doubles',
+  threes: 'bridge_threes',
+  fours: 'bridge_four',
+  '2v2v2v2': 'bridge_2v2v2v2',
+  '3v3v3v3': 'bridge_3v3v3v3'
+}
+
+const BridgeOverallPrefixes = [
+  'bridge_duel',
+  'bridge_doubles',
+  'bridge_threes',
+  'bridge_four',
+  'bridge_2v2v2v2',
+  'bridge_3v3v3v3',
+  'capture_threes'
+] as const
+
+function readRawNumber(data: Record<string, unknown>, key: string): number {
+  const value = data[key]
+  return typeof value === 'number' ? value : 0
+}
+
+function divideLikeHypixel(wins: number, losses: number): number {
+  if (losses === 0) return wins
+  return Number((wins / losses).toFixed(2))
+}
+
+export function formatBridgeWins(value: number): string {
+  if (value < 1000) return value.toString(10)
+
+  const shortened = Math.floor(value / 100) / 10
+  return Number.isInteger(shortened) ? `${shortened.toFixed(0)}k` : `${shortened.toFixed(1)}k`
+}
+
+export function getBridgeStatsFromRawDuels(
+  rawDuels: Record<string, unknown>,
+  bridgeSubMode?: BridgeSubMode
+): GamemodeStats {
+  if (bridgeSubMode !== undefined) {
+    const prefix = BridgeRawPrefixes[bridgeSubMode]
+    const wins = readRawNumber(rawDuels, `${prefix}_wins`)
+    const losses = readRawNumber(rawDuels, `${prefix}_losses`)
+
+    return {
+      wins,
+      winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${prefix}`),
+      bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${prefix}`),
+      WLRatio: divideLikeHypixel(wins, losses)
+    }
+  }
+
+  const wins = BridgeOverallPrefixes.reduce((total, prefix) => total + readRawNumber(rawDuels, `${prefix}_wins`), 0)
+  const losses = BridgeOverallPrefixes.reduce((total, prefix) => total + readRawNumber(rawDuels, `${prefix}_losses`), 0)
+
+  return {
+    wins,
+    winstreak: readRawNumber(rawDuels, 'current_bridge_winstreak'),
+    bestWinstreak: readRawNumber(rawDuels, 'best_bridge_winstreak'),
+    WLRatio: divideLikeHypixel(wins, losses)
+  }
+}
+
 export default class Duels extends HypixelPlayerCommand {
   private static readonly ValidDuelTypes: ReadonlySet<DuelType> = new Set([
     'blitz',
@@ -133,6 +205,14 @@ export default class Duels extends HypixelPlayerCommand {
     const stats = player.stats?.duels
     if (stats === undefined) return `${givenUsername} has never played Duels.`
 
+    let rawBridgeStats: Record<string, unknown> | undefined
+    if (duelType === 'bridge') {
+      const rawPlayer = (await context.app.hypixelApi
+        .getPlayer(player.uuid, { raw: true, noCacheCheck: true, noCaching: true })
+        .catch(() => undefined)) as RawHypixelPlayerResponse | undefined
+      rawBridgeStats = rawPlayer?.player?.stats?.Duels
+    }
+
     if (!duelType) {
       // Overall stats
       const wins = stats.wins
@@ -149,6 +229,16 @@ export default class Duels extends HypixelPlayerCommand {
 
     // Bridge sub-mode stats
     if (duelType === 'bridge' && bridgeSubMode !== undefined) {
+      if (rawBridgeStats !== undefined) {
+        const bridgeData = getBridgeStatsFromRawDuels(rawBridgeStats, bridgeSubMode)
+        const division = calculateDuelsDivision(bridgeData.wins, 'long')
+
+        return (
+          `[${BridgeSubModeDisplayNames.get(bridgeSubMode)}] [${this.formatDivision(division)}] ${givenUsername} ` +
+          `W: ${formatBridgeWins(bridgeData.wins)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
+        )
+      }
+
       const bridgeData = stats.bridge as unknown as Record<string, unknown> | undefined
 
       if (!bridgeData || typeof bridgeData !== 'object') {
@@ -170,6 +260,21 @@ export default class Duels extends HypixelPlayerCommand {
       return (
         `[${BridgeSubModeDisplayNames.get(bridgeSubMode)}] [${this.formatDivision(division)}] ${givenUsername} ` +
         `W: ${shortenNumber(wins)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+      )
+    }
+
+    if (duelType === 'bridge') {
+      const bridgeData =
+        rawBridgeStats !== undefined ? getBridgeStatsFromRawDuels(rawBridgeStats) : (stats.bridge as GamemodeStats)
+      if (bridgeData === undefined) {
+        return `${givenUsername} has no Bridge stats.`
+      }
+
+      const division = calculateDuelsDivision(bridgeData.wins, 'long')
+
+      return (
+        `[Bridge] [${this.formatDivision(division)}] ${givenUsername} ` +
+        `W: ${formatBridgeWins(bridgeData.wins)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
       )
     }
 
