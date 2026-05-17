@@ -81,6 +81,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
     const guild: GuildFetch = { fetchedAt: Date.now(), name: '', members: [] }
 
     let currentRank: string | undefined = undefined
+    let totalEntries = 0
 
     const nameRegex = /^Guild Name: ([\W\w]{1,64})/g
     const rankRegex = /^\s+-- (Guild Master|[\S -]{1,16}) --$/g
@@ -113,6 +114,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
         }
 
         const username = usernameMatch[1]
+        totalEntries++
         if (guild.members.some((member) => member.username === username)) continue
 
         switch (usernameMatch[2]) {
@@ -134,7 +136,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
       const totalMatch = totalRegex.exec(event.message)
       if (totalMatch != undefined) {
         const displayed = Number(totalMatch[1])
-        const detected = guild.members.length
+        const detected = totalEntries
 
         if (detected !== displayed) {
           timeout.resolve(
