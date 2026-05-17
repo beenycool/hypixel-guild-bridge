@@ -89,6 +89,8 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
     const totalRegex = /^Total Members: (\d+)$/g
     const onlineRegex = /^Online Members: (\d+)$/g
 
+    const logger = this.logger
+
     const chatListener = function (event: MinecraftRawChatEvent): void {
       if (event.message.length === 0) return
       if (event.instanceName !== instanceName) return
@@ -139,13 +141,11 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
         const detected = totalEntries
 
         if (detected !== displayed) {
-          timeout.resolve(
-            new Error(
-              `Detected guild total members count does not match the displayed amount. ` +
-                `detected=${detected}, displayed=${displayed}`
-            )
+          logger.warn(
+            `Detected guild total members count does not match the displayed amount for ${instanceName}. ` +
+              `detected=${detected}, displayed=${displayed}. ` +
+              `Continuing with partial results (Hypixel may duplicate or truncate member names).`
           )
-          return
         }
       }
 
@@ -155,13 +155,10 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
         const detected = guild.members.filter((member) => member.online).length
 
         if (detected !== displayed) {
-          timeout.resolve(
-            new Error(
-              `Detected guild online members count does not match the displayed amount. ` +
-                `detected=${detected}, displayed=${displayed}`
-            )
+          logger.warn(
+            `Detected guild online members count does not match the displayed amount for ${instanceName}. ` +
+              `detected=${detected}, displayed=${displayed}. Continuing with partial results.`
           )
-          return
         }
 
         timeout.resolve(undefined) // online message is the last in the listing output
@@ -178,6 +175,9 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
 
     assert.ok(guild.name.length > 0, 'Could not detect any guild name somehow')
     assert.ok(guild.members.length > 0, 'Could not detect any members at all??')
+
+    guild.members = [...new Map(guild.members.map((member) => [member.username, member])).values()]
+
     return Object.freeze(guild)
   }
 }

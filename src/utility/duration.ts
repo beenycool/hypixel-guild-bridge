@@ -6,7 +6,13 @@ export default class Duration {
   private static readonly DaysValue = 30
   private static readonly MonthsValue = 12
 
-  private constructor(private readonly milliseconds: number) {}
+  private constructor(private readonly milliseconds: number) {
+    if (Number.isNaN(milliseconds)) {
+      throw new Error(
+        'Duration constructed with NaN. Check the config value or arithmetic that produced this Duration call.'
+      )
+    }
+  }
 
   public static milliseconds(milliseconds: number): Duration {
     return new Duration(milliseconds)

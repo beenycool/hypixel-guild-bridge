@@ -286,8 +286,6 @@ class ScoreDatabase {
   private readonly allMembers: TimeframeRecord[] = []
   private readonly onlineMembers: TimeframeRecord[] = []
   private readonly minecraftBots = new Map<string, { uuid: string; updatedAt: number; createdAt: number }>()
-  private nextAllMembersId = 1
-  private nextOnlineMembersId = 1
 
   constructor(
     private readonly scoresManager: ScoresManager,
@@ -327,19 +325,9 @@ class ScoreDatabase {
 
     this.allMembers.length = 0
     this.allMembers.push(...allMembers)
-    let maxAllMembersId = 0
-    for (const entry of allMembers) {
-      if (entry.id > maxAllMembersId) maxAllMembersId = entry.id
-    }
-    this.nextAllMembersId = maxAllMembersId + 1
 
     this.onlineMembers.length = 0
     this.onlineMembers.push(...onlineMembers)
-    let maxOnlineMembersId = 0
-    for (const entry of onlineMembers) {
-      if (entry.id > maxOnlineMembersId) maxOnlineMembersId = entry.id
-    }
-    this.nextOnlineMembersId = maxOnlineMembersId + 1
 
     this.minecraftBots.clear()
     for (const entry of minecraftBots) {
@@ -467,7 +455,7 @@ class ScoreDatabase {
 
   private appendTimeframe(tableName: 'AllMembers' | 'OnlineMembers', entries: Timeframe[]): void {
     const target = tableName === 'AllMembers' ? this.allMembers : this.onlineMembers
-    const operations: { deletedIds: number[]; inserted?: TimeframeRecord }[] = []
+    const operations: { deletedFrames: TimeframeRecord[]; inserted?: TimeframeRecord }[] = []
 
     for (const entry of entries) {
       const fromTimestamp = Math.floor(entry.fromTimestamp / 1000)
@@ -486,8 +474,10 @@ class ScoreDatabase {
 
       let inserted: TimeframeRecord
       if (existingFrames.length > 0) {
-        const deletedIds = existingFrames.map((frame) => frame.id)
-        removeByIds(target, deletedIds)
+        removeByIds(
+          target,
+          existingFrames.map((frame) => frame.id)
+        )
 
         let lowestTime = Math.min(existingFrames[0].fromTimestamp, fromTimestamp)
         let highestTime = Math.max(existingFrames[0].toTimestamp, toTimestamp)
@@ -497,10 +487,10 @@ class ScoreDatabase {
         }
 
         inserted = this.createTimeframeRecord(tableName, entry.uuid, lowestTime, highestTime)
-        operations.push({ deletedIds, inserted })
+        operations.push({ deletedFrames: existingFrames, inserted })
       } else {
         inserted = this.createTimeframeRecord(tableName, entry.uuid, fromTimestamp, toTimestamp)
-        operations.push({ deletedIds: [], inserted })
+        operations.push({ deletedFrames: [], inserted })
       }
 
       target.push(inserted)
@@ -508,19 +498,18 @@ class ScoreDatabase {
 
     this.databaseManager.enqueueTransaction(`saving ${tableName} timeframes`, async (database) => {
       for (const operation of operations) {
-        if (operation.deletedIds.length > 0) {
-          await database.query(`DELETE FROM "${tableName}" WHERE "id" = ANY($1::int[])`, [operation.deletedIds])
+        const committedIds = operation.deletedFrames.map((frame) => frame.id).filter((id) => id > 0)
+        if (committedIds.length > 0) {
+          await database.query(`DELETE FROM "${tableName}" WHERE "id" = ANY($1::int[])`, [committedIds])
         }
         if (operation.inserted !== undefined) {
-          await database.query(
-            `INSERT INTO "${tableName}" ("id", "uuid", "fromTimestamp", "toTimestamp") VALUES ($1, $2, $3, $4)`,
-            [
-              operation.inserted.id,
-              operation.inserted.uuid,
-              operation.inserted.fromTimestamp,
-              operation.inserted.toTimestamp
-            ]
+          const result = await database.query<TimeframeRecord>(
+            `INSERT INTO "${tableName}" ("uuid", "fromTimestamp", "toTimestamp")
+             VALUES ($1, $2, $3)
+             RETURNING "id"`,
+            [operation.inserted.uuid, operation.inserted.fromTimestamp, operation.inserted.toTimestamp]
           )
+          operation.inserted.id = result.rows[0]!.id
         }
       }
     })
@@ -847,15 +836,12 @@ class ScoreDatabase {
   }
 
   private createTimeframeRecord(
-    tableName: 'AllMembers' | 'OnlineMembers',
+    _tableName: 'AllMembers' | 'OnlineMembers',
     uuid: string,
     fromTimestamp: number,
     toTimestamp: number
   ): TimeframeRecord {
-    if (tableName === 'AllMembers') {
-      return { id: this.nextAllMembersId++, uuid, fromTimestamp, toTimestamp }
-    }
-    return { id: this.nextOnlineMembersId++, uuid, fromTimestamp, toTimestamp }
+    return { id: 0, uuid, fromTimestamp, toTimestamp }
   }
 
   private replaceCountTable(target: Map<string, CountEntry>, rows: CountEntry[]): void {
