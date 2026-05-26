@@ -207,7 +207,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       ) {
         const raw = (event as ChatEvent & { rawMessage: string }).rawMessage
         const withoutPrefix = this.removeGuildPrefix(raw)
-        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${username}: ${withoutPrefix}`
+        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}§f${username}: ${withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage)
         await this.sendImageToChannels(event.eventId, [channelId], image)
       } else {
