@@ -31,6 +31,7 @@ export default {
       // if any other punishments active
       if (punishments.all().length > 0) return
       if (context.application.minecraftManager.isMinecraftBot(username)) {
+        context.logger.debug(`[public] suppressing bot message from "${username}": ${playerMessage}`)
         context.clientInstance.notifyChatEvent(ChannelType.Public, playerMessage)
         const prefixes = ['§2Guild > ', '§3Officer > ']
         let body = context.rawMessage
@@ -66,6 +67,7 @@ export default {
 
       const event = context.eventHelper.fillBaseEvent()
       context.messageAssociation.addMessageId(event.eventId, { channel: ChannelType.Public })
+      context.logger.debug(`[public] emitting chat for "${username}": ${filteredMessage}`)
       await context.application.emit('chat', {
         ...event,
 

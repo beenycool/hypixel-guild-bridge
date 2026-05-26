@@ -1,4 +1,4 @@
-import { ChannelType, InstanceType, MinecraftSendChatPriority } from '../../../common/application-event.js'
+import { ChannelType, InstanceType } from '../../../common/application-event.js'
 import { calculateSimilarityScore, ChatCommandHandler } from '../../../common/commands.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
 
@@ -80,35 +80,21 @@ export default class QCommand extends ChatCommandHandler {
 
     const enrichedMessage = sourceBridgeId ? `${message} (from ${sourceBridgeId})` : message
 
-    // Resolve Minecraft instances for the destination bridge
-    const instances = context.app
-      .getInstancesNames(InstanceType.Minecraft)
-      .filter((name) => context.app.bridgeResolver.shouldProcessEvent(bestBridgeId, name))
+    // Emit chat event — DiscordBridge renders it in destination Discord,
+    // MinecraftBridge forwards to destination Minecraft instances.
+    // The guild echo is suppressed by public.ts's bot-message filter (no duplicate).
+    context.logger.debug(`[q] emitting chat to bridge="${bestBridgeId}" msg="${enrichedMessage}"`)
+    const baseEvent = context.eventHelper.fillBaseEvent()
+    await context.app.emit('chat', {
+      ...baseEvent,
 
-    if (instances.length > 0) {
-      // Send directly to the destination bridge's Minecraft instances
-      // The guild echo will propagate back to Discord as a normal Minecraft chat message
-      await context.app.sendMinecraft(
-        instances,
-        MinecraftSendChatPriority.Default,
-        undefined,
-        `/gc ${context.username}: ${enrichedMessage}`
-      )
-    } else {
-      // No Minecraft instances on destination bridge — fall back to chat event
-      context.logger.warn(`[q] no Minecraft instances on bridge "${bestBridgeId}", falling back to chat event`)
-      const baseEvent = context.eventHelper.fillBaseEvent()
-      await context.app.emit('chat', {
-        ...baseEvent,
+      instanceType: InstanceType.Utility,
+      bridgeId: bestBridgeId,
 
-        instanceType: InstanceType.Utility,
-        bridgeId: bestBridgeId,
-
-        channelType: ChannelType.Public,
-        user: context.message.user,
-        message: enrichedMessage
-      })
-    }
+      channelType: ChannelType.Public,
+      user: context.message.user,
+      message: enrichedMessage
+    })
 
     return `${context.username}, message sent to bridge "${bestBridgeId}".`
   }

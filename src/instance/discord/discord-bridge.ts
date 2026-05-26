@@ -172,6 +172,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   async onChat(event: ChatEvent): Promise<void> {
+    this.logger.debug(
+      `[onChat] instanceType=${event.instanceType} bridgeId=${event.bridgeId} instanceName=${event.instanceName} channelType=${event.channelType} msg="${event.message}"`
+    )
     const channels = this.resolveChannelsForEvent([event.channelType], event.bridgeId, {
       kind: 'chat',
       instanceName: event.instanceName
