@@ -234,10 +234,7 @@ export type ChatLike =
   | MinecraftGuildChat
   | MinecraftPrivateChat
   | DiscordChat
-  | (BaseChat & {
-      readonly instanceType: Exclude<InstanceType, InstanceType.Discord | InstanceType.Minecraft>
-      readonly rawMessage?: string
-    })
+  | (BaseChat & { instanceType: Exclude<InstanceType, InstanceType.Discord | InstanceType.Minecraft> })
 
 export interface BaseChat extends InformEvent {
   /**
