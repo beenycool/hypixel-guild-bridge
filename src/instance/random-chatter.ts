@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 
 import type Application from '../application'
-import { ChannelType, Color, InstanceType, GuildPlayerEventType } from '../common/application-event'
+import { ChannelType, Color, GuildPlayerEventType, InstanceType } from '../common/application-event'
 import { Status } from '../common/connectable-instance'
 import { Instance } from '../common/instance'
 import Duration from '../utility/duration'
@@ -23,7 +23,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     if (event.type !== GuildPlayerEventType.Offline) return
 
     const offlineName = event.user.mojangProfile()?.name
-    if (offlineName !== undefined && offlineName.toLowerCase() === this.pausedBy!.toLowerCase()) {
+    if (offlineName !== undefined && offlineName.toLowerCase() === this.pausedBy.toLowerCase()) {
       this.logger.info(`random-chatter auto-resumed: ${this.pausedBy} logged out`)
       this.pausedBy = undefined
     }
@@ -65,13 +65,13 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
         if (event.channelType !== ChannelType.Public) return
 
         const bId = event.bridgeId
-        if (bId !== undefined) {
-          this.lastActivityAt.set(bId, event.createdAt)
-        } else {
+        if (bId === undefined) {
           // Legacy global event: mark activity for all known bridges
           for (const id of this.application.core.bridgeConfigurations.getAllBridgeIds()) {
             this.lastActivityAt.set(id, event.createdAt)
           }
+        } else {
+          this.lastActivityAt.set(bId, event.createdAt)
         }
       } catch {
         // swallow errors from observer
@@ -149,7 +149,8 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     const mcInstances = this.application.minecraftManager.getAllInstances()
     for (const instName of instanceNames) {
       const mcCandidate = mcInstances.find(
-        (i) => i.instanceName.toLowerCase() === instName.toLowerCase() && i.currentStatus() === Status.Connected
+        (index) =>
+          index.instanceName.toLowerCase() === instName.toLowerCase() && index.currentStatus() === Status.Connected
       )
       if (mcCandidate) {
         chosenInstance = mcCandidate.instanceName
@@ -272,7 +273,8 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       const mcInstances = this.application.minecraftManager.getAllInstances()
       for (const instName of instanceNames) {
         const mcCandidate = mcInstances.find(
-          (i) => i.instanceName.toLowerCase() === instName.toLowerCase() && i.currentStatus() === Status.Connected
+          (index) =>
+            index.instanceName.toLowerCase() === instName.toLowerCase() && index.currentStatus() === Status.Connected
         )
         if (mcCandidate) {
           chosenInstance = mcCandidate.instanceName
@@ -283,7 +285,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
 
       const mc = this.application.minecraftManager
         .getAllInstances()
-        .find((index) => index.instanceName.toLowerCase() === chosenInstance!.toLowerCase())
+        .find((index) => index.instanceName.toLowerCase() === chosenInstance.toLowerCase())
       if (mc === undefined) return { sent: false, reason: 'instance_not_found' }
 
       const botIgn = mc.username()
@@ -337,8 +339,8 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
 
       this.lastSentAt.set(bridgeId, Date.now())
       return { sent: true, message }
-    } catch (e: unknown) {
-      return { sent: false, reason: String(e) }
+    } catch (error: unknown) {
+      return { sent: false, reason: String(error) }
     }
   }
 }

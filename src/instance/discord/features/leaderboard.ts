@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import type { APIEmbed, ButtonInteraction, Client, MessageActionRowComponentData } from 'discord.js'
 import { ButtonStyle, ComponentType, DiscordAPIError, escapeMarkdown, MessageFlags, userMention } from 'discord.js'
 import type { Guild } from 'hypixel-api-reborn'
+
 import type { InstanceType } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'
 import type { User } from '../../../common/user'

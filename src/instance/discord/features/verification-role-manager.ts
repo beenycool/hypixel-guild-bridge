@@ -1,9 +1,10 @@
 import type { Client, Guild, GuildMember, Role } from 'discord.js'
 import { DiscordAPIError } from 'discord.js'
 import type { Guild as HypixelGuild, Player, SkyblockV2Member } from 'hypixel-api-reborn'
+
 import type { LevelRole, VerificationConfig } from '../../../application-config.js'
-import { formatNumber } from '../../../common/helper-functions.js'
 import type { InstanceType } from '../../../common/application-event.js'
+import { formatNumber } from '../../../common/helper-functions.js'
 import SubInstance from '../../../common/sub-instance'
 import Duration from '../../../utility/duration'
 import { setIntervalAsync } from '../../../utility/scheduling'

@@ -3,8 +3,8 @@ import type { SkyblockV2Member } from 'hypixel-api-reborn'
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { formatNumber, titleCase } from '../../../common/helper-functions.js'
 import { getLevelByXp } from '../common/skills'
-import { playerNeverPlayedDungeons } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { playerNeverPlayedDungeons } from '../common/utility'
 
 const DungeonClasses = ['healer', 'mage', 'berserk', 'archer', 'tank'] as const
 type DungeonClass = (typeof DungeonClasses)[number]

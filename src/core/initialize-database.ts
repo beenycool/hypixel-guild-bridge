@@ -328,7 +328,7 @@ async function syncSequences(databaseManager: DatabaseManager): Promise<void> {
           false
         ) FROM "${table}"
       `)
-    } catch (error) {
+    } catch {
       // In-memory databases or non-Postgres environments might not support this.
       // We ignore the error as it's a non-critical optimization/fixup.
     }

@@ -1,5 +1,5 @@
-import http from 'node:http'
 import { timingSafeEqual } from 'node:crypto'
+import http from 'node:http'
 
 import { HttpStatusCode } from 'axios'
 import type { RawData } from 'ws'

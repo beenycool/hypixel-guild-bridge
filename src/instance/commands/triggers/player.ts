@@ -1,7 +1,8 @@
 import type { Player as HypixelPlayer } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 import { formatNumber } from '../../../common/helper-functions.js'
+import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 
 export default class Player extends HypixelPlayerCommand {
   constructor() {

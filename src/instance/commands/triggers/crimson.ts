@@ -1,8 +1,8 @@
 import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { playerNeverEnteredCrimson, shortenNumber } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { playerNeverEnteredCrimson, shortenNumber } from '../common/utility'
 
 export default class Crimson extends SkyblockPlayerCommand {
   constructor() {

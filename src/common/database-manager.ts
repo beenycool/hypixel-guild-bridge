@@ -84,7 +84,9 @@ export class DatabaseManager {
         const pool = this.getPool()
 
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Database write operation timed out')), 15000)
+          setTimeout(() => {
+            reject(new Error('Database write operation timed out'))
+          }, 15_000)
         )
         return Promise.race([callback(pool), timeoutPromise])
       })
@@ -106,7 +108,9 @@ export class DatabaseManager {
           await client.query('BEGIN')
 
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Database transaction operation timed out')), 15000)
+            setTimeout(() => {
+              reject(new Error('Database transaction operation timed out'))
+            }, 15_000)
           )
           await Promise.race([callback(client), timeoutPromise])
 

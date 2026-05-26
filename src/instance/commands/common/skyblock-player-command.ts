@@ -2,7 +2,7 @@ import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import { type ChatCommandContext, ChatCommandHandler } from '../../../common/commands.js'
 
-import { getUuidIfExists, getSelectedSkyblockProfileRaw, usernameNotExists, playerNeverPlayedSkyblock } from './utility'
+import { getSelectedSkyblockProfileRaw, getUuidIfExists, playerNeverPlayedSkyblock, usernameNotExists } from './utility'
 
 export abstract class SkyblockPlayerCommand extends ChatCommandHandler {
   protected resolveUsername(context: ChatCommandContext): string {

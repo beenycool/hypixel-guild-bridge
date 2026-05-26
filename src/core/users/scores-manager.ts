@@ -509,7 +509,7 @@ class ScoreDatabase {
              RETURNING "id"`,
             [operation.inserted.uuid, operation.inserted.fromTimestamp, operation.inserted.toTimestamp]
           )
-          operation.inserted.id = result.rows[0]!.id
+          operation.inserted.id = result.rows[0].id
         }
       }
     })

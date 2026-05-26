@@ -1,8 +1,8 @@
 import type { ChatEvent } from '../../../common/application-event.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
-import { Timeout } from '../../../utility/timeout.js'
 import UnscrambleWords from '../../../resources/data/unscramble-words.json' with { type: 'json' }
+import { Timeout } from '../../../utility/timeout.js'
 
 function getRandomWord(length?: number): string {
   if (length !== undefined) {

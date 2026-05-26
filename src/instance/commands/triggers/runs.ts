@@ -1,8 +1,8 @@
 import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { playerNeverPlayedDungeons } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { playerNeverPlayedDungeons } from '../common/utility'
 
 export default class Runs extends SkyblockPlayerCommand {
   protected override resolveUsername(context: ChatCommandContext): string {

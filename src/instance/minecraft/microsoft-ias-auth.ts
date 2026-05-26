@@ -1,5 +1,4 @@
-import type { ClientOptions } from 'minecraft-protocol'
-import type { Client } from 'minecraft-protocol'
+import type { Client, ClientOptions } from 'minecraft-protocol'
 
 const IAS_CLIENT_ID = '54fd49e4-2103-4044-9603-2b028c814ec3'
 const IAS_REDIRECT_URI = 'http://localhost:59125'
@@ -298,8 +297,8 @@ function getStoredMcToken(cache: IasAuthCache, instanceName: string): StoredMcTo
   const data = cache.getCacheSync(instanceName, CACHE_MC_TOKEN)
   if (typeof data.accessToken === 'string' && typeof data.expiresAt === 'number') {
     return {
-      accessToken: data.accessToken as string,
-      expiresAt: data.expiresAt as number
+      accessToken: data.accessToken,
+      expiresAt: data.expiresAt
     }
   }
   return undefined
@@ -316,8 +315,8 @@ function getStoredProfile(cache: IasAuthCache, instanceName: string): StoredProf
   const data = cache.getCacheSync(instanceName, CACHE_PROFILE)
   if (typeof data.id === 'string' && typeof data.name === 'string') {
     return {
-      id: data.id as string,
-      name: data.name as string
+      id: data.id,
+      name: data.name
     }
   }
   return undefined

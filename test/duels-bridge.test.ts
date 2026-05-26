@@ -6,7 +6,7 @@ import { formatBridgeWins, getBridgeStatsFromRawDuels } from '../src/instance/co
 await describe('Bridge Duels raw stats', async () => {
   await it('sums all raw bridge win fields', () => {
     const rawDuels = {
-      bridge_duel_wins: 14587,
+      bridge_duel_wins: 14_587,
       bridge_doubles_wins: 9467,
       bridge_threes_wins: 2407,
       bridge_four_wins: 625,
@@ -26,7 +26,7 @@ await describe('Bridge Duels raw stats', async () => {
 
     const stats = getBridgeStatsFromRawDuels(rawDuels)
 
-    assert.strictEqual(stats.wins, 27254)
+    assert.strictEqual(stats.wins, 27_254)
     assert.strictEqual(stats.winstreak, 83)
     assert.strictEqual(stats.bestWinstreak, 405)
     assert.strictEqual(stats.WLRatio, 14.38)

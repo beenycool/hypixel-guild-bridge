@@ -4,12 +4,12 @@ import { type ChatCommandContext, ChatCommandHandler } from '../../../common/com
 
 import { getUuidIfExists, playerNeverPlayedHypixel, usernameNotExists } from './utility'
 
-function classifyHypixelError(err: unknown): string | undefined {
-  const status = (err as { response?: { status?: number } })?.response?.status
+function classifyHypixelError(error: unknown): string | undefined {
+  const status = (error as { response?: { status?: number } })?.response?.status
   if (status === 429) return 'The Hypixel API is currently rate-limiting. Please try again later.'
   if (status === 403) return 'The Hypixel API key is invalid. Please check your API key.'
   if (status != undefined && status >= 500) return 'The Hypixel API is currently down. Please try again later.'
-  const code = (err as { code?: string })?.code
+  const code = (error as { code?: string })?.code
   if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND')
     return 'The Hypixel API is currently down. Please try again later.'
   return undefined
@@ -46,13 +46,13 @@ export abstract class HypixelPlayerCommand extends ChatCommandHandler {
         `hypixel-player-command hypixel lookup success command=${this.triggers[0]} username=${givenUsername} uuid=${uuid} player=${player.nickname}`
       )
       return this.onPlayer(context, givenUsername, player)
-    } catch (err: unknown) {
+    } catch (error: unknown) {
       context.logger.debug(
         `hypixel-player-command hypixel lookup failed command=${this.triggers[0]} username=${givenUsername} error=${
-          err instanceof Error ? err.message : String(err)
+          error instanceof Error ? error.message : String(error)
         }`
       )
-      const message = classifyHypixelError(err)
+      const message = classifyHypixelError(error)
       if (message != undefined) {
         context.logger.debug(
           `hypixel-player-command classified hypixel error command=${this.triggers[0]} username=${givenUsername} message=${message}`

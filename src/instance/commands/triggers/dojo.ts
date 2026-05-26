@@ -2,8 +2,8 @@ import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { formatNumber } from '../../../common/helper-functions.js'
-import { playerNeverEnteredCrimson } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { playerNeverEnteredCrimson } from '../common/utility'
 
 type DojoData = Record<string, number | undefined>
 

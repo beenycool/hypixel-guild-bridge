@@ -82,9 +82,9 @@ export class InstanceStatusManager {
     }
 
     await interactivePaging(interaction, 0, DefaultTimeout, this.errorHandler, async (requestedPage) => {
-      const entries = (await this.application.core.statusHistory
-        .getHistory(entry.instanceName, entry.startTime, entry.endTime))
-        .toReversed()
+      const entries = (
+        await this.application.core.statusHistory.getHistory(entry.instanceName, entry.startTime, entry.endTime)
+      ).toReversed()
 
       // Only show latest authentication code since others have expired
       // and showing them might confuse user on which to use
@@ -359,9 +359,13 @@ export class InstanceStatusManager {
 
       // combine multiple authentication messages if all contain the same display message "this.generateAuthentication(...)"
     } else if (event.message?.type === InstanceMessageType.MinecraftAuthenticationCode) {
-      const firstMessageEntry = (await this.application.core.statusHistory
-        .getHistory(event.instanceName, lastMessage.startTime, lastMessage.endTime))
-        .find((entry) => entry.entryType === StatusHistoryEntryType.Message)
+      const firstMessageEntry = (
+        await this.application.core.statusHistory.getHistory(
+          event.instanceName,
+          lastMessage.startTime,
+          lastMessage.endTime
+        )
+      ).find((entry) => entry.entryType === StatusHistoryEntryType.Message)
 
       if (
         firstMessageEntry !== undefined &&

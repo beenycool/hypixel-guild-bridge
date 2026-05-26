@@ -1,6 +1,7 @@
 import type { Channel, Client, Guild } from 'discord.js'
 import { DiscordAPIError, GuildChannel } from 'discord.js'
 import type { Guild as HypixelGuild } from 'hypixel-api-reborn'
+
 import type { StatsChannelsConfig } from '../../../application-config.js'
 import type { InstanceType } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'

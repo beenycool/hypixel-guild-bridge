@@ -25,7 +25,7 @@ export default class Asian extends ChatCommandHandler {
     }
 
     const problem = this.createMath()
-    return this.runChallenge(context, problem, 7_000)
+    return this.runChallenge(context, problem, 7000)
   }
 
   private async runChallenge(

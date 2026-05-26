@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 
 import type { Player } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 

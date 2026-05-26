@@ -3,8 +3,8 @@ import assert from 'node:assert'
 import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { getDungeonLevelWithOverflow, playerNeverPlayedDungeons } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { getDungeonLevelWithOverflow, playerNeverPlayedDungeons } from '../common/utility'
 
 // Credit: https://adjectils.com/dungeon.html
 const FloorsBaseExp = {
@@ -86,7 +86,7 @@ export default class RunsToClassAverage extends SkyblockPlayerCommand {
       tank: 0
     } as Record<ClassName, number>
 
-    for (const [className, classObject] of Object.entries(selectedProfile.dungeons!.player_classes!)) {
+    for (const [className, classObject] of Object.entries(selectedProfile.dungeons.player_classes)) {
       classesExperiences[className as ClassName] = classObject?.experience ?? 0
     }
 

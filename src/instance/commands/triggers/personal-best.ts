@@ -7,8 +7,8 @@ import type {
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { formatTime } from '../../../utility/shared-utility'
-import { playerNeverPlayedDungeons } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { playerNeverPlayedDungeons } from '../common/utility'
 
 export default class PersonalBest extends SkyblockPlayerCommand {
   constructor() {

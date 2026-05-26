@@ -104,117 +104,131 @@ export default {
     })
 
     collector.on('collect', async (index) => {
-      if (index.customId === 'rankup-prev') {
-        currentPage--
-        await index.update(await generatePage(currentPage))
-      } else if (index.customId === 'rankup-next') {
-        currentPage++
-        await index.update(await generatePage(currentPage))
-      } else if (index.customId === 'rankup-select-review') {
-        if (!index.isStringSelectMenu()) return
-        const reviewId = Number.parseInt(index.values[0])
-        const review = pendingManager.getReview(reviewId)
+      switch (index.customId) {
+        case 'rankup-prev': {
+          currentPage--
+          await index.update(await generatePage(currentPage))
 
-        if (!review) {
-          await index.reply({ content: 'Review no longer exists.', flags: 64 }) // Ephemeral
-          return
+          break
         }
+        case 'rankup-next': {
+          currentPage++
+          await index.update(await generatePage(currentPage))
 
-        const name = uuidToName.get(review.uuid) ?? review.uuid
+          break
+        }
+        case 'rankup-select-review': {
+          if (!index.isStringSelectMenu()) return
+          const reviewId = Number.parseInt(index.values[0])
+          const review = pendingManager.getReview(reviewId)
 
-        const detailEmbed = new EmbedBuilder()
-          .setTitle(`Review for ${name}`)
-          .addFields(
-            { name: 'Action', value: review.action.toUpperCase(), inline: true },
-            { name: 'Current Rank', value: review.currentRank, inline: true },
-            { name: 'Proposed Rank', value: review.proposedRank, inline: true },
-            { name: 'Reason', value: review.reason },
-            { name: 'Created At', value: `<t:${review.createdAt}:R>` }
+          if (!review) {
+            await index.reply({ content: 'Review no longer exists.', flags: 64 }) // Ephemeral
+            return
+          }
+
+          const name = uuidToName.get(review.uuid) ?? review.uuid
+
+          const detailEmbed = new EmbedBuilder()
+            .setTitle(`Review for ${name}`)
+            .addFields(
+              { name: 'Action', value: review.action.toUpperCase(), inline: true },
+              { name: 'Current Rank', value: review.currentRank, inline: true },
+              { name: 'Proposed Rank', value: review.proposedRank, inline: true },
+              { name: 'Reason', value: review.reason },
+              { name: 'Created At', value: `<t:${review.createdAt}:R>` }
+            )
+
+          const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder().setCustomId(`approve-${reviewId}`).setLabel('Approve').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId(`reject-${reviewId}`).setLabel('Reject').setStyle(ButtonStyle.Danger)
           )
 
-        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder().setCustomId(`approve-${reviewId}`).setLabel('Approve').setStyle(ButtonStyle.Success),
-          new ButtonBuilder().setCustomId(`reject-${reviewId}`).setLabel('Reject').setStyle(ButtonStyle.Danger)
-        )
+          const message = await index.reply({
+            embeds: [detailEmbed],
+            components: [actionRow],
+            fetchReply: true
+          })
 
-        const message = await index.reply({
-          embeds: [detailEmbed],
-          components: [actionRow],
-          fetchReply: true
-        })
+          const buttonCollector = message.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: 60_000,
+            filter: (button) => button.user.id === interaction.user.id
+          })
 
-        const buttonCollector = message.createMessageComponentCollector({
-          componentType: ComponentType.Button,
-          time: 60_000,
-          filter: (button) => button.user.id === interaction.user.id
-        })
+          buttonCollector.on('collect', async (button) => {
+            const action = button.customId.startsWith('approve') ? 'approve' : 'reject'
 
-        buttonCollector.on('collect', async (button) => {
-          const action = button.customId.startsWith('approve') ? 'approve' : 'reject'
-
-          if (action === 'reject') {
-            pendingManager.removeReview(reviewId)
-            pendingManager.logHistory(
-              bridgeId,
-              review.uuid,
-              'reject',
-              review.currentRank,
-              review.proposedRank,
-              button.user.tag
-            )
-            await button.update({ content: 'Review rejected.', embeds: [], components: [] })
-          } else {
-            const instances = bridgeConfig.getMinecraftInstances(bridgeId)
-            if (instances.length > 0) {
-              const instanceName = instances[0]
-              const instance = application.minecraftManager
-                .getAllInstances()
-                .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
-              if (instance) {
-                let command = ''
-                if (review.action === 'promote' || review.action === 'demote') {
-                  if (review.proposedRank.length === 0) {
-                    await button.update({ content: 'Error: pending review is missing a target rank.', components: [] })
-                    return
-                  }
-                  command = `/g setrank ${name} ${review.proposedRank}`
-                } else if (review.action === 'kick') {
-                  command = `/g kick ${name} ${review.reason}`
-                }
-
-                await instance.send(command, MinecraftSendChatPriority.High, undefined)
-
-                pendingManager.removeReview(reviewId)
-                pendingManager.logHistory(
-                  bridgeId,
-                  review.uuid,
-                  review.action,
-                  review.currentRank,
-                  review.proposedRank,
-                  button.user.tag
-                )
-
-                await button.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
-              } else {
-                await button.update({ content: 'Error: Minecraft instance not found.', components: [] })
-              }
+            if (action === 'reject') {
+              pendingManager.removeReview(reviewId)
+              pendingManager.logHistory(
+                bridgeId,
+                review.uuid,
+                'reject',
+                review.currentRank,
+                review.proposedRank,
+                button.user.tag
+              )
+              await button.update({ content: 'Review rejected.', embeds: [], components: [] })
             } else {
-              await button.update({ content: 'Error: No Minecraft instances configured.', components: [] })
-            }
-          }
-          buttonCollector.stop()
+              const instances = bridgeConfig.getMinecraftInstances(bridgeId)
+              if (instances.length > 0) {
+                const instanceName = instances[0]
+                const instance = application.minecraftManager
+                  .getAllInstances()
+                  .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
+                if (instance) {
+                  let command = ''
+                  if (review.action === 'promote' || review.action === 'demote') {
+                    if (review.proposedRank.length === 0) {
+                      await button.update({
+                        content: 'Error: pending review is missing a target rank.',
+                        components: []
+                      })
+                      return
+                    }
+                    command = `/g setrank ${name} ${review.proposedRank}`
+                  } else if (review.action === 'kick') {
+                    command = `/g kick ${name} ${review.reason}`
+                  }
 
-          // Refresh the main list
-          reviews = pendingManager.getReviews(bridgeId)
-          if (reviews.length === 0) {
-            await interaction.editReply({ content: 'No pending reviews.', embeds: [], components: [] })
-            collector.stop()
-          } else {
-            const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE)
-            if (currentPage >= totalPages) currentPage = totalPages - 1
-            await interaction.editReply(await generatePage(currentPage))
-          }
-        })
+                  await instance.send(command, MinecraftSendChatPriority.High, undefined)
+
+                  pendingManager.removeReview(reviewId)
+                  pendingManager.logHistory(
+                    bridgeId,
+                    review.uuid,
+                    review.action,
+                    review.currentRank,
+                    review.proposedRank,
+                    button.user.tag
+                  )
+
+                  await button.update({ content: `Action executed: ${command}`, embeds: [], components: [] })
+                } else {
+                  await button.update({ content: 'Error: Minecraft instance not found.', components: [] })
+                }
+              } else {
+                await button.update({ content: 'Error: No Minecraft instances configured.', components: [] })
+              }
+            }
+            buttonCollector.stop()
+
+            // Refresh the main list
+            reviews = pendingManager.getReviews(bridgeId)
+            if (reviews.length === 0) {
+              await interaction.editReply({ content: 'No pending reviews.', embeds: [], components: [] })
+              collector.stop()
+            } else {
+              const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE)
+              if (currentPage >= totalPages) currentPage = totalPages - 1
+              await interaction.editReply(await generatePage(currentPage))
+            }
+          })
+
+          break
+        }
+        // No default
       }
     })
   }

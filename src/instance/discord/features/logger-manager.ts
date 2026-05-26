@@ -1,5 +1,6 @@
 import type { Client } from 'discord.js'
 import { escapeMarkdown } from 'discord.js'
+
 import type { InstanceType } from '../../../common/application-event.js'
 import { GuildPlayerEventType } from '../../../common/application-event.js'
 import { Status } from '../../../common/connectable-instance.js'

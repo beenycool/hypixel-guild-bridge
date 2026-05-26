@@ -1,8 +1,8 @@
 import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { formatStatNumber } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { formatStatNumber } from '../common/utility'
 
 export default class Sblevel extends SkyblockPlayerCommand {
   constructor() {

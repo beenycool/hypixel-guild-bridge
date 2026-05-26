@@ -1,7 +1,7 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import { createRequire } from 'node:module'
 import assert from 'node:assert'
+import fs from 'node:fs'
+import { createRequire } from 'node:module'
+import path from 'node:path'
 
 import GetMinecraftData from 'minecraft-data'
 import type { ChatMessage } from 'prismarine-chat'
@@ -34,11 +34,11 @@ export default class ChatManager extends SubInstance<MinecraftInstance, Instance
     this.chatModules = files
       .map((file) => {
         try {
-          const mod = require(path.join(chatDir, file))
-          return mod.default as MinecraftChatMessage
-        } catch (err) {
-          this.logger.error(`Failed to load chat module ${file}:`, err)
-          return undefined
+          const module_ = require(path.join(chatDir, file))
+          return module_.default as MinecraftChatMessage
+        } catch (error) {
+          this.logger.error(`Failed to load chat module ${file}:`, error)
+          return
         }
       })
       .filter((m): m is MinecraftChatMessage => m !== undefined)

@@ -1,10 +1,11 @@
 import type { SkyblockV2Member, SkyblockV2Profile } from 'hypixel-api-reborn'
+
 import skillsData from '../../../resources/data/skills.json' with { type: 'json' }
 
 export const SkillOrder = skillsData.skillOrder as unknown as readonly [string, ...string[]] & string[]
 type SkillName = (typeof SkillOrder)[number]
 
-const CosmeticSkills = new Set<SkillName>(skillsData.cosmeticSkills as SkillName[])
+const CosmeticSkills = new Set<SkillName>(skillsData.cosmeticSkills)
 
 const DefaultSkillCaps: Record<string, number> = skillsData.defaultSkillCaps as Record<string, number>
 

@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { performance } from 'node:perf_hooks'
 
 import PromiseQueue from 'promise-queue'
 
@@ -35,18 +36,37 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
     }
 
     let guild = getCached()
-    if (guild !== undefined) return guild
+    if (guild !== undefined) {
+      const age = Date.now() - guild.fetchedAt
+      this.logger.debug('[guildManager] list(%s) cache hit (age %dms)', instanceName, age)
+      return guild
+    }
 
-    return await this.queueTask(guildInfo, async () => {
+    const t0 = performance.now()
+    const result = await this.queueTask(guildInfo, async () => {
       // check again in an atomic operation before fetching again
       // since there is a chance previous task has already fetched the data while awaiting in queue
       guild = getCached()
-      if (guild !== undefined) return guild
+      if (guild !== undefined) {
+        const age = Date.now() - guild.fetchedAt
+        this.logger.debug('[guildManager] list(%s) cache hit after queue (age %dms)', instanceName, age)
+        return guild
+      }
 
+      this.logger.debug('[guildManager] list(%s) cache miss, sending /guild list...', instanceName)
+      const t1 = performance.now()
       guild = await this.listNow(instanceName)
+      this.logger.debug(
+        '[guildManager] list(%s) listNow took %dms (%d members)',
+        instanceName,
+        Math.round(performance.now() - t1),
+        guild.members.length
+      )
       guildInfo.guild = guild
       return guild
     })
+    this.logger.debug('[guildManager] list(%s) total with queue %dms', instanceName, Math.round(performance.now() - t0))
+    return result
   }
 
   private getGuildInfo(instanceName: string): GuildInformation {

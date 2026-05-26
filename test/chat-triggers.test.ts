@@ -2,12 +2,12 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
 import {
-  RankChat,
+  InviteAcceptChat,
   KickChat,
   MuteChat,
-  UnmuteChat,
-  InviteAcceptChat,
-  PrivateMessageChat
+  PrivateMessageChat,
+  RankChat,
+  UnmuteChat
 } from '../src/utility/chat-triggers.js'
 
 await describe('RankChat triggers', async () => {

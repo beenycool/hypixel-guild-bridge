@@ -5,13 +5,13 @@ import Moment from 'moment'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import type { MojangApi } from '../../../core/users/mojang'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 import {
   getDungeonLevelWithOverflow,
   getUuidIfExists,
   playerNeverPlayedDungeons,
   usernameNotExists
 } from '../common/utility'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 
 export default class CurrentDungeon extends SkyblockPlayerCommand {
   private static readonly ShowTimeAfter = 30 * 60 * 1000

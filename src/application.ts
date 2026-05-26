@@ -280,7 +280,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       options?: Record<string, unknown>
     ) =>
       (this.i18n.t as unknown as TranslatorFunction)(keyOrSelector, {
-        ...(options ?? {}),
+        ...options,
         ...(chosenLang ? { lng: chosenLang } : {})
       })
     return translate as TranslatorFunction

@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { performance } from 'node:perf_hooks'
 
 import type { APIEmbed } from 'discord.js'
 import { escapeMarkdown, SlashCommandBuilder, userMention } from 'discord.js'
@@ -94,9 +95,13 @@ export default {
   scope: CommandScope.Chat,
 
   handler: async function (context) {
+    const t0 = performance.now()
+    context.application.logger.debug('[list] deferring reply...')
     await context.interaction.deferReply()
+    context.application.logger.debug('[list] deferred reply in %dms', Math.round(performance.now() - t0))
 
     const onlyOnline = context.interaction.options.getSubcommand() === 'online'
+    const t1 = performance.now()
     const lists: Map<string, string[]> = await listMembers(
       context.application,
       context.errorHandler,
@@ -105,6 +110,7 @@ export default {
       onlyOnline,
       context.bridgeId
     )
+    context.application.logger.debug('[list] listMembers took %dms', Math.round(performance.now() - t1))
 
     if (lists.size === 0) {
       await context.interaction.editReply({
@@ -121,10 +127,17 @@ export default {
           }
         ]
       })
+      context.application.logger.debug('[list] no instances, total %dms', Math.round(performance.now() - t0))
       return
     }
 
+    const t2 = performance.now()
     await pageMessage(context.interaction, createEmbed(lists, onlyOnline), context.errorHandler)
+    context.application.logger.debug(
+      '[list] embed+reply took %dms, total %dms',
+      Math.round(performance.now() - t2),
+      Math.round(performance.now() - t0)
+    )
   }
 } satisfies DiscordCommandHandler
 
@@ -136,7 +149,14 @@ async function listMembers(
   onlyOnline: boolean,
   bridgeId?: string
 ): Promise<Map<string, string[]>> {
+  const t0 = performance.now()
   const guildsLookup = await getGuilds(app, errorHandler, bridgeId)
+  app.logger.debug(
+    '[list] getGuilds took %dms (%d fetched, %d failed)',
+    Math.round(performance.now() - t0),
+    guildsLookup.fetched.length,
+    guildsLookup.failed.length
+  )
 
   const allUsernames = new Set<string>()
   const onlineUsernames = new Set<string>()
@@ -147,8 +167,15 @@ async function listMembers(
       onlineUsernames.add(member.username.toLowerCase())
     }
   }
+  app.logger.debug('[list] %d total members, %d online across all guilds', allUsernames.size, onlineUsernames.size)
 
+  const t1 = performance.now()
   const mojangProfiles = await mojangApi.profilesByUsername(allUsernames)
+  app.logger.debug(
+    '[list] mojangApi.profilesByUsername(%d users) took %dms',
+    allUsernames.size,
+    Math.round(performance.now() - t1)
+  )
   const onlineMojangProfiles = new Map<string, string>()
   for (const [username, uuid] of mojangProfiles) {
     if (uuid === undefined) continue
@@ -157,8 +184,11 @@ async function listMembers(
     }
   }
 
-  const statuses = await look(onlineMojangProfiles, hypixelApi, errorHandler)
+  const t2 = performance.now()
+  const statuses = await look(onlineMojangProfiles, hypixelApi, errorHandler, app.logger)
+  app.logger.debug('[list] look(%d profiles) took %dms', onlineMojangProfiles.size, Math.round(performance.now() - t2))
 
+  const t3 = performance.now()
   const result = new Map<string, string[]>()
   for (const failedInstanceName of guildsLookup.failed) {
     result.set(failedInstanceName, [])
@@ -201,6 +231,9 @@ async function listMembers(
     }
   }
 
+  app.logger.debug('[list] formatting took %dms', Math.round(performance.now() - t3))
+  app.logger.debug('[list] listMembers total %dms', Math.round(performance.now() - t0))
+
   return result
 }
 
@@ -210,8 +243,10 @@ async function listMembers(
 async function look(
   mojangProfiles: Map<string, string>,
   hypixelApi: Client,
-  errorHandler: UnexpectedErrorHandler
+  errorHandler: UnexpectedErrorHandler,
+  logger?: { debug: (message: string, ...arguments_: unknown[]) => void }
 ): Promise<Map<string, Status>> {
+  const t0 = performance.now()
   const result = new Map<string, Status>()
 
   const tasks: Promise<unknown>[] = []
@@ -224,7 +259,9 @@ async function look(
     )
   }
 
+  logger?.debug('[list] look() firing %d concurrent getStatus calls', tasks.length)
   await Promise.all(tasks)
+  logger?.debug('[list] look() %d statuses in %dms', result.size, Math.round(performance.now() - t0))
   return result
 }
 
@@ -269,6 +306,7 @@ async function getGuilds(
   errorHandler: UnexpectedErrorHandler,
   bridgeId?: string
 ): Promise<GuildsLookup> {
+  const t0 = performance.now()
   const tasks: Promise<unknown>[] = []
 
   const result: GuildsLookup = { fetched: [], failed: [] }
@@ -276,12 +314,26 @@ async function getGuilds(
   for (const instanceName of app.getInstancesNames(InstanceType.Minecraft)) {
     if (!app.bridgeResolver.shouldProcessEvent(bridgeId, instanceName)) continue
 
+    const tInstance = performance.now()
     const task = app.core.guildManager
       .list(instanceName)
       .then((guild) => {
+        app.logger.debug(
+          '[list] guildManager.list(%s) took %dms (%d members, %d online)',
+          instanceName,
+          Math.round(performance.now() - tInstance),
+          guild.members.length,
+          guild.members.filter((m) => m.online).length
+        )
         result.fetched.push(guild)
       })
       .catch((error: unknown) => {
+        app.logger.debug(
+          '[list] guildManager.list(%s) FAILED after %dms: %s',
+          instanceName,
+          Math.round(performance.now() - tInstance),
+          String(error)
+        )
         errorHandler.error('fetching guild info', error)
         result.failed.push(instanceName)
       })
@@ -290,6 +342,7 @@ async function getGuilds(
   }
 
   await Promise.all(tasks)
+  app.logger.debug('[list] getGuilds total %dms', Math.round(performance.now() - t0))
   return result
 }
 

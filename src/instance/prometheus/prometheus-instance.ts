@@ -55,11 +55,15 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
     // Collect metrics periodically in background so scrapes return instantly
     // Also trigger an immediate collection on startup
     setImmediate(() => {
-      void this.collectMetrics().catch((error) => this.logger.error('Initial metric collection failed', error))
+      void this.collectMetrics().catch((error) => {
+        this.logger.error('Initial metric collection failed', error)
+      })
     })
     setIntervalAsync(() => this.collectMetrics(), {
       delay: Duration.seconds(30),
-      errorHandler: (error) => this.logger.error('Background metric collection failed', error)
+      errorHandler: (error) => {
+        this.logger.error('Background metric collection failed', error)
+      }
     })
 
     this.httpServer = http.createServer((request, response) => {

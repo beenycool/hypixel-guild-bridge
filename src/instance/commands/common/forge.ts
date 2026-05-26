@@ -1,4 +1,5 @@
 import type { SkyblockV2Member } from 'hypixel-api-reborn'
+
 import forgeData from '../../../resources/data/forge-items.json' with { type: 'json' }
 
 interface ForgeProcess {

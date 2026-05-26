@@ -397,7 +397,7 @@ export default class GuildOnlineMetrics {
     this.guildActiveInactivityNotices.set({ name: instanceName }, inactivityForGuild)
 
     const bridgeId = this.bridgeIdForMinecraftInstance(instanceName)
-    const pendingCount = bridgeId !== undefined ? app.core.pendingReviewManager.getReviews(bridgeId).length : 0
+    const pendingCount = bridgeId === undefined ? 0 : app.core.pendingReviewManager.getReviews(bridgeId).length
     this.guildPendingRankupReviews.set({ name: instanceName }, pendingCount)
 
     let muteCount = 0

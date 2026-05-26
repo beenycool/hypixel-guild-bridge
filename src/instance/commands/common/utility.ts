@@ -29,12 +29,12 @@ export function inventoryApiOffMessage(username: string): string {
   )
 }
 
-export function classifyHypixelApiError(err: unknown): string | undefined {
-  const status = (err as { response?: { status?: number } })?.response?.status
+export function classifyHypixelApiError(error: unknown): string | undefined {
+  const status = (error as { response?: { status?: number } })?.response?.status
   if (status === 429) return apiRateLimitedMessage()
   if (status === 403) return apiKeyInvalidMessage()
   if (status != undefined && status >= 500) return apiDownMessage()
-  const code = (err as { code?: string })?.code
+  const code = (error as { code?: string })?.code
   if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND') return apiDownMessage()
   return undefined
 }

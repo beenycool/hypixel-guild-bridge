@@ -8,7 +8,7 @@ export default class Duration {
 
   private constructor(private readonly milliseconds: number) {
     if (Number.isNaN(milliseconds)) {
-      throw new Error(
+      throw new TypeError(
         'Duration constructed with NaN. Check the config value or arithmetic that produced this Duration call.'
       )
     }

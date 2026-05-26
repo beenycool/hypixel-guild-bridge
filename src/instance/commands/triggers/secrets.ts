@@ -1,8 +1,8 @@
 import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { formatStatNumber, getUuidIfExists, playerNeverPlayedDungeons, usernameNotExists } from '../common/utility'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { formatStatNumber, getUuidIfExists, playerNeverPlayedDungeons, usernameNotExists } from '../common/utility'
 
 export default class Secrets extends SkyblockPlayerCommand {
   constructor() {
