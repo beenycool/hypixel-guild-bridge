@@ -67,6 +67,10 @@ import Points30days from './triggers/points-30days'
 import PointsAll from './triggers/points-all'
 import Praise from './triggers/praise'
 import Purse from './triggers/purse.js'
+import QCommand from './triggers/q.js'
+import QMute from './triggers/qmute.js'
+import QMuted from './triggers/qmuted.js'
+import QUnmute from './triggers/qunmute.js'
 import Reputation from './triggers/reputation.js'
 import Rng from './triggers/rng.js'
 import RockPaperScissors from './triggers/rock-paper-scissors.js'
@@ -159,6 +163,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new PointsAll(),
       new Praise(),
       new Purse(),
+      new QCommand(),
+      new QMute(),
+      new QMuted(),
+      new QUnmute(),
       new Reputation(),
       new Rng(),
       new RockPaperScissors(),
@@ -324,6 +332,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       return
     }
 
+    this.logger.debug(
+      `[cmd] ${event.user.displayName()} executing "${event.message}" on bridge="${bridgeId ?? 'none'}"`
+    )
+
     try {
       const commandResponse = await command.handler({
         app: this.application,
@@ -344,6 +356,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
         }
       })
 
+      this.logger.debug(`[cmd] response for "${command.triggers[0]}": ${commandResponse}`)
       await this.reply(event, command.triggers[0], commandResponse)
     } catch (error) {
       this.logger.error('Error while handling command', error)

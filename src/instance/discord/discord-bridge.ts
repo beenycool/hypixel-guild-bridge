@@ -670,6 +670,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   private async sendCommandResponse(event: CommandEvent, feedback: boolean): Promise<void> {
+    const replyIds = this.messageAssociation.getMessageId(event.originEventId)
+    this.logger.debug(
+      `[cmd-response] command="${event.commandName}" originEventId="${event.originEventId}" replyIds=${replyIds.length} bridgeId="${event.bridgeId}"`
+    )
+
     const replyEmbed: APIEmbed = {
       color: Color.Good,
       description: `**${escapeMarkdown(event.commandResponse)}**`,
@@ -682,7 +687,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     this.assignAvatar(replyEmbed, event.user)
 
-    const replyIds = this.messageAssociation.getMessageId(event.originEventId)
     for (const replyId of replyIds) {
       try {
         if (this.messageToImage.shouldRenderImage()) {
