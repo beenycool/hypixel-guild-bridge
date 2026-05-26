@@ -24,7 +24,8 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
    */
   public async list(
     instanceName: string,
-    newerThan: Duration = GuildManager.DefaultDataExpire
+    newerThan: Duration = GuildManager.DefaultDataExpire,
+    options?: { timeoutMs?: number }
   ): Promise<Readonly<GuildFetch>> {
     const guildInfo = this.getGuildInfo(instanceName)
     const getCached = () => {
@@ -55,7 +56,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
 
       this.logger.info('[guildManager] list(%s) cache miss, sending /guild list...', instanceName)
       const t1 = performance.now()
-      guild = await this.listNow(instanceName)
+      guild = await this.listNow(instanceName, options?.timeoutMs)
       this.logger.info(
         '[guildManager] list(%s) listNow took %dms (%d members)',
         instanceName,
@@ -96,8 +97,8 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
    * That means data within must be done within a cycle and not separated by an "async/await".
    * So all data must be "whole" across cycles at all times.
    */
-  private async listNow(instanceName: string): Promise<Readonly<GuildFetch>> {
-    const timeout = new Timeout<Error | undefined>(30_000)
+  private async listNow(instanceName: string, timeoutMs?: number): Promise<Readonly<GuildFetch>> {
+    const timeout = new Timeout<Error | undefined>(timeoutMs ?? 30_000)
     const guild: GuildFetch = { fetchedAt: Date.now(), name: '', members: [] }
 
     let currentRank: string | undefined = undefined

@@ -8,6 +8,7 @@ import type { Client, Status } from 'hypixel-api-reborn'
 import type Application from '../../../application.js'
 import type { UserLink } from '../../../common/application-event.js'
 import { Color, InstanceType } from '../../../common/application-event.js'
+import { Status as InstanceStatus } from '../../../common/connectable-instance.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 import { CommandScope } from '../../../common/commands.js'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
@@ -249,18 +250,23 @@ async function look(
   const t0 = performance.now()
   const result = new Map<string, Status>()
 
-  const tasks: Promise<unknown>[] = []
-  for (const [username, uuid] of mojangProfiles) {
-    tasks.push(
-      hypixelApi
-        .getStatus(uuid)
-        .then((status) => result.set(username.toLowerCase(), status))
-        .catch(errorHandler.promiseCatch(`fetching hypixel status of ${uuid} for command /list`))
+  const entries = [...mojangProfiles.entries()]
+  const batchSize = 10
+
+  logger?.info('[list] look() %d profiles, processing in batches of %d', entries.length, batchSize)
+
+  for (let i = 0; i < entries.length; i += batchSize) {
+    const batch = entries.slice(i, i + batchSize)
+    await Promise.all(
+      batch.map(([username, uuid]) =>
+        hypixelApi
+          .getStatus(uuid)
+          .then((status) => result.set(username.toLowerCase(), status))
+          .catch(errorHandler.promiseCatch(`fetching hypixel status of ${uuid} for command /list`))
+      )
     )
   }
 
-  logger?.info('[list] look() firing %d concurrent getStatus calls', tasks.length)
-  await Promise.all(tasks)
   logger?.info('[list] look() %d statuses in %dms', result.size, Math.round(performance.now() - t0))
   return result
 }
@@ -311,12 +317,27 @@ async function getGuilds(
 
   const result: GuildsLookup = { fetched: [], failed: [] }
 
+  const connectedInstances = new Map<string, boolean>()
+  for (const inst of app.minecraftManager.getAllInstances()) {
+    connectedInstances.set(inst.instanceName.toLowerCase(), inst.currentStatus() === InstanceStatus.Connected)
+  }
+
   for (const instanceName of app.getInstancesNames(InstanceType.Minecraft)) {
     if (!app.bridgeResolver.shouldProcessEvent(bridgeId, instanceName)) continue
 
+    if (!connectedInstances.get(instanceName.toLowerCase())) {
+      const status = app.minecraftManager
+        .getAllInstances()
+        .find((i) => i.instanceName.toLowerCase() === instanceName.toLowerCase())
+        ?.currentStatus()
+      app.logger.info('[list] guildManager.list(%s) SKIPPED (status=%s)', instanceName, status ?? 'unknown')
+      result.failed.push(instanceName)
+      continue
+    }
+
     const tInstance = performance.now()
     const task = app.core.guildManager
-      .list(instanceName)
+      .list(instanceName, undefined, { timeoutMs: 5000 })
       .then((guild) => {
         app.logger.info(
           '[list] guildManager.list(%s) took %dms (%d members, %d online)',
