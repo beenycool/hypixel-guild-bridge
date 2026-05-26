@@ -80,9 +80,10 @@ export default class QCommand extends ChatCommandHandler {
 
     const enrichedMessage = sourceBridgeId ? `${message} (from ${sourceBridgeId})` : message
 
-    // Emit chat event — DiscordBridge renders it in destination Discord,
+    // Emit chat event — DiscordBridge renders it as a Minecraft-style image in destination Discord,
     // MinecraftBridge forwards to destination Minecraft instances.
     // The guild echo is suppressed by public.ts's bot-message filter (no duplicate).
+    const rawMessage = `§2Guild > §f${context.username}: ${enrichedMessage}`
     context.logger.debug(`[q] emitting chat to bridge="${bestBridgeId}" msg="${enrichedMessage}"`)
     const baseEvent = context.eventHelper.fillBaseEvent()
     await context.app.emit('chat', {
@@ -93,7 +94,8 @@ export default class QCommand extends ChatCommandHandler {
 
       channelType: ChannelType.Public,
       user: context.message.user,
-      message: enrichedMessage
+      message: enrichedMessage,
+      rawMessage: rawMessage
     })
 
     return `${context.username}, message sent to bridge "${bestBridgeId}".`

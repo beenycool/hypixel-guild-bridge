@@ -202,6 +202,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
             })
           }
         }
+      } else if (
+        event.instanceType !== InstanceType.Minecraft &&
+        event.instanceType !== InstanceType.Discord &&
+        'rawMessage' in event &&
+        this.messageToImage.shouldRenderImage()
+      ) {
+        const raw = (event as ChatEvent & { rawMessage: string }).rawMessage
+        const withoutPrefix = this.removeGuildPrefix(raw)
+        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${withoutPrefix}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage)
+        await this.sendImageToChannels(event.eventId, [channelId], image)
       } else {
         const webhook = await this.getWebhook(channelId)
         const mentions =
