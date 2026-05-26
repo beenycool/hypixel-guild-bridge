@@ -78,6 +78,7 @@ export default class QCommand extends ChatCommandHandler {
       return `${context.username}, you are already in that bridge.`
     }
 
+    const enrichedMessage = sourceBridgeId ? `${message} (from ${sourceBridgeId})` : message
     const baseEvent = context.eventHelper.fillBaseEvent()
     await context.app.emit('chat', {
       ...baseEvent,
@@ -87,7 +88,8 @@ export default class QCommand extends ChatCommandHandler {
 
       channelType: ChannelType.Public,
       user: context.message.user,
-      message: message
+      message: enrichedMessage,
+      rawMessage: enrichedMessage
     })
 
     return `${context.username}, message sent to bridge "${bestBridgeId}".`
