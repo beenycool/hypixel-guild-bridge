@@ -51,6 +51,7 @@ export default {
             { name: 'Skywars', value: 'skywars' },
             { name: 'Duels', value: 'duels' },
             { name: 'Murder Mystery', value: 'murdermystery' },
+            { name: 'Quakecraft', value: 'quakecraft' },
             { name: 'TNT Games', value: 'tntgames' },
             { name: 'Wool Wars', value: 'woolwars' }
           )
@@ -177,6 +178,23 @@ export default {
             wlr: ww.gamesPlayed > 0 ? ww.wins / ww.gamesPlayed : 0
           }
           gameTitle = 'Wool Wars'
+          break
+        }
+        case 'quakecraft': {
+          const quake = player.stats?.quakecraft
+          if (!quake) {
+            await context.interaction.editReply(`\`${username}\` has never played Quakecraft.`)
+            return
+          }
+          stats = {
+            level: undefined,
+            kills: quake.kills,
+            wins: quake.wins,
+            kdr: quake.KDRatio,
+            wlr: undefined,
+            coins: quake.coins
+          }
+          gameTitle = 'Quakecraft'
           break
         }
         default: {

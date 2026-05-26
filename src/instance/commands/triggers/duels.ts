@@ -1,4 +1,5 @@
 import type { Player } from 'hypixel-api-reborn'
+
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 import { calculateDuelsDivision, type DuelsDivisionMode, shortenNumber } from '../common/utility'
@@ -23,7 +24,6 @@ type DuelType =
   | 'nodebuff'
   | 'bow'
   | 'skywars'
-  | 'quake'
   | 'bedwars'
 
 const LongModeDuelTypes: ReadonlySet<DuelType> = new Set(['bridge', 'boxing', 'megawalls', 'nodebuff', 'parkour'])
@@ -118,7 +118,7 @@ export default class Duels extends HypixelPlayerCommand {
     'nodebuff',
     'bow',
     'skywars',
-    'quake',
+
     'bedwars'
   ])
 
@@ -139,7 +139,7 @@ export default class Duels extends HypixelPlayerCommand {
     nodebuff: 'NoDebuff',
     bow: 'Bow',
     skywars: 'SkyWars',
-    quake: 'Quake',
+
     bedwars: 'Bed Wars'
   }
 
@@ -255,7 +255,7 @@ export default class Duels extends HypixelPlayerCommand {
 
     if (duelType === 'bridge') {
       const bridgeData =
-        rawBridgeStats !== undefined ? getBridgeStatsFromRawDuels(rawBridgeStats) : (stats.bridge as GamemodeStats)
+        rawBridgeStats === undefined ? (stats.bridge as GamemodeStats) : getBridgeStatsFromRawDuels(rawBridgeStats)
       if (bridgeData === undefined) {
         return `${givenUsername} has no Bridge stats.`
       }

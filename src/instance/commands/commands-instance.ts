@@ -71,6 +71,7 @@ import QCommand from './triggers/q.js'
 import QMute from './triggers/qmute.js'
 import QMuted from './triggers/qmuted.js'
 import QUnmute from './triggers/qunmute.js'
+import Quakecraft from './triggers/quakecraft.js'
 import Reputation from './triggers/reputation.js'
 import Rng from './triggers/rng.js'
 import RockPaperScissors from './triggers/rock-paper-scissors.js'
@@ -167,6 +168,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new QMute(),
       new QMuted(),
       new QUnmute(),
+      new Quakecraft(),
       new Reputation(),
       new Rng(),
       new RockPaperScissors(),

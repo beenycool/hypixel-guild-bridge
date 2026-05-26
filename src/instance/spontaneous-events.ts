@@ -273,7 +273,7 @@ class Unscramble extends SpontaneousEventHandler {
     ...'pencil paper eraser ruler clock map pillow tea moon black dance book lamp turtle climb taxi'.split(' '),
 
     // hypixel generic
-    ...'skyblock bedwars duels skywars murdermystery blitzsg paintball tntgames arcade megawalls'.split(' '),
+    ...'skyblock bedwars duels skywars murdermystery blitzsg paintball quakecraft tntgames arcade megawalls'.split(' '),
     ...'buildbattle pit classic arena lobby hub quest daily reward token crown relic dragon phoenix'.split(' '),
     ...'wither ender slime zombie skeleton creeper minion pet armor sword bow axe pickaxe shovel hoe'.split(' '),
     ...'shield potion brew enchant grindstone anvil forge talisman rune scroll gem island farm'.split(' '),
