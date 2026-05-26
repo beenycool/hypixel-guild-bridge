@@ -96,9 +96,9 @@ export default {
 
   handler: async function (context) {
     const t0 = performance.now()
-    context.application.logger.debug('[list] deferring reply...')
+    context.application.logger.info('[list] deferring reply...')
     await context.interaction.deferReply()
-    context.application.logger.debug('[list] deferred reply in %dms', Math.round(performance.now() - t0))
+    context.application.logger.info('[list] deferred reply in %dms', Math.round(performance.now() - t0))
 
     const onlyOnline = context.interaction.options.getSubcommand() === 'online'
     const t1 = performance.now()
@@ -110,7 +110,7 @@ export default {
       onlyOnline,
       context.bridgeId
     )
-    context.application.logger.debug('[list] listMembers took %dms', Math.round(performance.now() - t1))
+    context.application.logger.info('[list] listMembers took %dms', Math.round(performance.now() - t1))
 
     if (lists.size === 0) {
       await context.interaction.editReply({
@@ -127,13 +127,13 @@ export default {
           }
         ]
       })
-      context.application.logger.debug('[list] no instances, total %dms', Math.round(performance.now() - t0))
+      context.application.logger.info('[list] no instances, total %dms', Math.round(performance.now() - t0))
       return
     }
 
     const t2 = performance.now()
     await pageMessage(context.interaction, createEmbed(lists, onlyOnline), context.errorHandler)
-    context.application.logger.debug(
+    context.application.logger.info(
       '[list] embed+reply took %dms, total %dms',
       Math.round(performance.now() - t2),
       Math.round(performance.now() - t0)
@@ -151,7 +151,7 @@ async function listMembers(
 ): Promise<Map<string, string[]>> {
   const t0 = performance.now()
   const guildsLookup = await getGuilds(app, errorHandler, bridgeId)
-  app.logger.debug(
+  app.logger.info(
     '[list] getGuilds took %dms (%d fetched, %d failed)',
     Math.round(performance.now() - t0),
     guildsLookup.fetched.length,
@@ -167,11 +167,11 @@ async function listMembers(
       onlineUsernames.add(member.username.toLowerCase())
     }
   }
-  app.logger.debug('[list] %d total members, %d online across all guilds', allUsernames.size, onlineUsernames.size)
+  app.logger.info('[list] %d total members, %d online across all guilds', allUsernames.size, onlineUsernames.size)
 
   const t1 = performance.now()
   const mojangProfiles = await mojangApi.profilesByUsername(allUsernames)
-  app.logger.debug(
+  app.logger.info(
     '[list] mojangApi.profilesByUsername(%d users) took %dms',
     allUsernames.size,
     Math.round(performance.now() - t1)
@@ -186,7 +186,7 @@ async function listMembers(
 
   const t2 = performance.now()
   const statuses = await look(onlineMojangProfiles, hypixelApi, errorHandler, app.logger)
-  app.logger.debug('[list] look(%d profiles) took %dms', onlineMojangProfiles.size, Math.round(performance.now() - t2))
+  app.logger.info('[list] look(%d profiles) took %dms', onlineMojangProfiles.size, Math.round(performance.now() - t2))
 
   const t3 = performance.now()
   const result = new Map<string, string[]>()
@@ -231,8 +231,8 @@ async function listMembers(
     }
   }
 
-  app.logger.debug('[list] formatting took %dms', Math.round(performance.now() - t3))
-  app.logger.debug('[list] listMembers total %dms', Math.round(performance.now() - t0))
+  app.logger.info('[list] formatting took %dms', Math.round(performance.now() - t3))
+  app.logger.info('[list] listMembers total %dms', Math.round(performance.now() - t0))
 
   return result
 }
@@ -244,7 +244,7 @@ async function look(
   mojangProfiles: Map<string, string>,
   hypixelApi: Client,
   errorHandler: UnexpectedErrorHandler,
-  logger?: { debug: (message: string, ...arguments_: unknown[]) => void }
+  logger?: { info: (message: string, ...arguments_: unknown[]) => void }
 ): Promise<Map<string, Status>> {
   const t0 = performance.now()
   const result = new Map<string, Status>()
@@ -259,9 +259,9 @@ async function look(
     )
   }
 
-  logger?.debug('[list] look() firing %d concurrent getStatus calls', tasks.length)
+  logger?.info('[list] look() firing %d concurrent getStatus calls', tasks.length)
   await Promise.all(tasks)
-  logger?.debug('[list] look() %d statuses in %dms', result.size, Math.round(performance.now() - t0))
+  logger?.info('[list] look() %d statuses in %dms', result.size, Math.round(performance.now() - t0))
   return result
 }
 
@@ -318,7 +318,7 @@ async function getGuilds(
     const task = app.core.guildManager
       .list(instanceName)
       .then((guild) => {
-        app.logger.debug(
+        app.logger.info(
           '[list] guildManager.list(%s) took %dms (%d members, %d online)',
           instanceName,
           Math.round(performance.now() - tInstance),
@@ -328,7 +328,7 @@ async function getGuilds(
         result.fetched.push(guild)
       })
       .catch((error: unknown) => {
-        app.logger.debug(
+        app.logger.info(
           '[list] guildManager.list(%s) FAILED after %dms: %s',
           instanceName,
           Math.round(performance.now() - tInstance),
@@ -342,7 +342,7 @@ async function getGuilds(
   }
 
   await Promise.all(tasks)
-  app.logger.debug('[list] getGuilds total %dms', Math.round(performance.now() - t0))
+  app.logger.info('[list] getGuilds total %dms', Math.round(performance.now() - t0))
   return result
 }
 
