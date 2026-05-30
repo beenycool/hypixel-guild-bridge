@@ -80,15 +80,21 @@ export class DatabaseManager {
     if (this.closed) return
 
     this.awaitReady()
-      .then(() => {
+      .then(async () => {
         const pool = this.getPool()
 
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => {
+        let timeout: NodeJS.Timeout | undefined
+        const timeoutPromise = new Promise((_, reject) => {
+          timeout = setTimeout(() => {
             reject(new Error('Database write operation timed out'))
-          }, 15_000)
-        )
-        return Promise.race([callback(pool), timeoutPromise])
+          }, 30_000)
+        })
+
+        try {
+          await Promise.race([callback(pool), timeoutPromise])
+        } finally {
+          clearTimeout(timeout)
+        }
       })
       .catch((error: unknown) => {
         this.logger.error(`Database write failed during ${description}`)
@@ -104,14 +110,15 @@ export class DatabaseManager {
       .then(async () => {
         await this.awaitReady()
         const client = await this.getPool().connect()
+        let timeout: NodeJS.Timeout | undefined
         try {
           await client.query('BEGIN')
 
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => {
+          const timeoutPromise = new Promise((_, reject) => {
+            timeout = setTimeout(() => {
               reject(new Error('Database transaction operation timed out'))
-            }, 15_000)
-          )
+            }, 30_000)
+          })
           await Promise.race([callback(client), timeoutPromise])
 
           await client.query('COMMIT')
@@ -119,6 +126,7 @@ export class DatabaseManager {
           await client.query('ROLLBACK').catch(() => undefined)
           throw error
         } finally {
+          clearTimeout(timeout)
           client.release()
         }
       })
@@ -190,7 +198,11 @@ export class DatabaseManager {
       const ssl = this.resolveSsl(databaseUrl)
       this.pool = new Pool({
         connectionString: databaseUrl,
-        ssl: ssl ? { rejectUnauthorized: false } : undefined
+        ssl: ssl ? { rejectUnauthorized: false } : undefined,
+        max: 20,
+        statement_timeout: 30_000,
+        lock_timeout: 10_000,
+        idle_in_transaction_session_timeout: 30_000
       }) as unknown as PoolLike
       this.logger.info('Using PostgreSQL database connection')
     }

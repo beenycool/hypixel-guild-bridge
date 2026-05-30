@@ -2,6 +2,46 @@ import { ChannelType, InstanceType } from '../../../common/application-event.js'
 import { calculateSimilarityScore, ChatCommandHandler } from '../../../common/commands.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
 
+const rateLimitWindows = [
+  { window: 60_000, max: 2 },
+  { window: 300_000, max: 5 }
+]
+const userTimestamps = new Map<string, number[]>()
+
+const CLEANUP_INTERVAL_MS = 300_000
+const MAX_WINDOW_MS = 300_000
+setInterval(() => {
+  const cutoff = Date.now() - MAX_WINDOW_MS
+  for (const [key, timestamps] of userTimestamps) {
+    const recent = timestamps.filter((t) => t > cutoff)
+    if (recent.length === 0) {
+      userTimestamps.delete(key)
+    } else {
+      userTimestamps.set(key, recent)
+    }
+  }
+}, CLEANUP_INTERVAL_MS).unref()
+
+function checkRateLimit(key: string): { allowed: boolean; retryAfterMs: number } {
+  const now = Date.now()
+  const timestamps = userTimestamps.get(key) ?? []
+  let maxRetry = 0
+  for (const { window, max } of rateLimitWindows) {
+    const recent = timestamps.filter((t) => now - t < window)
+    if (recent.length >= max) {
+      const retry = window - (now - recent[0])
+      if (retry > maxRetry) maxRetry = retry
+    }
+  }
+  if (maxRetry > 0) {
+    return { allowed: false, retryAfterMs: maxRetry }
+  }
+  const cleaned = timestamps.filter((t) => now - t < 300_000)
+  cleaned.push(now)
+  userTimestamps.set(key, cleaned)
+  return { allowed: true, retryAfterMs: 0 }
+}
+
 export default class QCommand extends ChatCommandHandler {
   constructor() {
     super({
@@ -41,6 +81,16 @@ export default class QCommand extends ChatCommandHandler {
     )
     if (isMuted) {
       return `${context.username}, you are muted from cross-bridge chat.`
+    }
+
+    const rateLimitKey =
+      context.message.user.discordProfile()?.id ??
+      context.message.user.mojangProfile()?.id ??
+      context.message.user.displayName()
+    const rateCheck = checkRateLimit(rateLimitKey)
+    if (!rateCheck.allowed) {
+      const seconds = Math.ceil(rateCheck.retryAfterMs / 1000)
+      return `${context.username}, you are sending messages too fast. Please wait ${seconds} second(s).`
     }
 
     if (context.args.length < 2) {

@@ -362,9 +362,37 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       await this.reply(event, command.triggers[0], commandResponse)
     } catch (error) {
       this.logger.error('Error while handling command', error)
-      const errorMessage = `${event.user.displayName()}, an error occurred while trying to execute ${command.triggers[0]}.`
+
+      const errorInstance = error instanceof Error ? error : new Error(String(error))
+      const errorType = errorInstance.name ?? errorInstance.constructor.name
+      const errorMessage = errorInstance.message ?? 'unknown error'
+      const errorStack = errorInstance.stack ?? ''
+
       const randomSuffix = (Math.random() + 1).toString(36).slice(7)
-      await this.reply(event, command.triggers[0], `${errorMessage} (${randomSuffix})`)
+
+      this.application.core.databaseManager.enqueueWrite(
+        `saving command error for ${command.triggers[0]}`,
+        async (database) => {
+          await database.query(
+            `INSERT INTO "commandErrors" ("commandName", "commandMessage", "username", "instanceName", "instanceType", "bridgeId", "errorType", "errorMessage", "errorStack")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [
+              command.triggers[0],
+              event.message,
+              event.user.displayName(),
+              event.instanceName,
+              event.instanceType,
+              event.bridgeId ?? null,
+              errorType,
+              errorMessage,
+              errorStack
+            ]
+          )
+        }
+      )
+
+      const userMessage = event.user.displayName() + ", an error occurred while trying to execute " + command.triggers[0] + ". (" + randomSuffix + ")"
+      await this.reply(event, command.triggers[0], userMessage)
     }
   }
 
