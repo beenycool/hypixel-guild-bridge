@@ -12,6 +12,8 @@ registerFont('./resources/fonts/unifont.ttf', { family: 'MinecraftUnicode' })
 export interface MessageImageOptions {
   /** Username for skin rendering when {skin} placeholder is used */
   username?: string
+  /** Renderer behavior: `default` (current TS) or `js` (match hypixel-discord-chat-bridge) */
+  renderer?: 'default' | 'js'
   /** When true, draws a dark panel behind the text (PNG stays transparent if unset) */
   withBackground?: boolean
   /** With `withBackground` or alone: `gradient`, `solid`, or `transparent` */
@@ -21,7 +23,7 @@ export interface MessageImageOptions {
 }
 
 export default class MessageToImage {
-  private static readonly RgbaColor: Record<string, string> = {
+  private static readonly RgbaColorDefault: Record<string, string> = {
     /* eslint-disable @typescript-eslint/naming-convention */
     0: 'rgba(0,0,0,1)',
     1: 'rgba(0,0,170,1)',
@@ -41,6 +43,28 @@ export default class MessageToImage {
     f: 'rgba(255,255,255,1)',
     /** Minecraft §r reset — same as default chat (white) */
     r: 'rgba(255,255,255,1)'
+    /* eslint-enable @typescript-eslint/naming-convention */
+  }
+
+  /** JS bridge compat: note that §r is intentionally not mapped (no-op) to match upstream behavior. */
+  private static readonly RgbaColorJs: Record<string, string> = {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    0: 'rgba(0,0,0,1)',
+    1: 'rgba(0,0,170,1)',
+    2: 'rgba(0,170,0,1)',
+    3: 'rgba(0,170,170,1)',
+    4: 'rgba(170,0,0,1)',
+    5: 'rgba(170,0,170,1)',
+    6: 'rgba(255,170,0,1)',
+    7: 'rgba(170,170,170,1)',
+    8: 'rgba(85,85,85,1)',
+    9: 'rgba(85,85,255,1)',
+    a: 'rgba(85,255,85,1)',
+    b: 'rgba(85,255,255,1)',
+    c: 'rgba(255,85,85,1)',
+    d: 'rgba(255,85,255,1)',
+    e: 'rgba(255,255,85,1)',
+    f: 'rgba(255,255,255,1)'
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 
@@ -68,6 +92,28 @@ export default class MessageToImage {
       parts[0] = `f${parts[0]}`
     }
     return parts
+  }
+
+  /**
+   * JS bridge compat splitting: inject §r before any space-delimited word without §,
+   * then split by § and newlines.
+   */
+  private static splitFormattedSegmentsJs(message: string): string[] {
+    if (message.length === 0) return []
+
+    const normalizedMessage = message.replaceAll('\n', '§n')
+    const splitMessageSpace = normalizedMessage.split(' ')
+    for (let index = 0; index < splitMessageSpace.length; index++) {
+      const segment = splitMessageSpace[index]
+      if (segment !== undefined && !segment.startsWith('§')) {
+        splitMessageSpace[index] = `§r${segment}`
+      }
+    }
+
+    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
+    // First entry is always the prefix before the first §.
+    splitMessage.shift()
+    return splitMessage
   }
 
   private static measureWords(context: Canvas2DContext, text: string, x: number, y: number): { x: number; y: number } {
@@ -201,6 +247,10 @@ export default class MessageToImage {
    * @param options Optional configuration for rendering
    */
   public async generateMessageImage(message: string, options?: MessageImageOptions): Promise<Buffer> {
+    if (options?.renderer === 'js') {
+      return this.generateMessageImageJs(message, options)
+    }
+
     const canvasHeight = this.getHeight(message, options?.username)
     const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
     const context = canvas.getContext('2d')
@@ -214,7 +264,7 @@ export default class MessageToImage {
     context.shadowOffsetY = 4
     context.shadowColor = '#131313'
     context.font = `40px Minecraft, MinecraftUnicode`
-    context.fillStyle = MessageToImage.RgbaColor.f
+    context.fillStyle = MessageToImage.RgbaColorDefault.f
 
     let width = MessageToImage.WidthMargin
     let height = 35
@@ -224,7 +274,7 @@ export default class MessageToImage {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }
-      const colorCode = MessageToImage.RgbaColor[segment.charAt(0)]
+      const colorCode = MessageToImage.RgbaColorDefault[segment.charAt(0)]
       const currentMessage = segment.slice(1)
 
       if (colorCode) {
@@ -243,6 +293,10 @@ export default class MessageToImage {
    * Generate a simple synchronous image without async features like skins
    */
   public generateMessageImageSync(message: string, options?: MessageImageOptions): Buffer {
+    if (options?.renderer === 'js') {
+      return this.generateMessageImageJsSync(message, options)
+    }
+
     const canvasHeight = this.getHeight(message)
     const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
     const context = canvas.getContext('2d')
@@ -256,7 +310,7 @@ export default class MessageToImage {
     context.shadowOffsetY = 4
     context.shadowColor = '#131313'
     context.font = `40px Minecraft, MinecraftUnicode`
-    context.fillStyle = MessageToImage.RgbaColor.f
+    context.fillStyle = MessageToImage.RgbaColorDefault.f
 
     let width = MessageToImage.WidthMargin
     let height = 35
@@ -266,7 +320,7 @@ export default class MessageToImage {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }
-      const colorCode = MessageToImage.RgbaColor[segment.charAt(0)]
+      const colorCode = MessageToImage.RgbaColorDefault[segment.charAt(0)]
       const currentMessage = segment.slice(1)
 
       if (colorCode) {
@@ -276,6 +330,120 @@ export default class MessageToImage {
       const pos = MessageToImage.drawWords(context, currentMessage, width, height)
       width = pos.x
       height = pos.y
+    }
+
+    return canvas.toBuffer()
+  }
+
+  private getHeightJs(message: string, username?: string): number {
+    const canvas = createCanvas(1, 1)
+    const context = canvas.getContext('2d')
+    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+    context.font = `40px Minecraft, MinecraftUnicode`
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const msg of splitMessage) {
+      const currentMessage = msg.substring(1)
+      const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
+      const msgWidth = isSkin ? 55 : context.measureText(currentMessage).width
+
+      if (width + msgWidth > MessageToImage.CanvasWidth || msg.charAt(0) === 'n') {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+      width += msgWidth
+    }
+    if (width === MessageToImage.WidthMargin) height -= MessageToImage.LineAdvance
+
+    return height + 10
+  }
+
+  private async generateMessageImageJs(message: string, options?: MessageImageOptions): Promise<Buffer> {
+    const username = options?.username
+    const canvasHeight = this.getHeightJs(message, username)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
+    const context = canvas.getContext('2d')
+
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const msg of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[msg.charAt(0)]
+      const currentMessage = msg.substring(1)
+      const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
+      const msgWidth = isSkin ? 55 : context.measureText(currentMessage).width
+
+      if (width + msgWidth > MessageToImage.CanvasWidth || msg.charAt(0) === 'n') {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+
+      if (isSkin) {
+        try {
+          const skinImage = await loadImage(`https://www.mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
+          context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
+          width += msgWidth
+          continue
+        } catch {
+          // fall back to rendering literal text
+        }
+      }
+
+      if (colorCode) {
+        context.fillStyle = colorCode
+      }
+
+      context.fillText(currentMessage, width, height)
+      width += msgWidth
+    }
+
+    return canvas.toBuffer()
+  }
+
+  private generateMessageImageJsSync(message: string, options?: MessageImageOptions): Buffer {
+    // JS compat sync renderer intentionally ignores skins (matches how sync is used in TS).
+    const canvasHeight = this.getHeightJs(message)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
+    const context = canvas.getContext('2d')
+
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const msg of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[msg.charAt(0)]
+      const currentMessage = msg.substring(1)
+
+      if (width + context.measureText(currentMessage).width > MessageToImage.CanvasWidth || msg.charAt(0) === 'n') {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+
+      if (colorCode) {
+        context.fillStyle = colorCode
+      }
+
+      context.fillText(currentMessage, width, height)
+      width += context.measureText(currentMessage).width
     }
 
     return canvas.toBuffer()

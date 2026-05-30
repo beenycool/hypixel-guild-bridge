@@ -185,38 +185,39 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
-      if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
-        const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
-        const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
-        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
-        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: event.user.displayName()
-        })
-        await this.sendImageToChannels(event.eventId, [channelId], image)
-        if (mentions !== undefined && mentions.userIds.length > 0) {
-          const channel = this.clientInstance.getClient().channels.cache.get(channelId)
-          if (channel?.isSendable()) {
+        if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
+          const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
+          const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
+          const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
+          const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+            username: event.user.displayName(),
+            renderer: 'js'
+          })
+          await this.sendImageToChannels(event.eventId, [channelId], image)
+          if (mentions !== undefined && mentions.userIds.length > 0) {
+            const channel = this.clientInstance.getClient().channels.cache.get(channelId)
+            if (channel?.isSendable()) {
             await channel.send({
               content: mentions.userIds.map((id) => `<@${id}>`).join(' '),
               allowedMentions: { parse: [], users: mentions.userIds }
             })
           }
         }
-      } else if (
-        event.instanceType !== InstanceType.Minecraft &&
-        event.instanceType !== InstanceType.Discord &&
-        'rawMessage' in event &&
-        this.messageToImage.shouldRenderImage()
-      ) {
-        const raw = (event as ChatEvent & { rawMessage: string }).rawMessage
-        const withoutPrefix = this.removeGuildPrefix(raw)
-        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${withoutPrefix}`
-        const image = await this.messageToImage.generateMessageImage(formattedMessage)
-        await this.sendImageToChannels(event.eventId, [channelId], image)
-      } else {
-        const webhook = await this.getWebhook(channelId)
-        const mentions =
-          event.instanceType === InstanceType.Minecraft
+        } else if (
+          event.instanceType !== InstanceType.Minecraft &&
+          event.instanceType !== InstanceType.Discord &&
+          'rawMessage' in event &&
+          this.messageToImage.shouldRenderImage()
+        ) {
+          const raw = (event as ChatEvent & { rawMessage: string }).rawMessage
+          const withoutPrefix = this.removeGuildPrefix(raw)
+          const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${withoutPrefix}`
+          const image = await this.messageToImage.generateMessageImage(formattedMessage, { renderer: 'js' })
+          await this.sendImageToChannels(event.eventId, [channelId], image)
+        } else {
+          const webhook = await this.getWebhook(channelId)
+          const mentions =
+            event.instanceType === InstanceType.Minecraft
             ? await this.resolveMinecraftMentionsForChannel(channelId, event.message)
             : undefined
 
@@ -229,10 +230,20 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           displayUsername += event.instanceType === InstanceType.Discord ? ` [DC]` : ` [${event.instanceName}]`
         }
 
+        // Webhook username must be non-empty (and <= 80 chars). Some internal/system events can
+        // end up with an empty/whitespace display name; in that case, omit overrides so Discord
+        // shows the webhook's default name (similar to JS bot-mode behavior).
+        const normalizedUsername = displayUsername.trim()
+        const safeUsername = normalizedUsername.length > 0 ? normalizedUsername.slice(0, 80) : undefined
+
         const message = await webhook.send({
           content: channelPrefix + (mentions?.content ?? escapeMarkdown(event.message)),
-          username: displayUsername,
-          avatarURL: event.user.avatar(),
+          ...(safeUsername === undefined
+            ? {}
+            : {
+                username: safeUsername,
+                avatarURL: event.user.avatar()
+              }),
           allowedMentions: { parse: [], users: mentions?.userIds ?? [] }
         })
         this.messageAssociation.addMessageId(event.eventId, {
@@ -297,7 +308,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           instanceName: event.instanceName
         }),
         await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: event.user.displayName()
+          username: event.user.displayName(),
+          renderer: 'js'
         })
       )
     } else {
@@ -471,7 +483,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
               : `§f${event.message}`
         const formattedMessage = `${prefix}{skin} ${body}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: skinUsername
+          username: skinUsername,
+          renderer: 'js'
         })
         await this.sendImageToChannels(event.eventId, channels, image)
       }

@@ -13,30 +13,48 @@ import MessageToImage from '../src/instance/discord/common/message-to-image.js'
 
 const OutputDirectory = path.join(process.cwd(), 'artifacts', 'message-image-preview')
 
-const SampleList: { filename: string; label: string; message: string; username?: string; sync?: boolean }[] = [
+const SampleList: {
+  filename: string
+  label: string
+  message: string
+  username?: string
+  sync?: boolean
+  /** When true, also render the JS-compat output */
+  alsoJs?: boolean
+}[] = [
   {
     filename: 'guild-join-with-skin.png',
     label: 'Guild join (embedded {skin} + color carry-over)',
     message: '§2Guild §2> {skin} §bUndecagon §ejoined.',
-    username: 'Undecagon'
+    username: 'Undecagon',
+    alsoJs: true
   },
   {
     filename: 'guild-chat-mvp-style.png',
     label: 'Guild chat MVP-style (skin + rank + name carry)',
     message: '§2Guild §2> {skin} §b[MVP§a+§b] GodlySweat§a [STAFF]§f: !b booze',
-    username: 'GodlySweat'
+    username: 'GodlySweat',
+    alsoJs: true
   },
   {
     filename: 'color-carry-name.png',
     label: 'Name inherits §b until next code (no § on name word)',
     message: '§2Guild §2> {skin} §b[MVP+] GodlySweat §f: hello',
-    username: 'GodlySweat'
+    username: 'GodlySweat',
+    alsoJs: true
   },
   {
     filename: 'stats-sync.png',
     label: 'Sync renderer (no avatars) — command/stats style',
     message: '§eStats §rKills: §a100 §r| §bWins: §f50',
     sync: true
+  },
+  {
+    filename: 'js-compat-guild-chat.png',
+    label: 'JS compat renderer (only exact {skin} segments)',
+    message: '§2Guild §2> {skin} §b[MVP§a+§b] GodlySweat§f: hello world',
+    username: 'GodlySweat',
+    alsoJs: true
   }
 ]
 
@@ -55,6 +73,21 @@ async function main(): Promise<void> {
       fs.writeFileSync(target, buffer)
       process.stdout.write(`OK ${sample.label}\n`)
       process.stdout.write(` -> ${target}\n`)
+
+      if (sample.alsoJs) {
+        const jsTarget = path.join(OutputDirectory, sample.filename.replace(/\.png$/i, '.js.png'))
+        const jsBuffer = sample.sync
+          ? messageToImage.generateMessageImageSync(sample.message, {
+              username: sample.username,
+              renderer: 'js'
+            })
+          : await messageToImage.generateMessageImage(sample.message, {
+              username: sample.username,
+              renderer: 'js'
+            })
+        fs.writeFileSync(jsTarget, jsBuffer)
+        process.stdout.write(` -> ${jsTarget} (js compat)\n`)
+      }
     } catch (error) {
       process.stderr.write(`FAIL ${sample.label}\n`)
       process.stderr.write(`${String(error)}\n`)
