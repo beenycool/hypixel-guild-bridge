@@ -71,6 +71,7 @@ import QCommand from './triggers/q.js'
 import QMute from './triggers/qmute.js'
 import QMuted from './triggers/qmuted.js'
 import QUnmute from './triggers/qunmute.js'
+import Racism from './triggers/racism.js'
 import Quakecraft from './triggers/quakecraft.js'
 import Reputation from './triggers/reputation.js'
 import Rng from './triggers/rng.js'
@@ -168,6 +169,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new QMute(),
       new QMuted(),
       new QUnmute(),
+      new Racism(),
       new Quakecraft(),
       new Reputation(),
       new Rng(),
@@ -391,7 +393,13 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
         }
       )
 
-      const userMessage = event.user.displayName() + ", an error occurred while trying to execute " + command.triggers[0] + ". (" + randomSuffix + ")"
+      const userMessage =
+        event.user.displayName() +
+        ', an error occurred while trying to execute ' +
+        command.triggers[0] +
+        '. (' +
+        randomSuffix +
+        ')'
       await this.reply(event, command.triggers[0], userMessage)
     }
   }
