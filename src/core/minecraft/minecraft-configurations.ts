@@ -70,4 +70,12 @@ export class MinecraftConfigurations {
   public setResolveHideLinks(value: boolean): void {
     this.configuration.setBoolean('resolveHideLinks', value)
   }
+
+  public getDiscordToMinecraftFormat(): string {
+    return this.configuration.getString('discordToMinecraftFormat', '{origin}{username}{reply}: {message}')
+  }
+
+  public setDiscordToMinecraftFormat(format: string): void {
+    this.configuration.setString('discordToMinecraftFormat', format)
+  }
 }

@@ -180,7 +180,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       instanceName: event.instanceName
     })
     const username = event.user.displayName()
-    const channelPrefix = this.getChannelPrefix(event.channelType)
 
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
@@ -236,8 +235,21 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const normalizedUsername = displayUsername.trim()
         const safeUsername = normalizedUsername.length > 0 ? normalizedUsername.slice(0, 80) : undefined
 
+        const template = this.application.core.discordConfigurations.getMinecraftToDiscordFormat()
+        const chatType = event.channelType === ChannelType.Public ? 'Guild' : 'Officer'
+        const rank = 'hypixelRank' in event && event.hypixelRank ? event.hypixelRank : ''
+        const guildRank = 'guildRank' in event && event.guildRank ? event.guildRank : ''
+        const messageBody = mentions?.content ?? escapeMarkdown(event.message)
+
+        const formattedContent = template
+          .replaceAll('{chatType}', chatType)
+          .replaceAll('{rank}', rank)
+          .replaceAll('{guildRank}', guildRank)
+          .replaceAll('{message}', messageBody)
+          .trim()
+
         const message = await webhook.send({
-          content: channelPrefix + (mentions?.content ?? escapeMarkdown(event.message)),
+          content: formattedContent,
           ...(safeUsername === undefined
             ? {}
             : {
@@ -525,11 +537,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   async onCommand(event: CommandEvent): Promise<void> {
-    await this.sendCommandResponse(event, false)
+    await this.sendCommandResponse(event)
   }
 
   async onCommandFeedback(event: CommandFeedbackEvent): Promise<void> {
-    await this.sendCommandResponse(event, true)
+    await this.sendCommandResponse(event)
   }
 
   private lastInstanceReactiveEvent = new Map<InstanceReactiveType, number>()
@@ -717,34 +729,52 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     return messages
   }
 
-  private async sendCommandResponse(event: CommandEvent, feedback: boolean): Promise<void> {
+  private async sendCommandResponse(event: CommandEvent): Promise<void> {
     const replyIds = this.messageAssociation.getMessageId(event.originEventId)
     this.logger.debug(
       `[cmd-response] command="${event.commandName}" originEventId="${event.originEventId}" replyIds=${replyIds.length} bridgeId="${event.bridgeId}"`
     )
 
-    const replyEmbed: APIEmbed = {
-      color: Color.Good,
-      description: `**${escapeMarkdown(event.commandResponse)}**`,
+    const bots = this.application.minecraftManager.getMinecraftBots()
+    const botName = bots[0]?.username ?? 'Bridge Bot'
+    const botAvatar = `https://www.mc-heads.net/avatar/${botName}`
 
-      title: escapeMarkdown(event.user.displayName()),
-      footer: {
-        text: feedback ? ' (command feedback)' : ''
-      }
-    }
-
-    this.assignAvatar(replyEmbed, event.user)
+    const publicChannelIds = this.resolveChannels([ChannelType.Public])
+    const isPublicChannel = (channelId: string) => publicChannelIds.includes(channelId)
 
     for (const replyId of replyIds) {
       try {
+        const channelType = isPublicChannel(replyId.channelId) ? ChannelType.Public : ChannelType.Officer
+        const chatType = channelType === ChannelType.Public ? 'Guild' : 'Officer'
+
+        const template = this.application.core.discordConfigurations.getMinecraftToDiscordFormat()
+        const messageBody = event.commandResponse
+
+        const formattedContent = template
+          .replaceAll('{chatType}', chatType)
+          .replaceAll('{rank}', '')
+          .replaceAll('{guildRank}', '')
+          .replaceAll('{message}', messageBody)
+          .trim()
+
         if (this.messageToImage.shouldRenderImage()) {
-          const image = await this.messageToImage.generateMessageImage(event.commandResponse)
+          const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${botName}: ${event.commandResponse}`
+          const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+            username: botName,
+            renderer: 'js'
+          })
           await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
         } else {
-          await this.replyWithEmbed(event.eventId, replyId, replyEmbed)
+          const webhook = await this.getWebhook(replyId.channelId)
+          await webhook.send({
+            content: formattedContent,
+            username: botName,
+            avatarURL: botAvatar,
+            allowedMentions: { parse: [] }
+          })
         }
       } catch (error: unknown) {
-        this.logger.error(error, 'can not reply to message')
+        this.logger.error(error, 'failed to send command response')
       }
     }
   }

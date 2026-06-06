@@ -112,4 +112,12 @@ export class DiscordConfigurations {
   public setDurationTemporarilyInteractions(value: Duration): void {
     this.configuration.setNumber('temporarilyInteractionsDuration', value.toSeconds())
   }
+
+  public getMinecraftToDiscordFormat(): string {
+    return this.configuration.getString('minecraftToDiscordFormat', '{message}')
+  }
+
+  public setMinecraftToDiscordFormat(format: string): void {
+    this.configuration.setString('minecraftToDiscordFormat', format)
+  }
 }
