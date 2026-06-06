@@ -714,6 +714,22 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setStringArray(`${bridgeId}_guildKickReactionMessages`, messages)
   }
 
+  public getJoinReactionEmojiType(bridgeId: string): string {
+    return this.configuration.getString(`${bridgeId}_joinReactionEmojiType`, 'none')
+  }
+
+  public setJoinReactionEmojiType(bridgeId: string, value: string): void {
+    this.configuration.setString(`${bridgeId}_joinReactionEmojiType`, value)
+  }
+
+  public getLeaveReactionEmojiType(bridgeId: string): string {
+    return this.configuration.getString(`${bridgeId}_leaveReactionEmojiType`, 'none')
+  }
+
+  public setLeaveReactionEmojiType(bridgeId: string, value: string): void {
+    this.configuration.setString(`${bridgeId}_leaveReactionEmojiType`, value)
+  }
+
   // ========== Random Chatter Configurations ==========
 
   public getRandomChatterEnabled(bridgeId: string): boolean {

@@ -185,39 +185,39 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
-        if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
-          const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
-          const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
-          const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
-          const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-            username: event.user.displayName(),
-            renderer: 'js'
-          })
-          await this.sendImageToChannels(event.eventId, [channelId], image)
-          if (mentions !== undefined && mentions.userIds.length > 0) {
-            const channel = this.clientInstance.getClient().channels.cache.get(channelId)
-            if (channel?.isSendable()) {
+      if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
+        const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
+        const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
+        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: event.user.displayName(),
+          renderer: 'js'
+        })
+        await this.sendImageToChannels(event.eventId, [channelId], image)
+        if (mentions !== undefined && mentions.userIds.length > 0) {
+          const channel = this.clientInstance.getClient().channels.cache.get(channelId)
+          if (channel?.isSendable()) {
             await channel.send({
               content: mentions.userIds.map((id) => `<@${id}>`).join(' '),
               allowedMentions: { parse: [], users: mentions.userIds }
             })
           }
         }
-        } else if (
-          event.instanceType !== InstanceType.Minecraft &&
-          event.instanceType !== InstanceType.Discord &&
-          'rawMessage' in event &&
-          this.messageToImage.shouldRenderImage()
-        ) {
-          const raw = (event as ChatEvent & { rawMessage: string }).rawMessage
-          const withoutPrefix = this.removeGuildPrefix(raw)
-          const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${withoutPrefix}`
-          const image = await this.messageToImage.generateMessageImage(formattedMessage, { renderer: 'js' })
-          await this.sendImageToChannels(event.eventId, [channelId], image)
-        } else {
-          const webhook = await this.getWebhook(channelId)
-          const mentions =
-            event.instanceType === InstanceType.Minecraft
+      } else if (
+        event.instanceType !== InstanceType.Minecraft &&
+        event.instanceType !== InstanceType.Discord &&
+        'rawMessage' in event &&
+        this.messageToImage.shouldRenderImage()
+      ) {
+        const raw = (event as ChatEvent & { rawMessage: string }).rawMessage
+        const withoutPrefix = this.removeGuildPrefix(raw)
+        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${withoutPrefix}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, { renderer: 'js' })
+        await this.sendImageToChannels(event.eventId, [channelId], image)
+      } else {
+        const webhook = await this.getWebhook(channelId)
+        const mentions =
+          event.instanceType === InstanceType.Minecraft
             ? await this.resolveMinecraftMentionsForChannel(channelId, event.message)
             : undefined
 
@@ -348,6 +348,27 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           createdAt: currentTime
         }))
         await this.messageDeleter.add(entries)
+      }
+    }
+
+    if (event.type === GuildPlayerEventType.Join || event.type === GuildPlayerEventType.Leave) {
+      const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+      if (bridgeId !== undefined) {
+        const emojiType =
+          event.type === GuildPlayerEventType.Join
+            ? this.application.core.bridgeConfigurations.getJoinReactionEmojiType(bridgeId)
+            : this.application.core.bridgeConfigurations.getLeaveReactionEmojiType(bridgeId)
+
+        if (emojiType !== 'none') {
+          const emoji = emojiType === 'thumbsup' ? '👍' : '👎'
+          for (const message of messages) {
+            try {
+              await message.react(emoji)
+            } catch (error: unknown) {
+              this.logger.error(error, 'Failed to react to join/leave announcement message')
+            }
+          }
+        }
       }
     }
   }

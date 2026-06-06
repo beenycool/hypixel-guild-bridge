@@ -1095,6 +1095,42 @@ async function createBridgeOptionAsync(
                 toggleOption: () => {
                   bridgeConfig.setKickGuildReaction(bridgeId, !bridgeConfig.getKickGuildReaction(bridgeId))
                 }
+              },
+              {
+                type: OptionType.PresetList,
+                name: 'Join Discord Reaction',
+                description: 'Emoji reaction on the join announcement message in Discord.',
+                getOption: () => {
+                  const v = bridgeConfig.getJoinReactionEmojiType(bridgeId)
+                  return v === 'none' ? [] : [v]
+                },
+                setOption: (values) => {
+                  bridgeConfig.setJoinReactionEmojiType(bridgeId, values.length > 0 ? values[0] : 'none')
+                },
+                min: 0,
+                max: 1,
+                options: [
+                  { label: '👍 Thumbs Up', value: 'thumbsup' },
+                  { label: '👎 Thumbs Down', value: 'thumbsdown' }
+                ]
+              },
+              {
+                type: OptionType.PresetList,
+                name: 'Leave Discord Reaction',
+                description: 'Emoji reaction on the leave announcement message in Discord.',
+                getOption: () => {
+                  const v = bridgeConfig.getLeaveReactionEmojiType(bridgeId)
+                  return v === 'none' ? [] : [v]
+                },
+                setOption: (values) => {
+                  bridgeConfig.setLeaveReactionEmojiType(bridgeId, values.length > 0 ? values[0] : 'none')
+                },
+                min: 0,
+                max: 1,
+                options: [
+                  { label: '👍 Thumbs Up', value: 'thumbsup' },
+                  { label: '👎 Thumbs Down', value: 'thumbsdown' }
+                ]
               }
             ]
           },
