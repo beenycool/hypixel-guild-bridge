@@ -19,14 +19,14 @@ export class SpontaneousEvents extends Instance<InstanceType.Utility> {
   private lastEventAt = -1
   private lastEventType: SpontaneousEventHandler | undefined
 
-  private chatHeat: { user: User; timestamp: number }[] = []
+  private chatHeat: { user: User; timestamp: number; bridgeId?: string }[] = []
 
   constructor(application: Application) {
     super(application, 'spontaneous-events', InstanceType.Utility)
 
     this.application.on('chat', async (event: ChatEvent) => {
       if (event.channelType !== ChannelType.Public) return
-      await this.singletonPromise.add(() => this.handlePublicChatEvent(event.user, event.createdAt))
+      await this.singletonPromise.add(() => this.handlePublicChatEvent(event.user, event.createdAt, event.bridgeId))
     })
 
     this.registerEvent(new QuickMath(this))
@@ -40,34 +40,43 @@ export class SpontaneousEvents extends Instance<InstanceType.Utility> {
     this.registeredEventHandlers.push(handler)
   }
 
-  private async handlePublicChatEvent(user: User, eventCreatedAt: number): Promise<void> {
+  private async handlePublicChatEvent(user: User, eventCreatedAt: number, bridgeId?: string): Promise<void> {
     const config = this.application.core.spontaneousEventsConfigurations
     const activityDuration = config.getActivityDuration()
     const minimumMessages = config.getMinimumMessages()
     const cooldownDuration = config.getCooldownDuration()
     const minimumUsers = config.getMinimumUsers()
 
-    this.chatHeat.push({ user: user, timestamp: eventCreatedAt })
+    this.chatHeat.push({ user: user, timestamp: eventCreatedAt, bridgeId })
     this.chatHeat = this.chatHeat.filter(
       (entry) => entry.timestamp + activityDuration.toMilliseconds() > eventCreatedAt
     )
 
-    if (this.chatHeat.length < minimumMessages) return
     if (this.lastEventAt + cooldownDuration.toMilliseconds() > eventCreatedAt) return
 
-    const uniqueUsers: User[] = []
+    const bridgeActivity = new Map<string | undefined, { messages: number; users: Set<User> }>()
     for (const entry of this.chatHeat) {
-      let userExists = false
-
-      for (const countedUser of uniqueUsers) {
-        if (countedUser.equalsUser(entry.user)) {
-          userExists = true
-        }
+      const key = entry.bridgeId
+      let activity = bridgeActivity.get(key)
+      if (activity === undefined) {
+        activity = { messages: 0, users: new Set() }
+        bridgeActivity.set(key, activity)
       }
-
-      if (!userExists) uniqueUsers.push(user)
+      activity.messages++
+      activity.users.add(entry.user)
     }
-    if (uniqueUsers.length < minimumUsers) return
+
+    let bestBridgeId: string | undefined
+    let bestScore = -1
+    for (const [bridgeIdKey, activity] of bridgeActivity) {
+      if (activity.messages < minimumMessages) continue
+      if (activity.users.size < minimumUsers) continue
+      if (activity.messages > bestScore) {
+        bestScore = activity.messages
+        bestBridgeId = bridgeIdKey
+      }
+    }
+    if (bestBridgeId === undefined) return
 
     if (!this.application.core.spontaneousEventsConfigurations.getEnabled()) {
       return undefined
@@ -76,7 +85,7 @@ export class SpontaneousEvents extends Instance<InstanceType.Utility> {
     const spontaneousEventHandler = this.pickRandomEvent()
     if (spontaneousEventHandler === undefined) return
 
-    await spontaneousEventHandler.startEvent().finally(() => {
+    await spontaneousEventHandler.startEvent(bestBridgeId).finally(() => {
       this.lastEventAt = Date.now()
       this.lastEventType = spontaneousEventHandler
     })
@@ -107,19 +116,20 @@ export abstract class SpontaneousEventHandler extends SubInstance<SpontaneousEve
 
   public abstract enabled(): boolean
 
-  protected async broadcastMessage(message: string, color: Color): Promise<void> {
+  protected async broadcastMessage(message: string, color: Color, bridgeId?: string): Promise<void> {
     await this.application.emit('broadcast', {
       ...this.eventHelper.fillBaseEvent(),
 
       channels: [ChannelType.Public],
       color: color,
+      bridgeId: bridgeId,
 
       user: undefined,
       message: message
     })
   }
 
-  abstract startEvent(): Promise<void>
+  abstract startEvent(bridgeId?: string): Promise<void>
 }
 
 class QuickMath extends SpontaneousEventHandler {
@@ -129,7 +139,7 @@ class QuickMath extends SpontaneousEventHandler {
       .includes(SpontaneousEventsNames.QuickMath)
   }
 
-  override async startEvent(): Promise<void> {
+  override async startEvent(bridgeId?: string): Promise<void> {
     const math = this.createMath()
     if (math === undefined) return
 
@@ -137,6 +147,7 @@ class QuickMath extends SpontaneousEventHandler {
 
     const listener = (event: ChatEvent) => {
       if (event.channelType !== ChannelType.Public) return
+      if (bridgeId !== undefined && event.bridgeId !== bridgeId) return
 
       const match = /^\d+/g.exec(event.message)
       if (!match) return
@@ -146,7 +157,7 @@ class QuickMath extends SpontaneousEventHandler {
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Quick Math: ${math.expression}`, Color.Good)
+    await this.broadcastMessage(`Quick Math: ${math.expression}`, Color.Good, bridgeId)
     timeout.refresh()
 
     const result = await timeout.wait()
@@ -154,9 +165,9 @@ class QuickMath extends SpontaneousEventHandler {
 
     // eslint-disable-next-line unicorn/prefer-ternary
     if (result === undefined) {
-      await this.broadcastMessage(`The answer is: ${math.answer} :(`, Color.Info)
+      await this.broadcastMessage(`The answer is: ${math.answer} :(`, Color.Info, bridgeId)
     } else {
-      await this.broadcastMessage(`Good job ${result.user.displayName()}!`, Color.Good)
+      await this.broadcastMessage(`Good job ${result.user.displayName()}!`, Color.Good, bridgeId)
     }
   }
 
@@ -215,7 +226,7 @@ class CountingChain extends SpontaneousEventHandler {
       .includes(SpontaneousEventsNames.CountingChain)
   }
 
-  override async startEvent(): Promise<void> {
+  override async startEvent(bridgeId?: string): Promise<void> {
     const timeout = new Timeout<ChatEvent>(10_000)
     let beforeLast: User | undefined
     let lastUser: User | undefined
@@ -223,6 +234,7 @@ class CountingChain extends SpontaneousEventHandler {
 
     const listener = (event: ChatEvent) => {
       if (event.channelType !== ChannelType.Public) return
+      if (bridgeId !== undefined && event.bridgeId !== bridgeId) return
       if (lastUser !== undefined && event.user.equalsUser(lastUser)) return
 
       const match = /^\d+/g.exec(event.message)
@@ -238,18 +250,19 @@ class CountingChain extends SpontaneousEventHandler {
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Start counting chain from 1 to infinity!`, Color.Good)
+    await this.broadcastMessage(`Start counting chain from 1 to infinity!`, Color.Good, bridgeId)
     timeout.refresh()
 
     await timeout.wait()
     this.application.off('chat', listener)
 
     if (beforeLast === undefined) {
-      await this.broadcastMessage(`Never mind the counting chain :(`, Color.Info)
+      await this.broadcastMessage(`Never mind the counting chain :(`, Color.Info, bridgeId)
     } else {
       await this.broadcastMessage(
         `${beforeLast.displayName()} was the 2nd to last to stop counting. How dare you!`,
-        Color.Good
+        Color.Good,
+        bridgeId
       )
       await beforeLast.mute(
         this.eventHelper.fillBaseEvent(),
@@ -302,20 +315,21 @@ class Unscramble extends SpontaneousEventHandler {
       .includes(SpontaneousEventsNames.Unscramble)
   }
 
-  override async startEvent(): Promise<void> {
+  override async startEvent(bridgeId?: string): Promise<void> {
     const chosenWord = this.pickWord()
 
     const timeout = new Timeout<ChatEvent>(30_000)
 
     const listener = (event: ChatEvent) => {
       if (event.channelType !== ChannelType.Public) return
+      if (bridgeId !== undefined && event.bridgeId !== bridgeId) return
 
       const match = event.message.trim().split(' ')[0].toLowerCase().trim()
       if (match === chosenWord.original) timeout.resolve(event)
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Unscramble: ${chosenWord.scrambled}`, Color.Good)
+    await this.broadcastMessage(`Unscramble: ${chosenWord.scrambled}`, Color.Good, bridgeId)
     timeout.refresh()
 
     const result = await timeout.wait()
@@ -323,9 +337,9 @@ class Unscramble extends SpontaneousEventHandler {
 
     // eslint-disable-next-line unicorn/prefer-ternary
     if (result === undefined) {
-      await this.broadcastMessage(`The answer is: ${chosenWord.original} :(`, Color.Info)
+      await this.broadcastMessage(`The answer is: ${chosenWord.original} :(`, Color.Info, bridgeId)
     } else {
-      await this.broadcastMessage(`Good job ${result.user.displayName()}!`, Color.Good)
+      await this.broadcastMessage(`Good job ${result.user.displayName()}!`, Color.Good, bridgeId)
     }
   }
 
@@ -362,7 +376,7 @@ class Trivia extends SpontaneousEventHandler {
       .includes(SpontaneousEventsNames.Trivia)
   }
 
-  override async startEvent(): Promise<void> {
+  override async startEvent(bridgeId?: string): Promise<void> {
     const trivia = this.createQuiz()
 
     const timeout = new Timeout<ChatEvent>(30_000)
@@ -371,6 +385,7 @@ class Trivia extends SpontaneousEventHandler {
 
     const listener = (event: ChatEvent) => {
       if (event.channelType !== ChannelType.Public) return
+      if (bridgeId !== undefined && event.bridgeId !== bridgeId) return
 
       const match = event.message.trim().split(' ')[0].toLowerCase().trim()
       if (!Trivia.IndexLetters.includes(match)) return
@@ -387,7 +402,7 @@ class Trivia extends SpontaneousEventHandler {
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Quick Trivia: ${trivia.question}`, Color.Good)
+    await this.broadcastMessage(`Quick Trivia: ${trivia.question}`, Color.Good, bridgeId)
     timeout.refresh()
 
     await timeout.wait()
@@ -397,10 +412,15 @@ class Trivia extends SpontaneousEventHandler {
     if (correctUsers.length === 0) {
       await this.broadcastMessage(
         `The answer is: ${trivia.answerDisplay}. Remember you can only answer with the letter!`,
-        Color.Info
+        Color.Info,
+        bridgeId
       )
     } else {
-      await this.broadcastMessage(`Good job ${correctUsers.map((user) => user.displayName()).join(', ')}!`, Color.Good)
+      await this.broadcastMessage(
+        `Good job ${correctUsers.map((user) => user.displayName()).join(', ')}!`,
+        Color.Good,
+        bridgeId
+      )
     }
   }
 

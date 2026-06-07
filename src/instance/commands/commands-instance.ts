@@ -70,9 +70,9 @@ import Purse from './triggers/purse.js'
 import QCommand from './triggers/q.js'
 import QMute from './triggers/qmute.js'
 import QMuted from './triggers/qmuted.js'
+import Quakecraft from './triggers/quakecraft.js'
 import QUnmute from './triggers/qunmute.js'
 import Racism from './triggers/racism.js'
-import Quakecraft from './triggers/quakecraft.js'
 import Reputation from './triggers/reputation.js'
 import Rng from './triggers/rng.js'
 import RockPaperScissors from './triggers/rock-paper-scissors.js'
@@ -105,6 +105,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
   public readonly commands: ChatCommandHandler[]
   private readonly typoSuggestionCooldowns = new Map<string, number>()
   private readonly cooldownCleanupInterval: NodeJS.Timeout
+  private readonly commandDeduplicationCache = new Map<string, number>()
 
   constructor(app: Application) {
     super(app, InternalInstancePrefix + InstanceType.Commands, InstanceType.Commands)
@@ -250,6 +251,24 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
   async handle(event: ChatEvent): Promise<void> {
     if (this.currentStatus() !== Status.Connected) return
+
+    // Deduplicate in-game commands when multiple bots share the same Hypixel guild
+    if (event.instanceType === InstanceType.Minecraft) {
+      const now = Date.now()
+      const dedupKey = `${event.user.displayName()}:${event.message.trim().toLowerCase()}`
+      const lastExecuted = this.commandDeduplicationCache.get(dedupKey)
+
+      if (lastExecuted !== undefined && now - lastExecuted < 2000) {
+        return
+      }
+      this.commandDeduplicationCache.set(dedupKey, now)
+
+      if (this.commandDeduplicationCache.size > 100) {
+        for (const [key, timestamp] of this.commandDeduplicationCache.entries()) {
+          if (now - timestamp > 5000) this.commandDeduplicationCache.delete(key)
+        }
+      }
+    }
 
     // Resolve bridge-specific settings or fall back to global
     const bridgeId = event.bridgeId

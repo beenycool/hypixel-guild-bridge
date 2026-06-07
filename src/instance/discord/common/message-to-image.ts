@@ -344,16 +344,16 @@ export default class MessageToImage {
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const msg of splitMessage) {
-      const currentMessage = msg.substring(1)
+    for (const message_ of splitMessage) {
+      const currentMessage = message_.slice(1)
       const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
-      const msgWidth = isSkin ? 55 : context.measureText(currentMessage).width
+      const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
 
-      if (width + msgWidth > MessageToImage.CanvasWidth || msg.charAt(0) === 'n') {
+      if (width + messageWidth > MessageToImage.CanvasWidth || message_.startsWith('n')) {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }
-      width += msgWidth
+      width += messageWidth
     }
     if (width === MessageToImage.WidthMargin) height -= MessageToImage.LineAdvance
 
@@ -378,13 +378,13 @@ export default class MessageToImage {
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const msg of splitMessage) {
-      const colorCode = MessageToImage.RgbaColorJs[msg.charAt(0)]
-      const currentMessage = msg.substring(1)
+    for (const message_ of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[message_.charAt(0)]
+      const currentMessage = message_.slice(1)
       const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
-      const msgWidth = isSkin ? 55 : context.measureText(currentMessage).width
+      const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
 
-      if (width + msgWidth > MessageToImage.CanvasWidth || msg.charAt(0) === 'n') {
+      if (width + messageWidth > MessageToImage.CanvasWidth || message_.startsWith('n')) {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }
@@ -393,7 +393,7 @@ export default class MessageToImage {
         try {
           const skinImage = await loadImage(`https://www.mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
           context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
-          width += msgWidth
+          width += messageWidth
           continue
         } catch {
           // fall back to rendering literal text
@@ -405,7 +405,7 @@ export default class MessageToImage {
       }
 
       context.fillText(currentMessage, width, height)
-      width += msgWidth
+      width += messageWidth
     }
 
     return canvas.toBuffer()
@@ -429,11 +429,11 @@ export default class MessageToImage {
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const msg of splitMessage) {
-      const colorCode = MessageToImage.RgbaColorJs[msg.charAt(0)]
-      const currentMessage = msg.substring(1)
+    for (const message_ of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[message_.charAt(0)]
+      const currentMessage = message_.slice(1)
 
-      if (width + context.measureText(currentMessage).width > MessageToImage.CanvasWidth || msg.charAt(0) === 'n') {
+      if (width + context.measureText(currentMessage).width > MessageToImage.CanvasWidth || message_.startsWith('n')) {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }

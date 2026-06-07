@@ -8,9 +8,9 @@ import type { Client, Status } from 'hypixel-api-reborn'
 import type Application from '../../../application.js'
 import type { UserLink } from '../../../common/application-event.js'
 import { Color, InstanceType } from '../../../common/application-event.js'
-import { Status as InstanceStatus } from '../../../common/connectable-instance.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 import { CommandScope } from '../../../common/commands.js'
+import { Status as InstanceStatus } from '../../../common/connectable-instance.js'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import type { GuildFetch } from '../../../core/users/guild-manager'
 import type { MojangApi } from '../../../core/users/mojang'
@@ -255,8 +255,8 @@ async function look(
 
   logger?.info('[list] look() %d profiles, processing in batches of %d', entries.length, batchSize)
 
-  for (let i = 0; i < entries.length; i += batchSize) {
-    const batch = entries.slice(i, i + batchSize)
+  for (let index = 0; index < entries.length; index += batchSize) {
+    const batch = entries.slice(index, index + batchSize)
     await Promise.all(
       batch.map(([username, uuid]) =>
         hypixelApi
@@ -328,7 +328,7 @@ async function getGuilds(
     if (!connectedInstances.get(instanceName.toLowerCase())) {
       const status = app.minecraftManager
         .getAllInstances()
-        .find((i) => i.instanceName.toLowerCase() === instanceName.toLowerCase())
+        .find((index) => index.instanceName.toLowerCase() === instanceName.toLowerCase())
         ?.currentStatus()
       app.logger.info('[list] guildManager.list(%s) SKIPPED (status=%s)', instanceName, status ?? 'unknown')
       result.failed.push(instanceName)
