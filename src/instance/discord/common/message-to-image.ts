@@ -46,7 +46,7 @@ export default class MessageToImage {
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 
-  /** JS bridge compat: note that §r is intentionally not mapped (no-op) to match upstream behavior. */
+  /** JS bridge compat: note that §r is mapped to white to prevent color bleeding. */
   private static readonly RgbaColorJs: Record<string, string> = {
     /* eslint-disable @typescript-eslint/naming-convention */
     0: 'rgba(0,0,0,1)',
@@ -64,7 +64,8 @@ export default class MessageToImage {
     c: 'rgba(255,85,85,1)',
     d: 'rgba(255,85,255,1)',
     e: 'rgba(255,255,85,1)',
-    f: 'rgba(255,255,255,1)'
+    f: 'rgba(255,255,255,1)',
+    r: 'rgba(255,255,255,1)'
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 

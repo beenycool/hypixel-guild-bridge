@@ -280,6 +280,16 @@ try {
     return s.slice(0, n - 1) + '…'
   }
 
+  function isGuildListLine(message: string): boolean {
+    const trimmed = message.trim()
+    if (trimmed.startsWith('Guild Name:')) return true
+    if (trimmed.startsWith('--') && trimmed.endsWith('--')) return true
+    if (trimmed.startsWith('-----------------------------------------------------')) return true
+    if (trimmed.startsWith('Total Members:')) return true
+    if (trimmed.startsWith('Online Members:')) return true
+    return false
+  }
+
   function formatEventSummary(name: string, event: unknown): string {
     try {
       const eventData = event as WebSocketEventData
@@ -311,6 +321,13 @@ try {
   app.onAny((name, event) => {
     const eventData = event as WebSocketEventData
     const instanceName = eventData.instanceName ?? 'unknown'
+
+    // Skip guild list parsing lines (they're just /guild list output, not game chat)
+    if (name === 'minecraftChat') {
+      const message = eventData.message ?? eventData.rawMessage ?? ''
+      if (isGuildListLine(message)) return
+    }
+
     let instanceLogger = loggers.get(instanceName)
     if (instanceLogger === undefined) {
       instanceLogger = Instance.createLogger(instanceName)

@@ -736,8 +736,29 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     )
 
     const bots = this.application.minecraftManager.getMinecraftBots()
-    const botName = bots[0]?.username ?? 'Bridge Bot'
-    const botAvatar = `https://www.mc-heads.net/avatar/${botName}`
+    let botName = 'Bridge Bot'
+    let botInstanceName: string | undefined
+
+    if (event.instanceType === InstanceType.Minecraft) {
+      botInstanceName = event.instanceName
+      const bot = bots.find((b) => b.instanceName === botInstanceName)
+      if (bot) botName = bot.username
+    } else {
+      const bridgeBots = bots.filter((bot) =>
+        this.application.bridgeResolver.shouldProcessEvent(event.bridgeId, bot.instanceName)
+      )
+      if (bridgeBots.length > 0) {
+        botInstanceName = bridgeBots[0].instanceName
+        botName = bridgeBots[0].username
+      }
+    }
+
+    const botAvatar =
+      botName !== 'Bridge Bot'
+        ? `https://www.mc-heads.net/avatar/${botName}`
+        : `https://www.mc-heads.net/avatar/MHF_Question`
+    const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
+    const namePart = botRank ? `${botRank}§f` : `§a${botName}§f`
 
     const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
       kind: 'command',
@@ -761,9 +782,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           .trim()
 
         if (this.messageToImage.shouldRenderImage()) {
-          const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${botName}: ${event.commandResponse}`
+          const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-            username: botName,
+            username: botName === 'Bridge Bot' ? 'MHF_Question' : botName,
             renderer: 'js'
           })
           await this.sendImageToChannels(event.eventId, [replyId.channelId], image)

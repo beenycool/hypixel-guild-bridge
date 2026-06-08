@@ -39,7 +39,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
     let guild = getCached()
     if (guild !== undefined) {
       const age = Date.now() - guild.fetchedAt
-      this.logger.info('[guildManager] list(%s) cache hit (age %dms)', instanceName, age)
+      this.logger.debug('[guildManager] list(%s) cache hit (age %dms)', instanceName, age)
       return guild
     }
 
@@ -50,23 +50,24 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
       guild = getCached()
       if (guild !== undefined) {
         const age = Date.now() - guild.fetchedAt
-        this.logger.info('[guildManager] list(%s) cache hit after queue (age %dms)', instanceName, age)
+        this.logger.debug('[guildManager] list(%s) cache hit after queue (age %dms)', instanceName, age)
         return guild
       }
 
-      this.logger.info('[guildManager] list(%s) cache miss, sending /guild list...', instanceName)
+      this.logger.debug('[guildManager] list(%s) cache miss, sending /guild list...', instanceName)
       const t1 = performance.now()
       guild = await this.listNow(instanceName, options?.timeoutMs)
-      this.logger.info(
+      this.logger.debug(
         '[guildManager] list(%s) listNow took %dms (%d members)',
         instanceName,
         Math.round(performance.now() - t1),
         guild.members.length
       )
+      this.logger.debug('[guildManager] list(%s) members parsed: %d', instanceName, guild.members.length)
       guildInfo.guild = guild
       return guild
     })
-    this.logger.info('[guildManager] list(%s) total with queue %dms', instanceName, Math.round(performance.now() - t0))
+    this.logger.debug('[guildManager] list(%s) total with queue %dms', instanceName, Math.round(performance.now() - t0))
     return result
   }
 
