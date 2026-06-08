@@ -98,10 +98,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       bridgeId ??
       (routingHint === undefined ? undefined : bridgeResolver.getBridgeIdForInstance(routingHint.instanceName))
 
-    this.logger.info(
-      `[DEBUG resolveChannelsForEvent] discordInstance="${this.clientInstance.instanceName}" discordBridgeId="${this.clientInstance.bridgeId}" inputChannels=${JSON.stringify(channels)} eventBridgeId="${bridgeId}" effectiveBridgeId="${effectiveBridgeId}" routingHint=${JSON.stringify(routingHint)} isMultiBridge=${bridgeResolver.isMultiBridgeEnabled()}`
-    )
-
     let results: string[]
     if (bridgeResolver.isMultiBridgeEnabled()) {
       if (effectiveBridgeId !== undefined) {
@@ -176,16 +172,13 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   async onChat(event: ChatEvent): Promise<void> {
-    this.logger.info(
+    this.logger.debug(
       `[onChat] instanceType=${event.instanceType} bridgeId=${event.bridgeId} instanceName=${event.instanceName} channelType=${event.channelType} msg="${event.message}"`
     )
     const channels = this.resolveChannelsForEvent([event.channelType], event.bridgeId, {
       kind: 'chat',
       instanceName: event.instanceName
     })
-    this.logger.info(
-      `[DEBUG onChat] discordInstanceName="${this.clientInstance.instanceName}" discordBridgeId="${this.clientInstance.bridgeId}" eventInstanceName="${event.instanceName}" eventBridgeId="${event.bridgeId}" channelType="${event.channelType}" resolvedChannels=${JSON.stringify(channels)} username="${event.user.displayName()}"`
-    )
     const username = event.user.displayName()
 
     for (const channelId of channels) {
@@ -484,9 +477,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       kind: 'broadcast',
       instanceName: event.instanceName
     })
-    this.logger.info(
-      `[DEBUG onBroadcast] discordInstance="${this.clientInstance.instanceName}" discordBridgeId="${this.clientInstance.bridgeId}" eventInstanceName="${event.instanceName}" eventBridgeId="${event.bridgeId}" channels=${JSON.stringify(channels)} message="${event.message}"`
-    )
     if (this.messageToImage.shouldRenderImage()) {
       if (event.guildChatImageStyle === undefined) {
         let formatted: string
@@ -741,11 +731,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
   private async sendCommandResponse(event: CommandEvent): Promise<void> {
     const replyIds = this.messageAssociation.getMessageId(event.originEventId)
-    this.logger.info(
+    this.logger.debug(
       `[cmd-response] command="${event.commandName}" originEventId="${event.originEventId}" replyIds=${replyIds.length} bridgeId="${event.bridgeId}"`
-    )
-    this.logger.info(
-      `[DEBUG sendCommandResponse] discordInstanceName="${this.clientInstance.instanceName}" discordBridgeId="${this.clientInstance.bridgeId}" eventInstanceName="${event.instanceName}" eventBridgeId="${event.bridgeId}" command="${event.commandName}" originEventId="${event.originEventId}" channelType="${event.channelType}" replyIds=${JSON.stringify(replyIds.map((r) => ({ channelId: r.channelId, guildId: r.guildId, messageId: r.messageId })))}`
     )
 
     const bots = this.application.minecraftManager.getMinecraftBots()
@@ -759,9 +746,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       try {
         const channelType = isPublicChannel(replyId.channelId) ? ChannelType.Public : ChannelType.Officer
         const chatType = channelType === ChannelType.Public ? 'Guild' : 'Officer'
-        this.logger.info(
-          `[DEBUG sendCommandResponse] Sending reply channelId="${replyId.channelId}" channelType="${channelType}" discordBridgeId="${this.clientInstance.bridgeId}" publicChannelIds=${JSON.stringify(publicChannelIds)} isPublic=${isPublicChannel(replyId.channelId)}`
-        )
 
         const template = this.application.core.discordConfigurations.getMinecraftToDiscordFormat()
         const messageBody = event.commandResponse

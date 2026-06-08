@@ -37,16 +37,10 @@ export default {
         }
 
         // Allow in-game triggered command responses to propagate to Discord Officer Channel
-        const isBridgedMessage = context.rawMessage.includes('[DC]') || context.rawMessage.includes('⇾')
-        context.logger.info(
-          `[DEBUG officer.ts botMsg] instanceName="${context.instanceName}" bridgeId="${context.clientInstance.bridgeId}" botUsername="${username}" playerMessage="${playerMessage}" isBridgedMessage=${isBridgedMessage} rawMessage="${context.rawMessage}" willEmit="${!isBridgedMessage}"`
-        )
+        const isBridgedMessage = playerMessage.includes('[DC]') || playerMessage.includes('⇾')
         if (!isBridgedMessage) {
           const event = context.eventHelper.fillBaseEvent()
           context.messageAssociation.addMessageId(event.eventId, { channel: ChannelType.Officer })
-          context.logger.info(
-            `[DEBUG officer.ts botMsg] EMITTING chat event for bot message. instanceName="${context.instanceName}" bridgeId="${context.clientInstance.bridgeId}" originEventId="${event.eventId}" username="${username}" playerMessage="${playerMessage}"`
-          )
           await context.application.emit('chat', {
             ...event,
             channelType: ChannelType.Officer,

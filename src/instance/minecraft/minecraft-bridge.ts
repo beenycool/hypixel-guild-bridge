@@ -195,11 +195,7 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
   async onChat(event: ChatEvent): Promise<void> {
     if (event.instanceName === this.clientInstance.instanceName) return
     if (event.channelType === ChannelType.Private) return
-    const shouldProcess = this.shouldProcessEvent(event, true)
-    this.logger.info(
-      `[DEBUG shouldProcessEvent onChat] minecraftInstance="${this.clientInstance.instanceName}" bridgeId="${this.clientInstance.bridgeId}" eventBridgeId="${event.bridgeId}" eventInstanceName="${event.instanceName}" eventInstanceType="${event.instanceType}" shouldProcess=${shouldProcess}`
-    )
-    if (!shouldProcess) return
+    if (!this.shouldProcessEvent(event, true)) return
 
     const replyUsername = event.instanceType === InstanceType.Discord ? event.replyUsername : undefined
     const prefix = event.channelType === ChannelType.Public ? 'gc' : 'oc'
@@ -321,11 +317,7 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
   }
 
   async onBroadcast(event: BroadcastEvent): Promise<void> {
-    const shouldProcessBroadcast = this.shouldProcessEvent(event)
-    this.logger.info(
-      `[DEBUG onBroadcast] minecraftInstance="${this.clientInstance.instanceName}" bridgeId="${this.clientInstance.bridgeId}" eventBridgeId="${event.bridgeId}" eventInstanceName="${event.instanceName}" shouldProcess=${shouldProcessBroadcast}`
-    )
-    if (!shouldProcessBroadcast) return
+    if (!this.shouldProcessEvent(event)) return
 
     const message = await this.application.minecraftManager.sanitizer.sanitizeChatMessage(
       this.clientInstance.instanceName,
@@ -346,16 +338,9 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
   }
 
   private async handleCommand(event: CommandEvent, feedback: boolean) {
-    const shouldProcessCmd = this.shouldProcessEvent(event)
-    this.logger.info(
-      `[DEBUG handleCommand] minecraftInstanceName="${this.clientInstance.instanceName}" bridgeId="${this.clientInstance.bridgeId}" eventInstanceName="${event.instanceName}" eventBridgeId="${event.bridgeId}" originEventId="${event.originEventId}" command="${event.commandName}" shouldProcess=${shouldProcessCmd}`
-    )
-    if (!shouldProcessCmd) return
+    if (!this.shouldProcessEvent(event)) return
 
     const reply = this.messageAssociation.getMessageId(event.originEventId)
-    this.logger.info(
-      `[DEBUG handleCommand reply] minecraftInstanceName="${this.clientInstance.instanceName}" bridgeId="${this.clientInstance.bridgeId}" eventInstanceName="${event.instanceName}" eventBridgeId="${event.bridgeId}" originEventId="${event.originEventId}" command="${event.commandName}" reply=${JSON.stringify(reply)}`
-    )
     if (reply === undefined) {
       this.logger.error(
         `could not find the reply eventId for eventId ${event.eventId} with origin event id of ${event.originEventId}`
