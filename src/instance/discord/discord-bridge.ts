@@ -179,9 +179,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       kind: 'chat',
       instanceName: event.instanceName
     })
-    this.logger.info(
-      `[onChat] resolvedChannels=[${channels.join(',')}] originChannelId=${'channelId' in event ? event.channelId : 'n/a'} instanceType=${event.instanceType} channelType=${event.channelType}`
-    )
     const username = event.user.displayName()
 
     for (const channelId of channels) {
@@ -266,9 +263,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           channelId: message.channelId,
           messageId: message.id
         })
-        this.logger.info(
-          `[onChat] addedToAssociation eventId=${event.eventId} channelId=${message.channelId} messageId=${message.id}`
-        )
       }
     }
   }
@@ -722,7 +716,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const message = await channel.send({ files: [image] })
 
         messages.push(message)
-        this.logger.info(`[sendImage] eventId=${eventId} sentTo=${channelId} messageId=${message.id}`)
         this.messageAssociation.addMessageId(eventId, {
           guildId: message.inGuild() ? message.guildId : undefined,
           channelId: message.channelId,
@@ -746,17 +739,16 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     const botName = bots[0]?.username ?? 'Bridge Bot'
     const botAvatar = `https://www.mc-heads.net/avatar/${botName}`
 
-    const publicChannelIds = this.resolveChannels([ChannelType.Public])
+    const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
+      kind: 'command',
+      instanceName: event.instanceName
+    })
     const isPublicChannel = (channelId: string) => publicChannelIds.includes(channelId)
 
     for (const replyId of replyIds) {
       try {
         const channelType = isPublicChannel(replyId.channelId) ? ChannelType.Public : ChannelType.Officer
         const chatType = channelType === ChannelType.Public ? 'Guild' : 'Officer'
-
-        this.logger.info(
-          `[cmd-response] replyId.channelId=${replyId.channelId} classifiedAs=${chatType} originChannelType=${event.channelType} originEventId=${event.originEventId}`
-        )
 
         const template = this.application.core.discordConfigurations.getMinecraftToDiscordFormat()
         const messageBody = event.commandResponse
@@ -770,9 +762,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
         if (this.messageToImage.shouldRenderImage()) {
           const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${botName}: ${event.commandResponse}`
-          this.logger.info(
-            `[cmd-response] renderImage channelId=${replyId.channelId} formattedMessage="${formattedMessage}"`
-          )
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
             username: botName,
             renderer: 'js'
