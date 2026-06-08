@@ -17,7 +17,7 @@ export default class MessageAssociation {
   }
 
   public addMessageId(eventId: string, options: DiscordAssociatedMessage): void {
-    this.logger.debug(
+    this.logger.info(
       `[msg-association] add eventId=${eventId} channelId=${options.channelId} guildId=${options.guildId}`
     )
     let list: DiscordAssociatedMessage[] | undefined = this.messageIds.get(eventId)
