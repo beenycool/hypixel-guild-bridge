@@ -8,10 +8,8 @@
 
 ## Chat Commands
 
-
-
 | Command          | Description                                                                        |
-| ---------------- | ---------------------------------------------------------------------------------- |
+| ---------------- | ---------------------------------------------------------------------------------- | ------ | ------------------- |
 | `8ball`          | Returns a basic 8 ball response                                                    |
 | `accessories`    | Returns a player's accessory bag stats                                             |
 | `api`            | Returns a player's skyblock API status                                             |
@@ -49,7 +47,7 @@
 | `forge`          | Returns a player's forge items                                                     |
 | `garden`         | Returns a player's garden stats                                                    |
 | `guild`          | Returns a player's guild, if they're in one                                        |
-| `guildexp`       | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]  |
+| `guildexp`       | Guild experience of specified user. Usage: gexp [daily                             | weekly | monthly] [username] |
 | `help`           | Shows a command description and an example about its usage                         |
 | `hotm`           | Returns a player's hotm and powder                                                 |
 | `hlevel`         | Returns a player's Hypixel common stats                                            |
@@ -69,6 +67,7 @@
 | `parties`        | List all active parties in guild                                                   |
 | `startparty`     | Create public !parties to be viewed by guild members with <count> <time> <purpose> |
 | `endparty`       | remove the party from the listing                                                  |
+| `partygames`     | Returns a player's Party Games stats                                               |
 | `pb`             | Returns a players best dungeon run time                                            |
 | `pit`            | Returns a player's Pit stats                                                       |
 | `player`         | Get Hypixel player stats.                                                          |

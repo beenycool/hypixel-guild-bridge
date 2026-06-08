@@ -61,6 +61,7 @@ import Mute from './triggers/mute.js'
 import NameHistory from './triggers/name.js'
 import Networth from './triggers/networth.js'
 import PartyManager from './triggers/party.js'
+import PartyGames from './triggers/partygames.js'
 import PersonalBest from './triggers/personal-best.js'
 import Player from './triggers/player.js'
 import Points30days from './triggers/points-30days'
@@ -160,6 +161,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new NameHistory(),
       new Networth(),
       ...new PartyManager().resolveCommands(),
+      new PartyGames(),
       new PersonalBest(),
       new Player(),
       new Points30days(),
