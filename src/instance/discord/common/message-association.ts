@@ -1,7 +1,14 @@
 import NodeCache from 'node-cache'
+import type { Logger } from 'log4js'
+import Logger4js from 'log4js'
 
 export default class MessageAssociation {
   private readonly messageIds = new NodeCache({ stdTTL: 300 })
+  private logger: Logger
+
+  constructor() {
+    this.logger = Logger4js.getLogger('MessageAssociation')
+  }
 
   public getMessageId(eventId: string | undefined): DiscordAssociatedMessage[] {
     if (eventId === undefined) return []
@@ -10,6 +17,9 @@ export default class MessageAssociation {
   }
 
   public addMessageId(eventId: string, options: DiscordAssociatedMessage): void {
+    this.logger.debug(
+      `[msg-association] add eventId=${eventId} channelId=${options.channelId} guildId=${options.guildId}`
+    )
     let list: DiscordAssociatedMessage[] | undefined = this.messageIds.get(eventId)
     list ??= []
 
