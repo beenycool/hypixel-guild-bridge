@@ -86,7 +86,8 @@ export default class MessageToImage {
       return []
     }
     const normalized = message.startsWith('§') ? message : `§f${message}`
-    const parts = normalized.split(/§|\n/g)
+    const withNewlines = normalized.replaceAll('\n', '§n')
+    const parts = withNewlines.split(/§/g)
     if (parts[0] === '') {
       parts.shift()
     } else {
