@@ -196,15 +196,16 @@ export class DatabaseManager {
       this.logger.info(`Using in-memory PostgreSQL adapter (${databaseUrl})`)
     } else {
       const ssl = this.resolveSsl(databaseUrl)
+      const maxConnections = this.resolveMaxConnections()
       this.pool = new Pool({
         connectionString: databaseUrl,
         ssl: ssl ? { rejectUnauthorized: false } : undefined,
-        max: 20,
+        max: maxConnections,
         statement_timeout: 30_000,
         lock_timeout: 10_000,
         idle_in_transaction_session_timeout: 30_000
       }) as unknown as PoolLike
-      this.logger.info('Using PostgreSQL database connection')
+      this.logger.info(`Using PostgreSQL database connection with max connections: ${maxConnections}`)
     }
 
     await this.query('SELECT 1')
@@ -243,6 +244,19 @@ export class DatabaseManager {
     if (configured !== undefined) return configured
 
     return !/localhost|127\.0\.0\.1/.test(databaseUrl) && databaseUrl.startsWith('postgres')
+  }
+
+  private resolveMaxConnections(): number {
+    const configured = this.application.getDatabaseConfig()?.maxConnections
+    if (configured !== undefined) return configured
+
+    const environment = process.env.DATABASE_MAX_CONNECTIONS
+    if (environment !== undefined) {
+      const parsed = Number.parseInt(environment, 10)
+      if (!Number.isNaN(parsed)) return parsed
+    }
+
+    return 20
   }
 
   private async query<T extends QueryResultRow = QueryResultRow>(

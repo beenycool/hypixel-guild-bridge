@@ -35,23 +35,6 @@ export default {
             context.application.minecraftManager.setBotRank(context.instanceName, rankPart)
           }
         }
-
-        // Allow in-game triggered command responses to propagate to Discord Officer Channel
-        const isBridgedMessage = playerMessage.includes('[DC]') || playerMessage.includes('⇾')
-        if (!isBridgedMessage) {
-          const event = context.eventHelper.fillBaseEvent()
-          context.messageAssociation.addMessageId(event.eventId, { channel: ChannelType.Officer })
-          await context.application.emit('chat', {
-            ...event,
-            channelType: ChannelType.Officer,
-            bridgeId: context.clientInstance.bridgeId,
-            user: user,
-            hypixelRank: '',
-            guildRank: '',
-            message: playerMessage,
-            rawMessage: context.rawMessage
-          })
-        }
         return
       }
 

@@ -20,6 +20,7 @@ export interface PrometheusConfig {
 export interface DatabaseConfig {
   url?: string
   ssl?: boolean
+  maxConnections?: number
 }
 
 export interface WebConfig {

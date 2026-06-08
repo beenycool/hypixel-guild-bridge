@@ -754,9 +754,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     const botAvatar =
-      botName !== 'Bridge Bot'
-        ? `https://www.mc-heads.net/avatar/${botName}`
-        : `https://www.mc-heads.net/avatar/MHF_Question`
+      botName === 'Bridge Bot'
+        ? `https://www.mc-heads.net/avatar/MHF_Question`
+        : `https://www.mc-heads.net/avatar/${botName}`
     const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
     const namePart = botRank ? `${botRank}§f` : `§a${botName}§f`
 

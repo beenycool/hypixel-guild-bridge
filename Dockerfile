@@ -21,14 +21,7 @@ COPY package*.json ./
 # Install production dependencies
 RUN npm ci --omit=dev
 
-# Stage 2: Tailscale download
-FROM node:22-bookworm-slim AS tailscale
-
-RUN apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /ts && \
-    curl -fsSL https://pkgs.tailscale.com/stable/tailscale_latest_amd64.tgz | tar xz -C /ts --strip-components=1
-
-# Stage 3: Runtime
+# Stage 2: Runtime
 FROM node:22-bookworm-slim
 
 LABEL authors="aidn5, HyxonQz"
@@ -47,10 +40,6 @@ RUN apt-get update && apt-get install -y \
     librsvg2-2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Tailscale binaries
-COPY --from=tailscale /ts/tailscale /usr/local/bin/tailscale
-COPY --from=tailscale /ts/tailscaled /usr/local/bin/tailscaled
-
 # Copy node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
 
@@ -64,7 +53,4 @@ RUN mkdir -p logs config/backup plugins && \
 # Use non-root user for security
 # USER node
 
-COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["node", "--import", "tsx/esm", "index.ts"]

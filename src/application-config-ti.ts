@@ -24,6 +24,7 @@ export const PrometheusConfig = t.iface([], {
 export const DatabaseConfig = t.iface([], {
   "url": t.opt("string"),
   "ssl": t.opt("boolean"),
+  "maxConnections": t.opt("number"),
 });
 
 export const WebConfig = t.iface([], {

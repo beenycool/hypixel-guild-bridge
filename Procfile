@@ -1,1 +1,1 @@
-web: bash scripts/start-with-tailscale.sh
+web: node --import tsx/esm index.ts
