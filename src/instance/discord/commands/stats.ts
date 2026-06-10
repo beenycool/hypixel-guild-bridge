@@ -11,6 +11,7 @@ function createStatsEmbed(
     level?: number
     kills?: number
     wins?: number
+    deaths?: number
     kdr?: number
     wlr?: number
     coins?: number
@@ -21,6 +22,7 @@ function createStatsEmbed(
 
   if (stats.level !== undefined) fields.push({ name: 'Level', value: `${stats.level}✫`, inline: true })
   if (stats.kills !== undefined) fields.push({ name: 'Kills', value: stats.kills.toLocaleString(), inline: true })
+  if (stats.deaths !== undefined) fields.push({ name: 'Deaths', value: stats.deaths.toLocaleString(), inline: true })
   if (stats.wins !== undefined) fields.push({ name: 'Wins', value: stats.wins.toLocaleString(), inline: true })
   if (stats.kdr !== undefined) fields.push({ name: 'K/D Ratio', value: stats.kdr.toFixed(2), inline: true })
   if (stats.wlr !== undefined) fields.push({ name: 'W/L Ratio', value: stats.wlr.toFixed(2), inline: true })
@@ -53,6 +55,7 @@ export default {
             { name: 'Murder Mystery', value: 'murdermystery' },
             { name: 'Quakecraft', value: 'quakecraft' },
             { name: 'TNT Games', value: 'tntgames' },
+            { name: 'TNT Tag', value: 'tnttag' },
             { name: 'Wool Wars', value: 'woolwars' }
           )
       )
@@ -85,7 +88,15 @@ export default {
         return
       }
 
-      let stats: { level?: number; kills?: number; wins?: number; kdr?: number; wlr?: number; coins?: number } = {}
+      let stats: {
+        level?: number
+        kills?: number
+        wins?: number
+        deaths?: number
+        kdr?: number
+        wlr?: number
+        coins?: number
+      } = {}
       let gameTitle = ''
 
       switch (game) {
@@ -161,6 +172,21 @@ export default {
             coins: tnt.coins
           }
           gameTitle = 'TNT Games'
+          break
+        }
+        case 'tnttag': {
+          const tnttag = player.stats?.tntgames?.tnttag
+          if (!tnttag || !tnttag.wins) {
+            await context.interaction.editReply(`\`${username}\` has never played TNT Tag.`)
+            return
+          }
+          stats = {
+            wins: tnttag.wins,
+            kills: tnttag.kills,
+            deaths: (tnttag as any).deaths,
+            kdr: (tnttag as any).KDRatio
+          }
+          gameTitle = 'TNT Tag'
           break
         }
         case 'woolwars': {

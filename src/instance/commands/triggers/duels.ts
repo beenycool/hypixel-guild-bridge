@@ -24,12 +24,21 @@ type DuelType =
   | 'nodebuff'
   | 'bow'
   | 'skywars'
-  | 'bedwars'
+  | 'bedwars_two_one'
+  | 'bedwars_rush'
 
 const LongModeDuelTypes: ReadonlySet<DuelType> = new Set(['bridge', 'boxing', 'megawalls', 'nodebuff', 'parkour'])
 
+const DuelTypeAliases = new Map<string, DuelType>([
+  ['bw', 'bedwars_two_one'],
+  ['bwr', 'bedwars_rush'],
+  ['bedwars', 'bedwars_two_one'],
+  ['bedwarsrush', 'bedwars_rush']
+])
+
 interface GamemodeStats {
   wins: number
+  losses: number
   winstreak: number
   bestWinstreak: number
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -54,6 +63,11 @@ const BridgeOverallPrefixes = [
   'bridge_3v3v3v3',
   'capture_threes'
 ] as const
+
+const BedwarsRawPrefixes = {
+  bedwars_two_one: 'bedwars_two_one_duels',
+  bedwars_rush: 'bedwars_two_one_duels_rush'
+} as const
 
 function readRawNumber(data: Record<string, unknown>, key: string): number {
   const value = data[key]
@@ -83,6 +97,7 @@ export function getBridgeStatsFromRawDuels(
 
     return {
       wins,
+      losses,
       winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${prefix}`),
       bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${prefix}`),
       WLRatio: divideLikeHypixel(wins, losses)
@@ -94,10 +109,41 @@ export function getBridgeStatsFromRawDuels(
 
   return {
     wins,
+    losses,
     winstreak: readRawNumber(rawDuels, 'current_bridge_winstreak'),
     bestWinstreak: readRawNumber(rawDuels, 'best_bridge_winstreak'),
     WLRatio: divideLikeHypixel(wins, losses)
   }
+}
+
+type BedwarsMode = 'bedwars_two_one' | 'bedwars_rush'
+
+function getBedwarsStatsFromRawDuels(rawDuels: Record<string, unknown>, mode: BedwarsMode): GamemodeStats {
+  const prefix = BedwarsRawPrefixes[mode]
+  const wins = readRawNumber(rawDuels, `${prefix}_wins`)
+  const lossesKey = `${prefix}_losses`
+  let losses: number
+
+  if (lossesKey in rawDuels) {
+    losses = readRawNumber(rawDuels, lossesKey)
+  } else {
+    const roundsPlayed = readRawNumber(rawDuels, `${prefix}_rounds_played`)
+    losses = Math.max(0, roundsPlayed - wins)
+  }
+
+  return {
+    wins,
+    losses,
+    winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${prefix}`),
+    bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${prefix}`),
+    WLRatio: divideLikeHypixel(wins, losses)
+  }
+}
+
+function getBedwarsCombinedWins(rawDuels: Record<string, unknown>): number {
+  return (
+    readRawNumber(rawDuels, 'bedwars_two_one_duels_wins') + readRawNumber(rawDuels, 'bedwars_two_one_duels_rush_wins')
+  )
 }
 
 export default class Duels extends HypixelPlayerCommand {
@@ -119,7 +165,8 @@ export default class Duels extends HypixelPlayerCommand {
     'bow',
     'skywars',
 
-    'bedwars'
+    'bedwars_two_one',
+    'bedwars_rush'
   ])
 
   private static readonly DuelDisplayNames: Record<DuelType, string> = {
@@ -140,7 +187,8 @@ export default class Duels extends HypixelPlayerCommand {
     bow: 'Bow',
     skywars: 'SkyWars',
 
-    bedwars: 'Bed Wars'
+    bedwars_two_one: 'BW 1v1',
+    bedwars_rush: 'BW Rush'
   }
 
   constructor() {
@@ -163,9 +211,10 @@ export default class Duels extends HypixelPlayerCommand {
     const commandArguments = context.args
 
     const firstArgument = commandArguments[0]?.toLowerCase()
-    const isFirstArgumentDuelType = firstArgument && Duels.ValidDuelTypes.has(firstArgument as DuelType)
+    const resolvedFirstArgument = DuelTypeAliases.get(firstArgument as string) ?? firstArgument
+    const isFirstArgumentDuelType = resolvedFirstArgument && Duels.ValidDuelTypes.has(resolvedFirstArgument as DuelType)
 
-    const duelType: DuelType | undefined = isFirstArgumentDuelType ? (firstArgument as DuelType) : undefined
+    const duelType: DuelType | undefined = isFirstArgumentDuelType ? (resolvedFirstArgument as DuelType) : undefined
     let givenUsername = isFirstArgumentDuelType
       ? (commandArguments[1] ?? context.username)
       : (commandArguments[0] ?? context.username)
@@ -206,6 +255,7 @@ export default class Duels extends HypixelPlayerCommand {
     if (!duelType) {
       // Overall stats
       const wins = stats.wins
+      const losses = stats.losses
       const winstreak = stats.winstreak
       const bestWinstreak = stats.bestWinstreak
       const wlRatio = stats.WLRatio
@@ -213,7 +263,26 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[Duels] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${shortenNumber(wins)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+        `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+      )
+    }
+
+    // Bedwars Duels stats (BW 1v1 and BW Rush)
+    if (duelType === 'bedwars_two_one' || duelType === 'bedwars_rush') {
+      const rawRes = (await context.app.hypixelApi.getPlayer(player.uuid, { raw: true }).catch(() => undefined)) as any
+      const rawDuels = rawRes?.player?.stats?.Duels as Record<string, unknown> | undefined
+
+      if (rawDuels === undefined) {
+        return `${givenUsername} has no Bed Wars Duels stats.`
+      }
+
+      const combinedWins = getBedwarsCombinedWins(rawDuels)
+      const division = calculateDuelsDivision(combinedWins, 'short')
+      const data = getBedwarsStatsFromRawDuels(rawDuels, duelType)
+
+      return (
+        `[${Duels.DuelDisplayNames[duelType]}] [${this.formatDivision(division)}] ${givenUsername} ` +
+        `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}`
       )
     }
 
@@ -225,7 +294,7 @@ export default class Duels extends HypixelPlayerCommand {
 
         return (
           `[${BridgeSubModeDisplayNames.get(bridgeSubMode)}] [${this.formatDivision(division)}] ${givenUsername} ` +
-          `W: ${formatBridgeWins(bridgeData.wins)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
+          `W: ${formatBridgeWins(bridgeData.wins)} | L: ${shortenNumber(bridgeData.losses)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
         )
       }
 
@@ -242,6 +311,7 @@ export default class Duels extends HypixelPlayerCommand {
 
       const subModeData = subModeRaw as GamemodeStats
       const wins = subModeData.wins
+      const losses = subModeData.losses
       const winstreak = subModeData.winstreak
       const bestWinstreak = subModeData.bestWinstreak
       const wlRatio = subModeData.WLRatio ?? 0
@@ -249,7 +319,7 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[${BridgeSubModeDisplayNames.get(bridgeSubMode)}] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${shortenNumber(wins)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+        `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
       )
     }
 
@@ -264,7 +334,7 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[Bridge] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${formatBridgeWins(bridgeData.wins)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
+        `W: ${formatBridgeWins(bridgeData.wins)} | L: ${shortenNumber(bridgeData.losses)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
       )
     }
 
@@ -279,6 +349,7 @@ export default class Duels extends HypixelPlayerCommand {
     const dataObject = (typeof duelData === 'object' && duelData !== null ? duelData : modeData) as GamemodeStats
 
     const wins = dataObject.wins
+    const losses = dataObject.losses
     const winstreak = dataObject.winstreak
     const bestWinstreak = dataObject.bestWinstreak
     const wlRatio = dataObject.WLRatio ?? 0
@@ -287,7 +358,7 @@ export default class Duels extends HypixelPlayerCommand {
 
     return (
       `[${Duels.DuelDisplayNames[duelType]}] [${this.formatDivision(division)}] ${givenUsername} ` +
-      `W: ${shortenNumber(wins)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+      `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
     )
   }
 

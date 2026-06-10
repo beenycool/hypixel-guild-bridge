@@ -280,6 +280,7 @@ function categorizeMinecraftCommand(trigger: string): string {
       'murdermystery',
       'paintball',
       'tntgames',
+      'tnttag',
       'smash',
       'megawalls',
       'speeduhc',

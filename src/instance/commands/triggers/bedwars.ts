@@ -44,6 +44,7 @@ export default class Bedwars extends HypixelPlayerCommand {
     const finalKills = this.getStat(modeStats, 'finalKills') ?? 0
     const finalKDRatio = this.getStat(modeStats, 'finalKDRatio') ?? 0
     const wins = this.getStat(modeStats, 'wins') ?? 0
+    const losses = this.getStat(modeStats, 'losses') ?? 0
     const wlRatio = this.getStat(modeStats, 'WLRatio') ?? 0
     const bedsBroken = this.getStat(modeStats, 'beds', 'broken') ?? 0
     const blRatio = this.getStat(modeStats, 'beds', 'BLRatio') ?? 0
@@ -54,7 +55,7 @@ export default class Bedwars extends HypixelPlayerCommand {
     return (
       `[${level.toFixed(0)}✫] ${givenUsername} ${modePrefix}` +
       `FK: ${shortenNumber(finalKills)} FKDR: ${formatStatNumber(finalKDRatio)} ` +
-      `W: ${shortenNumber(wins)} WLR: ${formatStatNumber(wlRatio)} ` +
+      `W: ${shortenNumber(wins)} L: ${shortenNumber(losses)} WLR: ${formatStatNumber(wlRatio)} ` +
       `BB: ${shortenNumber(bedsBroken)} BLR: ${formatStatNumber(blRatio)} ` +
       `WS: ${winstreak}`
     )
