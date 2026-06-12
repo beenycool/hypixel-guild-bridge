@@ -56,6 +56,7 @@ import Level from './triggers/level.js'
 import List from './triggers/list.js'
 import MagicalPower from './triggers/magicalpower.js'
 import Mayor from './triggers/mayor.js'
+import Monitor from './triggers/monitor.js'
 import Murdermystery from './triggers/murdermystery.js'
 import Mute from './triggers/mute.js'
 import NameHistory from './triggers/name.js'
@@ -156,6 +157,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new List(),
       new MagicalPower(),
       new Mayor(),
+      new Monitor(),
       new Murdermystery(),
       new Mute(),
       new NameHistory(),
