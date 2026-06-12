@@ -299,6 +299,7 @@ const SchemaStatements = [
     "game" TEXT NOT NULL,
     "stat" TEXT NOT NULL,
     "lastValue" DOUBLE PRECISION,
+    "threshold" DOUBLE PRECISION,
     "bridgeId" TEXT,
     "createdAt" INTEGER NOT NULL DEFAULT CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER),
     UNIQUE ("ownerId", "playerUuid", "game", "stat")

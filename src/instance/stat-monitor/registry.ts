@@ -142,3 +142,14 @@ export function isValidStat(game: string, stat: string): boolean {
 export function isValidGame(game: string): boolean {
   return gameRegistries[game] !== undefined
 }
+
+export function getSmartThreshold(stat: string, currentValue: number): number {
+  const lowerStat = stat.toLowerCase()
+  if (lowerStat.includes('kdr') || lowerStat.includes('wlr') || lowerStat.includes('ratio')) {
+    return 0.01
+  }
+  if (lowerStat.includes('level') || lowerStat.includes('star') || lowerStat.includes('streak')) {
+    return 1
+  }
+  return Math.max(1, Math.floor(Math.sqrt(currentValue) / 2))
+}

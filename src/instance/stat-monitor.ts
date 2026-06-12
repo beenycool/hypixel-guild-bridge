@@ -6,7 +6,13 @@ import { Instance } from '../common/instance.js'
 import Duration from '../utility/duration'
 import { setIntervalAsync } from '../utility/scheduling'
 
-import { extractStatValue, formatStatValue, getStatDecimals, getStatLabel } from './stat-monitor/registry'
+import {
+  extractStatValue,
+  formatStatValue,
+  getSmartThreshold,
+  getStatDecimals,
+  getStatLabel
+} from './stat-monitor/registry'
 
 interface StatMonitorRow {
   id: number
@@ -16,6 +22,7 @@ interface StatMonitorRow {
   game: string
   stat: string
   lastValue: number | null
+  threshold: number | null
   bridgeId: string | null
 }
 
@@ -61,31 +68,37 @@ export default class StatMonitor extends Instance<InstanceType.Utility> {
         if (currentValue === undefined) continue
 
         const lastValue = watch.lastValue
-        if (lastValue !== null && currentValue !== lastValue) {
-          const decimals = getStatDecimals(watch.game, watch.stat)
-          const statLabel = getStatLabel(watch.game, watch.stat) ?? watch.stat
-
+        if (lastValue === null) {
+          await this.updateLastValue(watch.id, currentValue)
+        } else {
           const diff = currentValue - lastValue
-          const diffString = diff > 0 ? `+${formatStatValue(diff, decimals)}` : formatStatValue(diff, decimals)
+          const threshold =
+            watch.threshold && watch.threshold > 0 ? watch.threshold : getSmartThreshold(watch.stat, lastValue)
 
-          const message =
-            `[Monitor] ${playerName}'s ${statLabel}: ${formatStatValue(lastValue, decimals)} ` +
-            `→ ${formatStatValue(currentValue, decimals)} (${diffString})`
+          if (Math.abs(diff) >= threshold) {
+            const decimals = getStatDecimals(watch.game, watch.stat)
+            const statLabel = getStatLabel(watch.game, watch.stat) ?? watch.stat
+            const diffString = diff > 0 ? `+${formatStatValue(diff, decimals)}` : formatStatValue(diff, decimals)
 
-          await this.application.emit('broadcast', {
-            eventId: this.eventHelper.generate(),
-            createdAt: Date.now(),
-            instanceName: this.instanceName,
-            instanceType: this.instanceType,
-            bridgeId: watch.bridgeId ?? undefined,
-            channels: [ChannelType.Public],
-            color: Color.Info,
-            user: undefined,
-            message: message
-          })
+            const message =
+              `[Monitor] ${playerName}'s ${statLabel}: ${formatStatValue(lastValue, decimals)} ` +
+              `→ ${formatStatValue(currentValue, decimals)} (${diffString})`
+
+            await this.application.emit('broadcast', {
+              eventId: this.eventHelper.generate(),
+              createdAt: Date.now(),
+              instanceName: this.instanceName,
+              instanceType: this.instanceType,
+              bridgeId: watch.bridgeId ?? undefined,
+              channels: [ChannelType.Public],
+              color: Color.Info,
+              user: undefined,
+              message: message
+            })
+
+            await this.updateLastValue(watch.id, currentValue)
+          }
         }
-
-        await this.updateLastValue(watch.id, currentValue)
       }
     }
   }
@@ -106,15 +119,32 @@ export default class StatMonitor extends Instance<InstanceType.Utility> {
     game: string,
     stat: string,
     lastValue: number,
-    bridgeId: string | undefined
+    bridgeId: string | undefined,
+    threshold?: number
   ): Promise<void> {
     await this.application.core.databaseManager.execute(
-      `INSERT INTO "statMonitors" ("ownerId", "playerUuid", "playerName", "game", "stat", "lastValue", "bridgeId")
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO "statMonitors" ("ownerId", "playerUuid", "playerName", "game", "stat", "lastValue", "bridgeId", "threshold")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT ("ownerId", "playerUuid", "game", "stat")
-       DO UPDATE SET "lastValue" = EXCLUDED."lastValue", "playerName" = EXCLUDED."playerName"`,
-      [ownerId, playerUuid, playerName, game, stat, lastValue, bridgeId ?? undefined]
+       DO UPDATE SET "lastValue" = EXCLUDED."lastValue", "playerName" = EXCLUDED."playerName", "threshold" = EXCLUDED."threshold"`,
+      /* eslint-disable-next-line unicorn/no-null */
+      [ownerId, playerUuid, playerName, game, stat, lastValue, bridgeId ?? undefined, threshold ?? null]
     )
+  }
+
+  public async updateThreshold(
+    ownerId: string,
+    playerUuid: string,
+    game: string,
+    stat: string,
+    threshold: number | undefined
+  ): Promise<boolean> {
+    const result = await this.application.core.databaseManager.execute(
+      `UPDATE "statMonitors" SET "threshold" = $1 WHERE "ownerId" = $2 AND "playerUuid" = $3 AND "game" = $4 AND "stat" = $5`,
+      /* eslint-disable-next-line unicorn/no-null */
+      [threshold ?? null, ownerId, playerUuid, game, stat]
+    )
+    return result > 0
   }
 
   public async removeMonitor(ownerId: string, playerUuid: string, game: string, stat: string): Promise<boolean> {
@@ -135,7 +165,7 @@ export default class StatMonitor extends Instance<InstanceType.Utility> {
 
   public async getMonitorsForOwner(ownerId: string): Promise<StatMonitorRow[]> {
     return await this.application.core.databaseManager.queryRows<StatMonitorRow>(
-      `SELECT "id", "ownerId", "playerUuid", "playerName", "game", "stat", "lastValue", "bridgeId"
+      `SELECT "id", "ownerId", "playerUuid", "playerName", "game", "stat", "lastValue", "threshold", "bridgeId"
        FROM "statMonitors" WHERE "ownerId" = $1
        ORDER BY "createdAt" ASC`,
       [ownerId]
@@ -152,7 +182,7 @@ export default class StatMonitor extends Instance<InstanceType.Utility> {
 
   private async getAllMonitors(): Promise<StatMonitorRow[]> {
     return await this.application.core.databaseManager.queryRows<StatMonitorRow>(
-      `SELECT "id", "ownerId", "playerUuid", "playerName", "game", "stat", "lastValue", "bridgeId"
+      `SELECT "id", "ownerId", "playerUuid", "playerName", "game", "stat", "lastValue", "threshold", "bridgeId"
        FROM "statMonitors"
        ORDER BY "createdAt" ASC`
     )
