@@ -30,6 +30,7 @@ import Collection from './triggers/collection'
 import Crimson from './triggers/crimson.js'
 import CurrentDungeon from './triggers/current-dungeon.js'
 import DadJoke from './triggers/dadjoke.js'
+import Denick from './triggers/denick.js'
 import DarkAuction from './triggers/darkauction.js'
 import DevelopmentExcuse from './triggers/devexcuse.js'
 import Discord from './triggers/discord'
@@ -132,6 +133,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Crimson(),
       new CurrentDungeon(),
       new DadJoke(),
+      new Denick(),
       new DarkAuction(),
       new DevelopmentExcuse(),
       new Discord(),
