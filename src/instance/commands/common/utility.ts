@@ -152,6 +152,30 @@ export function formatStatNumber(value: number, decimals = 2): string {
   return value.toFixed(decimals)
 }
 
+import DefaultAxios from 'axios'
+
+export interface AuroraPingEntry {
+  avg: number
+  min: number
+  max: number
+  day: string
+}
+
+const AuroraPingBaseUrl = 'https://bordic.xyz/api/v2/resources/ping'
+
+export async function fetchAuroraPing(uuid: string, apiKey: string): Promise<AuroraPingEntry | undefined> {
+  try {
+    const url = `${AuroraPingBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
+    const response = await DefaultAxios.get<{ success: boolean; data?: AuroraPingEntry[] }>(url, {
+      headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-Ping/1.0.0' }
+    })
+    if (!response.data.success || !response.data.data || response.data.data.length === 0) return undefined
+    return response.data.data[0]
+  } catch {
+    return undefined
+  }
+}
+
 export function capitalize(name: string): string {
   return name.slice(0, 1).toUpperCase() + name.slice(1).toLowerCase()
 }

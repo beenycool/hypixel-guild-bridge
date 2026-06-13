@@ -83,7 +83,7 @@ export default class Skywars extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.skywars
-    if (stats === undefined) return `${givenUsername} has never played SkyWars before?`
+    if (stats === undefined) return `${givenUsername} has never played SkyWars before?` + this.formatPingSuffix()
 
     const level = stats.level
     const kills = stats.kills
@@ -99,7 +99,8 @@ export default class Skywars extends HypixelPlayerCommand {
       `[${prestige} ${level.toFixed(0)}${emblem}] ${givenUsername} ` +
       `Kills: ${shortenNumber(kills)} KDR: ${formatStatNumber(kdRatio)} | ` +
       `Wins: ${shortenNumber(wins)} WLR: ${formatStatNumber(wlRatio)} | ` +
-      `Coins: ${shortenNumber(coins)}`
+      `Coins: ${shortenNumber(coins)}` +
+      this.formatPingSuffix()
     )
   }
 }

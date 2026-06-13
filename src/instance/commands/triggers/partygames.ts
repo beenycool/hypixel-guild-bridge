@@ -17,14 +17,15 @@ export default class PartyGames extends HypixelPlayerCommand {
     const arcade = player.stats?.arcade as
       | { partyGames?: { wins: number; roundWins: number; stars: number } }
       | undefined
-    if (arcade === undefined) return `${givenUsername} has never played Arcade games.`
+    if (arcade === undefined) return `${givenUsername} has never played Arcade games.` + this.formatPingSuffix()
 
     const pg = arcade.partyGames
-    if (pg === undefined) return `${givenUsername} has never played Party Games.`
+    if (pg === undefined) return `${givenUsername} has never played Party Games.` + this.formatPingSuffix()
 
     return (
       `${givenUsername}'s Party Games: ` +
-      `Wins: ${shortenNumber(pg.wins)} | Round Wins: ${shortenNumber(pg.roundWins)} | Stars: ${shortenNumber(pg.stars)}`
+      `Wins: ${shortenNumber(pg.wins)} | Round Wins: ${shortenNumber(pg.roundWins)} | Stars: ${shortenNumber(pg.stars)}` +
+      this.formatPingSuffix()
     )
   }
 }

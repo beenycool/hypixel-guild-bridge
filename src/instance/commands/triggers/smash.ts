@@ -15,7 +15,7 @@ export default class Smash extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.smashheroes
-    if (stats === undefined) return `${givenUsername} has never played Smash Heroes.`
+    if (stats === undefined) return `${givenUsername} has never played Smash Heroes.` + this.formatPingSuffix()
 
     const level = stats.level
     const kills = stats.kills
@@ -24,7 +24,8 @@ export default class Smash extends HypixelPlayerCommand {
 
     return (
       `[${level}] ${givenUsername}'s Smash Heroes: ` +
-      `Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | Wins: ${shortenNumber(wins)}`
+      `Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | Wins: ${shortenNumber(wins)}` +
+      this.formatPingSuffix()
     )
   }
 }

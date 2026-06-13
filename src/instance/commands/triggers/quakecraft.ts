@@ -15,7 +15,7 @@ export default class Quakecraft extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.quakecraft
-    if (stats === undefined) return `${givenUsername} has never played Quakecraft.`
+    if (stats === undefined) return `${givenUsername} has never played Quakecraft.` + this.formatPingSuffix()
 
     const wins = stats.wins
     const kills = stats.kills
@@ -29,7 +29,8 @@ export default class Quakecraft extends HypixelPlayerCommand {
     return (
       `${givenUsername}'s Quakecraft: ` +
       `Kills: ${shortenNumber(kills)} | Wins: ${shortenNumber(wins)} | Deaths: ${shortenNumber(deaths)} | KDR: ${KDRatio.toFixed(2)} | ` +
-      `Killstreaks: ${shortenNumber(killstreaks)} | Headshots: ${shortenNumber(headshots)} | Shots Fired: ${shortenNumber(shotsFired)} | Coins: ${shortenNumber(coins)}`
+      `Killstreaks: ${shortenNumber(killstreaks)} | Headshots: ${shortenNumber(headshots)} | Shots Fired: ${shortenNumber(shotsFired)} | Coins: ${shortenNumber(coins)}` +
+      this.formatPingSuffix()
     )
   }
 }

@@ -39,13 +39,16 @@ export default class Buildbattle extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stat = player.stats?.buildbattle
-    if (stat === undefined) return `${givenUsername} has never played Build Battle before?`
+    if (stat === undefined) return `${givenUsername} has never played Build Battle before?` + this.formatPingSuffix()
 
     const score = stat.score
     const wins = stat.wins.gtb + stat.wins.pro + stat.wins.solo + stat.wins.teams
     const title = await this.getTitle(context, player.uuid, score)
 
-    return `${title} ${givenUsername}'s Build Battle score is ${score.toLocaleString('en-US')} with ${wins.toLocaleString('en-US')} wins.`
+    return (
+      `${title} ${givenUsername}'s Build Battle score is ${score.toLocaleString('en-US')} with ${wins.toLocaleString('en-US')} wins.` +
+      this.formatPingSuffix()
+    )
   }
 
   private async getTitle(context: ChatCommandContext, uuid: string, score: number): Promise<string> {

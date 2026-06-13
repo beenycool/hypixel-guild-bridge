@@ -15,7 +15,7 @@ export default class Warlords extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.warlords
-    if (stats === undefined) return `${givenUsername} has never played Warlords.`
+    if (stats === undefined) return `${givenUsername} has never played Warlords.` + this.formatPingSuffix()
 
     const kills = stats.kills
     const deaths = stats.deaths
@@ -26,7 +26,8 @@ export default class Warlords extends HypixelPlayerCommand {
     return (
       `${givenUsername}'s Warlords: ` +
       `Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | KDR: ${formatStatNumber(kdr)} | ` +
-      `Wins: ${shortenNumber(wins)} | Assists: ${shortenNumber(assists)}`
+      `Wins: ${shortenNumber(wins)} | Assists: ${shortenNumber(assists)}` +
+      this.formatPingSuffix()
     )
   }
 }

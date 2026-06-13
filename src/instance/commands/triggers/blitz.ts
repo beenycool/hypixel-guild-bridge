@@ -15,7 +15,7 @@ export default class Blitz extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.blitzsg
-    if (stats === undefined) return `${givenUsername} has never played Blitz SG.`
+    if (stats === undefined) return `${givenUsername} has never played Blitz SG.` + this.formatPingSuffix()
 
     const kills = stats.kills
     const wins = stats.wins
@@ -23,7 +23,8 @@ export default class Blitz extends HypixelPlayerCommand {
 
     return (
       `${givenUsername}'s Blitz SG: ` +
-      `Kills: ${shortenNumber(kills)} | Wins: ${shortenNumber(wins)} | Coins: ${shortenNumber(coins)}`
+      `Kills: ${shortenNumber(kills)} | Wins: ${shortenNumber(wins)} | Coins: ${shortenNumber(coins)}` +
+      this.formatPingSuffix()
     )
   }
 }

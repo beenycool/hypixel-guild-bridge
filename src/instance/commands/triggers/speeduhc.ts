@@ -15,7 +15,7 @@ export default class Speed extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.speeduhc
-    if (stats === undefined) return `${givenUsername} has never played Speed UHC.`
+    if (stats === undefined) return `${givenUsername} has never played Speed UHC.` + this.formatPingSuffix()
 
     const kills = stats.kills
     const deaths = stats.deaths
@@ -26,7 +26,8 @@ export default class Speed extends HypixelPlayerCommand {
     return (
       `${givenUsername}'s Speed UHC: ` +
       `Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | KDR: ${formatStatNumber(kdr)} | ` +
-      `Wins: ${shortenNumber(wins)} | Coins: ${shortenNumber(coins)}`
+      `Wins: ${shortenNumber(wins)} | Coins: ${shortenNumber(coins)}` +
+      this.formatPingSuffix()
     )
   }
 }

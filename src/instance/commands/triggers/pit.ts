@@ -15,7 +15,7 @@ export default class Pit extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.pit
-    if (stats === undefined) return `${givenUsername} has never played The Pit.`
+    if (stats === undefined) return `${givenUsername} has never played The Pit.` + this.formatPingSuffix()
 
     const kills = stats.kills
     const deaths = stats.deaths
@@ -25,7 +25,8 @@ export default class Pit extends HypixelPlayerCommand {
     return (
       `${givenUsername}'s Pit: ` +
       `Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | ` +
-      `KDR: ${formatStatNumber(kdr)} | Playtime: ${Math.floor(playtime / 60)}h`
+      `KDR: ${formatStatNumber(kdr)} | Playtime: ${Math.floor(playtime / 60)}h` +
+      this.formatPingSuffix()
     )
   }
 }

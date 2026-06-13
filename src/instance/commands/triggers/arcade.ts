@@ -15,10 +15,10 @@ export default class Arcade extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.arcade
-    if (stats === undefined) return `${givenUsername} has never played Arcade games.`
+    if (stats === undefined) return `${givenUsername} has never played Arcade games.` + this.formatPingSuffix()
 
     const coins = stats.coins
 
-    return `${givenUsername}'s Arcade: Coins: ${shortenNumber(coins)}`
+    return `${givenUsername}'s Arcade: Coins: ${shortenNumber(coins)}` + this.formatPingSuffix()
   }
 }

@@ -15,7 +15,7 @@ export default class Paintball extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.paintball
-    if (stats === undefined) return `${givenUsername} has never played Paintball.`
+    if (stats === undefined) return `${givenUsername} has never played Paintball.` + this.formatPingSuffix()
 
     const kills = stats.kills
     const deaths = stats.deaths
@@ -26,7 +26,8 @@ export default class Paintball extends HypixelPlayerCommand {
     return (
       `${givenUsername}'s Paintball: ` +
       `Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | KDR: ${formatStatNumber(kdr)} | ` +
-      `Wins: ${shortenNumber(wins)} | Shots: ${shortenNumber(shotsFired)}`
+      `Wins: ${shortenNumber(wins)} | Shots: ${shortenNumber(shotsFired)}` +
+      this.formatPingSuffix()
     )
   }
 }

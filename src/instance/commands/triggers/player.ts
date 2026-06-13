@@ -28,7 +28,8 @@ export default class Player extends HypixelPlayerCommand {
       `${rankPrefix}${player.nickname}'s level: ${level} | ` +
       `Karma: ${karma} | ` +
       `Achievement Points: ${achievementPoints} | ` +
-      `Guild: ${guildName}`
+      `Guild: ${guildName}` +
+      this.formatPingSuffix()
     )
   }
 }

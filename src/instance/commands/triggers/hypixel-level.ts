@@ -13,6 +13,6 @@ export default class HypixelLevel extends HypixelPlayerCommand {
   }
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
-    return `${givenUsername} is Hypixel level ${player.level}.`
+    return `${givenUsername} is Hypixel level ${player.level}.` + this.formatPingSuffix()
   }
 }

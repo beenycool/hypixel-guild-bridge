@@ -28,7 +28,7 @@ export default class Woolwars extends HypixelPlayerCommand {
         }
       | undefined
 
-    if (stats?.woolWars == undefined) return `${givenUsername} has never played Wool Wars.`
+    if (stats?.woolWars == undefined) return `${givenUsername} has never played Wool Wars.` + this.formatPingSuffix()
 
     const level = stats.level ?? 0
     const overall = stats.woolWars
@@ -47,7 +47,8 @@ export default class Woolwars extends HypixelPlayerCommand {
       `[${Math.floor(level)}✫] ${givenUsername}: ` +
       `W: ${shortenNumber(roundWins)} | WLR: ${formatStatNumber(wlr)} | KDR: ${formatStatNumber(kdRatio)} | ` +
       `BB: ${shortenNumber(blocksBroken)} | WP: ${shortenNumber(woolsPlaced)} | ` +
-      `WPP: ${formatStatNumber(wpp)} | WPG: ${formatStatNumber(wpg)}`
+      `WPP: ${formatStatNumber(wpp)} | WPG: ${formatStatNumber(wpg)}` +
+      this.formatPingSuffix()
     )
   }
 }

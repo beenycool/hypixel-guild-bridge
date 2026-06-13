@@ -33,11 +33,11 @@ export default class Bedwars extends HypixelPlayerCommand {
     const { mode } = this.parseArgs(context)
 
     const stats = player.stats?.bedwars
-    if (stats === undefined) return `${givenUsername} has never played Bed Wars before?`
+    if (stats === undefined) return `${givenUsername} has never played Bed Wars before?` + this.formatPingSuffix()
 
     const modeStats = mode === 'overall' ? stats : (stats as unknown as Record<string, unknown>)[mode]
     if (modeStats === undefined) {
-      return `${givenUsername} has no ${capitalize(mode)} Bed Wars stats.`
+      return `${givenUsername} has no ${capitalize(mode)} Bed Wars stats.` + this.formatPingSuffix()
     }
 
     const level = stats.level
@@ -57,7 +57,8 @@ export default class Bedwars extends HypixelPlayerCommand {
       `FK: ${shortenNumber(finalKills)} FKDR: ${formatStatNumber(finalKDRatio)} ` +
       `W: ${shortenNumber(wins)} L: ${shortenNumber(losses)} WLR: ${formatStatNumber(wlRatio)} ` +
       `BB: ${shortenNumber(bedsBroken)} BLR: ${formatStatNumber(blRatio)} ` +
-      `WS: ${winstreak}`
+      `WS: ${winstreak}` +
+      this.formatPingSuffix()
     )
   }
 

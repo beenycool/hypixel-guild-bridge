@@ -244,7 +244,7 @@ export default class Duels extends HypixelPlayerCommand {
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const { duelType, bridgeSubMode } = this.parseArgs(context)
     const stats = player.stats?.duels
-    if (stats === undefined) return `${givenUsername} has never played Duels.`
+    if (stats === undefined) return `${givenUsername} has never played Duels.` + this.formatPingSuffix()
 
     let rawBridgeStats: Record<string, unknown> | undefined
     if (duelType === 'bridge') {
@@ -263,7 +263,8 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[Duels] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+        `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}` +
+        this.formatPingSuffix()
       )
     }
 
@@ -273,7 +274,7 @@ export default class Duels extends HypixelPlayerCommand {
       const rawDuels = rawRes?.player?.stats?.Duels as Record<string, unknown> | undefined
 
       if (rawDuels === undefined) {
-        return `${givenUsername} has no Bed Wars Duels stats.`
+        return `${givenUsername} has no Bed Wars Duels stats.` + this.formatPingSuffix()
       }
 
       const combinedWins = getBedwarsCombinedWins(rawDuels)
@@ -282,7 +283,8 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[${Duels.DuelDisplayNames[duelType]}] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}`
+        `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}` +
+        this.formatPingSuffix()
       )
     }
 
@@ -294,19 +296,22 @@ export default class Duels extends HypixelPlayerCommand {
 
         return (
           `[${BridgeSubModeDisplayNames.get(bridgeSubMode)}] [${this.formatDivision(division)}] ${givenUsername} ` +
-          `W: ${formatBridgeWins(bridgeData.wins)} | L: ${shortenNumber(bridgeData.losses)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
+          `W: ${formatBridgeWins(bridgeData.wins)} | L: ${shortenNumber(bridgeData.losses)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}` +
+          this.formatPingSuffix()
         )
       }
 
       const bridgeData = stats.bridge as unknown as Record<string, unknown> | undefined
 
       if (!bridgeData || typeof bridgeData !== 'object') {
-        return `${givenUsername} has no Bridge stats.`
+        return `${givenUsername} has no Bridge stats.` + this.formatPingSuffix()
       }
 
       const subModeRaw = bridgeData?.[bridgeSubMode]
       if (!subModeRaw || typeof subModeRaw !== 'object') {
-        return `${givenUsername} has no ${BridgeSubModeDisplayNames.get(bridgeSubMode)} stats.`
+        return (
+          `${givenUsername} has no ${BridgeSubModeDisplayNames.get(bridgeSubMode)} stats.` + this.formatPingSuffix()
+        )
       }
 
       const subModeData = subModeRaw as GamemodeStats
@@ -319,7 +324,8 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[${BridgeSubModeDisplayNames.get(bridgeSubMode)}] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+        `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}` +
+        this.formatPingSuffix()
       )
     }
 
@@ -327,21 +333,22 @@ export default class Duels extends HypixelPlayerCommand {
       const bridgeData =
         rawBridgeStats === undefined ? (stats.bridge as GamemodeStats) : getBridgeStatsFromRawDuels(rawBridgeStats)
       if (bridgeData === undefined) {
-        return `${givenUsername} has no Bridge stats.`
+        return `${givenUsername} has no Bridge stats.` + this.formatPingSuffix()
       }
 
       const division = calculateDuelsDivision(bridgeData.wins, 'long')
 
       return (
         `[Bridge] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${formatBridgeWins(bridgeData.wins)} | L: ${shortenNumber(bridgeData.losses)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}`
+        `W: ${formatBridgeWins(bridgeData.wins)} | L: ${shortenNumber(bridgeData.losses)} | CWS: ${bridgeData.winstreak} | BWS: ${bridgeData.bestWinstreak} | WLR: ${bridgeData.WLRatio.toFixed(2)}` +
+        this.formatPingSuffix()
       )
     }
 
     // Mode-specific stats
     const modeData = (stats as unknown as Record<string, unknown>)[duelType]
     if (!modeData || typeof modeData !== 'object') {
-      return `${givenUsername} has no ${Duels.DuelDisplayNames[duelType]} Duels stats.`
+      return `${givenUsername} has no ${Duels.DuelDisplayNames[duelType]} Duels stats.` + this.formatPingSuffix()
     }
 
     const firstKey = Object.keys(modeData)[0]
@@ -358,7 +365,8 @@ export default class Duels extends HypixelPlayerCommand {
 
     return (
       `[${Duels.DuelDisplayNames[duelType]}] [${this.formatDivision(division)}] ${givenUsername} ` +
-      `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}`
+      `W: ${shortenNumber(wins)} | L: ${shortenNumber(losses)} | CWS: ${winstreak} | BWS: ${bestWinstreak} | WLR: ${wlRatio.toFixed(2)}` +
+      this.formatPingSuffix()
     )
   }
 

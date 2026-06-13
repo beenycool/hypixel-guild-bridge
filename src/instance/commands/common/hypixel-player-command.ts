@@ -2,7 +2,8 @@ import type { Player } from 'hypixel-api-reborn'
 
 import { type ChatCommandContext, ChatCommandHandler } from '../../../common/commands.js'
 
-import { getUuidIfExists, playerNeverPlayedHypixel, usernameNotExists } from './utility'
+import { fetchAuroraPing, getUuidIfExists, playerNeverPlayedHypixel, usernameNotExists } from './utility'
+import type { AuroraPingEntry } from './utility'
 
 function classifyHypixelError(error: unknown): string | undefined {
   const status = (error as { response?: { status?: number } })?.response?.status
@@ -16,6 +17,8 @@ function classifyHypixelError(error: unknown): string | undefined {
 }
 
 export abstract class HypixelPlayerCommand extends ChatCommandHandler {
+  protected lastPing: AuroraPingEntry | undefined
+
   protected resolveUsername(context: ChatCommandContext): string {
     return context.args[0] ?? context.username
   }
@@ -36,6 +39,8 @@ export abstract class HypixelPlayerCommand extends ChatCommandHandler {
       )
       return usernameNotExists(context, givenUsername)
     }
+
+    this.lastPing = await fetchAuroraPing(uuid, context.app.auroraApiKey ?? '')
 
     try {
       context.logger.debug(
@@ -65,6 +70,11 @@ export abstract class HypixelPlayerCommand extends ChatCommandHandler {
       )
       return playerNeverPlayedHypixel(context, givenUsername)
     }
+  }
+
+  protected formatPingSuffix(): string {
+    if (!this.lastPing) return ''
+    return ` Ping: ${this.lastPing.avg} (${this.lastPing.min}-${this.lastPing.max})`
   }
 
   abstract onPlayer(context: ChatCommandContext, username: string, player: Player): Promise<string>

@@ -15,13 +15,16 @@ export default class Uhc extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.uhc
-    if (stats === undefined) return `${givenUsername} has never played UHC.`
+    if (stats === undefined) return `${givenUsername} has never played UHC.` + this.formatPingSuffix()
 
     const starLevel = stats.starLevel
     const kdRatio = stats.KDRatio
     const wins = stats.wins
     const headsEaten = stats.headsEaten
 
-    return `[${starLevel}✫] ${givenUsername} | KDR: ${formatStatNumber(kdRatio)} | W: ${wins} | Heads: ${headsEaten}`
+    return (
+      `[${starLevel}✫] ${givenUsername} | KDR: ${formatStatNumber(kdRatio)} | W: ${wins} | Heads: ${headsEaten}` +
+      this.formatPingSuffix()
+    )
   }
 }

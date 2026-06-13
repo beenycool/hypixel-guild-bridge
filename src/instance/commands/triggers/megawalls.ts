@@ -15,7 +15,7 @@ export default class Megawalls extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.megawalls
-    if (stats === undefined) return `${givenUsername} has never played Megawalls.`
+    if (stats === undefined) return `${givenUsername} has never played Megawalls.` + this.formatPingSuffix()
 
     const selectedClass = stats.selectedClass ?? 'None'
     const finalKills = stats.finalKills
@@ -30,7 +30,8 @@ export default class Megawalls extends HypixelPlayerCommand {
       `${givenUsername}'s Megawalls: Class: ${selectedClass} | ` +
       `FK: ${shortenNumber(finalKills)} FKDR: ${formatStatNumber(finalKDRatio)} | ` +
       `W: ${shortenNumber(wins)} WLR: ${formatStatNumber(wlRatio)} | ` +
-      `K: ${shortenNumber(kills)} KDR: ${formatStatNumber(kdRatio)} | A: ${shortenNumber(assists)}`
+      `K: ${shortenNumber(kills)} KDR: ${formatStatNumber(kdRatio)} | A: ${shortenNumber(assists)}` +
+      this.formatPingSuffix()
     )
   }
 }

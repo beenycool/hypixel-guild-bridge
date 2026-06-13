@@ -15,11 +15,15 @@ export default class Murdermystery extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.murdermystery
-    if (stats === undefined) return `${givenUsername} has never played Murder Mystery.`
+    if (stats === undefined) return `${givenUsername} has never played Murder Mystery.` + this.formatPingSuffix()
 
     const wins = stats.wins
     const kills = stats.kills
 
-    return `${givenUsername}'s Murder Mystery: ` + `Wins: ${shortenNumber(wins)} | Kills: ${shortenNumber(kills)}`
+    return (
+      `${givenUsername}'s Murder Mystery: ` +
+      `Wins: ${shortenNumber(wins)} | Kills: ${shortenNumber(kills)}` +
+      this.formatPingSuffix()
+    )
   }
 }

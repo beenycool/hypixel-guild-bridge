@@ -15,7 +15,7 @@ export default class Cops extends HypixelPlayerCommand {
 
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.copsandcrims
-    if (stats === undefined) return `${givenUsername} has never played Cops and Crims.`
+    if (stats === undefined) return `${givenUsername} has never played Cops and Crims.` + this.formatPingSuffix()
 
     const kills = stats.kills
     const deaths = stats.deaths
@@ -26,7 +26,8 @@ export default class Cops extends HypixelPlayerCommand {
     return (
       `${givenUsername}'s Cops&Crims: ` +
       `Kills: ${shortenNumber(kills)} | Deaths: ${shortenNumber(deaths)} | KDR: ${formatStatNumber(kdr)} | ` +
-      `Wins: ${shortenNumber(wins)} | Headshots: ${shortenNumber(headshotKills)}`
+      `Wins: ${shortenNumber(wins)} | Headshots: ${shortenNumber(headshotKills)}` +
+      this.formatPingSuffix()
     )
   }
 }
