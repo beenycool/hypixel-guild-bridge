@@ -27,7 +27,7 @@ export default class Insult extends ChatCommandHandler {
     }
 
     let message = messages[Math.floor(Math.random() * messages.length)]
-    message = message.replaceAll('{username}', givenUsername)
+    message = message.replaceAll('{{name}}', givenUsername)
 
     return message
   }

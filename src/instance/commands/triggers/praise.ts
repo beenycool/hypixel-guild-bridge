@@ -20,10 +20,14 @@ export default class Praise extends ChatCommandHandler {
         bridgeId !== undefined ? context.app.core.bridgeConfigurations.getInsultMode(bridgeId) : undefined
       const i18nKey = insultMode === 'custom' ? 'commands.insult' : 'commands.insult.normal'
       const messages = context.app.i18n.t(($) => $[i18nKey], { returnObjects: true, name: givenUsername })
-      return messages[Math.floor(Math.random() * messages.length)]
+      let message = messages[Math.floor(Math.random() * messages.length)]
+      message = message.replaceAll('{{name}}', givenUsername)
+      return message
     }
 
     const messages = context.app.i18n.t(($) => $['commands.praise'], { returnObjects: true, name: givenUsername })
-    return messages[Math.floor(Math.random() * messages.length)]
+    let message = messages[Math.floor(Math.random() * messages.length)]
+    message = message.replaceAll('{{name}}', givenUsername)
+    return message
   }
 }
