@@ -33,7 +33,7 @@ export default class Bedwars extends HypixelPlayerCommand {
     const { mode } = this.parseArgs(context)
 
     const stats = player.stats?.bedwars
-    if (stats === undefined) return `${givenUsername} has never played Bed Wars before?` + this.formatPingSuffix()
+    if (stats == null) return `${givenUsername} has never played Bed Wars before?` + this.formatPingSuffix()
 
     const modeStats = mode === 'overall' ? stats : (stats as unknown as Record<string, unknown>)[mode]
     if (modeStats === undefined) {
