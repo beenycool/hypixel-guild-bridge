@@ -20,8 +20,12 @@ export default class Insult extends ChatCommandHandler {
 
     let messages = context.app.i18n.t(($) => $[i18nKey], { returnObjects: true, name: givenUsername })
     if (!Array.isArray(messages) || messages.length === 0) {
-      messages = context.app.i18n.t(($) => $['commands.insult.normal'], { returnObjects: true, name: givenUsername })
+      messages = context.app.i18n.t(($) => $['commands.insult'], { returnObjects: true, name: givenUsername })
     }
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return `${givenUsername}, you're lucky there are no insults configured right now.`
+    }
+
     let message = messages[Math.floor(Math.random() * messages.length)]
     message = message.replaceAll('{username}', givenUsername)
 
