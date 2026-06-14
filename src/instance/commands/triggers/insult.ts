@@ -13,7 +13,15 @@ export default class Insult extends ChatCommandHandler {
   handler(context: ChatCommandContext): string {
     const givenUsername = context.args[0] ?? context.username
 
-    const messages = context.app.i18n.t(($) => $['commands.insult'], { returnObjects: true, name: givenUsername })
+    const bridgeId = context.message.bridgeId
+    const insultMode =
+      bridgeId !== undefined ? context.app.core.bridgeConfigurations.getInsultMode(bridgeId) : undefined
+    const i18nKey = insultMode === 'custom' ? 'commands.insult' : 'commands.insult.normal'
+
+    let messages = context.app.i18n.t(($) => $[i18nKey], { returnObjects: true, name: givenUsername })
+    if (!Array.isArray(messages) || messages.length === 0) {
+      messages = context.app.i18n.t(($) => $['commands.insult.normal'], { returnObjects: true, name: givenUsername })
+    }
     let message = messages[Math.floor(Math.random() * messages.length)]
     message = message.replaceAll('{username}', givenUsername)
 

@@ -14,10 +14,16 @@ export default class Praise extends ChatCommandHandler {
     const givenUsername = context.args[0] ?? context.username
 
     // easter egg
-    const messages =
-      Math.random() > 0.01
-        ? context.app.i18n.t(($) => $['commands.praise'], { returnObjects: true, name: givenUsername })
-        : context.app.i18n.t(($) => $['commands.insult'], { returnObjects: true, name: givenUsername })
+    if (Math.random() <= 0.01) {
+      const bridgeId = context.message.bridgeId
+      const insultMode =
+        bridgeId !== undefined ? context.app.core.bridgeConfigurations.getInsultMode(bridgeId) : undefined
+      const i18nKey = insultMode === 'custom' ? 'commands.insult' : 'commands.insult.normal'
+      const messages = context.app.i18n.t(($) => $[i18nKey], { returnObjects: true, name: givenUsername })
+      return messages[Math.floor(Math.random() * messages.length)]
+    }
+
+    const messages = context.app.i18n.t(($) => $['commands.praise'], { returnObjects: true, name: givenUsername })
     return messages[Math.floor(Math.random() * messages.length)]
   }
 }

@@ -79,6 +79,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_suggestOnTypo`)
     this.configuration.delete(`${bridgeId}_typoSuggestionThreshold`)
     this.configuration.delete(`${bridgeId}_typoCooldownSeconds`)
+    this.configuration.delete(`${bridgeId}_insultMode`)
 
     // Quality of Life settings
     this.configuration.delete(`${bridgeId}_joinGuildReaction`)
@@ -661,6 +662,25 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       this.configuration.delete(`${bridgeId}_typoCooldownSeconds`)
     } else {
       this.configuration.setNumber(`${bridgeId}_typoCooldownSeconds`, seconds)
+    }
+  }
+
+  /**
+   * Get insult mode for a specific bridge ('normal', 'custom', or undefined = use global default)
+   */
+  public getInsultMode(bridgeId: string): string | undefined {
+    const value = this.configuration.getString(`${bridgeId}_insultMode`, '')
+    return value === '' ? undefined : value
+  }
+
+  /**
+   * Set insult mode for a specific bridge. Pass undefined to clear the setting.
+   */
+  public setInsultMode(bridgeId: string, mode: string | undefined): void {
+    if (mode === undefined || mode === '') {
+      this.configuration.delete(`${bridgeId}_insultMode`)
+    } else {
+      this.configuration.setString(`${bridgeId}_insultMode`, mode)
     }
   }
 

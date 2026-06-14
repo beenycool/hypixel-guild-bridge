@@ -1479,6 +1479,26 @@ async function createBridgeOptionAsync(
             setOption: (values: string[]) => {
               bridgeConfig.setPassthroughCommands(bridgeId, values)
             }
+          },
+          {
+            type: OptionType.PresetList,
+            name: 'Insult Mode',
+            description:
+              'Which insult list to use for the !insult command. Leave empty to use global default (normal).',
+            getOption: () => {
+              const v = bridgeConfig.getInsultMode(bridgeId)
+              return v ? [v] : []
+            },
+            setOption: (values) => {
+              const mode = values.length > 0 ? values[0] : undefined
+              bridgeConfig.setInsultMode(bridgeId, mode)
+            },
+            min: 0,
+            max: 1,
+            options: [
+              { label: 'Normal (original insults)', value: 'normal' },
+              { label: 'Custom (community roasts)', value: 'custom' }
+            ]
           }
         ]
       },
