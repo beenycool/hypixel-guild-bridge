@@ -12,7 +12,7 @@ export default class Racism extends ChatCommandHandler {
 
   handler(context: ChatCommandContext): string {
     const givenUsername = context.args[0] ?? context.username
-    const percentage = Math.floor(Math.random() * 100) + 1
+    const percentage = Math.floor(Math.random() * 200) + 1
     return `${givenUsername} is ${percentage}% racist. Racism is not allowed!`
   }
 }
