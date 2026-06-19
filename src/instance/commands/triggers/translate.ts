@@ -18,8 +18,7 @@ export default class Translate extends ChatCommandHandler {
       return 'Usage: !translate [language] <message>'
     }
 
-    const language = args.length === 1 ? 'english' : args[0]
-    const text = args.length === 1 ? args[0] : args.slice(1).join(' ')
+    const text = args.join(' ')
 
     const apiKey = context.app.openrouterApiKey
     if (!apiKey) {
@@ -34,7 +33,7 @@ export default class Translate extends ChatCommandHandler {
           messages: [
             {
               role: 'system',
-              content: `You are a translator. Translate the user's message to ${language}. Detect the source language automatically. Respond with ONLY the translated text, nothing else.`
+              content: `You are a translator. The user's message may optionally start with a target language name (e.g. "french bonjour"). If a target language is specified, translate to it. If not, auto-detect the source language and translate it to English. Respond with ONLY the translated text, nothing else.`
             },
             {
               role: 'user',
@@ -54,7 +53,7 @@ export default class Translate extends ChatCommandHandler {
 
       const translatedText: string = response.data.choices[0].message.content
       const truncated = translatedText.length > 250 ? translatedText.slice(0, 247) + '...' : translatedText
-      return `Translation (${language}): ${truncated}`
+      return `Translation: ${truncated}`
     } catch (error: unknown) {
       if (isAxiosError(error)) {
         if (error.response?.status === 401) {
