@@ -104,6 +104,7 @@ import Vengeance from './triggers/vengeance.js'
 import Warp from './triggers/warp.js'
 import Weight from './triggers/weight.js'
 import Woolwars from './triggers/woolwars.js'
+import Translate from './triggers/translate.js'
 
 export class CommandsInstance extends ConnectableInstance<InstanceType.Commands> {
   public readonly commands: ChatCommandHandler[]
@@ -206,7 +207,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Vengeance(),
       new Warp(),
       new Weight(),
-      new Woolwars()
+      new Woolwars(),
+      new Translate()
     ]
 
     this.checkCommandsIntegrity()

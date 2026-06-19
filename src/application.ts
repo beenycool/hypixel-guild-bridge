@@ -78,6 +78,10 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.config.general.urchinApiKey
   }
 
+  public get openrouterApiKey(): string | undefined {
+    return this.config.general.openrouterApiKey
+  }
+
   public getStatsChannelsConfig(): ApplicationConfig['statsChannels'] {
     return this.config.statsChannels
   }

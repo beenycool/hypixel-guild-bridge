@@ -7,6 +7,7 @@ import * as t from "ts-interface-checker";
 export const GeneralConfig = t.iface([], {
   "hypixelApiKey": "string",
   "urchinApiKey": t.opt("string"),
+  "openrouterApiKey": t.opt("string"),
 });
 
 export const StaticDiscordConfig = t.iface([], {
