@@ -80,7 +80,7 @@ export class LinksSanitizer {
             {
               role: 'user',
               content: [
-                { type: 'text', text: 'Describe this image concisely in under 250 characters.' },
+                { type: 'text', text: 'Describe this image concisely in under 80 characters.' },
                 { type: 'image_url', image_url: { url: imageUrl } }
               ]
             }
@@ -101,7 +101,7 @@ export class LinksSanitizer {
       const content: unknown = response.data?.choices?.[0]?.message?.content
       if (typeof content !== 'string' || content.length === 0) return '(image)'
 
-      const maxLen = 250
+      const maxLen = 80
       if (content.length <= maxLen) return content
 
       const breakIndex = content.lastIndexOf(' ', maxLen - 3)
