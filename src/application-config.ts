@@ -4,6 +4,7 @@ export interface GeneralConfig {
   hypixelApiKey: string
   urchinApiKey?: string
   openrouterApiKey?: string
+  openrouterModel?: string
 }
 
 export interface StaticDiscordConfig {

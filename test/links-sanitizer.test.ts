@@ -9,7 +9,7 @@ const hideConfig = {
 } as unknown as ConstructorParameters<typeof LinksSanitizer>[0]
 
 await describe('LinksSanitizer hideLink mode', async () => {
-  const sanitizer = new LinksSanitizer(hideConfig)
+  const sanitizer = new LinksSanitizer(hideConfig, undefined)
 
   await it('replaces https URL with (link)', async () => {
     const result = await sanitizer.process('check https://example.com')

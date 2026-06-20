@@ -17,7 +17,7 @@ export class Sanitizer {
 
   constructor(application: Application) {
     this.line = new LineSanitizer()
-    this.link = new LinksSanitizer(application.core.minecraftConfigurations)
+    this.link = new LinksSanitizer(application.core.minecraftConfigurations, application.openrouterApiKey)
     this.emoji = new EmojiSanitizer()
     this.ez = new EzSanitizer()
     this.arabicFixer = new ArabicFixer()
