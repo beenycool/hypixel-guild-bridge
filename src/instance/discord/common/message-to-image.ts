@@ -1,12 +1,8 @@
 import process from 'node:process'
 
 import { type Canvas, createCanvas, loadImage, registerFont } from 'canvas'
-import type { Logger } from 'log4js'
-import Logger4js from 'log4js'
 
 import type Application from '../../../application'
-
-const MessageToImageLogger: Logger = Logger4js.getLogger('MessageToImage')
 
 type Canvas2DContext = NonNullable<ReturnType<Canvas['getContext']>>
 
@@ -220,9 +216,6 @@ export default class MessageToImage {
       return MessageToImage.drawWords(context, currentMessage, x, y)
     }
     if (username === undefined || username.length === 0) {
-      MessageToImageLogger.warn(
-        `drawWrappedSegmentBody: username=${username === undefined ? 'undefined' : 'empty'}, rendering literal {skin}; seg="${currentMessage.slice(0, 100)}"`
-      )
       return MessageToImage.drawWords(context, currentMessage, x, y)
     }
     const parts = currentMessage.split('{skin}')
@@ -242,10 +235,7 @@ export default class MessageToImage {
           const skinImage = await loadImage(`https://cravatar.eu/helmhead/${username}/${MessageToImage.SkinSize}.png`)
           context.drawImage(skinImage, pos.x, pos.y - MessageToImage.SkinSize)
           pos.x += skinW
-        } catch (error: unknown) {
-          MessageToImageLogger.warn(
-            `drawWrappedSegmentBody: loadImage failed for username="${username}": ${error instanceof Error ? error.message : String(error)}`
-          )
+        } catch {
           pos = MessageToImage.drawWords(context, '{skin}', pos.x, pos.y)
         }
       }
@@ -394,11 +384,6 @@ export default class MessageToImage {
       const colorCode = MessageToImage.RgbaColorJs[message_.charAt(0)]
       const currentMessage = message_.slice(1)
       const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
-      if (currentMessage.trim() === '{skin}' && !isSkin) {
-        MessageToImageLogger.warn(
-          `generateMessageImageJs: {skin} found but username=${username === undefined ? 'undefined' : 'empty'}`
-        )
-      }
       const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
 
       if (width + messageWidth > MessageToImage.CanvasWidth || message_.startsWith('n')) {
@@ -412,10 +397,8 @@ export default class MessageToImage {
           context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
           width += messageWidth
           continue
-        } catch (error: unknown) {
-          MessageToImageLogger.warn(
-            `generateMessageImageJs: loadImage failed for username="${username}": ${error instanceof Error ? error.message : String(error)}`
-          )
+        } catch {
+          // fall back to rendering literal text
         }
       }
 
