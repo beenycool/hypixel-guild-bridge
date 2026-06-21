@@ -30,8 +30,8 @@ import Collection from './triggers/collection'
 import Crimson from './triggers/crimson.js'
 import CurrentDungeon from './triggers/current-dungeon.js'
 import DadJoke from './triggers/dadjoke.js'
-import Denick from './triggers/denick.js'
 import DarkAuction from './triggers/darkauction.js'
+import Denick from './triggers/denick.js'
 import DevelopmentExcuse from './triggers/devexcuse.js'
 import Discord from './triggers/discord'
 import Dojo from './triggers/dojo.js'
@@ -96,6 +96,8 @@ import StatusCommand from './triggers/status.js'
 import Timecharms from './triggers/timecharms.js'
 import Toggle from './triggers/toggle.js'
 import Toggled from './triggers/toggled.js'
+import Rhyme from './triggers/rhyme.js'
+import Translate from './triggers/translate.js'
 import TrophyFish from './triggers/trophyfish.js'
 import Unlink from './triggers/unlink.js'
 import Unscramble from './triggers/unscramble.js'
@@ -104,10 +106,10 @@ import Vengeance from './triggers/vengeance.js'
 import Warp from './triggers/warp.js'
 import Weight from './triggers/weight.js'
 import Woolwars from './triggers/woolwars.js'
-import Translate from './triggers/translate.js'
 
 export class CommandsInstance extends ConnectableInstance<InstanceType.Commands> {
   public readonly commands: ChatCommandHandler[]
+  private readonly commandsByTrigger = new Map<string, ChatCommandHandler>()
   private readonly typoSuggestionCooldowns = new Map<string, number>()
   private readonly cooldownCleanupInterval: NodeJS.Timeout
   private readonly commandDeduplicationCache = new Map<string, number>()
@@ -183,6 +185,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Quakecraft(),
       new Reputation(),
       new Rng(),
+      new Rhyme(),
       new RockPaperScissors(),
       new Roulette(),
       new Runs(),
@@ -213,6 +216,12 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     this.checkCommandsIntegrity()
 
+    for (const command of this.commands) {
+      for (const trigger of command.triggers) {
+        this.commandsByTrigger.set(trigger, command)
+      }
+    }
+
     this.application.on('chat', async (event) => {
       await this.handle(event).catch(this.errorHandler.promiseCatch('handling chat event'))
     })
@@ -221,6 +230,14 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     this.cooldownCleanupInterval = setInterval(
       () => {
         this.cleanupExpiredCooldowns()
+      },
+      5 * 60 * 1000
+    )
+
+    // Clean up deduplication cache every 5 minutes
+    setInterval(
+      () => {
+        this.cleanupDeduplicationCache()
       },
       5 * 60 * 1000
     )
@@ -257,6 +274,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     // Clear all cooldowns
     this.typoSuggestionCooldowns.clear()
+    this.commandDeduplicationCache.clear()
   }
 
   async handle(event: ChatEvent): Promise<void> {
@@ -342,10 +360,11 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       return // Don't process as normal command
     }
 
-    const commandName = event.message.slice(chatPrefix.length).split(' ')[0].toLowerCase()
-    const commandsArguments = event.message.split(' ').slice(1)
+    const parts = event.message.split(' ')
+    const commandName = parts[0].slice(chatPrefix.length).toLowerCase()
+    const commandsArguments = parts.slice(1)
 
-    const command = this.commands.find((c) => c.triggers.includes(commandName))
+    const command = this.commandsByTrigger.get(commandName)
     if (command == undefined) {
       // Command not found, check if we should suggest alternatives
       await this.handleUnknownCommand(event, commandName, chatPrefix)
@@ -361,7 +380,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
           : globalCommandsConfig.getDisabledCommands()
 
     // Disabled commands can only be used by officers and admins, regular users cannot use them
-    if (disabledCommands.includes(command.triggers[0].toLowerCase()) && event.user.permission() === Permission.Anyone) {
+    if (
+      disabledCommands.includes(command.triggers[0].toLowerCase()) &&
+      (await event.user.permission()) === Permission.Anyone
+    ) {
       return
     }
 
@@ -498,6 +520,16 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     for (const [userId, timestamp] of this.typoSuggestionCooldowns.entries()) {
       if (now - timestamp > maxAge) {
         this.typoSuggestionCooldowns.delete(userId)
+      }
+    }
+  }
+
+  private cleanupDeduplicationCache(): void {
+    const now = Date.now()
+    const maxAge = 5000 // 5 seconds
+    for (const [key, timestamp] of this.commandDeduplicationCache.entries()) {
+      if (now - timestamp > maxAge) {
+        this.commandDeduplicationCache.delete(key)
       }
     }
   }
