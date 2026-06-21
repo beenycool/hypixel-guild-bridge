@@ -188,8 +188,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
         const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
         const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
+        const skinUsername = event.user.displayName()
+        this.logger.info(`[onChat] image mode skinUsername="${skinUsername}"`)
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: event.user.displayName()
+          username: skinUsername
         })
         await this.sendImageToChannels(event.eventId, [channelId], image)
         if (mentions !== undefined && mentions.userIds.length > 0) {
@@ -312,6 +314,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(event.rawMessage)).replaceAll(/^-+/g, '')
       const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
+      const skinUsername = event.user.displayName()
+      this.logger.info(`[onGuildPlayer] image mode skinUsername="${skinUsername}"`)
       messages = await this.sendImageToChannels(
         event.eventId,
         this.resolveChannelsForEvent(event.channels, event.bridgeId, {
@@ -319,7 +323,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           instanceName: event.instanceName
         }),
         await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: event.user.displayName()
+          username: skinUsername
         })
       )
     } else {
@@ -505,6 +509,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         await this.sendImageToChannels(event.eventId, channels, image)
       } else {
         const { channelType, skinUsername, imageBodyFormatted } = event.guildChatImageStyle
+        if (skinUsername.length === 0) {
+          this.logger.warn(`[onBroadcast] skinUsername is empty`)
+        }
         const prefix = this.getRenderedChannelPrefix(channelType)
         const body =
           imageBodyFormatted !== undefined && imageBodyFormatted.length > 0
@@ -780,8 +787,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
         if (this.messageToImage.shouldRenderImage()) {
           const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
+          const skinUsername = botName === 'Bridge Bot' ? 'MHF_Question' : botName
+          this.logger.info(`[sendCommandResponse] image mode skinUsername="${skinUsername}"`)
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-            username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
+            username: skinUsername
           })
           await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
         } else {
