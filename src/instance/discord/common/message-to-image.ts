@@ -239,7 +239,7 @@ export default class MessageToImage {
           pos.x = margin
         }
         try {
-          const skinImage = await loadImage(`https://mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
+          const skinImage = await loadImage(`https://cravatar.eu/helmhead/${username}/${MessageToImage.SkinSize}.png`)
           context.drawImage(skinImage, pos.x, pos.y - MessageToImage.SkinSize)
           pos.x += skinW
         } catch (error: unknown) {
@@ -408,7 +408,7 @@ export default class MessageToImage {
 
       if (isSkin) {
         try {
-          const skinImage = await loadImage(`https://www.mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
+          const skinImage = await loadImage(`https://cravatar.eu/helmhead/${username}/${MessageToImage.SkinSize}.png`)
           context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
           width += messageWidth
           continue
