@@ -232,7 +232,7 @@ export default class MessageToImage {
           pos.x = margin
         }
         try {
-          const skinImage = await loadImage(`https://cravatar.eu/helmhead/${username}/${MessageToImage.SkinSize}.png`)
+          const skinImage = await loadImage(`https://mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
           context.drawImage(skinImage, pos.x, pos.y - MessageToImage.SkinSize)
           pos.x += skinW
         } catch {
@@ -393,7 +393,7 @@ export default class MessageToImage {
 
       if (isSkin) {
         try {
-          const skinImage = await loadImage(`https://cravatar.eu/helmhead/${username}/${MessageToImage.SkinSize}.png`)
+          const skinImage = await loadImage(`https://www.mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
           context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
           width += messageWidth
           continue
