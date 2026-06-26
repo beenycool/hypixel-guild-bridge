@@ -1,7 +1,6 @@
 import type { TextChannel } from 'discord.js'
 
 import type Application from '../application'
-import { CommandConfigManager } from '../common/command-config-manager'
 import { InstanceType } from '../common/application-event'
 import { Instance } from '../common/instance'
 import Duration from '../utility/duration'
@@ -11,8 +10,7 @@ import { runQotdFlow } from './discord/commands/qotd'
 const QotdCommandName = 'qotd'
 
 function isQotdEnabled(application: Application): boolean {
-  const configManager = new CommandConfigManager(application)
-  return configManager.isCommandEnabled('discord', QotdCommandName)
+  return application.commandConfigManager.isCommandEnabled('discord', QotdCommandName)
 }
 
 export class QotdScheduler extends Instance<InstanceType.Utility> {

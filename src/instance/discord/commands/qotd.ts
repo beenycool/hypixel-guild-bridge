@@ -10,9 +10,7 @@ import {
   type TextChannel
 } from 'discord.js'
 
-import { CommandConfigManager } from '../../../common/command-config-manager.js'
 import { Permission } from '../../../common/application-event.js'
-import type Application from '../../../application.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 
 const QotdUsers = ['fluffydeadmuffin', 'spleeney_', 'flqw3d'] as const
@@ -23,10 +21,6 @@ const QotdSubcommandDisable = 'disable'
 const QotdSubcommandChannel = 'channel'
 
 const QotdCommandName = 'qotd'
-
-function getCommandConfigManager(application: Application): CommandConfigManager {
-  return new CommandConfigManager(application)
-}
 
 export async function runQotdFlow(channel: TextChannel, guild: Guild): Promise<void> {
   const members = QotdUsers.map((name) => guild.members.cache.find((member) => member.user.username === name)).filter(
@@ -139,7 +133,7 @@ export default {
 
   handler: async function (context) {
     const subcommand = context.interaction.options.getSubcommand()
-    const configManager = getCommandConfigManager(context.application)
+    const configManager = context.application.commandConfigManager
 
     if (subcommand === QotdSubcommandEnable) {
       await context.interaction.deferReply({ flags: 64 })

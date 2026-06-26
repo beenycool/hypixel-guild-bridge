@@ -27,6 +27,7 @@ import UnexpectedErrorHandler from './common/unexpected-error-handler.js'
 import { Core } from './core/core'
 import { ApplicationLanguages, LanguageConfigurations } from './core/language-configurations'
 import type { MojangApi } from './core/users/mojang'
+import { CommandConfigManager } from './common/command-config-manager.js'
 import ApplicationIntegrity from './instance/application-integrity.js'
 import AutoRestart from './instance/auto-restart'
 import { CommandsInstance } from './instance/commands/commands-instance.js'
@@ -71,6 +72,15 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   public readonly hypixelApi: HypixelClient
   public readonly mojangApi: MojangApi
+
+  private _commandConfigManager: CommandConfigManager | undefined
+
+  public get commandConfigManager(): CommandConfigManager {
+    if (!this._commandConfigManager) {
+      this._commandConfigManager = new CommandConfigManager(this)
+    }
+    return this._commandConfigManager
+  }
 
   public get hypixelApiKey(): string {
     return this.config.general.hypixelApiKey

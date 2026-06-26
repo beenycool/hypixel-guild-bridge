@@ -61,7 +61,7 @@ export default {
 
     try {
       // Get command configuration manager
-      const commandConfigManager = new CommandConfigManager(application)
+      const commandConfigManager = application.commandConfigManager
       // Check admin permissions
       const isAdmin = context.permission === Permission.Admin
 
