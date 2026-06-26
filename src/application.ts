@@ -37,7 +37,7 @@ import HypixelUpdates from './instance/hypixel-updates'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
-import { QotdScheduler } from './instance/qotd-scheduler'
+// import { QotdScheduler } from './instance/qotd-scheduler'
 import { RandomChatter } from './instance/random-chatter'
 import { SkyblockReminders } from './instance/skyblock-reminders'
 import { SpontaneousEvents } from './instance/spontaneous-events'
@@ -61,7 +61,6 @@ export type AllInstances =
   | AutoRestart
   | MinecraftManager
   | PluginsManager
-  | QotdScheduler
   | RandomChatter
 
 export default class Application extends Emittery<ApplicationEvents> implements InstanceIdentifier {
@@ -170,7 +169,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly prometheusInstance: PrometheusInstance | undefined
   private readonly webServer: WebServer | undefined
 
-  private readonly qotdScheduler: QotdScheduler
+  // private readonly qotdScheduler: QotdScheduler
   private readonly skyblockReminders: SkyblockReminders
   private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
@@ -224,7 +223,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.webServer = this.config.web?.enabled ? new WebServer(this, this.config.web) : undefined
     this.commandsInstance = new CommandsInstance(this)
 
-    this.qotdScheduler = new QotdScheduler(this)
+    // this.qotdScheduler = new QotdScheduler(this)
     this.skyblockReminders = new SkyblockReminders(this)
     this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
@@ -339,11 +338,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     } catch (error: unknown) {
       this.errorHandler.promiseCatch('starting random chatter')(error)
     }
-    try {
-      this.qotdScheduler.start()
-    } catch (error: unknown) {
-      this.errorHandler.promiseCatch('starting qotd scheduler')(error)
-    }
+    // try {
+    //   this.qotdScheduler.start()
+    // } catch (error: unknown) {
+    //   this.errorHandler.promiseCatch('starting qotd scheduler')(error)
+    // }
   }
 
   public async shutdown(): Promise<void> {
@@ -518,7 +517,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.webServer,
       this.commandsInstance,
       ...this.minecraftManager.getAllInstances(),
-      this.qotdScheduler,
+      // this.qotdScheduler,
       this.skyblockReminders,
       this.hypixelUpdates,
       this.spontaneousEvents,
