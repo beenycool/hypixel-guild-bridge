@@ -1,16 +1,75 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, SlashCommandBuilder } from 'discord.js'
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType,
+  SlashCommandBuilder,
+  SlashCommandSubcommandBuilder
+} from 'discord.js'
 
+import { CommandConfigManager } from '../../../common/command-config-manager.js'
 import { Permission } from '../../../common/application-event.js'
+import type Application from '../../../application.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 
 const QotdUsers = ['fluffydeadmuffin', 'spleeney_', 'flqw3d'] as const
 
+const QotdSubcommandStart = 'start'
+const QotdSubcommandEnable = 'enable'
+const QotdSubcommandDisable = 'disable'
+
+const QotdCommandName = 'qotd'
+
+function getCommandConfigManager(application: Application): CommandConfigManager {
+  return new CommandConfigManager(application)
+}
+
 export default {
   getCommandBuilder: () =>
-    new SlashCommandBuilder().setName('qotd').setDescription('Assign Question of the Day to someone'),
+    new SlashCommandBuilder()
+      .setName(QotdCommandName)
+      .setDescription('Manage and run Question of the Day')
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder()
+          .setName(QotdSubcommandStart)
+          .setDescription('Assign Question of the Day to someone')
+      )
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder().setName(QotdSubcommandEnable).setDescription('Enable the QOTD feature')
+      )
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder().setName(QotdSubcommandDisable).setDescription('Disable the QOTD feature')
+      ),
   permission: Permission.Helper,
 
   handler: async function (context) {
+    const subcommand = context.interaction.options.getSubcommand()
+    const configManager = getCommandConfigManager(context.application)
+
+    if (subcommand === QotdSubcommandEnable) {
+      await context.interaction.deferReply({ flags: 64 })
+      configManager.updateDiscordCommandConfig(QotdCommandName, { enabled: true }, context.interaction.user.id)
+      configManager.save()
+      await context.interaction.editReply('QOTD has been enabled.')
+      return
+    }
+
+    if (subcommand === QotdSubcommandDisable) {
+      await context.interaction.deferReply({ flags: 64 })
+      configManager.updateDiscordCommandConfig(QotdCommandName, { enabled: false }, context.interaction.user.id)
+      configManager.save()
+      await context.interaction.editReply('QOTD has been disabled.')
+      return
+    }
+
+    if (!configManager.isCommandEnabled('discord', QotdCommandName)) {
+      await context.interaction.reply({
+        content: 'QOTD is currently disabled. Use `/qotd enable` to enable it.',
+        flags: 64
+      })
+      return
+    }
+
     await context.interaction.deferReply()
 
     const guild = context.interaction.guild
