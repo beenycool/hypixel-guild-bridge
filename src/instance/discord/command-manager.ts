@@ -42,6 +42,7 @@ import NamesCommand from './commands/names.js'
 import PingCommand from './commands/ping.js'
 import ProfanityCommand from './commands/profanity.js'
 import PromoteCommand from './commands/promote.js'
+import QotdCommand from './commands/qotd.js'
 import PunishmentsCommand from './commands/punishments.js'
 import RankupCheckCommand from './commands/rankup-check.js'
 import RankupHistoryCommand from './commands/rankup-history.js'
@@ -136,6 +137,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       ProfanityCommand,
       PromoteCommand,
       PunishmentsCommand,
+      QotdCommand,
       RankupCheckCommand,
       RankupHistoryCommand,
       RankupPendingCommand,
