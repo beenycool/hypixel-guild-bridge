@@ -51,19 +51,22 @@ export class QotdScheduler extends Instance<InstanceType.Utility> {
     }
   }
 
-  private getUkNow(): Date {
+  private getUkParts(): { hour: number; minute: number; day: number } {
     const now = new Date()
-    const ukStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' })
-    return new Date(ukStr)
+    const parts = Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      hour: 'numeric',
+      minute: 'numeric',
+      day: 'numeric'
+    }).formatToParts(now)
+    const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? NaN)
+    return { hour: get('hour'), minute: get('minute'), day: get('day') }
   }
 
   private async checkAndTrigger(): Promise<void> {
     if (!isQotdEnabled(this.application)) return
 
-    const now = this.getUkNow()
-    const hour = now.getHours()
-    const minute = now.getMinutes()
-    const day = now.getDate()
+    const { hour, minute, day } = this.getUkParts()
 
     if (hour !== 19 || minute !== 0) return
 
