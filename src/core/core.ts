@@ -44,6 +44,7 @@ import PunishmentsEnforcer from './moderation/punishments-enforcer'
 import { PendingReviewManager } from './rankup/pending-review-manager'
 import { RankupManager } from './rankup/rankup-manager'
 import { SpontaneousEventsConfigurations } from './spontanmous-events-configurations'
+import { ChatMessagesService } from './chat-messages'
 import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
 import { Inactivity } from './users/inactivity'
@@ -91,6 +92,9 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly languageConfigurations: LanguageConfigurations
   public readonly commandsConfigurations: CommandsConfigurations
   public readonly spontaneousEventsConfigurations: SpontaneousEventsConfigurations
+
+  // chat messages
+  public readonly chatMessages: ChatMessagesService
 
   // database
   public readonly databaseManager: DatabaseManager
@@ -149,6 +153,9 @@ export class Core extends Instance<InstanceType.Core> {
 
     this.guildManager = new GuildManager(this)
     this.autoComplete = new Autocomplete(this, this.databaseManager)
+
+    this.chatMessages = new ChatMessagesService(application, this.databaseManager)
+    this.chatMessages.init()
 
     this.verification = new Verification(this.databaseManager)
     this.inactivity = new Inactivity(this.databaseManager)
