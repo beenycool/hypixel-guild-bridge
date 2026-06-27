@@ -16,13 +16,14 @@ import type { DiscordCommandHandler } from '../../../common/commands.js'
 const QotdUsers = ['fluffydeadmuffin', 'spleeney_', 'flqw3d'] as const
 
 const QotdSubcommandStart = 'start'
+const QotdSubcommandTest = 'test'
 const QotdSubcommandEnable = 'enable'
 const QotdSubcommandDisable = 'disable'
 const QotdSubcommandChannel = 'channel'
 
 const QotdCommandName = 'qotd'
 
-export async function runQotdFlow(channel: TextChannel, guild: Guild): Promise<void> {
+export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = false): Promise<void> {
   const members = QotdUsers.map((name) => guild.members.cache.find((member) => member.user.username === name)).filter(
     (member): member is NonNullable<typeof member> => member !== undefined
   )
@@ -37,6 +38,7 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild): Promise<v
 
   while (currentIndex < members.length) {
     const user = members[currentIndex]
+    const mention = dryRun ? user.user.username : `<@${user.id}>`
 
     const acceptButton = new ButtonBuilder()
       .setCustomId('qotd_accept')
@@ -52,8 +54,9 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild): Promise<v
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(acceptButton, passButton)
 
+    const prefix = dryRun ? '[TEST] ' : ''
     message = await channel.send({
-      content: `<@${user.id}> it's your turn to ask the Question of the Day!`,
+      content: `${prefix}${mention} it's your turn to ask the Question of the Day!`,
       components: [row]
     })
 
@@ -61,7 +64,7 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild): Promise<v
     const reminderInterval = setInterval(() => {
       reminderCount++
       if (reminderCount <= 9) {
-        message?.reply(`⏰ Reminder: <@${user.id}> please respond to the QOTD request!`).catch(() => undefined)
+        message?.reply(`⏰ Reminder: ${mention} please respond to the QOTD request!`).catch(() => undefined)
       }
     }, 60_000)
 
@@ -78,21 +81,21 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild): Promise<v
 
       if (interaction.customId === 'qotd_accept') {
         await interaction.update({
-          content: `<@${user.id}> will do QOTD today!`,
+          content: `${mention} will do QOTD today!`,
           components: []
         })
         return
       }
 
       await interaction.update({
-        content: `<@${user.id}> passed. Moving to next person...`,
+        content: `${mention} passed. Moving to next person...`,
         components: []
       })
       currentIndex++
     } catch {
       clearInterval(reminderInterval)
       await message?.edit({
-        content: `<@${user.id}> didn't respond. Moving to next person...`,
+        content: `${mention} didn't respond. Moving to next person...`,
         components: []
       })
       currentIndex++
@@ -116,6 +119,11 @@ export default {
         new SlashCommandSubcommandBuilder()
           .setName(QotdSubcommandStart)
           .setDescription('Assign Question of the Day to someone')
+      )
+      .addSubcommand(
+        new SlashCommandSubcommandBuilder()
+          .setName(QotdSubcommandTest)
+          .setDescription('Test QOTD flow without pinging anyone')
       )
       .addSubcommand(
         new SlashCommandSubcommandBuilder().setName(QotdSubcommandEnable).setDescription('Enable the QOTD feature')
@@ -158,6 +166,24 @@ export default {
         content: `QOTD channel has been set to <#${channel.id}>.`,
         flags: 64
       })
+      return
+    }
+
+    if (subcommand === QotdSubcommandTest) {
+      const guild = context.interaction.guild
+      if (!guild) {
+        await context.interaction.reply({ content: 'This command can only be used in a server.', flags: 64 })
+        return
+      }
+
+      const channel = context.interaction.channel
+      if (!channel || !channel.isTextBased() || channel.isDMBased()) {
+        await context.interaction.reply({ content: 'This command can only be used in a text channel.', flags: 64 })
+        return
+      }
+
+      await context.interaction.reply({ content: 'Starting QOTD test (no pings)...', flags: 64 })
+      await runQotdFlow(channel as TextChannel, guild, true)
       return
     }
 
