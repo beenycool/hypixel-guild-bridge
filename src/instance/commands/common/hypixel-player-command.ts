@@ -2,8 +2,14 @@ import type { Player } from 'hypixel-api-reborn'
 
 import { type ChatCommandContext, ChatCommandHandler } from '../../../common/commands.js'
 
-import { fetchAuroraPing, getUuidIfExists, playerNeverPlayedHypixel, usernameNotExists } from './utility'
-import type { AuroraPingEntry } from './utility'
+import {
+  fetchAuroraPing,
+  fetchAuroraWinstreak,
+  getUuidIfExists,
+  playerNeverPlayedHypixel,
+  usernameNotExists
+} from './utility'
+import type { AuroraPingEntry, AuroraWinstreakData } from './utility'
 
 function classifyHypixelError(error: unknown): string | undefined {
   const status = (error as { response?: { status?: number } })?.response?.status
@@ -18,6 +24,7 @@ function classifyHypixelError(error: unknown): string | undefined {
 
 export abstract class HypixelPlayerCommand extends ChatCommandHandler {
   protected lastPing: AuroraPingEntry | undefined
+  protected lastUuid: string | undefined
 
   protected resolveUsername(context: ChatCommandContext): string {
     return context.args[0] ?? context.username
@@ -40,6 +47,7 @@ export abstract class HypixelPlayerCommand extends ChatCommandHandler {
       return usernameNotExists(context, givenUsername)
     }
 
+    this.lastUuid = uuid
     this.lastPing = await fetchAuroraPing(uuid, context.app.auroraApiKey ?? '')
 
     try {

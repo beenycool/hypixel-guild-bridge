@@ -176,6 +176,29 @@ export async function fetchAuroraPing(uuid: string, apiKey: string): Promise<Aur
   }
 }
 
+export interface AuroraWinstreakData {
+  uuid: string
+  winstreak: number
+  accurate_winstreak: number | null
+  estimated: boolean
+  confirmed: number
+}
+
+const AuroraWinstreakBaseUrl = 'https://bordic.xyz/api/v2/resources/winstreak'
+
+export async function fetchAuroraWinstreak(uuid: string, apiKey: string): Promise<AuroraWinstreakData | undefined> {
+  try {
+    const url = `${AuroraWinstreakBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
+    const response = await DefaultAxios.get<{ success: boolean; data?: AuroraWinstreakData }>(url, {
+      headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-AuroraApi/1.0.0' }
+    })
+    if (!response.data.success || !response.data.data) return undefined
+    return response.data.data
+  } catch {
+    return undefined
+  }
+}
+
 export function capitalize(name: string): string {
   return name.slice(0, 1).toUpperCase() + name.slice(1).toLowerCase()
 }

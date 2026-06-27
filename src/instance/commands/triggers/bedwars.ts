@@ -2,7 +2,7 @@ import type { Player } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
-import { capitalize, formatStatNumber, shortenNumber } from '../common/utility'
+import { capitalize, fetchAuroraWinstreak, formatStatNumber, shortenNumber } from '../common/utility'
 
 type BedwarsMode = 'overall' | 'solo' | 'doubles' | 'threes' | 'fours' | '4v4'
 
@@ -48,7 +48,13 @@ export default class Bedwars extends HypixelPlayerCommand {
     const wlRatio = this.getStat(modeStats, 'WLRatio') ?? 0
     const bedsBroken = this.getStat(modeStats, 'beds', 'broken') ?? 0
     const blRatio = this.getStat(modeStats, 'beds', 'BLRatio') ?? 0
-    const winstreak = this.getStat(modeStats, 'winstreak') ?? 0
+    let winstreak = this.getStat(modeStats, 'winstreak')
+    let wsPrefix = ''
+    if (winstreak === undefined) {
+      const auraData = await fetchAuroraWinstreak(this.lastUuid!, context.app.auroraApiKey ?? '')
+      winstreak = auraData?.winstreak ?? 0
+      if (auraData !== undefined) wsPrefix = '~'
+    }
 
     const modePrefix = mode === 'overall' ? '' : `${capitalize(mode)} `
 
@@ -57,7 +63,7 @@ export default class Bedwars extends HypixelPlayerCommand {
       `FK: ${shortenNumber(finalKills)} FKDR: ${formatStatNumber(finalKDRatio)} ` +
       `W: ${shortenNumber(wins)} L: ${shortenNumber(losses)} WLR: ${formatStatNumber(wlRatio)} ` +
       `BB: ${shortenNumber(bedsBroken)} BLR: ${formatStatNumber(blRatio)} ` +
-      `WS: ${winstreak}` +
+      `WS: ${wsPrefix}${winstreak}` +
       this.formatPingSuffix()
     )
   }
