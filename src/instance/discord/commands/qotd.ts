@@ -71,7 +71,7 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = f
     try {
       const interaction = await message.awaitMessageComponent({
         filter: (interaction) =>
-          interaction.user.id === user.id &&
+          (dryRun || interaction.user.id === user.id) &&
           (interaction.customId === 'qotd_accept' || interaction.customId === 'qotd_pass'),
         time: 600_000,
         componentType: ComponentType.Button
