@@ -50,11 +50,12 @@ export default class Bedwars extends HypixelPlayerCommand {
     const blRatio = this.getStat(modeStats, 'beds', 'BLRatio') ?? 0
     let winstreak = this.getStat(modeStats, 'winstreak')
     let wsPrefix = ''
-    if (winstreak === undefined) {
+    if (mode === 'overall' && winstreak === undefined) {
       const auraData = await fetchAuroraWinstreak(this.lastUuid!, context.app.auroraApiKey ?? '')
-      winstreak = auraData?.winstreak ?? 0
+      winstreak = auraData?.winstreak
       if (auraData !== undefined) wsPrefix = '~'
     }
+    const wsDisplay = winstreak === undefined ? '-' : `${wsPrefix}${winstreak}`
 
     const modePrefix = mode === 'overall' ? '' : `${capitalize(mode)} `
 
@@ -63,7 +64,7 @@ export default class Bedwars extends HypixelPlayerCommand {
       `FK: ${shortenNumber(finalKills)} FKDR: ${formatStatNumber(finalKDRatio)} ` +
       `W: ${shortenNumber(wins)} L: ${shortenNumber(losses)} WLR: ${formatStatNumber(wlRatio)} ` +
       `BB: ${shortenNumber(bedsBroken)} BLR: ${formatStatNumber(blRatio)} ` +
-      `WS: ${wsPrefix}${winstreak}` +
+      `WS: ${wsDisplay}` +
       this.formatPingSuffix()
     )
   }
