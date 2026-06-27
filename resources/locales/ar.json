@@ -4,8 +4,5 @@
   "commands.error.must-be-admin": "{{username}}, يجب أن تكون مسؤولاً لاستخدام هذا الأمر!",
   "commands.error.username-not-exists": " !اسم المستخدم غير صالح (given: {{username}}).",
   "commands.error.never-joined-hypixel": "{{username}} لم يلعب على هايبكسل من قبل؟",
-  "commands.error.never-joined-skyblock": "{{username}}  لم يلعب سكاي بلوك من قبل؟",
-  "commands.name.history": "سجل أسماء {{username}} (من الأحدث إلى الأقدم): {{names}}",
-  "commands.name.no-history": "ليس لدى {{username}} سجل أسماء.",
-  "commands.name.error": "فشل في جلب سجل الأسماء لـ {{username}}."
+  "commands.error.never-joined-skyblock": "{{username}}  لم يلعب سكاي بلوك من قبل؟"
 }

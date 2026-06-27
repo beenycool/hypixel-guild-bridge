@@ -60,7 +60,6 @@ import Mayor from './triggers/mayor.js'
 import Monitor from './triggers/monitor.js'
 import Murdermystery from './triggers/murdermystery.js'
 import Mute from './triggers/mute.js'
-import NameHistory from './triggers/name.js'
 import Networth from './triggers/networth.js'
 import PartyManager from './triggers/party.js'
 import PartyGames from './triggers/partygames.js'
@@ -164,7 +163,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Monitor(),
       new Murdermystery(),
       new Mute(),
-      new NameHistory(),
       new Networth(),
       ...new PartyManager().resolveCommands(),
       new PartyGames(),

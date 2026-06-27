@@ -61,7 +61,6 @@
 | `mayor`          | Show current Hypixel Skyblock Election                                             |
 | `megawalls`      | Returns a player's Megawalls stats                                                 |
 | `mute`           | mute a random online person for 5 minutes for no good reason                       |
-| `name`           | Get a player's name history.                                                       |
 | `networth`       | Networth of specified user.                                                        |
 | `paintball`      | Returns a player's Paintball stats                                                 |
 | `parties`        | List all active parties in guild                                                   |
@@ -135,7 +134,6 @@
 | `/list-leaderboard`   | List all existing leaderboards                                   |
 | `/list`               | List players in your guild(s)                                    |
 | `/log`                | View guild activity logs                                         |
-| `/names`              | View a player's name history                                     |
 | `/ping`               | Discord and Hypixel status (server list) ping                    |
 | `/player`             | View a player's Hypixel profile                                  |
 | `/profanity`          | Manage application profanity filter                              |
