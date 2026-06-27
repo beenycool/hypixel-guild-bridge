@@ -51,10 +51,16 @@ export class QotdScheduler extends Instance<InstanceType.Utility> {
     }
   }
 
+  private getUkNow(): Date {
+    const now = new Date()
+    const ukStr = now.toLocaleString('en-GB', { timeZone: 'Europe/London' })
+    return new Date(ukStr)
+  }
+
   private async checkAndTrigger(): Promise<void> {
     if (!isQotdEnabled(this.application)) return
 
-    const now = new Date()
+    const now = this.getUkNow()
     const hour = now.getHours()
     const minute = now.getMinutes()
     const day = now.getDate()
