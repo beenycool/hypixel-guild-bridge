@@ -95,6 +95,6 @@ export class QotdScheduler extends Instance<InstanceType.Utility> {
     }
 
     this.logger.info('Triggering scheduled QOTD at 7pm.')
-    await runQotdFlow(channel as TextChannel, guild)
+    await runQotdFlow(channel as TextChannel, guild, false, this.logger)
   }
 }

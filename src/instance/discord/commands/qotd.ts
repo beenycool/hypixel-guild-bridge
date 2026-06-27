@@ -9,6 +9,7 @@ import {
   SlashCommandSubcommandBuilder,
   type TextChannel
 } from 'discord.js'
+import type { Logger } from 'log4js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
@@ -23,12 +24,15 @@ const QotdSubcommandChannel = 'channel'
 
 const QotdCommandName = 'qotd'
 
-export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = false): Promise<void> {
+export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = false, logger?: Logger): Promise<void> {
   const members = QotdUsers.map((name) => guild.members.cache.find((member) => member.user.username === name)).filter(
     (member): member is NonNullable<typeof member> => member !== undefined
   )
 
+  logger?.info(`[qotd] flow started, dryRun=${dryRun}, members found=${members.length}`)
+
   if (members.length === 0) {
+    logger?.warn('[qotd] no QOTD members found in guild')
     await channel.send('None of the QOTD members were found in this guild.')
     return
   }
@@ -39,6 +43,8 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = f
   while (currentIndex < members.length) {
     const user = members[currentIndex]
     const mention = dryRun ? user.user.username : `<@${user.id}>`
+
+    logger?.info(`[qotd] asking user ${user.user.username} (index=${currentIndex})`)
 
     const acceptButton = new ButtonBuilder()
       .setCustomId('qotd_accept')
@@ -60,12 +66,15 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = f
       components: [row]
     })
 
+    logger?.info(`[qotd] message sent to channel, messageId=${message.id}`)
+
     let reminderCount = 0
     const reminderInterval = setInterval(() => {
       reminderCount++
       if (reminderCount <= 9) {
         message?.reply(`⏰ Reminder: ${mention} please respond to the QOTD request!`).catch(() => undefined)
       }
+      logger?.debug(`[qotd] reminder ${reminderCount} sent to ${user.user.username}`)
     }, 60_000)
 
     try {
@@ -79,11 +88,14 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = f
 
       clearInterval(reminderInterval)
 
+      logger?.info(`[qotd] user ${interaction.user.username} responded with ${interaction.customId}`)
+
       if (interaction.customId === 'qotd_accept') {
         await interaction.update({
           content: `${mention} will do QOTD today!`,
           components: []
         })
+        logger?.info('[qotd] flow complete, user accepted')
         return
       }
 
@@ -91,9 +103,11 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = f
         content: `${mention} passed. Moving to next person...`,
         components: []
       })
+      logger?.info(`[qotd] user passed, moving to next`)
       currentIndex++
-    } catch {
+    } catch (error) {
       clearInterval(reminderInterval)
+      logger?.warn(`[qotd] user ${user.user.username} did not respond or error occurred`, error)
       await message?.edit({
         content: `${mention} didn't respond. Moving to next person...`,
         components: []
@@ -104,6 +118,7 @@ export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = f
     await new Promise((resolve) => setTimeout(resolve, 2000))
   }
 
+  logger?.warn('[qotd] no one accepted QOTD')
   await message?.edit({
     content: '❌ No one is available for QOTD today!',
     components: []
@@ -183,7 +198,7 @@ export default {
       }
 
       await context.interaction.reply({ content: 'Starting QOTD test (no pings)...', flags: 64 })
-      await runQotdFlow(channel as TextChannel, guild, true)
+      await runQotdFlow(channel as TextChannel, guild, true, context.logger)
       return
     }
 
@@ -208,6 +223,6 @@ export default {
     }
 
     await context.interaction.reply({ content: 'Starting QOTD...', flags: 64 })
-    await runQotdFlow(channel as TextChannel, guild)
+    await runQotdFlow(channel as TextChannel, guild, false, context.logger)
   }
 } satisfies DiscordCommandHandler
