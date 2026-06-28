@@ -143,7 +143,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     this.rankupApi = new RankupApiHandler(application, this.logger)
     this.rankupWs = new RankupWsEvents(application, this.logger)
     this.staticRoot = resolve(process.cwd(), 'web/public')
-    this.logger.info(`Static root resolved to ${this.staticRoot} (cwd=${process.cwd()})`)
+
     this.rankupWs.start()
 
     this.application.addShutdownListener(() => {
@@ -157,9 +157,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private async handleHttpRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const rawUrl = request.url
-    const route = rawUrl?.split('?')[0]
-    this.logger.info(`handleHttpRequest: method=${request.method} url=${rawUrl} route=${route}`)
+    const route = request.url?.split('?')[0]
     if (!route) {
       this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid route' })
       return
@@ -225,19 +223,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     const filePath = normalize(join(this.staticRoot, relativePath))
     if (relative(this.staticRoot, filePath).startsWith('..')) {
-      this.logger.warn(`serveStatic path traversal blocked: ${route} -> ${filePath}`)
       return false
     }
 
-    if (!existsSync(filePath)) {
-      this.logger.warn(`serveStatic file not found: ${filePath} (from route=${route})`)
-      return false
-    }
-    const fileStats = statSync(filePath)
-    if (!fileStats.isFile()) {
-      this.logger.warn(`serveStatic not a file: ${filePath}`)
-      return false
-    }
+    if (!existsSync(filePath)) return false
+    const stats = statSync(filePath)
+    if (!stats.isFile()) return false
 
     const extension = extname(filePath).toLowerCase()
     const contentType = STATIC_MIME_TYPES.get(extension) ?? 'application/octet-stream'
