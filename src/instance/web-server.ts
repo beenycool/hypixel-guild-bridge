@@ -1,5 +1,8 @@
 import { timingSafeEqual } from 'node:crypto'
+import { existsSync, statSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import http from 'node:http'
+import { extname, join, normalize, relative, resolve, sep } from 'node:path'
 
 import { HttpStatusCode } from 'axios'
 import type { RawData } from 'ws'
@@ -11,6 +14,10 @@ import type Application from '../application.js'
 import type { ChatEvent } from '../common/application-event.js'
 import { InstanceType, MinecraftSendChatPriority } from '../common/application-event.js'
 import { Instance } from '../common/instance.js'
+
+import { verifyToken } from './web/auth.js'
+import { RankupApiHandler } from './web/rankup-api.js'
+import { RankupWsEvents } from './web/rankup-ws-events.js'
 
 interface WebMessagePayload {
   type?: string
@@ -63,12 +70,32 @@ interface DispatchResult {
   }
 }
 
+const STATIC_MIME_TYPES = new Map<string, string>([
+  ['.html', 'text/html; charset=utf-8'],
+  ['.css', 'text/css; charset=utf-8'],
+  ['.js', 'application/javascript; charset=utf-8'],
+  ['.mjs', 'application/javascript; charset=utf-8'],
+  ['.json', 'application/json; charset=utf-8'],
+  ['.svg', 'image/svg+xml'],
+  ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
+  ['.jpeg', 'image/jpeg'],
+  ['.gif', 'image/gif'],
+  ['.webp', 'image/webp'],
+  ['.ico', 'image/x-icon'],
+  ['.txt', 'text/plain; charset=utf-8'],
+  ['.map', 'application/json; charset=utf-8']
+])
+
 export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly startTime = Date.now()
   private readonly httpServer: http.Server
   private readonly wsServer: WebSocketServer
   private readonly connections = new Set<WebSocket>()
   private readonly config: WebConfig
+  private readonly rankupApi: RankupApiHandler
+  private readonly rankupWs: RankupWsEvents
+  private readonly staticRoot: string
 
   constructor(application: Application, config: WebConfig) {
     super(application, 'web-server', InstanceType.Utility)
@@ -112,6 +139,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     this.application.on('chat', (event) => {
       this.broadcastChat(event)
     })
+
+    this.rankupApi = new RankupApiHandler(application, this.logger)
+    this.rankupWs = new RankupWsEvents(application, this.logger)
+    const scriptDir = import.meta.dirname ?? (typeof __dirname !== 'undefined' ? __dirname : process.cwd())
+    this.staticRoot = resolve(scriptDir, '../..', 'web/public')
+    this.rankupWs.start()
 
     this.application.addShutdownListener(() => {
       this.shutdown()
@@ -167,7 +200,52 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       return
     }
 
+    if (route.startsWith('/api/rankup')) {
+      await this.rankupApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/')) {
+      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid API route' })
+      return
+    }
+
+    if (request.method === 'GET' && (await this.serveStatic(route, response))) {
+      return
+    }
+
     this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid route' })
+  }
+
+  private async serveStatic(route: string, response: http.ServerResponse): Promise<boolean> {
+    const relativePath = route === '/' ? 'index.html' : route.replace(/^\/+/, '')
+    if (relativePath.includes('\0')) return false
+
+    const filePath = normalize(join(this.staticRoot, relativePath))
+    if (relative(this.staticRoot, filePath).startsWith('..')) {
+      return false
+    }
+
+    if (!existsSync(filePath)) return false
+    const stats = statSync(filePath)
+    if (!stats.isFile()) return false
+
+    const extension = extname(filePath).toLowerCase()
+    const contentType = STATIC_MIME_TYPES.get(extension) ?? 'application/octet-stream'
+    const cacheControl = extension === '.html' ? 'no-cache' : 'public, max-age=3600'
+
+    try {
+      const content = await readFile(filePath)
+      response.writeHead(HttpStatusCode.Ok, {
+        'Content-Type': contentType,
+        'Cache-Control': cacheControl
+      })
+      response.end(content)
+      return true
+    } catch (error: unknown) {
+      this.logger.warn('Failed to read static file', error)
+      return false
+    }
   }
 
   private async handleMessageRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
@@ -278,11 +356,13 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     socket.on('close', () => {
       this.connections.delete(socket)
+      this.rankupWs.unsubscribe(socket)
     })
 
     socket.on('error', (error) => {
       this.logger.warn('WebSocket error', error)
       this.connections.delete(socket)
+      this.rankupWs.unsubscribe(socket)
     })
 
     socket.on('message', (data) => {
@@ -304,6 +384,17 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       }
     } catch {
       this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid JSON payload' })
+      return
+    }
+
+    if (payload.type === 'subscribeRankup') {
+      const auth = verifyToken(this.config.token, undefined, payload.token)
+      if (!auth.ok) {
+        this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
+        return
+      }
+      this.rankupWs.subscribe(socket)
+      this.sendWebSocket(socket, { type: 'ack', success: true })
       return
     }
 
@@ -423,6 +514,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       socket.close()
     }
     this.connections.clear()
+    this.rankupWs.stop()
     this.wsServer.close()
     this.httpServer.close()
   }
