@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>History — Guild Command Center</title>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container">
+      <div class="page-header">
+        <h1 class="page-title">Rankup History</h1>
+        <div class="bridge-selector">
+          <label class="form-label">Bridge:</label>
+          <select class="select" id="bridge-select"></select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Activity Log</h2>
+          <button class="btn btn-secondary btn-sm" id="refresh-btn">Refresh</button>
+        </div>
+        <div class="card-body" id="history-table-body">
+          <div class="loading"><div class="loading-spinner"></div></div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-secondary" id="load-more-btn">Load More</button>
+        </div>
+      </div>
+    </div>
+    <script src="js/common.js"></script>
+    <script src="js/history.js"></script>
+  </body>
+</html>
