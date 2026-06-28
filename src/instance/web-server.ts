@@ -142,8 +142,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     this.rankupApi = new RankupApiHandler(application, this.logger)
     this.rankupWs = new RankupWsEvents(application, this.logger)
-    const scriptDir = import.meta.dirname ?? (typeof __dirname !== 'undefined' ? __dirname : process.cwd())
-    this.staticRoot = resolve(scriptDir, '../..', 'web/public')
+    this.staticRoot = resolve(process.cwd(), 'web/public')
+    this.logger.info(`Static root resolved to ${this.staticRoot} (cwd=${process.cwd()})`)
     this.rankupWs.start()
 
     this.application.addShutdownListener(() => {
