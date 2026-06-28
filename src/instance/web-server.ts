@@ -223,12 +223,19 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     const filePath = normalize(join(this.staticRoot, relativePath))
     if (relative(this.staticRoot, filePath).startsWith('..')) {
+      this.logger.warn(`serveStatic path traversal blocked: ${route} -> ${filePath}`)
       return false
     }
 
-    if (!existsSync(filePath)) return false
-    const stats = statSync(filePath)
-    if (!stats.isFile()) return false
+    if (!existsSync(filePath)) {
+      this.logger.warn(`serveStatic file not found: ${filePath} (from route=${route})`)
+      return false
+    }
+    const fileStats = statSync(filePath)
+    if (!fileStats.isFile()) {
+      this.logger.warn(`serveStatic not a file: ${filePath}`)
+      return false
+    }
 
     const extension = extname(filePath).toLowerCase()
     const contentType = STATIC_MIME_TYPES.get(extension) ?? 'application/octet-stream'
