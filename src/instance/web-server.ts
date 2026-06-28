@@ -157,7 +157,9 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private async handleHttpRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const route = request.url?.split('?')[0]
+    const rawUrl = request.url
+    const route = rawUrl?.split('?')[0]
+    this.logger.info(`handleHttpRequest: method=${request.method} url=${rawUrl} route=${route}`)
     if (!route) {
       this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid route' })
       return
