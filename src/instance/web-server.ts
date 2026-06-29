@@ -96,6 +96,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly rankupApi: RankupApiHandler
   private readonly rankupWs: RankupWsEvents
   private readonly staticRoot: string
+  private knownPublicUrl: string | undefined
 
   constructor(application: Application, config: WebConfig) {
     super(application, 'web-server', InstanceType.Utility)
@@ -163,6 +164,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       return
     }
 
+    this.recordPublicUrl(request)
+
     if (route === '/uptime') {
       if (request.method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -202,6 +205,22 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     if (route.startsWith('/api/rankup')) {
       await this.rankupApi.handle(request, response)
+      return
+    }
+
+    if (route === '/api/public-url') {
+      if (request.method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return
+      }
+
+      const url =
+        this.knownPublicUrl ??
+        (process.env.HEROKU_APP_NAME
+          ? `https://${process.env.HEROKU_APP_NAME}.herokuapp.com`
+          : `http://localhost:${process.env.PORT}`)
+
+      this.sendJson(response, HttpStatusCode.Ok, { url })
       return
     }
 
@@ -246,6 +265,28 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       this.logger.warn('Failed to read static file', error)
       return false
     }
+  }
+
+  private recordPublicUrl(request: http.IncomingMessage): void {
+    const host =
+      (request.headers['x-forwarded-host'] as string | undefined) ?? (request.headers.host as string | undefined)
+    if (!host) return
+
+    const proto = (request.headers['x-forwarded-proto'] as string | undefined) ?? 'https'
+    const url = `${proto}://${host}`
+
+    if (url === this.knownPublicUrl) return
+    this.knownPublicUrl = url
+
+    this.application.core.databaseManager
+      .execute(
+        `INSERT INTO "app_settings" ("key", "value", "updated_at") VALUES ($1, $2, NOW())
+       ON CONFLICT ("key") DO UPDATE SET "value" = EXCLUDED."value", "updated_at" = NOW()`,
+        ['public_url', url]
+      )
+      .catch((error: unknown) => {
+        this.logger.warn('Failed to save public URL', error)
+      })
   }
 
   private async handleMessageRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {

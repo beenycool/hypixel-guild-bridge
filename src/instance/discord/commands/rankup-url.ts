@@ -3,7 +3,20 @@ import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 import { Permission } from '../../../common/application-event'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands'
 
-function getBaseUrl(): string {
+interface AppSettingRow {
+  value: string
+}
+
+async function getBaseUrl(context: Readonly<DiscordCommandContext>): Promise<string> {
+  try {
+    const rows = await context.application.core.databaseManager.queryRows<AppSettingRow>(
+      `SELECT "value" FROM "app_settings" WHERE "key" = 'public_url'`
+    )
+    if (rows.length > 0 && rows[0].value) return rows[0].value
+  } catch {
+    // DB not available, fall through
+  }
+
   const herokuApp = process.env.HEROKU_APP_NAME
   if (herokuApp) return `https://${herokuApp}.herokuapp.com`
   return 'http://localhost:' + process.env.PORT
@@ -16,7 +29,7 @@ export default {
 
   handler: async function (context: Readonly<DiscordCommandContext>) {
     const { interaction } = context
-    const base = getBaseUrl()
+    const base = await getBaseUrl(context)
 
     const embed = new EmbedBuilder()
       .setTitle('Rankup Web UI')
@@ -27,7 +40,7 @@ export default {
         { name: 'History', value: `[Open](${base}/rankup-history.html)`, inline: true },
         { name: 'Rules Editor', value: `[Open](${base}/rankup-rules.html)`, inline: true }
       )
-      .setColor(0x00aaff)
+      .setColor(0x00_aa_ff)
 
     await interaction.reply({ embeds: [embed], ephemeral: true })
   }
