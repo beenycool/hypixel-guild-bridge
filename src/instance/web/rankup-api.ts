@@ -249,12 +249,22 @@ export class RankupApiHandler {
       return
     }
 
-    const botName = instances[0]
+    const botInstanceName = instances[0]
+    const mcInstance = this.application.minecraftManager
+      .getAllInstances()
+      .find((inst) => inst.instanceName.toLowerCase() === botInstanceName.toLowerCase())
+    const botUuid = mcInstance?.uuid()
+
+    if (!botUuid) {
+      this.sendError(response, HttpStatusCode.BadRequest, 'Minecraft instance is not connected or UUID is unavailable')
+      return
+    }
+
     try {
-      this.logger.debug(`Fetching guild ranks for bridge ${bridgeId} using bot ${botName}`)
-      const guild = await this.application.hypixelApi.getGuild('player', botName, {})
+      this.logger.debug(`Fetching guild ranks for bridge ${bridgeId} using bot UUID ${botUuid}`)
+      const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
       if (!guild) {
-        this.logger.info(`Guild not found for bridge ${bridgeId} (bot: ${botName}) — returning empty ranks`)
+        this.logger.info(`Guild not found for bridge ${bridgeId} (bot UUID: ${botUuid}) — returning empty ranks`)
         this.sendJson(response, HttpStatusCode.Ok, { ranks: [] })
         return
       }
@@ -262,7 +272,7 @@ export class RankupApiHandler {
       this.logger.debug(`Fetched ${rankNames.length} guild ranks for bridge ${bridgeId}: [${rankNames.join(', ')}]`)
       this.sendJson(response, HttpStatusCode.Ok, { ranks: rankNames })
     } catch (error: unknown) {
-      this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId} (bot: ${botName}):`, error)
+      this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId} (bot UUID: ${botUuid}):`, error)
       this.sendError(response, HttpStatusCode.BadGateway, 'Failed to fetch guild ranks')
     }
   }
