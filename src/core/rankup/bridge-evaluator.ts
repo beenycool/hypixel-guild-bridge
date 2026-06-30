@@ -23,7 +23,10 @@ export class BridgeEvaluator {
   async processBridge(bridgeId: string): Promise<void> {
     const instanceNames = this.bridgeConfig.getMinecraftInstances(bridgeId)
 
-    if (instanceNames.length === 0) return
+    if (instanceNames.length === 0) {
+      this.logger.warn(`Bridge ${bridgeId}: no Minecraft instances configured, skipping checkup`)
+      return
+    }
 
     const minecraftInstance = this.application.minecraftManager
       .getAllInstances()
