@@ -25,7 +25,6 @@ export default {
 
     const username = interaction.options.getString('username', true)
 
-    // Check if we can get guild data.
     const uuid = await application.mojangApi
       .profileByUsername(username)
       .then((p) => p.id)
@@ -64,11 +63,7 @@ export default {
 
     const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
 
-    const expHistoryValues = Object.values(member.expHistory)
-    const weeklyGexp = expHistoryValues.reduce(
-      (a, b) => a + (typeof b === 'number' ? b : ((b as { exp?: number }).exp ?? 0)),
-      0
-    )
+    const weeklyGexp = member.weeklyExperience ?? 0
 
     const stats = {
       uuid: member.uuid,
@@ -88,6 +83,43 @@ export default {
       rankPriority
     )
 
+    let actionText: string
+    let targetText: string
+    let color: number
+
+    switch (result.action) {
+      case 'none': {
+        actionText = 'No Action'
+        targetText = 'N/A'
+        color = 0x80_80_80
+        break
+      }
+      case 'promote': {
+        actionText = 'PROMOTE'
+        targetText = result.targetRank
+        color = 0x00_ff_00
+        break
+      }
+      case 'demote': {
+        actionText = 'DEMOTE'
+        targetText = result.targetRank
+        color = 0xff_00_00
+        break
+      }
+      case 'kick': {
+        actionText = 'KICK'
+        targetText = 'Kick'
+        color = 0xff_00_00
+        break
+      }
+      case 'notify': {
+        actionText = 'NOTIFY'
+        targetText = 'N/A'
+        color = 0xff_a5_00
+        break
+      }
+    }
+
     const embed = new EmbedBuilder()
       .setTitle(`Rankup Check: ${username}`)
       .addFields(
@@ -98,11 +130,11 @@ export default {
           value: ((Date.now() - stats.joinedAt) / (1000 * 60 * 60 * 24)).toFixed(1),
           inline: true
         },
-        { name: 'Result', value: result.action === 'none' ? 'No Action' : result.action.toUpperCase() },
-        { name: 'Target Rank', value: result.targetRank ?? 'N/A' },
-        { name: 'Reason', value: result.reason ?? 'N/A' }
+        { name: 'Result', value: actionText },
+        { name: 'Target Rank', value: targetText },
+        { name: 'Reason', value: result.action === 'none' ? 'N/A' : result.reason }
       )
-      .setColor(result.action === 'none' ? '#808080' : result.action === 'promote' ? '#00FF00' : '#FF0000')
+      .setColor(color)
 
     await interaction.editReply({ embeds: [embed] })
   }

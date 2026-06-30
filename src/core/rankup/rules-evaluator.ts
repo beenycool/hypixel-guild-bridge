@@ -1,3 +1,10 @@
+export type EvaluateResult =
+  | { action: 'none' }
+  | { action: 'promote'; targetRank: string; reason: string }
+  | { action: 'demote'; targetRank: string; reason: string }
+  | { action: 'kick'; reason: string }
+  | { action: 'notify'; reason: string }
+
 export interface MemberStats {
   uuid: string
   rank: string
@@ -29,7 +36,7 @@ export class RulesEvaluator {
     excludedRanks: string[],
     excludedPlayers: string[],
     rankPriority: string[] // Ordered list of ranks from lowest to highest
-  ): { action: 'promote' | 'demote' | 'kick' | 'none'; targetRank?: string; reason?: string } {
+  ): EvaluateResult {
     if (excludedPlayers.includes(member.uuid) || excludedRanks.includes(member.rank)) {
       return { action: 'none' }
     }
@@ -52,17 +59,9 @@ export class RulesEvaluator {
       })
 
     const daysInGuild = (Date.now() - member.joinedAt) / (1000 * 60 * 60 * 24)
-    // online hours calculation might be approximate if we only have join/quit logs,
-    // but here we might rely on what's available or just ignore if not tracked perfectly yet.
-    // For now, let's assume online hours is 0 if we don't have better data, or rely on other stats.
-    const onlineHours = 0 // Placeholder until we have robust online tracking; minOnlineHours > 0 blocks promote until implemented
 
     for (const rule of possiblePromotions) {
-      if (
-        member.weeklyGexp >= rule.minWeeklyGexp &&
-        daysInGuild >= rule.minDaysInGuild &&
-        onlineHours >= rule.minOnlineHours
-      ) {
+      if (member.weeklyGexp >= rule.minWeeklyGexp && daysInGuild >= rule.minDaysInGuild) {
         return {
           action: 'promote',
           targetRank: rule.targetRank,
@@ -78,14 +77,24 @@ export class RulesEvaluator {
       daysInGuild > applicableDemotion.gracePeriod &&
       member.weeklyGexp < applicableDemotion.maxWeeklyGexp
     ) {
+      const reason = `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`
+
       if (applicableDemotion.action === 'demote' && applicableDemotion.targetRank === undefined) {
         return { action: 'none' }
       }
 
+      if (applicableDemotion.action === 'kick') {
+        return { action: 'kick', reason }
+      }
+
+      if (applicableDemotion.action === 'notify') {
+        return { action: 'notify', reason }
+      }
+
       return {
-        action: applicableDemotion.action === 'notify' ? 'none' : applicableDemotion.action, // 'notify' might be handled differently later, treating as 'none' for automation for now or maybe 'demote' if config implies
-        targetRank: applicableDemotion.targetRank,
-        reason: `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`
+        action: 'demote' as const,
+        targetRank: applicableDemotion.targetRank!,
+        reason
       }
     }
 
