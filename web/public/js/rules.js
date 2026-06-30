@@ -3,6 +3,7 @@
   let currentBridgeId = null
   let guildRanks = []
   let currentRules = null
+  let channelNameMap = new Map()
   let channelTagInput = null
   let excludedRanksTagInput = null
   let excludedPlayersTagInput = null
@@ -26,6 +27,7 @@
       manualReview: !!r.manualReview,
       notificationCooldown: number_(r.notificationCooldown),
       notificationChannelIds: Array.isArray(r.notificationChannelIds) ? r.notificationChannelIds.map(String) : [],
+      notificationChannels: Array.isArray(r.notificationChannels) ? r.notificationChannels : [],
       promotionRules: Array.isArray(r.promotionRules)
         ? r.promotionRules.map((p) => ({
             targetRank: p.targetRank || '',
@@ -136,7 +138,7 @@
         <div class="form-group">
           <label class="form-label">Notification Channels</label>
           <div id="tag-channels-host"></div>
-          <div class="form-hint">Discord channel IDs to send notifications to</div>
+          <div class="form-hint">Discord channel IDs to send notifications to (hover to see raw ID)</div>
         </div>
       </div>
     </div>
@@ -193,7 +195,7 @@
     </div>`
   }
 
-  function createTagInput(initial, placeholder, onChange) {
+  function createTagInput(initial, placeholder, onChange, labelFor) {
     const tags = []
     const host = document.createElement('div')
     host.className = 'tag-input'
@@ -208,8 +210,9 @@
       for (const t of tags) {
         const tag = document.createElement('span')
         tag.className = 'tag'
+        tag.title = t
         const label = document.createElement('span')
-        label.textContent = t
+        label.textContent = labelFor ? labelFor(t) || t : t
         const rm = document.createElement('span')
         rm.className = 'tag-remove'
         rm.textContent = '✕'
@@ -378,7 +381,16 @@
     const content = document.querySelector('#rules-content')
     content.innerHTML = buildRulesHTML(rules)
 
-    channelTagInput = createTagInput(rules.notificationChannelIds || [], 'Channel ID…', checkDirty)
+    channelNameMap = new Map()
+    for (const ch of rules.notificationChannels || []) {
+      if (ch.name) channelNameMap.set(ch.id, ch.name)
+    }
+    const channelLabel = (id) => {
+      const name = channelNameMap.get(id)
+      return name ? `#${name}` : null
+    }
+
+    channelTagInput = createTagInput(rules.notificationChannelIds || [], 'Channel ID…', checkDirty, channelLabel)
     document.querySelector('#tag-channels-host').append(channelTagInput.el)
 
     excludedRanksTagInput = createTagInput(rules.excludedRanks || [], 'Rank name…', checkDirty)

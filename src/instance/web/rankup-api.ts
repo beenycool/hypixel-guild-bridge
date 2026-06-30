@@ -34,6 +34,7 @@ interface RulesResponse {
   manualReview: boolean
   notificationCooldown: number
   notificationChannelIds: string[]
+  notificationChannels: { id: string; name: string | null }[]
   promotionRules: PromotionRule[]
   demotionRules: DemotionRule[]
   excludedRanks: string[]
@@ -100,7 +101,7 @@ export class RankupApiHandler {
       const bridgeId = this.requireBridgeId(query, response)
       if (bridgeId === null) return true
       if (method === 'GET') {
-        this.handleGetRules(response, bridgeId)
+        await this.handleGetRules(response, bridgeId)
         return true
       }
       if (method === 'PUT') {
@@ -199,13 +200,29 @@ export class RankupApiHandler {
     this.sendJson(response, HttpStatusCode.Ok, { history })
   }
 
-  private handleGetRules(response: http.ServerResponse, bridgeId: string): void {
+  private async handleGetRules(response: http.ServerResponse, bridgeId: string): Promise<void> {
     const cfg = this.application.core.bridgeConfigurations
+    const channelIds = cfg.getRankupNotificationChannelIds(bridgeId)
+
+    const notificationChannels: { id: string; name: string | null }[] = []
+    const client = this.application.discordInstance?.getClient()
+    for (const id of channelIds) {
+      let name: string | null = null
+      if (client) {
+        const ch = await client.channels.fetch(id).catch(() => undefined)
+        if (ch && 'name' in ch) {
+          name = (ch as { name: string }).name
+        }
+      }
+      notificationChannels.push({ id, name })
+    }
+
     const rules: RulesResponse = {
       enabled: cfg.getRankupEnabled(bridgeId),
       manualReview: cfg.getRankupManualReview(bridgeId),
       notificationCooldown: cfg.getRankupNotificationCooldown(bridgeId),
-      notificationChannelIds: cfg.getRankupNotificationChannelIds(bridgeId),
+      notificationChannelIds: channelIds,
+      notificationChannels,
       promotionRules: cfg.getRankupRules(bridgeId),
       demotionRules: cfg.getRankupDemotionRules(bridgeId),
       excludedRanks: cfg.getRankupExcludedRanks(bridgeId),
