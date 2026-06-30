@@ -251,7 +251,11 @@ export class RankupApiHandler {
 
     const botName = instances[0]
     try {
-      const guild = await this.application.hypixelApi.getGuild('player', botName, {})
+      const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch(() => undefined)
+      if (!guild) {
+        this.sendError(response, HttpStatusCode.NotFound, 'Guild not found')
+        return
+      }
       const ranks = guild.ranks.map((r) => r.name)
       this.sendJson(response, HttpStatusCode.Ok, { ranks })
     } catch (error: unknown) {
