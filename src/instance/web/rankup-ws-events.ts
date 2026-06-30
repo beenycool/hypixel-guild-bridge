@@ -73,11 +73,40 @@ export class RankupWsEvents {
           continue
         }
 
+        const newReviewEntries = []
         for (const review of newReviews.values()) {
           if (!previous.reviewIds.has(review.id)) {
-            this.broadcast({ type: 'rankup.reviewAdded', data: review })
-            eventCount++
+            newReviewEntries.push(review)
           }
+        }
+
+        const newHistoryEntries = []
+        for (const entry of newHistory.values()) {
+          if (!previous.historyIds.has(entry.id)) {
+            newHistoryEntries.push(entry)
+          }
+        }
+
+        const resolveNames = async <T extends { uuid: string }>(items: T[]): Promise<(T & { name?: string })[]> => {
+          const uuids = [...new Set(items.map((r) => r.uuid))]
+          const names = new Map<string, string>()
+          await Promise.all(
+            uuids.map(async (uuid) => {
+              try {
+                const profile = await this.application.mojangApi.profileByUuid(uuid)
+                names.set(uuid, profile.name)
+              } catch {
+                // UUID not resolvable
+              }
+            })
+          )
+          return items.map((item) => ({ ...item, name: names.get(item.uuid) }))
+        }
+
+        const namedReviews = await resolveNames(newReviewEntries)
+        for (const review of namedReviews) {
+          this.broadcast({ type: 'rankup.reviewAdded', data: review })
+          eventCount++
         }
 
         for (const id of previous.reviewIds) {
@@ -87,11 +116,10 @@ export class RankupWsEvents {
           }
         }
 
-        for (const entry of newHistory.values()) {
-          if (!previous.historyIds.has(entry.id)) {
-            this.broadcast({ type: 'rankup.historyAppended', data: entry })
-            eventCount++
-          }
+        const namedHistory = await resolveNames(newHistoryEntries)
+        for (const entry of namedHistory) {
+          this.broadcast({ type: 'rankup.historyAppended', data: entry })
+          eventCount++
         }
 
         this.snapshots.set(bridgeId, {

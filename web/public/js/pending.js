@@ -110,7 +110,7 @@
 
     card.innerHTML = `
       <div class="card-header">
-        <span class="text-mono text-sm">${App.uuidShort(review.uuid)}</span>
+        <span class="text-mono text-sm">${App.escapeHtml(review.name || App.uuidShort(review.uuid))}</span>
         ${App.actionBadge(review.action)}
       </div>
       <div class="card-body">

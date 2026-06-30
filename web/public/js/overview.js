@@ -110,7 +110,7 @@
     const rows = history
       .map((entry) => {
         const action = App.actionBadge(entry.action)
-        const uuid = `<span class="uuid">${App.escapeHtml(App.uuidShort(entry.uuid))}</span>`
+        const uuid = `<span class="uuid">${App.escapeHtml(entry.name || App.uuidShort(entry.uuid))}</span>`
         const rankChange = `<span class="text-mono text-xs">${App.escapeHtml(entry.fromRank || '—')} → ${App.escapeHtml(entry.toRank || '—')}</span>`
         const relTime = `<span class="text-muted text-xs">${App.escapeHtml(App.formatRelativeTime(entry.createdAt))}</span>`
         return `

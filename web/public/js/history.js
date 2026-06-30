@@ -96,7 +96,7 @@
     const dateCell =
       `<div>${App.escapeHtml(App.formatDate(entry.createdAt))}</div>` +
       `<div class="text-xs text-muted">${App.escapeHtml(App.formatRelativeTime(entry.createdAt))}</div>`
-    const playerCell = `<span class="text-mono text-sm">${App.escapeHtml(App.uuidShort(entry.uuid))}</span>`
+    const playerCell = `<span class="text-mono text-sm">${App.escapeHtml(entry.name || App.uuidShort(entry.uuid))}</span>`
     const actionCell = App.actionBadge(entry.action)
     const rankCell = renderRankChange(entry)
     const triggerCell = `<span class="text-mono text-sm text-secondary">${App.escapeHtml(entry.triggeredBy || '—')}</span>`

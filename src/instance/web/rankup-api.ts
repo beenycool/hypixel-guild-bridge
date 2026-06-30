@@ -81,7 +81,7 @@ export class RankupApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      this.handlePendingList(response, bridgeId)
+      await this.handlePendingList(response, bridgeId)
       return true
     }
 
@@ -93,7 +93,7 @@ export class RankupApiHandler {
       const bridgeId = this.requireBridgeId(query, response)
       if (bridgeId === null) return true
       const limit = this.parseLimit(query.limit)
-      this.handleHistory(response, bridgeId, limit)
+      await this.handleHistory(response, bridgeId, limit)
       return true
     }
 
@@ -190,14 +190,16 @@ export class RankupApiHandler {
     this.sendJson(response, HttpStatusCode.Ok, { bridges })
   }
 
-  private handlePendingList(response: http.ServerResponse, bridgeId: string): void {
+  private async handlePendingList(response: http.ServerResponse, bridgeId: string): Promise<void> {
     const reviews: PendingReview[] = this.application.core.pendingReviewManager.getReviews(bridgeId)
-    this.sendJson(response, HttpStatusCode.Ok, { reviews })
+    const reviewsWithNames = await this.resolveNames(reviews)
+    this.sendJson(response, HttpStatusCode.Ok, { reviews: reviewsWithNames })
   }
 
-  private handleHistory(response: http.ServerResponse, bridgeId: string, limit: number): void {
+  private async handleHistory(response: http.ServerResponse, bridgeId: string, limit: number): Promise<void> {
     const history: RankupHistoryEntry[] = this.application.core.pendingReviewManager.getHistory(bridgeId, limit)
-    this.sendJson(response, HttpStatusCode.Ok, { history })
+    const historyWithNames = await this.resolveNames(history)
+    this.sendJson(response, HttpStatusCode.Ok, { history: historyWithNames })
   }
 
   private async handleGetRules(response: http.ServerResponse, bridgeId: string): Promise<void> {
@@ -463,6 +465,22 @@ export class RankupApiHandler {
     if (clamped < 1) return 1
     if (clamped > MAX_HISTORY_LIMIT) return MAX_HISTORY_LIMIT
     return clamped
+  }
+
+  private async resolveNames<T extends { uuid: string }>(items: T[]): Promise<(T & { name?: string })[]> {
+    const uuids = [...new Set(items.map((r) => r.uuid))]
+    const names = new Map<string, string>()
+    await Promise.all(
+      uuids.map(async (uuid) => {
+        try {
+          const profile = await this.application.mojangApi.profileByUuid(uuid)
+          names.set(uuid, profile.name)
+        } catch {
+          // UUID not resolvable; name stays undefined
+        }
+      })
+    )
+    return items.map((item) => ({ ...item, name: names.get(item.uuid) }))
   }
 
   private requireBridgeId(query: Record<string, string | string[]>, response: http.ServerResponse): string | null {
