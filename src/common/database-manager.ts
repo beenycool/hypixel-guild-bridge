@@ -79,8 +79,10 @@ export class DatabaseManager {
   public enqueueWrite(description: string, callback: (database: Queryable) => Promise<void>): void {
     if (this.closed) return
 
-    this.awaitReady()
+    this.writeQueue = this.writeQueue
+      .catch(() => undefined)
       .then(async () => {
+        await this.awaitReady()
         const pool = this.getPool()
         await callback(pool)
       })
@@ -119,6 +121,7 @@ export class DatabaseManager {
 
   public async flushWrites(): Promise<void> {
     await this.awaitReady()
+    await this.writeQueue
   }
 
   public async transaction<T>(callback: (database: Queryable) => Promise<T>): Promise<T> {
@@ -150,13 +153,14 @@ export class DatabaseManager {
 
   public async close(): Promise<void> {
     if (this.closed) return
+    this.closed = true
+
+    await this.writeQueue
 
     if (this.cleanTimer !== undefined) {
       clearInterval(this.cleanTimer)
       this.cleanTimer = undefined
     }
-
-    this.closed = true
 
     const pool = this.pool
     this.pool = undefined
@@ -237,7 +241,7 @@ export class DatabaseManager {
       if (!Number.isNaN(parsed)) return parsed
     }
 
-    return 20
+    return 3
   }
 
   private async query<T extends QueryResultRow = QueryResultRow>(

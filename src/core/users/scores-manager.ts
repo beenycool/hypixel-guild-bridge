@@ -503,12 +503,25 @@ class ScoreDatabase {
           await database.query(`DELETE FROM "${tableName}" WHERE "id" = ANY($1::int[])`, [committedIds])
         }
         if (operation.inserted !== undefined) {
-          const result = await database.query<TimeframeRecord>(
-            `INSERT INTO "${tableName}" ("uuid", "fromTimestamp", "toTimestamp")
+          const uuid = operation.inserted.uuid
+          const fromTimestamp = operation.inserted.fromTimestamp
+          const toTimestamp = operation.inserted.toTimestamp
+          let result = await database
+            .query<TimeframeRecord>(
+              `INSERT INTO "${tableName}" ("uuid", "fromTimestamp", "toTimestamp")
              VALUES ($1, $2, $3)
              RETURNING "id"`,
-            [operation.inserted.uuid, operation.inserted.fromTimestamp, operation.inserted.toTimestamp]
-          )
+              [uuid, fromTimestamp, toTimestamp]
+            )
+            .catch((error: unknown) => {
+              if ((error as { code?: string }).code !== '23505') throw error
+              return database.query<TimeframeRecord>(
+                `INSERT INTO "${tableName}" ("uuid", "fromTimestamp", "toTimestamp")
+               VALUES ($1, $2, $3)
+               RETURNING "id"`,
+                [uuid, fromTimestamp, toTimestamp]
+              )
+            })
           operation.inserted.id = result.rows[0].id
         }
       }

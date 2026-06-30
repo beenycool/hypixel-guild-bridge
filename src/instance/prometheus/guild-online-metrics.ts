@@ -3,6 +3,7 @@ import { Gauge } from 'prom-client'
 
 import type Application from '../../application.js'
 import { InstanceType, PunishmentType } from '../../common/application-event.js'
+import { Status } from '../../common/connectable-instance.js'
 import Duration from '../../utility/duration'
 import { setIntervalAsync } from '../../utility/scheduling'
 
@@ -153,7 +154,10 @@ export default class GuildOnlineMetrics {
   async collectMetrics(app: Application): Promise<void> {
     this.resetMetrics()
 
-    const instanceNames = app.getInstancesNames(InstanceType.Minecraft)
+    const instanceNames = app.minecraftManager
+      .getAllInstances()
+      .filter((inst) => inst.currentStatus() === Status.Connected)
+      .map((inst) => inst.instanceName)
 
     const guildTasks: Promise<unknown>[] = []
     for (const instanceName of instanceNames) {
@@ -235,7 +239,11 @@ export default class GuildOnlineMetrics {
 
     const currentDay = Math.floor(Date.now() / Duration.days(1).toMilliseconds())
 
-    for (const instanceName of this.app.getInstancesNames(InstanceType.Minecraft)) {
+    const connectedInstanceNames = this.app.minecraftManager
+      .getAllInstances()
+      .filter((inst) => inst.currentStatus() === Status.Connected)
+      .map((inst) => inst.instanceName)
+    for (const instanceName of connectedInstanceNames) {
       const bot = this.app.minecraftManager.getMinecraftBots().find((entry) => entry.instanceName === instanceName)
       if (bot === undefined) continue
 
