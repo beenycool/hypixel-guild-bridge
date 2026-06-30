@@ -38,7 +38,7 @@
 
     overlay.innerHTML =
       '<div class="auth-card">' +
-      '<h2>Guild Command Center</h2>' +
+      '<h2>Rankup</h2>' +
       '<p>Enter your access token to continue</p>' +
       '<div class="auth-error" id="app-auth-error"></div>' +
       '<input type="password" class="input auth-input" id="app-auth-input" placeholder="access token" autocomplete="off" />' +
@@ -211,7 +211,7 @@
     const navHost = document.querySelector('#app-nav')
     if (!navHost) return
 
-    const brand = 'Guild Command Center'
+    const brand = 'Rankup'
     const items = [
       { name: 'Overview', href: 'index.html', key: 'overview' },
       { name: 'Rules', href: 'rankup-rules.html', key: 'rules' },
