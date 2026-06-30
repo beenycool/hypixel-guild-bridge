@@ -8,6 +8,7 @@ import { BridgeEvaluator } from './bridge-evaluator.js'
 import { POLL_INTERVAL_MS } from './constants.js'
 import { NotificationManager } from './notification-manager.js'
 import type { PendingReviewManager } from './pending-review-manager.js'
+import type { RankupDecision } from './rankup-decision.js'
 
 export class RankupManager {
   private readonly bridgeEvaluator: BridgeEvaluator
@@ -74,5 +75,35 @@ export class RankupManager {
     } finally {
       this.runningBridges.delete(bridgeId)
     }
+  }
+
+  public async approveReview(bridgeId: string, id: number): Promise<void> {
+    const review = this.pendingManager.getReview(id)
+    if (review === undefined) {
+      this.logger.warn(`approveReview: review %d not found for bridge %s`, id, bridgeId)
+      return
+    }
+
+    const instanceNames = this.bridgeConfig.getMinecraftInstances(bridgeId)
+    if (instanceNames.length === 0) {
+      this.logger.warn(`approveReview: no Minecraft instances configured for bridge %s`, bridgeId)
+      return
+    }
+
+    let decision: RankupDecision & { kind: 'promote' | 'demote' | 'kick' }
+    if (review.action === 'kick') {
+      decision = { kind: 'kick', uuid: review.uuid, currentRank: review.currentRank, reason: review.reason }
+    } else {
+      decision = {
+        kind: review.action as 'promote' | 'demote',
+        uuid: review.uuid,
+        currentRank: review.currentRank,
+        targetRank: review.proposedRank,
+        reason: review.reason
+      }
+    }
+
+    await this.actionDispatcher.dispatch(bridgeId, instanceNames[0], decision, review.currentRank)
+    this.pendingManager.removeReview(id)
   }
 }

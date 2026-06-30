@@ -337,13 +337,13 @@ export class RankupApiHandler {
       return
     }
 
-    const rankupManager = this.application.core.rankupManager
-    void rankupManager.runTaskForBridge(review.bridgeId).catch((error: unknown) => {
-      this.logger.error(`Rankup approve re-check failed for bridge ${review.bridgeId}:`, error)
-    })
-
-    this.application.core.pendingReviewManager.removeReview(id)
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    try {
+      await this.application.core.rankupManager.approveReview(review.bridgeId, id)
+      this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to approve review %d: %s', id, error)
+      this.sendError(response, HttpStatusCode.InternalServerError, 'Failed to approve review')
+    }
   }
 
   private async handleReject(response: http.ServerResponse, id: number): Promise<void> {
