@@ -251,16 +251,18 @@ export class RankupApiHandler {
 
     const botName = instances[0]
     try {
-      const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch(() => undefined)
+      this.logger.debug(`Fetching guild ranks for bridge ${bridgeId} using bot ${botName}`)
+      const guild = await this.application.hypixelApi.getGuild('player', botName, {})
       if (!guild) {
         this.logger.info(`Guild not found for bridge ${bridgeId} (bot: ${botName}) — returning empty ranks`)
         this.sendJson(response, HttpStatusCode.Ok, { ranks: [] })
         return
       }
-      const ranks = guild.ranks.map((r) => r.name)
-      this.sendJson(response, HttpStatusCode.Ok, { ranks })
+      const rankNames = guild.ranks.map((r) => r.name)
+      this.logger.debug(`Fetched ${rankNames.length} guild ranks for bridge ${bridgeId}: [${rankNames.join(', ')}]`)
+      this.sendJson(response, HttpStatusCode.Ok, { ranks: rankNames })
     } catch (error: unknown) {
-      this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId}:`, error)
+      this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId} (bot: ${botName}):`, error)
       this.sendError(response, HttpStatusCode.BadGateway, 'Failed to fetch guild ranks')
     }
   }

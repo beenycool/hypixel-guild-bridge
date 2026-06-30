@@ -537,6 +537,11 @@
         App.apiGet(`/api/rankup/rules?bridgeId=${encodeURIComponent(bridgeId)}`)
       ])
       guildRanks = Array.isArray(ranksRes?.ranks) ? ranksRes.ranks.map(String) : []
+      console.debug(`[Rules] Guild ranks response for bridge ${bridgeId}:`, ranksRes)
+      console.debug(`[Rules] Processed guildRanks (${guildRanks.length}):`, guildRanks)
+      if (guildRanks.length === 0) {
+        console.warn(`[Rules] No guild ranks returned for bridge ${bridgeId} — rank inputs will be free-text`)
+      }
       currentRules = normalizeRules(rulesRes)
       renderRules(currentRules)
     } catch (error) {
