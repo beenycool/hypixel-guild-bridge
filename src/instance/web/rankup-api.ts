@@ -151,6 +151,7 @@ export class RankupApiHandler {
       }
       const [idRaw, action] = segments
       const id = Number(idRaw)
+      this.logger.debug('Pending review action: path=%s, idRaw=%s, parsedId=%d, action=%s', pathPart, idRaw, id, action)
       if (!Number.isInteger(id) || id <= 0) {
         this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid review id' })
         return true
@@ -329,6 +330,7 @@ export class RankupApiHandler {
   }
 
   private async handleApprove(response: http.ServerResponse, id: number): Promise<void> {
+    this.logger.debug('handleApprove: id=%d', id)
     const review = this.application.core.pendingReviewManager.getReview(id)
     if (review === undefined) {
       this.sendError(response, HttpStatusCode.NotFound, 'Review not found')
@@ -345,6 +347,7 @@ export class RankupApiHandler {
   }
 
   private async handleReject(response: http.ServerResponse, id: number): Promise<void> {
+    this.logger.debug('handleReject: id=%d', id)
     const review = this.application.core.pendingReviewManager.getReview(id)
     if (review === undefined) {
       this.sendError(response, HttpStatusCode.NotFound, 'Review not found')

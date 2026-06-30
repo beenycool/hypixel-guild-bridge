@@ -97,6 +97,7 @@
 
     if (!res.ok) {
       const message = body?.error ? body.error : res.statusText || `HTTP ${res.status}`
+      console.debug('apiFetch failed: url=%s, status=%d, body=%o', res.url, res.status, body)
       throw new Error(message)
     }
 

@@ -154,6 +154,7 @@
     approveButton.disabled = true
     rejectButton.disabled = true
 
+    console.debug('handleReviewAction: id=%d, action=%s', id, action)
     try {
       await App.apiPost(`/api/rankup/pending/${id}/${action}`)
       removeCard(card)
@@ -162,6 +163,7 @@
     } catch (error) {
       approveButton.disabled = false
       rejectButton.disabled = false
+      console.debug('handleReviewAction error: id=%d, action=%s, message=%s', id, action, error.message)
       App.showToast(`Failed to ${action} review: ${error.message}`, 'error')
     }
   }
