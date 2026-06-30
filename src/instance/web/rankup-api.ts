@@ -253,6 +253,7 @@ export class RankupApiHandler {
     try {
       const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch(() => undefined)
       if (!guild) {
+        this.logger.debug(`Guild not found for bridge ${bridgeId} (bot: ${botName})`)
         this.sendError(response, HttpStatusCode.NotFound, 'Guild not found')
         return
       }
