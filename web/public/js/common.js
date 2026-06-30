@@ -306,7 +306,10 @@
 
   function formatDate(ts) {
     if (ts == undefined) return '—'
-    const d = new Date(typeof ts === 'number' ? ts : Date.parse(ts))
+    let t = typeof ts === 'number' ? ts : Date.parse(ts)
+    if (isNaN(t)) return '—'
+    if (t < 1e11) t *= 1000
+    const d = new Date(t)
     if (isNaN(d.getTime())) return '—'
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const pad = (n) => String(n).padStart(2, '0')
@@ -315,8 +318,9 @@
 
   function formatRelativeTime(ts) {
     if (ts == undefined) return '—'
-    const t = typeof ts === 'number' ? ts : Date.parse(ts)
+    let t = typeof ts === 'number' ? ts : Date.parse(ts)
     if (isNaN(t)) return '—'
+    if (t < 1e11) t *= 1000
     const diff = Date.now() - t
     const sec = Math.floor(diff / 1000)
     if (sec < 30) return 'just now'
