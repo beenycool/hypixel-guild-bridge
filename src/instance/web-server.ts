@@ -344,9 +344,9 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     try {
       const content = await readFile(filePath)
-      response.writeHead(HttpStatusCode.Ok)
       response.setHeader('Content-Type', contentType)
       response.setHeader('Cache-Control', cacheControl)
+      response.writeHead(HttpStatusCode.Ok)
       response.end(content)
       return true
     } catch (error: unknown) {
@@ -621,8 +621,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private sendJson(response: http.ServerResponse, status: number, body: Record<string, unknown>): void {
-    response.writeHead(status)
     response.setHeader('Content-Type', 'application/json')
+    response.writeHead(status)
     response.end(JSON.stringify(body))
   }
 
