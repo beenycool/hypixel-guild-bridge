@@ -556,6 +556,11 @@ export class RankupApiHandler {
     if (typeof r.gracePeriod !== 'number' || !Number.isFinite(r.gracePeriod)) {
       return 'gracePeriod must be a number'
     }
+    if (r.maxDaysInactive !== undefined && r.maxDaysInactive !== null) {
+      if (typeof r.maxDaysInactive !== 'number' || !Number.isFinite(r.maxDaysInactive)) {
+        return 'maxDaysInactive must be a number when present'
+      }
+    }
     return null
   }
 

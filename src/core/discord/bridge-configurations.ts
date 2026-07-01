@@ -1016,6 +1016,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     targetRank?: string
     maxWeeklyGexp: number
     gracePeriod: number
+    maxDaysInactive?: number
   }[] {
     const raw = this.configuration.getString(`${bridgeId}_rankupDemotionRules`, '[]')
     try {
@@ -1025,6 +1026,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         targetRank?: string
         maxWeeklyGexp: number
         gracePeriod: number
+        maxDaysInactive?: number
       }[]
     } catch {
       return []
@@ -1042,6 +1044,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       targetRank?: string
       maxWeeklyGexp: number
       gracePeriod: number
+      maxDaysInactive?: number
     }[]
   ): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupDemotionRules`, rules, () => {

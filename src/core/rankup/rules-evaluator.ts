@@ -11,6 +11,7 @@ export interface MemberStats {
   joinedAt: number // timestamp
   weeklyGexp: number
   lastOnline?: number // timestamp
+  daysSinceLastSeen?: number
 }
 
 export interface PromotionRule {
@@ -26,6 +27,7 @@ export interface DemotionRule {
   targetRank?: string
   maxWeeklyGexp: number
   gracePeriod: number // days since joining
+  maxDaysInactive?: number
 }
 
 export class RulesEvaluator {
@@ -95,6 +97,38 @@ export class RulesEvaluator {
         action: 'demote' as const,
         targetRank: applicableDemotion.targetRank!,
         reason
+      }
+    }
+
+    // Check Inactivity-based demotion
+    if (member.daysSinceLastSeen !== undefined) {
+      const inactiveRule = demotionRules.find(
+        (r) => r.fromRank.toLowerCase() === member.rank.toLowerCase() && r.maxDaysInactive !== undefined
+      )
+      if (
+        inactiveRule &&
+        daysInGuild > inactiveRule.gracePeriod &&
+        member.daysSinceLastSeen > inactiveRule.maxDaysInactive!
+      ) {
+        const reason = `Inactive for ${member.daysSinceLastSeen.toFixed(1)} days (max ${inactiveRule.maxDaysInactive!}).`
+
+        if (inactiveRule.action === 'kick') {
+          return { action: 'kick', reason }
+        }
+
+        if (inactiveRule.action === 'notify') {
+          return { action: 'notify', reason }
+        }
+
+        if (inactiveRule.action === 'demote' && inactiveRule.targetRank === undefined) {
+          return { action: 'none' }
+        }
+
+        return {
+          action: 'demote' as const,
+          targetRank: inactiveRule.targetRank!,
+          reason
+        }
       }
     }
 

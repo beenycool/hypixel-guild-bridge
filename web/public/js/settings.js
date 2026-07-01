@@ -834,6 +834,7 @@
       <td>${rankSelectHTML(r.targetRank || '')}</td>
       <td><input type="number" class="input" data-field="maxWeeklyGexp" min="0" value="${num(r.maxWeeklyGexp)}" /></td>
       <td><input type="number" class="input" data-field="gracePeriod" min="0" value="${num(r.gracePeriod)}" /></td>
+      <td><input type="number" class="input" data-field="maxDaysInactive" min="0" value="${num(r.maxDaysInactive)}" /></td>
       <td><button class="btn btn-danger btn-sm" data-action="delete" title="Remove">✕</button></td>
     </tr>`
   }
@@ -861,12 +862,12 @@
   function renderDemotionRulesTable(data) {
     const rules = Array.isArray(data.demotionRules) ? data.demotionRules : []
     const rows =
-      rules.length > 0 ? rules.map(demotionRowHTML).join('') : placeholderRow(6, 'No demotion rules configured.')
+      rules.length > 0 ? rules.map(demotionRowHTML).join('') : placeholderRow(7, 'No demotion rules configured.')
     return `<div class="settings-subsection">
       <div class="settings-subsection-title">Demotion Rules</div>
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th>From Rank</th><th>Action</th><th>Target Rank</th><th>Max Weekly GEXP</th><th>Grace Period (days)</th><th></th></tr></thead>
+          <thead><tr><th>From Rank</th><th>Action</th><th>Target Rank</th><th>Max Weekly GEXP</th><th>Grace Period (days)</th><th>Max Days Inactive</th><th></th></tr></thead>
           <tbody id="demo-tbody">${rows}</tbody>
         </table>
       </div>
@@ -912,7 +913,8 @@
         action,
         targetRank: action === 'demote' ? targetRank : undefined,
         maxWeeklyGexp: num(get('maxWeeklyGexp')),
-        gracePeriod: num(get('gracePeriod'))
+        gracePeriod: num(get('gracePeriod')),
+        maxDaysInactive: num(get('maxDaysInactive')) || undefined
       }
       return rule
     })

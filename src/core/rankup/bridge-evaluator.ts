@@ -67,17 +67,34 @@ export class BridgeEvaluator {
     const evaluator = new RulesEvaluator()
     const currentGuildUuids = new Set<string>()
 
+    const lastSeenRows = await this.application.core.databaseManager.queryRows<{
+      memberUuid: string
+      lastSeenAt: number
+    }>('SELECT "memberUuid", "lastSeenAt" FROM "guildMemberStates" WHERE "instanceName" = $1', [instanceNames[0]])
+    const lastSeenByUuid = new Map(lastSeenRows.map((row) => [row.memberUuid, row.lastSeenAt]))
+
     for (const member of guild.members) {
       currentGuildUuids.add(member.uuid)
 
+      const inactiveEntry = this.application.core.inactivity.getActiveByUuid(member.uuid)
+      if (inactiveEntry !== undefined) {
+        this.pendingManager.removeReviewByUuid(bridgeId, member.uuid)
+        continue
+      }
+
       const weeklyGexp = member.weeklyExperience ?? 0
+
+      const memberLastSeen = lastSeenByUuid.get(member.uuid)
+      const daysSinceLastSeen =
+        memberLastSeen !== undefined ? (Date.now() - memberLastSeen) / (1000 * 60 * 60 * 24) : undefined
 
       const stats = {
         uuid: member.uuid,
         rank: member.rank,
         joinedAt: member.joinedAt.getTime(),
         weeklyGexp,
-        lastOnline: 0
+        lastOnline: 0,
+        daysSinceLastSeen
       }
 
       const result = evaluator.evaluate(
