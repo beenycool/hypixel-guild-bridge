@@ -9,13 +9,20 @@
         localStorage.setItem('rankup_token', urlToken)
         const cleanUrl = globalThis.location.pathname + globalThis.location.hash
         globalThis.history.replaceState({}, '', cleanUrl)
+        fetchPermission()
       } catch {
         // localStorage may not be available
       }
     }
   })()
+  ;(function () {
+    if (getToken()) {
+      fetchPermission()
+    }
+  })()
   const TOKEN_KEY = 'rankup_token'
   const BRIDGE_KEY = 'rankup_selectedBridge'
+  const PERMISSION_KEY = 'rankup_permission'
 
   let wsReconnectTimer = null
 
@@ -29,6 +36,44 @@
 
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY)
+    clearPermission()
+  }
+
+  function getPermission() {
+    return localStorage.getItem(PERMISSION_KEY)
+  }
+
+  function setPermission(perm) {
+    localStorage.setItem(PERMISSION_KEY, perm)
+  }
+
+  function clearPermission() {
+    localStorage.removeItem(PERMISSION_KEY)
+  }
+
+  async function fetchPermission() {
+    const token = getToken()
+    if (!token) {
+      clearPermission()
+      return
+    }
+    try {
+      const res = await fetch('/api/auth/check', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) {
+        clearPermission()
+        return
+      }
+      const data = await res.json()
+      if (data.success && data.permission) {
+        setPermission(data.permission)
+      } else {
+        clearPermission()
+      }
+    } catch {
+      clearPermission()
+    }
   }
 
   function hideAuthOverlay() {
@@ -74,6 +119,7 @@
         return
       }
       setToken(value)
+      fetchPermission()
       hideAuthOverlay()
       globalThis.dispatchEvent(new CustomEvent('authsuccess', { detail: { token: value } }))
     }
@@ -234,13 +280,16 @@
     const navHost = document.querySelector('#app-nav')
     if (!navHost) return
 
+    const permission = getPermission()
     const brand = 'Rankup'
     const items = [
       { name: 'Overview', href: 'index.html', key: 'overview' },
       { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
-      { name: 'History', href: 'rankup-history.html', key: 'history' },
-      { name: 'Settings', href: 'settings.html', key: 'settings' }
+      { name: 'History', href: 'rankup-history.html', key: 'history' }
     ]
+    if (permission === 'owner' || permission === 'admin') {
+      items.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
+    }
 
     let navHTML = `<nav class="nav">`
     navHTML += `<a class="nav-brand" href="index.html">${escapeHtml(brand)}</a>`
@@ -446,6 +495,10 @@
     getToken,
     setToken,
     clearToken,
+    getPermission,
+    setPermission,
+    clearPermission,
+    fetchPermission,
     requireAuth,
     hideAuthOverlay,
 

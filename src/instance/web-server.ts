@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto'
 import { existsSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import http from 'node:http'
@@ -12,10 +11,10 @@ import PackageJson from '../../package.json' with { type: 'json' }
 import type { WebConfig } from '../application-config.js'
 import type Application from '../application.js'
 import type { ChatEvent } from '../common/application-event.js'
-import { InstanceType, MinecraftSendChatPriority } from '../common/application-event.js'
+import { InstanceType, MinecraftSendChatPriority, Permission } from '../common/application-event.js'
 import { Instance } from '../common/instance.js'
 
-import { verifyToken } from './web/auth.js'
+import { buildTokenSet, verifyToken } from './web/auth.js'
 import { RankupApiHandler } from './web/rankup-api.js'
 import { RankupWsEvents } from './web/rankup-ws-events.js'
 import { SettingsApiHandler } from './web/settings-api.js'
@@ -236,6 +235,28 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       return
     }
 
+    if (route === '/api/auth/check') {
+      if (request.method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return
+      }
+
+      const authHeader = request.headers.authorization
+      const result = verifyToken(buildTokenSet(this.config), authHeader)
+      if (!result.ok) {
+        this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+        return
+      }
+
+      const permissionName = Permission[result.permission].toLowerCase()
+      const body: Record<string, unknown> = { success: true, permission: permissionName }
+      if (result.userId) {
+        body.userId = result.userId
+      }
+      this.sendJson(response, HttpStatusCode.Ok, body)
+      return
+    }
+
     if (route.startsWith('/api/')) {
       this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid API route' })
       return
@@ -327,11 +348,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private async dispatchMessage(payload: WebMessagePayload): Promise<DispatchResult> {
-    if (
-      !payload.token ||
-      payload.token.length !== this.config.token.length ||
-      !timingSafeEqual(Buffer.from(payload.token), Buffer.from(this.config.token))
-    ) {
+    const auth = verifyToken(buildTokenSet(this.config), undefined, payload.token)
+    if (!auth.ok) {
       return {
         status: HttpStatusCode.Unauthorized,
         body: { success: false, error: 'Invalid token' }
@@ -443,8 +461,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     }
 
     if (payload.type === 'subscribeRankup') {
-      const auth = verifyToken(this.config.token, undefined, payload.token)
-      if (!auth.ok) {
+      const auth = verifyToken(buildTokenSet(this.config), undefined, payload.token)
+      if (!auth.ok || auth.permission < Permission.Helper) {
         this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
         return
       }
@@ -454,8 +472,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     }
 
     if (payload.type === 'subscribeSettings') {
-      const auth = verifyToken(this.config.token, undefined, payload.token)
-      if (!auth.ok) {
+      const auth = verifyToken(buildTokenSet(this.config), undefined, payload.token)
+      if (!auth.ok || auth.permission < Permission.Owner) {
         this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
         return
       }

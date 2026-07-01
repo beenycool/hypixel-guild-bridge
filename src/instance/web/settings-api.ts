@@ -7,7 +7,8 @@ import type Application from '../../application.js'
 import { ApplicationLanguages } from '../../core/language-configurations.js'
 import Duration from '../../utility/duration.js'
 
-import { verifyToken } from './auth.js'
+import { Permission } from '../../common/application-event.js'
+import { buildTokenSet, verifyToken } from './auth.js'
 
 type Primitive = boolean | number | string
 type SettingObject = Record<string, Primitive | Primitive[] | Record<string, Primitive> | undefined>
@@ -72,10 +73,15 @@ export class SettingsApiHandler {
       .split('/')
       .filter(Boolean)
 
-    if (!this.verifyAuth(request, response)) return true
+    const permission = this.verifyAuth(request, response)
+    if (permission === null) return true
 
     // POST /api/settings (create a new bridge)
     if (method === 'POST' && segments.length === 0) {
+      if (permission < Permission.Admin) {
+        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
+        return true
+      }
       const body = await this.readJsonBody(request as never, response)
       if (body === undefined) return true
       await this.handleCreateBridge(response, body as { bridgeId?: unknown })
@@ -84,12 +90,20 @@ export class SettingsApiHandler {
 
     // DELETE /api/settings/:bridgeId
     if (method === 'DELETE' && segments.length === 1) {
+      if (permission < Permission.Admin) {
+        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
+        return true
+      }
       await this.handleDelete(response, segments[0])
       return true
     }
 
     // PUT /api/settings/:bridgeId/:category
     if (method === 'PUT' && segments.length === 2) {
+      if (permission < Permission.Owner) {
+        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
+        return true
+      }
       const body = await this.readJsonBody(request as never, response)
       if (body === undefined) return true
       await this.handlePut(response, segments[0], segments[1], body as SettingObject)
@@ -98,6 +112,10 @@ export class SettingsApiHandler {
 
     // GET /api/settings/:bridgeId
     if (method === 'GET' && segments.length === 1) {
+      if (permission < Permission.Owner) {
+        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
+        return true
+      }
       await this.handleGet(response, segments[0])
       return true
     }
@@ -106,14 +124,15 @@ export class SettingsApiHandler {
     return true
   }
 
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): boolean {
+  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
     const webConfig = this.application.getWebConfig()
-    if (!webConfig || !webConfig.token) return false
+    if (!webConfig || !webConfig.token) return null
     const authHeader = request.headers.authorization
-    const result = verifyToken(webConfig.token, authHeader)
-    if (result.ok) return true
+    const tokens = buildTokenSet(webConfig)
+    const result = verifyToken(tokens, authHeader)
+    if (result.ok) return result.permission
     this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
-    return false
+    return null
   }
 
   private async handleGet(response: http.ServerResponse, bridgeId: string): Promise<void> {

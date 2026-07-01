@@ -33,6 +33,9 @@ export const WebConfig = t.iface([], {
   "enabled": "boolean",
   "port": "number",
   "token": "string",
+  "helperToken": t.opt("string"),
+  "ownerToken": t.opt("string"),
+  "signingSecret": t.opt("string"),
   "minecraftInstance": t.opt("string"),
 });
 

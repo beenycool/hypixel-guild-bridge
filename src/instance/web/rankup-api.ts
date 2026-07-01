@@ -3,9 +3,10 @@ import type http from 'node:http'
 import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
+import { Permission } from '../../common/application-event.js'
 import type Application from '../../application.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
-import { verifyToken } from './auth.js'
+import { buildTokenSet, verifyToken } from './auth.js'
 
 interface BridgeListEntry {
   bridgeId: string
@@ -54,14 +55,15 @@ export class RankupApiHandler {
     private readonly logger: Logger
   ) {}
 
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): boolean {
+  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
     const webConfig = this.application.getWebConfig()
-    if (!webConfig || !webConfig.token) return false
+    if (!webConfig || !webConfig.token) return null
     const authHeader = request.headers.authorization
-    const result = verifyToken(webConfig.token, authHeader)
-    if (result.ok) return true
+    const tokens = buildTokenSet(webConfig)
+    const result = verifyToken(tokens, authHeader)
+    if (result.ok) return result.permission
     this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
-    return false
+    return null
   }
 
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
@@ -76,7 +78,13 @@ export class RankupApiHandler {
     const method = request.method ?? 'GET'
     const query = this.parseQuery(queryPart)
 
-    if (!this.verifyAuth(request, response)) return true
+    const permission = this.verifyAuth(request, response)
+    if (permission === null) return true
+
+    if (permission < Permission.Helper) {
+      this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+      return true
+    }
 
     if (pathPart === `${PREFIX}/bridges`) {
       if (method !== 'GET') {
@@ -115,6 +123,10 @@ export class RankupApiHandler {
       if (bridgeId === null) return true
       if (method === 'GET') {
         await this.handleGetRules(response, bridgeId)
+        return true
+      }
+      if (method === 'PUT' && permission < Permission.Owner) {
+        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
         return true
       }
       if (method === 'PUT') {
