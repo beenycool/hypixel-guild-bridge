@@ -210,6 +210,8 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
       if (roles.some((role) => bridgeConfig.getHelperRoleIds(bridgeId).includes(role))) {
         return Permission.Helper
       }
+
+      return Permission.Anyone
     }
 
     const config = this.application.core.discordConfigurations
