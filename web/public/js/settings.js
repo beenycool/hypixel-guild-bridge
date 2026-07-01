@@ -917,48 +917,6 @@
       return rule
     })
   }
-      const input = tr.querySelector('input.rank-select, input:not([data-field])')
-      const select = tr.querySelector('select.rank-select')
-      const targetRank = select ? select.value : input ? input.value : ''
-      return {
-        targetRank,
-        minWeeklyGexp: num(get('minWeeklyGexp')),
-        minDaysInGuild: num(get('minDaysInGuild')),
-        minOnlineHours: num(get('minOnlineHours'))
-      }
-    })
-  }
-
-  function readDemotionRows() {
-    const tbody = document.querySelector('#demo-tbody')
-    if (!tbody) return []
-    const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
-    return rows.map((tr) => {
-      const get = (f) => {
-        const el = tr.querySelector(`[data-field="${f}"]`)
-        return el ? el.value : ''
-      }
-      const rankInput = tr.querySelector('input.rank-select, input:not([data-field])')
-      const rankSelect = tr.querySelector('select.rank-select')
-      const fromRank = rankSelect ? rankSelect.value : rankInput ? rankInput.value : ''
-      const targetInputs = tr.querySelectorAll(
-        'td:nth-child(3) input.rank-select, td:nth-child(3) input:not([data-field]), td:nth-child(3) select.rank-select'
-      )
-      const targetEl = tr
-        .querySelector('td:nth-child(3)')
-        ?.querySelector('input.rank-select, input:not([data-field]), select.rank-select')
-      const targetRank = targetEl ? targetEl.value : get('targetRank')
-      const action = get('action') || 'notify'
-      const rule = {
-        fromRank,
-        action,
-        targetRank: action === 'demote' ? targetRank : undefined,
-        maxWeeklyGexp: num(get('maxWeeklyGexp')),
-        gracePeriod: num(get('gracePeriod'))
-      }
-      return rule
-    })
-  }
 
   function renderCategoryPanel(cat) {
     const data = categoryData(cat.key)

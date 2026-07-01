@@ -15,14 +15,15 @@
       }
     }
   })()
+  const TOKEN_KEY = 'rankup_token'
+  const BRIDGE_KEY = 'rankup_selectedBridge'
+  const PERMISSION_KEY = 'rankup_permission'
+
   ;(function () {
     if (getToken()) {
       fetchPermission()
     }
   })()
-  const TOKEN_KEY = 'rankup_token'
-  const BRIDGE_KEY = 'rankup_selectedBridge'
-  const PERMISSION_KEY = 'rankup_permission'
 
   let wsReconnectTimer = null
 
