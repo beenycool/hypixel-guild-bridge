@@ -34,7 +34,7 @@ export default {
           .setDescription('Page to open (optional)')
           .setRequired(false)
           .addChoices(
-            { name: 'Overview', value: '' },
+            { name: 'Overview', value: 'home' },
             { name: 'Player Lookup', value: 'player' },
             { name: 'Guild Overview', value: 'guild' },
             { name: 'Leaderboard', value: 'leaderboard' },
@@ -78,7 +78,7 @@ export default {
     const t = encodeURIComponent(signedToken)
 
     const page = context.interaction.options.getString('page') ?? ''
-    const pagePath = page ? `${page}.html` : ''
+    const pagePath = page && page !== 'home' ? `${page}.html` : ''
 
     if (pagePath) {
       const embed = new EmbedBuilder()
