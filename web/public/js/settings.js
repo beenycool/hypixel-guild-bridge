@@ -118,27 +118,10 @@
                 'QOTD management — /qotd',
                 'GEXP threshold checking — /gexp-check',
                 'Connect / disconnect Minecraft — /disconnect, /reconnect',
-                'Toggle chat commands — !toggle'
-              ],
-              missing: [
-                'Dashboard & profanity mgmt (Officer) — /dashboard, /profanity',
-                'Cross-bridge chat moderation (Officer) — !qmute, !qunmute, !qmuted',
-                'Persistent leaderboard (Officer) — /create-leaderboard',
-                'Destructive punishments (Owner) — ban, kick, forgive',
-                'Rank management (Owner) — /demote, /promote, /setrank',
-                'Raw command execution (Owner) — /execute',
-                'Bridge restart & raw in-game exec (Admin) — /restart, !execute'
-              ]
-            },
-            {
-              name: 'Officer',
-              badge: 'cyan',
-              note: 'Includes all Helper commands.',
-              grants: [
-                'Web dashboard — /dashboard',
-                'Profanity filter management — /profanity',
-                'Persistent leaderboard — /create-leaderboard',
-                'Cross-bridge chat moderation — !qmute, !qunmute, !qmuted'
+                'Toggle chat commands — !toggle',
+                'Web dashboard & profanity mgmt — /dashboard, /profanity',
+                'Cross-bridge chat moderation — !qmute, !qunmute, !qmuted',
+                'Persistent leaderboard — /create-leaderboard'
               ],
               missing: [
                 'Destructive punishments (Owner) — ban, kick, forgive',
@@ -150,7 +133,7 @@
             {
               name: 'Owner',
               badge: 'warning',
-              note: 'Includes all Officer commands.',
+              note: 'Includes all Helper commands.',
               grants: [
                 'Destructive punishments — ban, kick, forgive',
                 'Rank management — /demote, /promote, /setrank',
@@ -176,15 +159,6 @@
           t: 'tag',
           label: 'Helper Roles',
           hint: 'Lowest privilege tier (max 5).',
-          placeholder: 'Search roles…',
-          max: 5,
-          roleLabel: true
-        },
-        {
-          id: 'officerRoleIds',
-          t: 'tag',
-          label: 'Officer Roles',
-          hint: 'Mid-tier privileged roles (max 5).',
           placeholder: 'Search roles…',
           max: 5,
           roleLabel: true
@@ -544,15 +518,45 @@
       key: 'rankup',
       name: 'Rankup Automation',
       icon: '↑',
-      description: 'Rank-up rules are managed in the dedicated Rankup Rules editor.',
+      description: 'Configure rankup automation rules, exclusions, and notifications.',
       fields: [
+        { t: 'boolean', id: 'enabled', label: 'Rankup Automation Enabled' },
         {
-          t: 'link',
-          label: 'Open Rankup Rules Editor',
-          description:
-            'Configure promotion/demotion rules, excluded ranks/players, manual review mode, and notification channels in the full rules editor.',
-          href: 'rankup-rules.html',
-          icon: '↑'
+          t: 'boolean',
+          id: 'manualReview',
+          label: 'Manual Review Mode',
+          hint: 'When enabled, rank changes require approval before execution'
+        },
+        {
+          t: 'number',
+          id: 'notificationCooldown',
+          label: 'Notification Cooldown (hours)',
+          hint: 'Minimum hours between notifications for the same player',
+          min: 0
+        },
+        {
+          t: 'tag',
+          id: 'notificationChannelIds',
+          label: 'Notification Channels',
+          channelLabel: true,
+          placeholder: 'Channel ID…',
+          hint: 'Discord channel IDs to send notifications to'
+        },
+        { t: 'promotionRules', id: 'promotionRules' },
+        { t: 'demotionRules', id: 'demotionRules' },
+        {
+          t: 'tag',
+          id: 'excludedRanks',
+          label: 'Excluded Ranks',
+          placeholder: 'Rank name…',
+          hint: 'Ranks that should not be affected by automation'
+        },
+        {
+          t: 'tag',
+          id: 'excludedPlayers',
+          label: 'Excluded Players',
+          placeholder: 'Player UUID…',
+          hint: 'Players that should not be affected by automation'
         }
       ]
     },
@@ -792,6 +796,170 @@
     return `<div class="permission-overview">${html}</div>`
   }
 
+  let rankFieldIdCounter = 0
+  function rankSelectHTML(value) {
+    const ranks = (rawData && Array.isArray(rawData.guildRanks) ? rawData.guildRanks : []).map(String)
+    const allRanks = [...ranks]
+    if (value && value !== '' && !allRanks.includes(value)) allRanks.push(value)
+    const id = `rank-sel-${++rankFieldIdCounter}`
+    if (allRanks.length > 0) {
+      const opts = allRanks
+        .map((rk) => `<option value="${esc(rk)}"${rk === value ? ' selected' : ''}>${esc(rk)}</option>`)
+        .join('')
+      return `<select class="input rank-select" data-rank="${id}">${opts}</select>`
+    }
+    return `<input class="input rank-input" data-rank="${id}" value="${esc(value || '')}" placeholder="Rank name" />`
+  }
+
+  function promotionRowHTML(rule) {
+    const r = rule || {}
+    return `<tr>
+      <td>${rankSelectHTML(r.targetRank || '')}</td>
+      <td><input type="number" class="input" data-field="minWeeklyGexp" min="0" value="${num(r.minWeeklyGexp)}" /></td>
+      <td><input type="number" class="input" data-field="minDaysInGuild" min="0" value="${num(r.minDaysInGuild)}" /></td>
+      <td><input type="number" class="input" data-field="minOnlineHours" min="0" value="${num(r.minOnlineHours)}" /></td>
+      <td><button class="btn btn-danger btn-sm" data-action="delete" title="Remove">✕</button></td>
+    </tr>`
+  }
+
+  function demotionRowHTML(rule) {
+    const r = rule || {}
+    const action = r.action || 'notify'
+    const opts = ['demote', 'kick', 'notify']
+      .map((a) => `<option value="${a}"${a === action ? ' selected' : ''}>${a}</option>`)
+      .join('')
+    return `<tr>
+      <td>${rankSelectHTML(r.fromRank || '')}</td>
+      <td><select class="input" data-field="action">${opts}</select></td>
+      <td>${rankSelectHTML(r.targetRank || '')}</td>
+      <td><input type="number" class="input" data-field="maxWeeklyGexp" min="0" value="${num(r.maxWeeklyGexp)}" /></td>
+      <td><input type="number" class="input" data-field="gracePeriod" min="0" value="${num(r.gracePeriod)}" /></td>
+      <td><button class="btn btn-danger btn-sm" data-action="delete" title="Remove">✕</button></td>
+    </tr>`
+  }
+
+  function placeholderRow(cols, msg) {
+    return `<tr data-placeholder><td colspan="${cols}" class="text-center text-muted text-sm">${esc(msg)}</td></tr>`
+  }
+
+  function renderPromotionRulesTable(data) {
+    const rules = Array.isArray(data.promotionRules) ? data.promotionRules : []
+    const rows =
+      rules.length > 0 ? rules.map(promotionRowHTML).join('') : placeholderRow(5, 'No promotion rules configured.')
+    return `<div class="settings-subsection">
+      <div class="settings-subsection-title">Promotion Rules</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Target Rank</th><th>Min Weekly GEXP</th><th>Min Days in Guild</th><th>Min Online Hours</th><th></th></tr></thead>
+          <tbody id="promo-tbody">${rows}</tbody>
+        </table>
+      </div>
+      <button class="btn btn-secondary btn-sm mt-sm" data-action="add-promotion">+ Add Promotion Rule</button>
+    </div>`
+  }
+
+  function renderDemotionRulesTable(data) {
+    const rules = Array.isArray(data.demotionRules) ? data.demotionRules : []
+    const rows =
+      rules.length > 0 ? rules.map(demotionRowHTML).join('') : placeholderRow(6, 'No demotion rules configured.')
+    return `<div class="settings-subsection">
+      <div class="settings-subsection-title">Demotion Rules</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>From Rank</th><th>Action</th><th>Target Rank</th><th>Max Weekly GEXP</th><th>Grace Period (days)</th><th></th></tr></thead>
+          <tbody id="demo-tbody">${rows}</tbody>
+        </table>
+      </div>
+      <button class="btn btn-secondary btn-sm mt-sm" data-action="add-demotion">+ Add Demotion Rule</button>
+    </div>`
+  }
+
+  function readPromotionRows() {
+    const tbody = document.querySelector('#promo-tbody')
+    if (!tbody) return []
+    const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
+    return rows.map((tr) => {
+      const get = (f) => {
+        const el = tr.querySelector(`[data-field="${f}"]`)
+        return el ? el.value : ''
+      }
+      const rankSel = tr.querySelector('[data-rank]')
+      const targetRank = rankSel ? rankSel.value : ''
+      return {
+        targetRank,
+        minWeeklyGexp: num(get('minWeeklyGexp')),
+        minDaysInGuild: num(get('minDaysInGuild')),
+        minOnlineHours: num(get('minOnlineHours'))
+      }
+    })
+  }
+
+  function readDemotionRows() {
+    const tbody = document.querySelector('#demo-tbody')
+    if (!tbody) return []
+    const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
+    return rows.map((tr) => {
+      const get = (f) => {
+        const el = tr.querySelector(`[data-field="${f}"]`)
+        return el ? el.value : ''
+      }
+      const rankSels = tr.querySelectorAll('[data-rank]')
+      const fromRank = rankSels[0] ? rankSels[0].value : ''
+      const action = get('action') || 'notify'
+      const targetRank = rankSels[1] ? rankSels[1].value : ''
+      const rule = {
+        fromRank,
+        action,
+        targetRank: action === 'demote' ? targetRank : undefined,
+        maxWeeklyGexp: num(get('maxWeeklyGexp')),
+        gracePeriod: num(get('gracePeriod'))
+      }
+      return rule
+    })
+  }
+      const input = tr.querySelector('input.rank-select, input:not([data-field])')
+      const select = tr.querySelector('select.rank-select')
+      const targetRank = select ? select.value : input ? input.value : ''
+      return {
+        targetRank,
+        minWeeklyGexp: num(get('minWeeklyGexp')),
+        minDaysInGuild: num(get('minDaysInGuild')),
+        minOnlineHours: num(get('minOnlineHours'))
+      }
+    })
+  }
+
+  function readDemotionRows() {
+    const tbody = document.querySelector('#demo-tbody')
+    if (!tbody) return []
+    const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
+    return rows.map((tr) => {
+      const get = (f) => {
+        const el = tr.querySelector(`[data-field="${f}"]`)
+        return el ? el.value : ''
+      }
+      const rankInput = tr.querySelector('input.rank-select, input:not([data-field])')
+      const rankSelect = tr.querySelector('select.rank-select')
+      const fromRank = rankSelect ? rankSelect.value : rankInput ? rankInput.value : ''
+      const targetInputs = tr.querySelectorAll(
+        'td:nth-child(3) input.rank-select, td:nth-child(3) input:not([data-field]), td:nth-child(3) select.rank-select'
+      )
+      const targetEl = tr
+        .querySelector('td:nth-child(3)')
+        ?.querySelector('input.rank-select, input:not([data-field]), select.rank-select')
+      const targetRank = targetEl ? targetEl.value : get('targetRank')
+      const action = get('action') || 'notify'
+      const rule = {
+        fromRank,
+        action,
+        targetRank: action === 'demote' ? targetRank : undefined,
+        maxWeeklyGexp: num(get('maxWeeklyGexp')),
+        gracePeriod: num(get('gracePeriod'))
+      }
+      return rule
+    })
+  }
+
   function renderCategoryPanel(cat) {
     const data = categoryData(cat.key)
     let bodyHTML = ''
@@ -813,11 +981,19 @@
         bodyHTML += renderDangerAction(f)
         continue
       }
+      if (f.t === 'promotionRules') {
+        bodyHTML += renderPromotionRulesTable(data)
+        continue
+      }
+      if (f.t === 'demotionRules') {
+        bodyHTML += renderDemotionRulesTable(data)
+        continue
+      }
       const v = fieldValue(data, f)
       bodyHTML += fieldRowHTML(f, v, data)
     }
 
-    const showActionBar = cat.key !== 'rankup' && cat.key !== 'dangerZone'
+    const showActionBar = cat.key !== 'dangerZone'
     const actionBar = showActionBar
       ? `<div class="settings-action-bar">
           <span id="dirty-indicator"></span>
@@ -853,6 +1029,9 @@
     if (cat.key === 'dangerZone') {
       const btn = panel.querySelector('[data-danger="deleteBridge"]')
       if (btn) btn.addEventListener('click', onDeleteBridge)
+    }
+    if (cat.key === 'rankup') {
+      applyDemotionTargetStates()
     }
     // Reset dirty baseline for the active category
     savedSnapshot = serializeCategory(cat, data)
@@ -900,7 +1079,7 @@
     return String(value).replace(/"/g, '\\"')
   }
 
-  // ---- Tag input (replicating rules.js behaviour) -----------------------------
+  // ---- Tag input -------------------------------------------------------------
 
   function createTagInput(initial, placeholder, onChange, labelFor, max, suggestions) {
     const tags = []
@@ -1146,6 +1325,14 @@
           target[f.id] = host && host._getMessageList ? host._getMessageList() : arr(target[f.id])
           continue
         }
+        if (f.t === 'promotionRules') {
+          target[f.id] = readPromotionRows()
+          continue
+        }
+        if (f.t === 'demotionRules') {
+          target[f.id] = readDemotionRows()
+          continue
+        }
         if (f.t === 'link' || f.t === 'danger') continue
         const el = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
         if (!el) continue
@@ -1173,6 +1360,7 @@
         if (f.t === 'tag' || f.t === 'msglist') subset[f.id] = JSON.stringify(arr(v))
         else if (f.t === 'boolean') subset[f.id] = bool(v) ? '1' : '0'
         else if (f.t === 'number') subset[f.id] = String(num(v))
+        else if (f.t === 'promotionRules' || f.t === 'demotionRules') subset[f.id] = JSON.stringify(v || [])
         else subset[f.id] = str(v)
       }
     }
@@ -1226,7 +1414,7 @@
   async function saveCategory() {
     if (!currentBridgeId || !currentCategory || isSaving) return
     const cat = CATEGORIES.find((c) => c.key === currentCategory)
-    if (!cat || cat.key === 'rankup' || cat.key === 'dangerZone') return
+    if (!cat || cat.key === 'dangerZone') return
     isSaving = true
     updateDirtyUI()
     try {
@@ -1399,11 +1587,79 @@
 
   // ---- Delegated listeners ------------------------------------------------
 
+  function addPromotionRow() {
+    const tbody = document.querySelector('#promo-tbody')
+    if (!tbody) return
+    const ph = tbody.querySelector('[data-placeholder]')
+    if (ph) ph.remove()
+    const tr = document.createElement('tr')
+    const ranks = rawData && Array.isArray(rawData.guildRanks) ? rawData.guildRanks : []
+    tr.innerHTML = promotionRowHTML({
+      targetRank: ranks[0] || '',
+      minWeeklyGexp: 0,
+      minDaysInGuild: 0,
+      minOnlineHours: 0
+    })
+    tbody.append(tr)
+    checkDirty()
+  }
+
+  function addDemotionRow() {
+    const tbody = document.querySelector('#demo-tbody')
+    if (!tbody) return
+    const ph = tbody.querySelector('[data-placeholder]')
+    if (ph) ph.remove()
+    const tr = document.createElement('tr')
+    const ranks = rawData && Array.isArray(rawData.guildRanks) ? rawData.guildRanks : []
+    tr.innerHTML = demotionRowHTML({
+      fromRank: ranks[0] || '',
+      action: 'demote',
+      targetRank: '',
+      maxWeeklyGexp: 0,
+      gracePeriod: 7
+    })
+    tbody.append(tr)
+    applyDemotionTargetStates()
+    checkDirty()
+  }
+
+  function removeRow(button) {
+    const tr = button.closest('tr')
+    const tbody = tr?.parentNode
+    if (!tr || !tbody) return
+    tr.remove()
+    if (!tbody.querySelector('tr:not([data-placeholder])')) {
+      const cols = tbody.id === 'promo-tbody' ? 5 : 6
+      tbody.innerHTML = placeholderRow(cols, 'No rules configured.')
+    }
+    checkDirty()
+  }
+
+  function applyDemotionTargetStates() {
+    for (const tr of document.querySelectorAll('#demo-tbody tr')) {
+      const action = tr.querySelector('[data-field="action"]')
+      if (action) {
+        const rankSels = tr.querySelectorAll('[data-rank]')
+        if (rankSels.length >= 2) rankSels[1].disabled = action.value !== 'demote'
+      }
+    }
+  }
+
   function attachDelegatedListeners() {
     const panel = document.querySelector('#settings-panel')
 
     panel.addEventListener('input', () => checkDirty())
-    panel.addEventListener('change', () => checkDirty())
+    panel.addEventListener('change', (e) => {
+      const t = e.target
+      if (t?.dataset?.field === 'action' && currentCategory === 'rankup') {
+        const tr = t.closest('tr')
+        if (tr) {
+          const rankSels = tr.querySelectorAll('[data-rank]')
+          if (rankSels.length >= 2) rankSels[1].disabled = t.value !== 'demote'
+        }
+      }
+      checkDirty()
+    })
 
     panel.addEventListener('click', (e) => {
       if (e.target.closest('#save-btn')) {
@@ -1424,6 +1680,20 @@
           if (arrow) arrow.classList.toggle('open')
         }
         return
+      }
+      if (currentCategory !== 'rankup') return
+      const button = e.target.closest('[data-action]')
+      if (!button) return
+      switch (button.dataset.action) {
+        case 'add-promotion':
+          addPromotionRow()
+          break
+        case 'add-demotion':
+          addDemotionRow()
+          break
+        case 'delete':
+          removeRow(button)
+          break
       }
     })
 

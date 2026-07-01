@@ -75,7 +75,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_loggerChannelIds`)
     this.configuration.delete(`${bridgeId}_minecraftInstances`)
     this.configuration.delete(`${bridgeId}_helperRoleIds`)
-    this.configuration.delete(`${bridgeId}_officerRoleIds`)
     this.configuration.delete(`${bridgeId}_ownerRoleIds`)
     this.configuration.delete(`${bridgeId}_adminRoleIds`) // legacy cleanup
     this.configuration.delete(`${bridgeId}_alwaysReplyReaction`)
@@ -234,7 +233,15 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get helper role IDs for a specific bridge
    */
   public getHelperRoleIds(bridgeId: string): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_helperRoleIds`, [])
+    const helper = this.configuration.getStringArray(`${bridgeId}_helperRoleIds`, [])
+    const officer = this.configuration.getStringArray(`${bridgeId}_officerRoleIds`, [])
+    if (officer.length > 0) {
+      const merged = [...new Set([...helper, ...officer])]
+      this.configuration.setStringArray(`${bridgeId}_helperRoleIds`, merged)
+      this.configuration.delete(`${bridgeId}_officerRoleIds`)
+      return merged
+    }
+    return helper
   }
 
   /**
@@ -264,20 +271,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setOwnerRoleIds(bridgeId: string, roleIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_ownerRoleIds`, roleIds)
-  }
-
-  /**
-   * Get officer role IDs for a specific bridge
-   */
-  public getOfficerRoleIds(bridgeId: string): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_officerRoleIds`, [])
-  }
-
-  /**
-   * Set officer role IDs for a specific bridge
-   */
-  public setOfficerRoleIds(bridgeId: string, roleIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_officerRoleIds`, roleIds)
   }
 
   // ========== Discord Settings ==========
@@ -1109,7 +1102,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       },
       staffRoles: {
         helperRoleIds: this.getHelperRoleIds(bridgeId),
-        officerRoleIds: this.getOfficerRoleIds(bridgeId),
         ownerRoleIds: this.getOwnerRoleIds(bridgeId)
       },
       discordSettings: {
@@ -1168,6 +1160,16 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         passthroughPrefix: this.getPassthroughPrefix(bridgeId) ?? '',
         passthroughCommands: this.getPassthroughCommands(bridgeId),
         insultMode: this.getInsultMode(bridgeId) ?? ''
+      },
+      rankup: {
+        enabled: this.getRankupEnabled(bridgeId),
+        manualReview: this.getRankupManualReview(bridgeId),
+        notificationCooldown: this.getRankupNotificationCooldown(bridgeId),
+        notificationChannelIds: this.getRankupNotificationChannelIds(bridgeId),
+        promotionRules: this.getRankupRules(bridgeId),
+        demotionRules: this.getRankupDemotionRules(bridgeId),
+        excludedRanks: this.getRankupExcludedRanks(bridgeId),
+        excludedPlayers: this.getRankupExcludedPlayers(bridgeId)
       }
     }
   }

@@ -130,11 +130,12 @@ export class SettingsApiHandler {
     for (const id of arr((categories.channels as SettingObject)?.publicChannelIds)) channelIds.add(id)
     for (const id of arr((categories.channels as SettingObject)?.officerChannelIds)) channelIds.add(id)
     for (const id of arr((categories.channels as SettingObject)?.loggerChannelIds)) channelIds.add(id)
+    for (const id of arr((categories.rankup as SettingObject)?.notificationChannelIds)) channelIds.add(id)
 
     // Collect role IDs for name resolution
     const roleIds = new Set<string>()
     for (const id of arr((categories.staffRoles as SettingObject)?.helperRoleIds)) roleIds.add(id)
-    for (const id of arr((categories.staffRoles as SettingObject)?.officerRoleIds)) roleIds.add(id)
+
     for (const id of arr((categories.staffRoles as SettingObject)?.ownerRoleIds)) roleIds.add(id)
 
     const resolvedChannels: { id: string; name: string | null }[] = []
@@ -182,11 +183,31 @@ export class SettingsApiHandler {
 
     const availableLanguages = Object.values(ApplicationLanguages)
 
+    // Fetch guild ranks for rankup editor
+    let guildRanks: string[] = []
+    const instances = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
+    if (instances.length > 0) {
+      const botInstanceName = instances[0]
+      const mcInstance = this.application.minecraftManager
+        .getAllInstances()
+        .find((inst) => inst.instanceName.toLowerCase() === botInstanceName.toLowerCase())
+      const botUuid = mcInstance?.uuid()
+      if (botUuid) {
+        try {
+          const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
+          if (guild) guildRanks = guild.ranks.map((r) => r.name)
+        } catch {
+          // fail gracefully
+        }
+      }
+    }
+
     this.sendJson(response, HttpStatusCode.Ok, {
       bridgeId,
       channels: resolvedChannels,
       roles: resolvedRoles,
       availableLanguages,
+      guildRanks,
       categories
     })
   }
@@ -217,7 +238,6 @@ export class SettingsApiHandler {
           break
         case 'staffRoles':
           cfg.setHelperRoleIds(bridgeId, arr(body.helperRoleIds))
-          cfg.setOfficerRoleIds(bridgeId, arr(body.officerRoleIds))
           cfg.setOwnerRoleIds(bridgeId, arr(body.ownerRoleIds))
           break
         case 'discordSettings':
@@ -284,6 +304,16 @@ export class SettingsApiHandler {
           cfg.setPassthroughPrefix(bridgeId, str(body.passthroughPrefix) || undefined)
           cfg.setPassthroughCommands(bridgeId, arr(body.passthroughCommands))
           cfg.setInsultMode(bridgeId, str(body.insultMode) || undefined)
+          break
+        case 'rankup':
+          cfg.setRankupEnabled(bridgeId, bool(body.enabled))
+          cfg.setRankupManualReview(bridgeId, bool(body.manualReview))
+          cfg.setRankupNotificationCooldown(bridgeId, num(body.notificationCooldown))
+          cfg.setRankupNotificationChannelIds(bridgeId, arr(body.notificationChannelIds))
+          cfg.setRankupRules(bridgeId, body.promotionRules as never)
+          cfg.setRankupDemotionRules(bridgeId, body.demotionRules as never)
+          cfg.setRankupExcludedRanks(bridgeId, arr(body.excludedRanks))
+          cfg.setRankupExcludedPlayers(bridgeId, arr(body.excludedPlayers))
           break
         default:
           this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: `Unknown category: ${category}` })

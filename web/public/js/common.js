@@ -237,7 +237,6 @@
     const brand = 'Rankup'
     const items = [
       { name: 'Overview', href: 'index.html', key: 'overview' },
-      { name: 'Rules', href: 'rankup-rules.html', key: 'rules' },
       { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
       { name: 'History', href: 'rankup-history.html', key: 'history' },
       { name: 'Settings', href: 'settings.html', key: 'settings' }

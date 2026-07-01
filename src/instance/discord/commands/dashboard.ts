@@ -26,7 +26,7 @@ export default {
   getCommandBuilder: () =>
     new SlashCommandBuilder().setName('dashboard').setDescription('Open the web dashboard for bridge management'),
 
-  permission: Permission.Officer,
+  permission: Permission.Helper,
 
   handler: async function (context: Readonly<DiscordCommandContext>) {
     const { interaction } = context
@@ -47,7 +47,7 @@ export default {
         { name: 'Settings', value: `[Open](${base}/settings.html?token=${t})`, inline: true },
         { name: 'Pending Reviews', value: `[Open](${base}/rankup-pending.html?token=${t})`, inline: true },
         { name: 'History', value: `[Open](${base}/rankup-history.html?token=${t})`, inline: true },
-        { name: 'Rules Editor', value: `[Open](${base}/rankup-rules.html?token=${t})`, inline: true }
+        { name: 'Rankup Config', value: `[Open](${base}/settings.html?token=${t})`, inline: true }
       )
       .setColor(0x00_aa_ff)
 
