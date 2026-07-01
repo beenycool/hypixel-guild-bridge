@@ -43,19 +43,15 @@ import ProfanityCommand from './commands/profanity.js'
 import PromoteCommand from './commands/promote.js'
 import PunishmentsCommand from './commands/punishments.js'
 import QotdCommand from './commands/qotd.js'
-import RankupCheckCommand from './commands/rankup-check.js'
-import RankupHistoryCommand from './commands/rankup-history.js'
-import RankupPendingCommand from './commands/rankup-pending.js'
-import RankupUrlCommand from './commands/rankup-url.js'
 import ReconnectCommand from './commands/reconnect.js'
 import RequirementsCommand from './commands/requirements.js'
 import RestartCommand from './commands/restart.js'
 import SetrankCommand from './commands/setrank.js'
-import SettingsCommand from './commands/settings.js'
 import SkyblockCommand from './commands/skyblock.js'
 import StatsCommand from './commands/stats.js'
 import UnlinkCommand from './commands/unlink.js'
 import VerificationCommand from './commands/verification.js'
+import DashboardCommand from './commands/dashboard.js'
 import {
   getBridgeMinecraftInstanceNames,
   getConnectedBridgeMinecraftInstanceNames
@@ -91,7 +87,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
         )
       }
     })
-    this.logger.debug('CommandManager is registered')
+    this.logger.trace('CommandManager is registered')
   }
 
   private listenToRegisterCommands(client: Client<true>): void {
@@ -114,9 +110,9 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     const toAdd = [
       AboutCommand,
       AcceptCommand,
-      SettingsCommand,
       ConnectivityCommand,
       CreateLeaderboardCommand,
+      DashboardCommand,
       GexpCheckCommand,
       GuildTopCommand,
       DemoteCommand,
@@ -137,10 +133,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       PromoteCommand,
       PunishmentsCommand,
       QotdCommand,
-      RankupCheckCommand,
-      RankupHistoryCommand,
-      RankupPendingCommand,
-      RankupUrlCommand,
       ReconnectCommand,
       RequirementsCommand,
       SetrankCommand,
@@ -224,7 +216,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
    * - disallow if not in proper channel
    */
   private async onCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-    this.logger.debug(`${interaction.user.tag} executing ${interaction.commandName}`)
+    this.logger.trace(`${interaction.user.tag} executing ${interaction.commandName}`)
     const command = this.commands.get(interaction.commandName)
 
     try {
@@ -320,7 +312,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
         return
       }
 
-      this.logger.debug('execution granted.')
+      this.logger.trace('execution granted.')
 
       const commandContext: DiscordCommandContext = {
         application: this.application,
@@ -400,14 +392,14 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
   }
 
   private async registerDiscordCommand(client: Client<true>): Promise<void> {
-    this.logger.debug('Registering commands')
+    this.logger.trace('Registering commands')
 
     const token = client.token
     const clientId = client.application.id
     const commandsJson = this.getCommandsJson()
 
     for (const [, guild] of client.guilds.cache) {
-      this.logger.debug(`Informing guild ${guild.id} about commands`)
+      this.logger.trace(`Informing guild ${guild.id} about commands`)
       const rest = new REST().setToken(token)
       await rest
         .put(Routes.applicationGuildCommands(clientId, guild.id), { body: commandsJson })

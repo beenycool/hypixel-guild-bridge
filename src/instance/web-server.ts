@@ -18,6 +18,8 @@ import { Instance } from '../common/instance.js'
 import { verifyToken } from './web/auth.js'
 import { RankupApiHandler } from './web/rankup-api.js'
 import { RankupWsEvents } from './web/rankup-ws-events.js'
+import { SettingsApiHandler } from './web/settings-api.js'
+import { SettingsWsEvents } from './web/settings-ws.js'
 
 interface WebMessagePayload {
   type?: string
@@ -95,6 +97,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly config: WebConfig
   private readonly rankupApi: RankupApiHandler
   private readonly rankupWs: RankupWsEvents
+  private readonly settingsApi: SettingsApiHandler
+  private readonly settingsWs: SettingsWsEvents
   private readonly staticRoot: string
   private knownPublicUrl: string | undefined
 
@@ -143,9 +147,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     this.rankupApi = new RankupApiHandler(application, this.logger)
     this.rankupWs = new RankupWsEvents(application, this.logger)
+    this.settingsApi = new SettingsApiHandler(application, this.logger)
+    this.settingsWs = new SettingsWsEvents(application, this.logger)
     this.staticRoot = resolve(process.cwd(), 'web/public')
 
     this.rankupWs.start()
+    this.settingsWs.start()
 
     this.application.addShutdownListener(() => {
       this.shutdown()
@@ -205,6 +212,11 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     if (route.startsWith('/api/rankup')) {
       await this.rankupApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/settings')) {
+      await this.settingsApi.handle(request, response)
       return
     }
 
@@ -398,12 +410,14 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     socket.on('close', () => {
       this.connections.delete(socket)
       this.rankupWs.unsubscribe(socket)
+      this.settingsWs.unsubscribe(socket)
     })
 
     socket.on('error', (error) => {
       this.logger.warn('WebSocket error', error)
       this.connections.delete(socket)
       this.rankupWs.unsubscribe(socket)
+      this.settingsWs.unsubscribe(socket)
     })
 
     socket.on('message', (data) => {
@@ -435,6 +449,17 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
       this.rankupWs.subscribe(socket)
+      this.sendWebSocket(socket, { type: 'ack', success: true })
+      return
+    }
+
+    if (payload.type === 'subscribeSettings') {
+      const auth = verifyToken(this.config.token, undefined, payload.token)
+      if (!auth.ok) {
+        this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
+        return
+      }
+      this.settingsWs.subscribe(socket)
       this.sendWebSocket(socket, { type: 'ack', success: true })
       return
     }
@@ -556,6 +581,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     }
     this.connections.clear()
     this.rankupWs.stop()
+    this.settingsWs.stop()
     this.wsServer.close()
     this.httpServer.close()
   }

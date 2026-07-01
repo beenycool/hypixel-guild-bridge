@@ -277,6 +277,62 @@
     setLoading(recentActivityElement)
     setLoading(systemStatusElement)
     runCheckButton.addEventListener('click', onRunCheck)
+
+    // Check Player
+    const checkInput = document.querySelector('#check-player-input')
+    const checkBtn = document.querySelector('#check-player-btn')
+    const checkResult = document.querySelector('#check-player-result')
+
+    if (checkBtn && checkInput && checkResult) {
+      const doCheck = async () => {
+        const username = checkInput.value.trim()
+        if (!username) {
+          checkResult.innerHTML = '<div class="text-sm text-muted">Enter a username first.</div>'
+          return
+        }
+        const bridgeId = activeBridgeId()
+        if (!bridgeId) {
+          checkResult.innerHTML = '<div class="text-sm text-danger">No bridge selected.</div>'
+          return
+        }
+        checkResult.innerHTML = '<div class="loading-spinner"></div>'
+        try {
+          const data = await App.apiGet(
+            `/api/rankup/check-player?bridgeId=${encodeURIComponent(bridgeId)}&username=${encodeURIComponent(username)}`
+          )
+          const actionBadges = {
+            none: '<span class="badge badge-muted">No Action</span>',
+            promote: '<span class="badge badge-success">PROMOTE</span>',
+            demote: '<span class="badge badge-danger">DEMOTE</span>',
+            kick: '<span class="badge badge-danger">KICK</span>',
+            notify: '<span class="badge badge-warning">NOTIFY</span>'
+          }
+          const badge = actionBadges[data.action] || '<span class="badge badge-muted">Unknown</span>'
+          checkResult.innerHTML =
+            '<div class="card" style="padding: var(--space-sm);">' +
+            `<div class="grid grid-cols-2 gap-sm">` +
+            `<div><span class="stat-label">Player</span><div class="text-sm">${App.escapeHtml(data.username || username)}</div></div>` +
+            `<div><span class="stat-label">Current Rank</span><div class="text-sm">${App.escapeHtml(data.currentRank)}</div></div>` +
+            `<div><span class="stat-label">Weekly GEXP</span><div class="text-sm">${Number(data.weeklyGexp).toLocaleString()}</div></div>` +
+            `<div><span class="stat-label">Days in Guild</span><div class="text-sm">${data.daysInGuild}</div></div>` +
+            `<div><span class="stat-label">Result</span><div class="text-sm">${badge}</div></div>` +
+            (data.targetRank
+              ? `<div><span class="stat-label">Target Rank</span><div class="text-sm">${App.escapeHtml(data.targetRank)}</div></div>`
+              : '') +
+            `</div>` +
+            (data.reason ? `<div class="mt-xs text-xs text-muted">${App.escapeHtml(data.reason)}</div>` : '') +
+            `</div>`
+        } catch (error) {
+          checkResult.innerHTML = `<div class="text-sm text-danger">${App.escapeHtml(error.message)}</div>`
+        }
+      }
+
+      checkBtn.addEventListener('click', doCheck)
+      checkInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') doCheck()
+      })
+    }
+
     await loadBridgeCards()
     loadRecentActivity()
     loadSystemStatus()

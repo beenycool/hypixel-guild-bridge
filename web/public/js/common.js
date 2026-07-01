@@ -1,5 +1,19 @@
 'use strict'
 ;(function () {
+  // Auto-auth from URL token
+  ;(function () {
+    const params = new URLSearchParams(globalThis.location.search)
+    const urlToken = params.get('token')
+    if (urlToken) {
+      try {
+        localStorage.setItem('rankup_token', urlToken)
+        const cleanUrl = globalThis.location.pathname + globalThis.location.hash
+        globalThis.history.replaceState({}, '', cleanUrl)
+      } catch {
+        // localStorage may not be available
+      }
+    }
+  })()
   const TOKEN_KEY = 'rankup_token'
   const BRIDGE_KEY = 'rankup_selectedBridge'
 
@@ -130,7 +144,7 @@
     return _parseOrThrow(res)
   }
 
-  function connectRankupWS(onEvent) {
+  function connectWS(subscribeType, eventPrefix, onEvent) {
     if (wsReconnectTimer) {
       clearTimeout(wsReconnectTimer)
       wsReconnectTimer = null
@@ -147,7 +161,7 @@
 
       ws.addEventListener('open', () => {
         try {
-          ws.send(JSON.stringify({ type: 'subscribeRankup', token: getToken() }))
+          ws.send(JSON.stringify({ type: subscribeType, token: getToken() }))
         } catch {
           onEvent('error', { error: 'Failed to send subscribe' })
         }
@@ -169,7 +183,7 @@
           return
         }
 
-        if (typeof message.type === 'string' && message.type.startsWith('rankup.')) {
+        if (typeof message.type === 'string' && message.type.startsWith(eventPrefix)) {
           onEvent(message.type, message.data)
         }
       }
@@ -208,6 +222,14 @@
     return wrapped
   }
 
+  function connectRankupWS(onEvent) {
+    return connectWS('subscribeRankup', 'rankup.', onEvent)
+  }
+
+  function connectSettingsWS(onEvent) {
+    return connectWS('subscribeSettings', 'settings.', onEvent)
+  }
+
   function injectNav(activePage) {
     const navHost = document.querySelector('#app-nav')
     if (!navHost) return
@@ -217,7 +239,8 @@
       { name: 'Overview', href: 'index.html', key: 'overview' },
       { name: 'Rules', href: 'rankup-rules.html', key: 'rules' },
       { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
-      { name: 'History', href: 'rankup-history.html', key: 'history' }
+      { name: 'History', href: 'rankup-history.html', key: 'history' },
+      { name: 'Settings', href: 'settings.html', key: 'settings' }
     ]
 
     let navHTML = `<nav class="nav">`
@@ -418,7 +441,7 @@
   }
 
   globalThis.App = {
-    PAGES: ['overview', 'rules', 'pending', 'history'],
+    PAGES: ['overview', 'rules', 'pending', 'history', 'settings'],
     WS_RECONNECT_DELAY: 3000,
 
     getToken,
@@ -434,6 +457,7 @@
     apiDelete,
 
     connectRankupWS,
+    connectSettingsWS,
 
     injectNav,
     populateBridgeSelector,

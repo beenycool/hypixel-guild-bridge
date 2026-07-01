@@ -11,6 +11,19 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   private readonly configuration: Configuration
   private readonly onChange?: (event: { bridgeId: string; key: string; value: unknown }) => void
 
+  private getBridgeString(key: string, bridgeId: string, defaultValue = ''): string {
+    return this.configuration.getString(`${bridgeId}_${key}`, defaultValue)
+  }
+
+  private setBridgeString(key: string, bridgeId: string, value: string | undefined): void {
+    const fullKey = `${bridgeId}_${key}`
+    if (value === undefined || value === '') {
+      this.configuration.delete(fullKey)
+    } else {
+      this.configuration.setString(fullKey, value)
+    }
+  }
+
   constructor(
     manager: ConfigurationsManager,
     onChange?: (event: { bridgeId: string; key: string; value: unknown }) => void
@@ -34,6 +47,17 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     if (!existing.includes(bridgeId)) {
       existing.push(bridgeId)
       this.configuration.setStringArray('bridgeIds', existing)
+    }
+  }
+
+  private setConfig(bridgeId: string, key: string, value: unknown, apply: () => void): void {
+    apply()
+    if (this.onChange) {
+      try {
+        this.onChange({ bridgeId, key, value })
+      } catch {
+        // ignore errors from callbacks
+      }
     }
   }
 
@@ -193,7 +217,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Returns undefined when no per-bridge language is set.
    */
   public getLanguage(bridgeId: string): string | undefined {
-    const value = this.configuration.getString(`${bridgeId}_language`, '')
+    const value = this.getBridgeString('language', bridgeId)
     return value === '' ? undefined : value
   }
 
@@ -201,11 +225,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set the configured language for a specific bridge. Pass undefined to clear the setting.
    */
   public setLanguage(bridgeId: string, language: string | undefined): void {
-    if (language === undefined || language === '') {
-      this.configuration.delete(`${bridgeId}_language`)
-    } else {
-      this.configuration.setString(`${bridgeId}_language`, language)
-    }
+    this.setBridgeString('language', bridgeId, language)
   }
 
   // ========== Role Configurations ==========
@@ -430,7 +450,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get whether heat punishment is enabled for a specific bridge (undefined = use global)
    */
   public getHeatPunishmentEnabled(bridgeId: string): boolean | undefined {
-    const value = this.configuration.getString(`${bridgeId}_heatPunishmentEnabled`, '')
+    const value = this.getBridgeString('heatPunishmentEnabled', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
@@ -488,7 +508,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get whether profanity filter is enabled for a specific bridge (undefined = use global)
    */
   public getProfanityEnabled(bridgeId: string): boolean | undefined {
-    const value = this.configuration.getString(`${bridgeId}_profanityEnabled`, '')
+    const value = this.getBridgeString('profanityEnabled', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
@@ -538,7 +558,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get whether chat commands are enabled for a specific bridge (undefined = use global)
    */
   public getCommandsEnabled(bridgeId: string): boolean | undefined {
-    const value = this.configuration.getString(`${bridgeId}_commandsEnabled`, '')
+    const value = this.getBridgeString('commandsEnabled', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
@@ -558,7 +578,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get chat command prefix for a specific bridge (undefined = use global)
    */
   public getCommandPrefix(bridgeId: string): string | undefined {
-    const value = this.configuration.getString(`${bridgeId}_commandPrefix`, '')
+    const value = this.getBridgeString('commandPrefix', bridgeId)
     return value === '' ? undefined : value
   }
 
@@ -566,11 +586,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set chat command prefix for a specific bridge
    */
   public setCommandPrefix(bridgeId: string, prefix: string | undefined): void {
-    if (prefix === undefined || prefix === '') {
-      this.configuration.delete(`${bridgeId}_commandPrefix`)
-    } else {
-      this.configuration.setString(`${bridgeId}_commandPrefix`, prefix)
-    }
+    this.setBridgeString('commandPrefix', bridgeId, prefix)
   }
 
   /**
@@ -591,7 +607,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get whether command explanation on help is enabled for a specific bridge (undefined = use global)
    */
   public getExplainCommandOnHelp(bridgeId: string): boolean | undefined {
-    const value = this.configuration.getString(`${bridgeId}_explainCommandOnHelp`, '')
+    const value = this.getBridgeString('explainCommandOnHelp', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
@@ -611,7 +627,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get whether typo suggestion is enabled for a specific bridge (undefined = use global)
    */
   public getSuggestOnTypo(bridgeId: string): boolean | undefined {
-    const value = this.configuration.getString(`${bridgeId}_suggestOnTypo`, '')
+    const value = this.getBridgeString('suggestOnTypo', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
@@ -669,7 +685,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get insult mode for a specific bridge ('normal', 'custom', or undefined = use global default)
    */
   public getInsultMode(bridgeId: string): string | undefined {
-    const value = this.configuration.getString(`${bridgeId}_insultMode`, '')
+    const value = this.getBridgeString('insultMode', bridgeId)
     return value === '' ? undefined : value
   }
 
@@ -677,11 +693,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set insult mode for a specific bridge. Pass undefined to clear the setting.
    */
   public setInsultMode(bridgeId: string, mode: string | undefined): void {
-    if (mode === undefined || mode === '') {
-      this.configuration.delete(`${bridgeId}_insultMode`)
-    } else {
-      this.configuration.setString(`${bridgeId}_insultMode`, mode)
-    }
+    this.setBridgeString('insultMode', bridgeId, mode)
   }
 
   // ========== Quality of Life Configurations ==========
@@ -886,7 +898,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get passthrough prefix for a specific bridge (undefined = use global)
    */
   public getPassthroughPrefix(bridgeId: string): string | undefined {
-    const value = this.configuration.getString(`${bridgeId}_passthroughPrefix`, '')
+    const value = this.getBridgeString('passthroughPrefix', bridgeId)
     return value === '' ? undefined : value
   }
 
@@ -894,11 +906,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set passthrough prefix for a specific bridge
    */
   public setPassthroughPrefix(bridgeId: string, prefix: string | undefined): void {
-    if (prefix === undefined || prefix === '') {
-      this.configuration.delete(`${bridgeId}_passthroughPrefix`)
-    } else {
-      this.configuration.setString(`${bridgeId}_passthroughPrefix`, prefix)
-    }
+    this.setBridgeString('passthroughPrefix', bridgeId, prefix)
   }
 
   // ========== Rankup Automation Configurations ==========
@@ -914,7 +922,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set whether rankup automation is enabled for a bridge
    */
   public setRankupEnabled(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_rankupEnabled`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_rankupEnabled`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_rankupEnabled`, enabled)
+    })
   }
 
   /**
@@ -928,7 +938,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set whether manual review mode is enabled for rankup
    */
   public setRankupManualReview(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_rankupManualReview`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_rankupManualReview`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_rankupManualReview`, enabled)
+    })
   }
 
   /**
@@ -942,7 +954,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set notification cooldown in hours for rankup
    */
   public setRankupNotificationCooldown(bridgeId: string, hours: number): void {
-    this.configuration.setNumber(`${bridgeId}_rankupNotificationCooldown`, hours)
+    this.setConfig(bridgeId, `${bridgeId}_rankupNotificationCooldown`, hours, () => {
+      this.configuration.setNumber(`${bridgeId}_rankupNotificationCooldown`, hours)
+    })
   }
 
   /**
@@ -956,7 +970,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set notification channel IDs for rankup
    */
   public setRankupNotificationChannelIds(bridgeId: string, channelIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_rankupNotificationChannelIds`, channelIds)
+    this.setConfig(bridgeId, `${bridgeId}_rankupNotificationChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_rankupNotificationChannelIds`, channelIds)
+    })
   }
 
   /**
@@ -993,7 +1009,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       minOnlineHours: number
     }[]
   ): void {
-    this.configuration.setString(`${bridgeId}_rankupRules`, JSON.stringify(rules))
+    this.setConfig(bridgeId, `${bridgeId}_rankupRules`, rules, () => {
+      this.configuration.setString(`${bridgeId}_rankupRules`, JSON.stringify(rules))
+    })
   }
 
   /**
@@ -1033,7 +1051,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       gracePeriod: number
     }[]
   ): void {
-    this.configuration.setString(`${bridgeId}_rankupDemotionRules`, JSON.stringify(rules))
+    this.setConfig(bridgeId, `${bridgeId}_rankupDemotionRules`, rules, () => {
+      this.configuration.setString(`${bridgeId}_rankupDemotionRules`, JSON.stringify(rules))
+    })
   }
 
   /**
@@ -1047,7 +1067,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set excluded ranks for rankup automation
    */
   public setRankupExcludedRanks(bridgeId: string, ranks: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_rankupExcludedRanks`, ranks)
+    this.setConfig(bridgeId, `${bridgeId}_rankupExcludedRanks`, ranks, () => {
+      this.configuration.setStringArray(`${bridgeId}_rankupExcludedRanks`, ranks)
+    })
   }
 
   /**
@@ -1061,6 +1083,92 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Set excluded players for rankup automation
    */
   public setRankupExcludedPlayers(bridgeId: string, players: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_rankupExcludedPlayers`, players)
+    this.setConfig(bridgeId, `${bridgeId}_rankupExcludedPlayers`, players, () => {
+      this.configuration.setStringArray(`${bridgeId}_rankupExcludedPlayers`, players)
+    })
+  }
+
+  // ========== Bulk settings reader ==========
+
+  public getAllSettings(bridgeId: string): Record<string, unknown> {
+    const channels = this.getPublicChannelIds(bridgeId)
+    const officerChannels = this.getOfficerChannelIds(bridgeId)
+    const loggerChannels = this.getLoggerChannelIds(bridgeId)
+
+    const skyblockNotifiers = this.getSkyblockEventNotifiers(bridgeId) ?? {}
+    const skyblockEventsEnabled = this.getSkyblockEventsEnabled(bridgeId)
+
+    return {
+      channels: {
+        publicChannelIds: channels,
+        officerChannelIds: officerChannels,
+        loggerChannelIds: loggerChannels
+      },
+      instances: {
+        minecraftInstances: this.getMinecraftInstances(bridgeId)
+      },
+      staffRoles: {
+        helperRoleIds: this.getHelperRoleIds(bridgeId),
+        officerRoleIds: this.getOfficerRoleIds(bridgeId),
+        ownerRoleIds: this.getOwnerRoleIds(bridgeId)
+      },
+      discordSettings: {
+        alwaysReply: this.getAlwaysReplyReaction(bridgeId),
+        enforceVerification: this.getEnforceVerification(bridgeId),
+        minecraftTextImages: this.getTextToImage(bridgeId),
+        language: this.getLanguage(bridgeId) ?? ''
+      },
+      minecraftEvents: {
+        memberOnline: this.getGuildOnline(bridgeId),
+        memberOffline: this.getGuildOffline(bridgeId),
+        persistOnlineOffline: this.getPersistGuildOnlineOffline(bridgeId),
+        deleteAfterSeconds: this.getDurationTemporarilyInteractions(bridgeId).toSeconds(),
+        maxEvents: this.getMaxTemporarilyInteractions(bridgeId),
+        chatterEnabled: this.getRandomChatterEnabled(bridgeId),
+        chatterIntervalMinutes: this.getRandomChatterIntervalMinutes(bridgeId),
+        chatterMinOnlinePlayers: this.getRandomChatterMinimumOnlinePlayers(bridgeId),
+        chatterUseBotName: this.getRandomChatterIncludePlayerName(bridgeId),
+        chatterMessages: this.getRandomChatterMessages(bridgeId, []),
+        chatterAntiRepeatLength: this.getRandomChatterAntiRepeatLength(bridgeId),
+        chatterQuietWindowMinutes: this.getRandomChatterQuietWindowMinutes(bridgeId)
+      },
+      skyblockEvents: {
+        enabled: skyblockEventsEnabled,
+        darkAuctionReminder: this.getDarkAuctionReminder(bridgeId),
+        starfallCultReminder: this.getStarfallCultReminder(bridgeId),
+        events: skyblockNotifiers
+      },
+      qualityOfLife: {
+        guildJoinReaction: this.getJoinGuildReaction(bridgeId),
+        guildLeaveReaction: this.getLeaveGuildReaction(bridgeId),
+        guildKickReaction: this.getKickGuildReaction(bridgeId),
+        joinDiscordReaction: this.getJoinReactionEmojiType(bridgeId),
+        leaveDiscordReaction: this.getLeaveReactionEmojiType(bridgeId),
+        announcePlayerMuted: this.getAnnounceMutedPlayer(bridgeId)
+      },
+      customMessages: {
+        joinMessages: this.getGuildJoinReactionMessages(bridgeId, []),
+        leaveMessages: this.getGuildLeaveReactionMessages(bridgeId, []),
+        kickMessages: this.getGuildKickReactionMessages(bridgeId, []),
+        darkAuctionReminderText: this.getDarkAuctionReminderMessage(bridgeId, ''),
+        starfallCultReminderText: this.getStarfallReminderMessage(bridgeId, ''),
+        announcePlayerMutedText: this.getAnnounceMutedPlayerMessage(bridgeId, '')
+      },
+      moderation: {
+        heatPunishmentsEnabled: this.getHeatPunishmentEnabled(bridgeId),
+        heatKicksPerDay: this.getKicksPerDay(bridgeId),
+        heatMutesPerDay: this.getMutesPerDay(bridgeId),
+        immuneDiscordUserIds: this.getImmuneDiscordUsers(bridgeId),
+        immuneMojangPlayers: this.getImmuneMojangPlayers(bridgeId),
+        profanityFilterEnabled: this.getProfanityEnabled(bridgeId)
+      },
+      chatCommands: {
+        commandsEnabled: this.getCommandsEnabled(bridgeId),
+        chatCommandPrefix: this.getCommandPrefix(bridgeId) ?? '',
+        passthroughPrefix: this.getPassthroughPrefix(bridgeId) ?? '',
+        passthroughCommands: this.getPassthroughCommands(bridgeId),
+        insultMode: this.getInsultMode(bridgeId) ?? ''
+      }
+    }
   }
 }

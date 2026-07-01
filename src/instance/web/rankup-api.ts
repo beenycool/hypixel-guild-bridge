@@ -5,6 +5,7 @@ import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
+import { verifyToken } from './auth.js'
 
 interface BridgeListEntry {
   bridgeId: string
@@ -53,6 +54,16 @@ export class RankupApiHandler {
     private readonly logger: Logger
   ) {}
 
+  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): boolean {
+    const webConfig = this.application.getWebConfig()
+    if (!webConfig || !webConfig.token) return false
+    const authHeader = request.headers.authorization
+    const result = verifyToken(webConfig.token, authHeader)
+    if (result.ok) return true
+    this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+    return false
+  }
+
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
     if (!rawUrl) return false
@@ -64,6 +75,8 @@ export class RankupApiHandler {
 
     const method = request.method ?? 'GET'
     const query = this.parseQuery(queryPart)
+
+    if (!this.verifyAuth(request, response)) return true
 
     if (pathPart === `${PREFIX}/bridges`) {
       if (method !== 'GET') {
@@ -120,6 +133,15 @@ export class RankupApiHandler {
         return true
       }
       await this.handleGuildRanks(response, bridgeId)
+      return true
+    }
+
+    if (pathPart === `${PREFIX}/check-player`) {
+      if (method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return true
+      }
+      await this.handleCheckPlayer(response, query)
       return true
     }
 
@@ -295,6 +317,90 @@ export class RankupApiHandler {
       this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId} (bot UUID: ${botUuid}):`, error)
       this.sendError(response, HttpStatusCode.BadGateway, 'Failed to fetch guild ranks')
     }
+  }
+
+  private async handleCheckPlayer(
+    response: http.ServerResponse,
+    query: Record<string, string | string[]>
+  ): Promise<void> {
+    const bridgeId = this.requireBridgeId(query, response)
+    if (bridgeId === null) return
+
+    const usernameRaw = query.username
+    const username = Array.isArray(usernameRaw) ? usernameRaw[0] : usernameRaw
+    if (!username || username.length === 0) {
+      this.sendError(response, HttpStatusCode.BadRequest, 'Missing or empty username')
+      return
+    }
+
+    const uuid = await this.application.mojangApi
+      .profileByUsername(username)
+      .then((p) => p.id)
+      .catch(() => undefined)
+    if (!uuid) {
+      this.sendError(response, HttpStatusCode.BadRequest, 'Invalid username')
+      return
+    }
+
+    const bridgeConfig = this.application.core.bridgeConfigurations
+
+    const instances = bridgeConfig.getMinecraftInstances(bridgeId)
+    if (instances.length === 0) {
+      this.sendError(response, HttpStatusCode.BadRequest, 'No Minecraft instances configured for this bridge')
+      return
+    }
+
+    const botName = instances[0]
+    const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch(() => undefined)
+    if (!guild) {
+      this.sendError(response, HttpStatusCode.BadGateway, 'Could not fetch guild data')
+      return
+    }
+
+    const member = guild.members.find((m) => m.uuid === uuid)
+    if (!member) {
+      this.sendError(response, HttpStatusCode.NotFound, 'Player is not in the guild')
+      return
+    }
+
+    const promotionRules = bridgeConfig.getRankupRules(bridgeId)
+    const demotionRules = bridgeConfig.getRankupDemotionRules(bridgeId)
+    const excludedRanks = bridgeConfig.getRankupExcludedRanks(bridgeId)
+    const excludedPlayers = bridgeConfig.getRankupExcludedPlayers(bridgeId)
+
+    const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
+
+    const weeklyGexp = member.weeklyExperience ?? 0
+
+    const stats = {
+      uuid: member.uuid,
+      rank: member.rank,
+      joinedAt: member.joinedAt.getTime(),
+      weeklyGexp,
+      lastOnline: 0
+    }
+
+    const { RulesEvaluator } = await import('../../core/rankup/rules-evaluator.js')
+    const evaluator = new RulesEvaluator()
+    const result = evaluator.evaluate(
+      stats,
+      promotionRules,
+      demotionRules,
+      excludedRanks,
+      excludedPlayers,
+      rankPriority
+    )
+
+    this.sendJson(response, HttpStatusCode.Ok, {
+      uuid,
+      username,
+      currentRank: member.rank,
+      weeklyGexp,
+      daysInGuild: ((Date.now() - stats.joinedAt) / (1000 * 60 * 60 * 24)).toFixed(1),
+      action: result.action,
+      targetRank: 'targetRank' in result ? result.targetRank : undefined,
+      reason: 'reason' in result ? result.reason : undefined
+    })
   }
 
   private async handleRunCheck(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {

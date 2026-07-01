@@ -12,11 +12,13 @@ import { RankupApiHandler } from '../src/instance/web/rankup-api.js'
 class FakeRequest extends EventEmitter {
   method: string
   url: string
+  headers: Record<string, string | string[] | undefined>
 
   constructor(method: string, url: string) {
     super()
     this.method = method
     this.url = url
+    this.headers = {}
   }
 
   setEncoding(_encoding: string): void {}
@@ -154,6 +156,7 @@ async function setupTest(
   const eventEmitter = new EventEmitter()
   const app = {
     on: (event: string, callback: (...arguments_: unknown[]) => void) => eventEmitter.on(event, callback),
+    getWebConfig: () => ({ token: 'test', enabled: true, port: 8080 }),
     core: {
       bridgeConfigurations,
       pendingReviewManager,
@@ -184,6 +187,7 @@ async function runHandler(
   body?: string
 ): Promise<{ request: FakeRequest; response: FakeResponse; handled: boolean }> {
   const request = new FakeRequest(method, url)
+  request.headers = { authorization: 'Bearer test' }
   const response = new FakeResponse()
   const promise = harness.handler.handle(
     request as unknown as http.IncomingMessage,
