@@ -11,6 +11,7 @@
   let listenersAttached = false
   const channelNameMap = new Map()
   const tagInputRegistry = new Map()
+  const roleNameMap = new Map()
 
   const esc = (s) => App.escapeHtml(s)
   const num = (n) => {
@@ -175,27 +176,27 @@
           t: 'tag',
           label: 'Helper Roles',
           hint: 'Lowest privilege tier (max 5).',
-          placeholder: 'Role ID…',
+          placeholder: 'Search roles…',
           max: 5,
-          channelLabel: true
+          roleLabel: true
         },
         {
           id: 'officerRoleIds',
           t: 'tag',
           label: 'Officer Roles',
           hint: 'Mid-tier privileged roles (max 5).',
-          placeholder: 'Role ID…',
+          placeholder: 'Search roles…',
           max: 5,
-          channelLabel: true
+          roleLabel: true
         },
         {
           id: 'ownerRoleIds',
           t: 'tag',
           label: 'Owner Roles',
           hint: 'Full administrative access (max 5).',
-          placeholder: 'Role ID…',
+          placeholder: 'Search roles…',
           max: 5,
-          channelLabel: true,
+          roleLabel: true,
           warning: true
         }
       ]
@@ -601,6 +602,16 @@
     }
   }
 
+  function rebuildRoleNameMap(payload) {
+    roleNameMap.clear()
+    const list = payload?.roles
+    if (Array.isArray(list)) {
+      for (const r of list) {
+        if (r && r.id != null && r.name) roleNameMap.set(String(r.id), r.name)
+      }
+    }
+  }
+
   function categoryData(catKey) {
     const cats = (rawData && rawData.categories) || {}
     return cats[catKey] || {}
@@ -863,8 +874,16 @@
         if (f.t === 'tag') {
           const host = panel.querySelector(`[data-tag-host="${cssEscape(f.id)}"]`)
           if (!host) continue
-          const labelFor = f.channelLabel ? (id) => channelNameMap.get(String(id)) : null
-          const tag = createTagInput(arr(data[f.id]), f.placeholder || '…', markDirty, labelFor, f.max)
+          let labelFor = null
+          if (f.roleLabel) {
+            labelFor = (id) => roleNameMap.get(String(id))
+          } else if (f.channelLabel) {
+            labelFor = (id) => channelNameMap.get(String(id))
+          }
+          const suggestions = f.roleLabel
+            ? Array.from(roleNameMap.entries()).map(([id, name]) => ({ label: name, value: id }))
+            : undefined
+          const tag = createTagInput(arr(data[f.id]), f.placeholder || '…', markDirty, labelFor, f.max, suggestions)
           host.append(tag.el)
           tagInputRegistry.set(f.id, tag)
         } else if (f.t === 'msglist') {
@@ -883,17 +902,70 @@
 
   // ---- Tag input (replicating rules.js behaviour) -----------------------------
 
-  function createTagInput(initial, placeholder, onChange, labelFor, max) {
+  function createTagInput(initial, placeholder, onChange, labelFor, max, suggestions) {
     const tags = []
     const host = document.createElement('div')
     host.className = 'tag-input'
+    host.style.position = 'relative'
     const field = document.createElement('input')
     field.className = 'tag-input-field'
     field.type = 'text'
     field.placeholder = placeholder
 
+    const suggestBox = document.createElement('div')
+    suggestBox.className = 'tag-input-suggest'
+
+    let highlightedIndex = -1
+    let filtered = []
+
+    function closeSuggest() {
+      suggestBox.classList.remove('open')
+      highlightedIndex = -1
+      filtered = []
+    }
+
+    function openSuggest() {
+      if (filtered.length > 0 || (field.value.trim() && filtered.length === 0)) {
+        suggestBox.classList.add('open')
+      }
+    }
+
+    function filterSuggestions(query) {
+      if (!suggestions) return []
+      const q = query.toLowerCase().trim()
+      if (!q) return suggestions
+      return suggestions.filter((s) => s.label.toLowerCase().includes(q) || s.value.includes(q))
+    }
+
+    function renderSuggest() {
+      while (suggestBox.firstChild) suggestBox.firstChild.remove()
+      if (!suggestions) return
+      if (filtered.length === 0) {
+        const empty = document.createElement('div')
+        empty.className = 'tag-input-suggest-empty'
+        empty.textContent = field.value.trim() ? 'No matching roles' : ''
+        suggestBox.append(empty)
+        return
+      }
+      for (let i = 0; i < filtered.length; i++) {
+        const item = document.createElement('div')
+        item.className = 'tag-input-suggest-item'
+        if (i === highlightedIndex) item.classList.add('highlighted')
+        item.textContent = filtered[i].label
+        item.dataset.value = filtered[i].value
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault()
+          addTag(filtered[i].value)
+          field.value = ''
+          closeSuggest()
+          field.focus()
+        })
+        suggestBox.append(item)
+      }
+    }
+
     function render() {
-      while (host.firstChild && host.firstChild !== field) host.firstChild.remove()
+      while (host.firstChild && host.firstChild !== field && host.firstChild !== suggestBox) host.firstChild.remove()
       for (const t of tags) {
         const tag = document.createElement('span')
         tag.className = 'tag'
@@ -930,16 +1002,56 @@
     field.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault()
-        addTag(field.value)
+        if (highlightedIndex >= 0 && highlightedIndex < filtered.length) {
+          addTag(filtered[highlightedIndex].value)
+        } else if (field.value.trim()) {
+          addTag(field.value)
+        }
         field.value = ''
+        closeSuggest()
       } else if (e.key === 'Backspace' && field.value === '' && tags.length > 0) {
         tags.pop()
         render()
         if (onChange) onChange()
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (filtered.length === 0) return
+        highlightedIndex = Math.min(highlightedIndex + 1, filtered.length - 1)
+        renderSuggest()
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (filtered.length === 0) return
+        highlightedIndex = Math.max(highlightedIndex - 1, -1)
+        renderSuggest()
+      } else if (e.key === 'Escape') {
+        closeSuggest()
       }
     })
 
+    field.addEventListener('input', () => {
+      filtered = filterSuggestions(field.value)
+      highlightedIndex = -1
+      renderSuggest()
+      if (filtered.length > 0 || field.value.trim()) {
+        openSuggest()
+      } else {
+        closeSuggest()
+      }
+    })
+
+    field.addEventListener('focus', () => {
+      filtered = filterSuggestions(field.value)
+      highlightedIndex = -1
+      renderSuggest()
+      if (suggestions) openSuggest()
+    })
+
+    document.addEventListener('click', (e) => {
+      if (!host.contains(e.target)) closeSuggest()
+    })
+
     host.append(field)
+    host.append(suggestBox)
     for (const t of initial || []) tags.push(String(t))
     render()
 
@@ -1227,6 +1339,7 @@
       const res = await App.apiGet(`/api/settings/${encodeURIComponent(currentBridgeId)}`)
       rawData = res || {}
       rebuildChannelNameMap(rawData)
+      rebuildRoleNameMap(rawData)
       isLoading = false
       if (currentCategory) {
         const cat = CATEGORIES.find((c) => c.key === currentCategory)

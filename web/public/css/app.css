@@ -677,6 +677,39 @@ body {
 .tag-input-field::placeholder {
   color: var(--text-muted);
 }
+.tag-input-suggest {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+  margin-top: 2px;
+}
+.tag-input-suggest.open {
+  display: block;
+}
+.tag-input-suggest-item {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: background var(--transition);
+}
+.tag-input-suggest-item:hover,
+.tag-input-suggest-item.highlighted {
+  background: var(--accent-cyan-dim);
+}
+.tag-input-suggest-empty {
+  padding: 6px 10px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
 
 /* ===== Stat cards ===== */
 .stat-card {

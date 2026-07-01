@@ -131,6 +131,12 @@ export class SettingsApiHandler {
     for (const id of arr((categories.channels as SettingObject)?.officerChannelIds)) channelIds.add(id)
     for (const id of arr((categories.channels as SettingObject)?.loggerChannelIds)) channelIds.add(id)
 
+    // Collect role IDs for name resolution
+    const roleIds = new Set<string>()
+    for (const id of arr((categories.staffRoles as SettingObject)?.helperRoleIds)) roleIds.add(id)
+    for (const id of arr((categories.staffRoles as SettingObject)?.officerRoleIds)) roleIds.add(id)
+    for (const id of arr((categories.staffRoles as SettingObject)?.ownerRoleIds)) roleIds.add(id)
+
     const resolvedChannels: { id: string; name: string | null }[] = []
     const client = this.application.discordInstance?.getClient?.()
     for (const id of channelIds) {
@@ -146,11 +152,40 @@ export class SettingsApiHandler {
       resolvedChannels.push({ id, name })
     }
 
+    const resolvedRoles: { id: string; name: string | null }[] = []
+    for (const id of roleIds) {
+      let name: string | null = null
+      if (client) {
+        try {
+          // Roles are guild-scoped, try every guild cache and fetch
+          for (const [, guild] of client.guilds.cache) {
+            let role = guild.roles.cache.get(id)
+            if (!role) {
+              try {
+                const fetched = await guild.roles.fetch(id)
+                if (fetched) role = fetched
+              } catch {
+                // not in this guild
+              }
+            }
+            if (role) {
+              name = role.name
+              break
+            }
+          }
+        } catch {
+          // not resolvable
+        }
+      }
+      resolvedRoles.push({ id, name })
+    }
+
     const availableLanguages = Object.values(ApplicationLanguages)
 
     this.sendJson(response, HttpStatusCode.Ok, {
       bridgeId,
       channels: resolvedChannels,
+      roles: resolvedRoles,
       availableLanguages,
       categories
     })
