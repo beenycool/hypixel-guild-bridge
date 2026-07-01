@@ -359,7 +359,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
           : globalCommandsConfig.getDisabledCommands()
 
     // Disabled commands can only be used by officers and admins, regular users cannot use them
-    if (disabledCommands.includes(command.triggers[0].toLowerCase()) && event.user.permission() === Permission.Anyone) {
+    if (
+      disabledCommands.includes(command.triggers[0].toLowerCase()) &&
+      (await event.user.permission()) === Permission.Anyone
+    ) {
       return
     }
 

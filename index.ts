@@ -38,6 +38,7 @@ try {
     fs.mkdirSync(ConfigsDirectory, { recursive: true })
   }
 } catch (error) {
+  // eslint-disable-next-line no-restricted-syntax
   console.warn(`Failed to create config directory: ${ConfigsDirectory}`, error)
 }
 
@@ -47,6 +48,7 @@ if (!fs.existsSync(LoggerPath)) {
   try {
     fs.copyFileSync(path.join(RootDirectory, 'src', LoggerConfigName), LoggerPath)
   } catch (error) {
+    // eslint-disable-next-line no-restricted-syntax
     console.error('Failed to copy logger config file:', error)
   }
 }
@@ -54,6 +56,7 @@ let LoggerConfig: Configuration
 try {
   LoggerConfig = JSON.parse(fs.readFileSync(LoggerPath, 'utf8')) as Configuration
 } catch (error) {
+  // eslint-disable-next-line no-restricted-syntax
   console.error('Failed to parse logger config:', error)
   throw error
 }
@@ -99,19 +102,23 @@ const HealthServer = http.createServer((request, response) => {
     const pathname = url.split('?')[0]
     if (pathname === '/metrics' || pathname === '/ping') {
       const metricsToken = process.env.GRAFANA_METRICS_TOKEN
-      if (metricsToken) {
-        const authHeader = request.headers.authorization
-        const queryToken = url.includes('?') ? new URLSearchParams(url.split('?')[1]).get('token') : undefined
-        const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
-        const basicMatch = authHeader?.startsWith('Basic ')
-          ? Buffer.from(authHeader.slice(6), 'base64').toString().split(':')[1]
-          : undefined
-        const tokenOk = queryToken === metricsToken || bearer === metricsToken || basicMatch === metricsToken
-        if (!tokenOk) {
-          response.writeHead(401, { ['Content-Type']: 'text/plain' })
-          response.end('Unauthorized')
-          return
-        }
+      if (!metricsToken) {
+        // No token configured — deny by default to avoid accidental exposure
+        response.writeHead(401, { ['Content-Type']: 'text/plain' })
+        response.end('Unauthorized — set GRAFANA_METRICS_TOKEN to enable metrics endpoint')
+        return
+      }
+      const authHeader = request.headers.authorization
+      const queryToken = url.includes('?') ? new URLSearchParams(url.split('?')[1]).get('token') : undefined
+      const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
+      const basicMatch = authHeader?.startsWith('Basic ')
+        ? Buffer.from(authHeader.slice(6), 'base64').toString().split(':')[1]
+        : undefined
+      const tokenOk = queryToken === metricsToken || bearer === metricsToken || basicMatch === metricsToken
+      if (!tokenOk) {
+        response.writeHead(401, { ['Content-Type']: 'text/plain' })
+        response.end('Unauthorized')
+        return
       }
     }
     const proxyPort = pathname === '/metrics' || pathname === '/ping' ? PrometheusPort : InternalPort
@@ -125,6 +132,7 @@ const HealthServer = http.createServer((request, response) => {
     )
 
     proxy.on('error', (error) => {
+      // eslint-disable-next-line no-restricted-syntax
       console.error('Proxy error:', error)
       response.writeHead(502)
       response.end('Bad gateway')
@@ -132,6 +140,7 @@ const HealthServer = http.createServer((request, response) => {
 
     request.pipe(proxy, { end: true })
   } catch (error) {
+    // eslint-disable-next-line no-restricted-syntax
     console.error('Health proxy request error:', error)
     response.writeHead(500)
     response.end('Internal error')
@@ -142,23 +151,41 @@ HealthServer.on('clientError', () => {
   // ignore occasional client errors from probes
 })
 
+HealthServer.on('upgrade', (request, socket, head) => {
+  const pathname = request.url ? request.url.split('?')[0] : '/'
+  const proxyPort = pathname === '/metrics' || pathname === '/ping' ? PrometheusPort : InternalPort
+
+  const proxy = http.request({
+    hostname: '127.0.0.1',
+    port: proxyPort,
+    path: request.url ?? '/',
+    method: 'GET',
+    headers: request.headers
+  })
+
+  proxy.on('upgrade', (_proxyResponse, proxySocket) => {
+    proxySocket.write(head)
+    proxySocket.pipe(socket).pipe(proxySocket)
+  })
+
+  proxy.on('error', () => socket.destroy())
+  proxy.end()
+})
+
 HealthServer.listen(ExternalPort, () => {
   Logger.info(`Health proxy listening on port ${ExternalPort} → proxying to ${InternalPort}`)
 })
-
-process.on('SIGINT', () => HealthServer.close())
-process.on('SIGTERM', () => HealthServer.close())
 
 let app: Application | undefined
 
 Logger.debug('Setting up process...')
 process.on('uncaughtException', function (error) {
   Logger.fatal(error)
-  process.exitCode = 1
+  process.exit(1)
 })
 
 let shutdownStarted = false
-process.on('SIGINT', (signal) => {
+function handleShutdown(signal: string) {
   if (shutdownStarted) {
     Logger.info(`Process has caught ${signal} signal. Already shutting down. Wait!!`)
     return
@@ -166,6 +193,7 @@ process.on('SIGINT', (signal) => {
 
   shutdownStarted = true
   Logger.info(`Process has caught ${signal} signal.`)
+  HealthServer.close()
   if (app !== undefined) {
     Logger.debug('Shutting down application')
     void app
@@ -174,8 +202,12 @@ process.on('SIGINT', (signal) => {
       .catch(() => {
         process.exit(1)
       })
+  } else {
+    gracefullyExitProcess(0)
   }
-})
+}
+process.on('SIGINT', handleShutdown)
+process.on('SIGTERM', handleShutdown)
 
 process.title = PackageJson.name
 
@@ -232,7 +264,7 @@ if (process.env.CONFIG_B64) {
   config = loadApplicationConfig(ConfigPath)
 }
 
-interface WebSocketEventData {
+interface EventSummaryData {
   instanceName?: string
   bridge?: string
   bridgeId?: string
@@ -264,6 +296,9 @@ try {
     'minecraftSelfBroadcast'
   ])
 
+  // Events that should always be fully logged with JSON payload
+  const LoggedEvents = new Set(['error', 'instanceStatus', 'bridgeConfigChanged'])
+
   function stripColorCodesAndNormalize(s: unknown): string {
     if (s == undefined) return ''
     if (typeof s !== 'string' && typeof s !== 'number' && typeof s !== 'boolean') return ''
@@ -284,7 +319,6 @@ try {
     const trimmed = message.trim()
     if (trimmed.startsWith('Guild Name:')) return true
     if (trimmed.startsWith('--') && trimmed.endsWith('--')) return true
-    if (trimmed.startsWith('-----------------------------------------------------')) return true
     if (trimmed.startsWith('Total Members:')) return true
     if (trimmed.startsWith('Online Members:')) return true
     return false
@@ -292,7 +326,7 @@ try {
 
   function formatEventSummary(name: string, event: unknown): string {
     try {
-      const eventData = event as WebSocketEventData
+      const eventData = event as EventSummaryData
       const instanceName = eventData.instanceName ?? 'unknown'
       const bridgeId = eventData.bridgeId ?? eventData.bridge ?? 'n/a'
       const createdAt = eventData.createdAt ?? eventData.timestamp
@@ -305,7 +339,7 @@ try {
       const parts = [`[${name}]`, `instance=${instanceName}`, `bridge=${bridgeId}`]
       if (clean.length > 0) parts.push(`msg="${clean.replaceAll('"', "'")}"`)
       if (totalMembers !== undefined) parts.push(`totalMembers=${totalMembers}`)
-      if (createdAt !== undefined) parts.push(`createdAt=${createdAt}`)
+      if (createdAt !== undefined) parts.push(`createdAt="${createdAt}"`)
       return parts.join(' ')
     } catch (error) {
       Logger.debug('formatEventSummary error:', error)
@@ -319,7 +353,7 @@ try {
   }
 
   app.onAny((name, event) => {
-    const eventData = event as WebSocketEventData
+    const eventData = event as EventSummaryData
     const instanceName = eventData.instanceName ?? 'unknown'
 
     // Skip guild list parsing lines (they're just /guild list output, not game chat)
@@ -327,6 +361,9 @@ try {
       const message = eventData.message ?? eventData.rawMessage ?? ''
       if (isGuildListLine(message)) return
     }
+
+    // Skip events that are neither in the whitelist nor in the noisy set
+    if (!LoggedEvents.has(name) && !NoisyEvents.has(name)) return
 
     let instanceLogger = loggers.get(instanceName)
     if (instanceLogger === undefined) {
@@ -345,11 +382,10 @@ try {
       return
     }
 
-    // For noisy events, emit a short, human-friendly summary. Other events keep a compact JSON-ish line.
+    // For noisy events, emit a short, human-friendly summary. Whitelisted events get full JSON.
     if (NoisyEvents.has(name)) {
       instanceLogger.info(formatEventSummary(name, event))
-    } else {
-      // For everything else, keep the concise JSON line so important info stays visible
+    } else if (LoggedEvents.has(name)) {
       try {
         instanceLogger.info(`[${name}] ${JSON.stringify(event)}`)
       } catch {

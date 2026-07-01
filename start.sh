@@ -3,12 +3,13 @@
 # Unset problematic npm config that causes warnings/failures on some platforms
 unset npm_config_before
 
+export NODE_OPTIONS="--max-old-space-size=512 --expose-gc --optimize-for-size"
+
 
 while true; do
-  # Delete any temporarily changes such as from package-lock.json
-  # This will not delete logs or configurations
-  # But might delete any custom plugins if they are not in in logs or config dir
-  git reset --hard
+  # Stash local changes (plugins, configs, etc.) instead of destroying them
+  # Use `git stash pop` to restore them after a restart if needed
+  git stash --include-untracked
   # Auto update the application after every restart
   git pull
 

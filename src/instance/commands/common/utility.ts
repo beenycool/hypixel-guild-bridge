@@ -152,7 +152,7 @@ export function formatStatNumber(value: number, decimals = 2): string {
   return value.toFixed(decimals)
 }
 
-import DefaultAxios from 'axios'
+import { httpClient } from '../../../common/http.js'
 
 export interface AuroraPingEntry {
   avg: number
@@ -166,7 +166,7 @@ const AuroraPingBaseUrl = 'https://bordic.xyz/api/v2/resources/ping'
 export async function fetchAuroraPing(uuid: string, apiKey: string): Promise<AuroraPingEntry | undefined> {
   try {
     const url = `${AuroraPingBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
-    const response = await DefaultAxios.get<{ success: boolean; data?: AuroraPingEntry[] }>(url, {
+    const response = await httpClient.get<{ success: boolean; data?: AuroraPingEntry[] }>(url, {
       headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-Ping/1.0.0' }
     })
     if (!response.data.success || !response.data.data || response.data.data.length === 0) return undefined

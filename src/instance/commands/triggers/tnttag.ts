@@ -18,8 +18,7 @@ export default class Tnttag extends HypixelPlayerCommand {
     if (tntGames === undefined) return `${givenUsername} has never played TNT Tag.` + this.formatPingSuffix()
 
     const tnttag = tntGames.tnttag
-    if (!tnttag || tnttag.wins === undefined)
-      return `${givenUsername} has never played TNT Tag.` + this.formatPingSuffix()
+    if (tnttag?.wins === undefined) return `${givenUsername} has never played TNT Tag.` + this.formatPingSuffix()
 
     const wins = tnttag.wins
     const kills = tnttag.kills ?? 0

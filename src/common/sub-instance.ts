@@ -35,4 +35,8 @@ export default abstract class SubInstance<K extends ConnectableInstance<T> | Ins
   public registerEvents(option: O): void {
     // optional to implement
   }
+
+  public dispose(): void {
+    // optional override
+  }
 }

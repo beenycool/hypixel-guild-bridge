@@ -64,11 +64,13 @@ export default class MagicalPower extends SkyblockPlayerCommand {
     if (bagRaw === undefined) return []
 
     const parsed = await parse(Buffer.from(bagRaw.data, 'base64'))
-    // @ts-expect-error too nested
-    const slots: InventorySlot[] = parsed.parsed.value.i.value.value as unknown as InventorySlot[]
+    const slots = (parsed.parsed?.value as Record<string, unknown>)?.i as {
+      value: { value: InventorySlot[] }
+    }
+    const slotItems: InventorySlot[] = slots?.value?.value ?? []
 
     const result: { name: string; count: number }[] = []
-    for (const slot of slots) {
+    for (const slot of slotItems) {
       if (!('tag' in slot)) continue
 
       const attributes = slot.tag.value.ExtraAttributes?.value

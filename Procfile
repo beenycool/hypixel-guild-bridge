@@ -1,1 +1,1 @@
-web: node --import tsx/esm index.ts
+web: node build/index.js

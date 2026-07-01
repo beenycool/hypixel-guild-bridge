@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { httpClient } from './http.js'
 
 import type { MojangProfile } from './user.js'
 
@@ -71,7 +71,7 @@ export class HypixelRawApi {
     }
 
     // Fetch Profiles
-    const response = await axios
+    const response = await httpClient
       .get<HypixelProfilesResponse>(`https://api.hypixel.net/v2/skyblock/profiles`, {
         params: { key: this.apiKey, uuid }
       })
@@ -135,7 +135,7 @@ export class HypixelRawApi {
     }
 
     try {
-      const { data } = await axios.get<HypixelMuseumResponse>(`https://api.hypixel.net/v2/skyblock/museum`, {
+      const { data } = await httpClient.get<HypixelMuseumResponse>(`https://api.hypixel.net/v2/skyblock/museum`, {
         params: { key: this.apiKey, profile: profileId }
       })
 
@@ -161,7 +161,7 @@ export class HypixelRawApi {
     }
 
     try {
-      const { data } = await axios.get<HypixelGardenResponse>(`https://api.hypixel.net/v2/skyblock/garden`, {
+      const { data } = await httpClient.get<HypixelGardenResponse>(`https://api.hypixel.net/v2/skyblock/garden`, {
         params: { key: this.apiKey, profile: profileId }
       })
 

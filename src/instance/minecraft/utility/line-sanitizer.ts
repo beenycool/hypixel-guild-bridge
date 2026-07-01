@@ -1,9 +1,5 @@
 export default class LineSanitizer {
   public process(message: string): string {
-    return message
-      .split('\n')
-      .map((s) => s.trim())
-      .join(' ')
-      .trim()
+    return message.replaceAll(/\s*\n\s*/g, ' ').trim()
   }
 }

@@ -3,9 +3,10 @@
  * License: https://github.com/michelegera/devexcuses-api/blob/main/LICENSE.txt
  */
 
-import DefaultAxios from 'axios'
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 import Yaml from 'yaml'
+
+import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
@@ -17,7 +18,7 @@ export default class DevelopmentExcuse extends ChatCommandHandler {
   private static readonly Url =
     'https://raw.githubusercontent.com/michelegera/devexcuses-api/refs/heads/main/data/excuses.yml'
 
-  private readonly singletonPromise = new PromiseQueue(1)
+  private readonly singletonPromise = new SerialExecutor()
   private result: Record<string, string[]> = {}
   private fetchedAt = -1
 
@@ -30,7 +31,7 @@ export default class DevelopmentExcuse extends ChatCommandHandler {
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
-    await this.singletonPromise.add(() => this.tryUpdate())
+    await this.singletonPromise.run(() => this.tryUpdate())
 
     let message = "You're asking why it doesn't work?\n"
     const entries = this.result[context.app.i18n.language] ?? this.result[DevelopmentExcuse.DefaultLanguage]
@@ -41,7 +42,7 @@ export default class DevelopmentExcuse extends ChatCommandHandler {
 
   private async tryUpdate(): Promise<void> {
     if (this.fetchedAt + DevelopmentExcuse.MaxLife.toMilliseconds() < Date.now()) {
-      const response = await DefaultAxios.get<string>(DevelopmentExcuse.Url)
+      const response = await httpClient.get<string>(DevelopmentExcuse.Url)
       const formattedYaml = Yaml.parse(response.data) as Record<string, string | number>[]
 
       this.result = {}

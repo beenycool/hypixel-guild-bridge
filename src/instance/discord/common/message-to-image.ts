@@ -1,13 +1,11 @@
 import process from 'node:process'
 
-import { type Canvas, createCanvas, loadImage, registerFont } from 'canvas'
+import { type Canvas, type Image, createCanvas, loadImage, registerFont } from 'canvas'
+import LRUCache from 'lru-cache'
 
 import type Application from '../../../application'
 
 type Canvas2DContext = NonNullable<ReturnType<Canvas['getContext']>>
-
-registerFont('./resources/fonts/MinecraftRegular-Bmg3.ttf', { family: 'Minecraft' })
-registerFont('./resources/fonts/unifont.ttf', { family: 'MinecraftUnicode' })
 
 export interface MessageImageOptions {
   /** Username for skin rendering when {skin} placeholder is used */
@@ -76,6 +74,19 @@ export default class MessageToImage {
   /** Rightmost x for text (leave margin for shadow) */
   private static readonly MaxLinePosition = MessageToImage.CanvasWidth - MessageToImage.WidthMargin
   private static readonly LineAdvance = 40
+
+  private static fontsRegistered = false
+  private static skinCache = new LRUCache<string, { image: Image; fetchedAt: number }>({ max: 100 })
+  private static readonly SkinCacheTTL = 10 * 60 * 1000
+
+  private static measureCanvas?: Canvas
+
+  private static ensureFontsRegistered(): void {
+    if (MessageToImage.fontsRegistered) return
+    registerFont('./resources/fonts/MinecraftRegular-Bmg3.ttf', { family: 'Minecraft' })
+    registerFont('./resources/fonts/unifont.ttf', { family: 'MinecraftUnicode' })
+    MessageToImage.fontsRegistered = true
+  }
 
   /**
    * Split on § / newlines without injecting §r per word (preserves Minecraft color carry-over).
@@ -192,6 +203,18 @@ export default class MessageToImage {
 
   constructor(private readonly application: Application) {}
 
+  private async loadSkinImage(username: string, skinSize: number): Promise<Image> {
+    const url = `https://cravatar.eu/helmhead/${encodeURIComponent(username)}/${skinSize}.png`
+    const cacheKey = `${username}_${skinSize}`
+    const cached = MessageToImage.skinCache.get(cacheKey)
+    if (cached && Date.now() - cached.fetchedAt < MessageToImage.SkinCacheTTL) {
+      return cached.image
+    }
+    const image = await loadImage(url)
+    MessageToImage.skinCache.set(cacheKey, { image, fetchedAt: Date.now() })
+    return image
+  }
+
   public shouldRenderImage(): boolean {
     const config = this.application.core.discordConfigurations
     if (!config.getTextToImage()) return false
@@ -232,7 +255,7 @@ export default class MessageToImage {
           pos.x = margin
         }
         try {
-          const skinImage = await loadImage(`https://mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
+          const skinImage = await this.loadSkinImage(username, MessageToImage.SkinSize)
           context.drawImage(skinImage, pos.x, pos.y - MessageToImage.SkinSize)
           pos.x += skinW
         } catch {
@@ -249,17 +272,17 @@ export default class MessageToImage {
    * @param options Optional configuration for rendering
    */
   public async generateMessageImage(message: string, options?: MessageImageOptions): Promise<Buffer> {
+    MessageToImage.ensureFontsRegistered()
     if (options?.renderer === 'js') {
       return this.generateMessageImageJs(message, options)
     }
 
-    const canvasHeight = this.getHeight(message, options?.username)
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
+    const canvasHeight = this.getHeight(message, options?.username, splitMessage)
     const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
     const context = canvas.getContext('2d')
 
     this.paintBackgroundIfNeeded(canvas, options)
-
-    const splitMessage = MessageToImage.splitFormattedSegments(message)
 
     // Matching source: 4px shadow, #131313, 40px font
     context.shadowOffsetX = 4
@@ -295,17 +318,17 @@ export default class MessageToImage {
    * Generate a simple synchronous image without async features like skins
    */
   public generateMessageImageSync(message: string, options?: MessageImageOptions): Buffer {
+    MessageToImage.ensureFontsRegistered()
     if (options?.renderer === 'js') {
       return this.generateMessageImageJsSync(message, options)
     }
 
-    const canvasHeight = this.getHeight(message)
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
+    const canvasHeight = this.getHeight(message, undefined, splitMessage)
     const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
     const context = canvas.getContext('2d')
 
     this.paintBackgroundIfNeeded(canvas, options)
-
-    const splitMessage = MessageToImage.splitFormattedSegments(message)
 
     // Matching source: 4px shadow, #131313, 40px font
     context.shadowOffsetX = 4
@@ -337,16 +360,16 @@ export default class MessageToImage {
     return canvas.toBuffer()
   }
 
-  private getHeightJs(message: string, username?: string): number {
-    const canvas = createCanvas(1, 1)
-    const context = canvas.getContext('2d')
-    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+  private getHeightJs(message: string, username?: string, splitMessage?: string[]): number {
+    MessageToImage.measureCanvas ??= createCanvas(1, 1)
+    const context = MessageToImage.measureCanvas.getContext('2d')
+    const segments = splitMessage ?? MessageToImage.splitFormattedSegmentsJs(message)
     context.font = `40px Minecraft, MinecraftUnicode`
 
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const message_ of splitMessage) {
+    for (const message_ of segments) {
       const currentMessage = message_.slice(1)
       const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
       const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
@@ -363,14 +386,14 @@ export default class MessageToImage {
   }
 
   private async generateMessageImageJs(message: string, options?: MessageImageOptions): Promise<Buffer> {
+    MessageToImage.ensureFontsRegistered()
     const username = options?.username
-    const canvasHeight = this.getHeightJs(message, username)
+    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+    const canvasHeight = this.getHeightJs(message, username, splitMessage)
     const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
     const context = canvas.getContext('2d')
 
     this.paintBackgroundIfNeeded(canvas, options)
-
-    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
 
     context.shadowOffsetX = 4
     context.shadowOffsetY = 4
@@ -393,7 +416,7 @@ export default class MessageToImage {
 
       if (isSkin) {
         try {
-          const skinImage = await loadImage(`https://www.mc-heads.net/avatar/${username}/${MessageToImage.SkinSize}`)
+          const skinImage = await this.loadSkinImage(username, MessageToImage.SkinSize)
           context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
           width += messageWidth
           continue
@@ -414,14 +437,14 @@ export default class MessageToImage {
   }
 
   private generateMessageImageJsSync(message: string, options?: MessageImageOptions): Buffer {
+    MessageToImage.ensureFontsRegistered()
     // JS compat sync renderer intentionally ignores skins (matches how sync is used in TS).
-    const canvasHeight = this.getHeightJs(message)
+    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+    const canvasHeight = this.getHeightJs(message, undefined, splitMessage)
     const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
     const context = canvas.getContext('2d')
 
     this.paintBackgroundIfNeeded(canvas, options)
-
-    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
 
     context.shadowOffsetX = 4
     context.shadowOffsetY = 4
@@ -492,10 +515,10 @@ export default class MessageToImage {
     }
   }
 
-  private getHeight(message: string, skinUsername?: string): number {
-    const canvas = createCanvas(1, 1)
-    const context = canvas.getContext('2d')
-    const splitMessage = MessageToImage.splitFormattedSegments(message)
+  private getHeight(message: string, skinUsername?: string, splitMessage?: string[]): number {
+    MessageToImage.measureCanvas ??= createCanvas(1, 1)
+    const context = MessageToImage.measureCanvas.getContext('2d')
+    const segments = splitMessage ?? MessageToImage.splitFormattedSegments(message)
     context.font = `40px Minecraft, MinecraftUnicode`
 
     const reserveSkin = skinUsername != undefined && skinUsername.length > 0
@@ -503,7 +526,7 @@ export default class MessageToImage {
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const segment of splitMessage) {
+    for (const segment of segments) {
       if (segment.startsWith('n')) {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance

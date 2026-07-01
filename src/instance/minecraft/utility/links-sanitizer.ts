@@ -1,7 +1,7 @@
-import DefaultAxios from 'axios'
+import { httpClient } from '../../../common/http.js'
 
 import type { MinecraftConfigurations } from '../../../core/minecraft/minecraft-configurations'
-import { stufEncode } from '../common/stuf.js'
+import { stufEncode } from '../common/url-encoder.js'
 
 export class LinksSanitizer {
   constructor(
@@ -36,43 +36,48 @@ export class LinksSanitizer {
   }
 
   private async resolveLinkHide(message: string): Promise<string> {
-    const newMessage: string[] = []
+    const parts = message.split(' ')
+    const indexes: number[] = []
+    const promises: Promise<string>[] = []
 
-    for (const part of message.split(' ')) {
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
       if (!part.startsWith('https:') && !part.startsWith('http')) {
-        newMessage.push(part)
+        parts[i] = part
         continue
       }
 
-      const response = await DefaultAxios.head(part).catch(() => undefined)
-      if (response === undefined) {
-        newMessage.push('(link)')
-        continue
-      }
+      indexes.push(i)
+      promises.push(
+        httpClient
+          .head(part, { timeout: 5000 })
+          .then((response) => {
+            const contentType = response.headers['content-type'] as undefined as string | undefined
+            if (typeof contentType !== 'string') return '(link)'
 
-      const contentType = response.headers['content-type'] as undefined as string | undefined
-      if (typeof contentType !== 'string') {
-        newMessage.push('(link)')
-        continue
-      }
-
-      const type = contentType.split('/')[0]
-      if (type === 'image') {
-        const description = await this.describeImage(part)
-        newMessage.push(description)
-      } else if (type === 'video') newMessage.push('(video)')
-      else if (contentType.includes('application/pdf')) newMessage.push('(pdf)')
-      else newMessage.push('(link)')
+            const type = contentType.split('/')[0]
+            if (type === 'image') return this.describeImage(part)
+            if (type === 'video') return '(video)'
+            if (contentType.includes('application/pdf')) return '(pdf)'
+            return '(link)'
+          })
+          .catch(() => '(link)')
+      )
     }
 
-    return newMessage.join(' ')
+    const results = await Promise.all(promises)
+    for (let j = 0; j < indexes.length; j++) {
+      parts[indexes[j]] = results[j]
+    }
+
+    return parts.join(' ')
   }
 
   private async describeImage(imageUrl: string): Promise<string> {
     if (!this.openrouterApiKey) return '(image)'
 
     try {
-      const response = await DefaultAxios.post(
+      const response = await httpClient.post(
         'https://openrouter.ai/api/v1/chat/completions',
         {
           model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
@@ -101,11 +106,11 @@ export class LinksSanitizer {
       const content: unknown = response.data?.choices?.[0]?.message?.content
       if (typeof content !== 'string' || content.length === 0) return '(image)'
 
-      const maxLen = 80
-      if (content.length <= maxLen) return content
+      const maxLength = 80
+      if (content.length <= maxLength) return content
 
-      const breakIndex = content.lastIndexOf(' ', maxLen - 3)
-      const truncateAt = breakIndex > 0 ? breakIndex : maxLen - 3
+      const breakIndex = content.lastIndexOf(' ', maxLength - 3)
+      const truncateAt = breakIndex > 0 ? breakIndex : maxLength - 3
       return `${content.slice(0, truncateAt)}...`
     } catch {
       return '(image)'

@@ -4,7 +4,8 @@
  Minecraft username: Callanplays
 */
 import type { AxiosResponse } from 'axios'
-import DefaultAxios from 'axios'
+
+import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
@@ -95,9 +96,9 @@ export default class Bits extends ChatCommandHandler {
   }
 
   private async updatePrices(): Promise<void> {
-    const response = await DefaultAxios.get(`https://moulberry.codes/lowestbin.json`).then(
-      (response: AxiosResponse<Record<string, number>, unknown>) => response.data
-    )
+    const response = await httpClient
+      .get(`https://moulberry.codes/lowestbin.json`)
+      .then((response: AxiosResponse<Record<string, number>, unknown>) => response.data)
 
     this.prices = Object.entries(response)
       .filter(([itemId]) => Object.hasOwn(BitItem, itemId))

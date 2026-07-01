@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../../utility/serial-executor.js'
 
 import type Application from '../../application'
 import { ChannelType, InstanceType } from '../../common/application-event'
@@ -27,7 +27,7 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
   private cachedPointsAlltime: ActivityTotalPoints[] | undefined
   private lastUpdatePointsAlltime = -1
 
-  private readonly queue = new PromiseQueue(1)
+  private readonly queue = new SerialExecutor()
   private readonly database: ScoreDatabase
 
   constructor(
@@ -72,12 +72,12 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
       }
     })
 
-    setIntervalAsync(() => this.queue.add(() => this.fetchGuilds()), {
+    setIntervalAsync(() => this.queue.run(() => this.fetchGuilds()), {
       delay: Duration.minutes(30),
       errorHandler: this.errorHandler.promiseCatch('fetching guilds')
     })
 
-    setIntervalAsync(() => this.queue.add(() => this.fetchMembers()), {
+    setIntervalAsync(() => this.queue.run(() => this.fetchMembers()), {
       delay: ScoresManager.FetchMembersEvery,
       errorHandler: this.errorHandler.promiseCatch('fetching and adding members')
     })
@@ -85,6 +85,19 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
     setIntervalAsync(() => this.migrateUsernames(), {
       delay: Duration.minutes(30),
       errorHandler: this.errorHandler.promiseCatch('migrating Mojang usernames to UUID')
+    })
+
+    setIntervalAsync(() => this.database.flushPendingIncrements(), {
+      delay: Duration.seconds(10),
+      errorHandler: this.errorHandler.promiseCatch('flushing pending score increments')
+    })
+
+    this.application.addShutdownListener(async () => {
+      try {
+        await this.database.flushPendingIncrements()
+      } catch (error) {
+        this.logger.error('Failed to flush score increments during shutdown:', error)
+      }
     })
   }
 
@@ -286,6 +299,10 @@ class ScoreDatabase {
   private readonly allMembers: TimeframeRecord[] = []
   private readonly onlineMembers: TimeframeRecord[] = []
   private readonly minecraftBots = new Map<string, { uuid: string; updatedAt: number; createdAt: number }>()
+  private readonly pendingIncrements = new Map<
+    string,
+    { tableName: CountTableName; timestamp: number; user: string; count: number }
+  >()
 
   constructor(
     private readonly scoresManager: ScoresManager,
@@ -790,13 +807,64 @@ class ScoreDatabase {
       entry.count++
     }
 
-    this.databaseManager.enqueueWrite(`incrementing ${tableName} for ${user}`, async (database) => {
-      await database.query(
-        `INSERT INTO "${tableName}" ("timestamp", "user", "count") VALUES ($1, $2, 1)
-         ON CONFLICT ("timestamp", "user") DO UPDATE SET "count" = "${tableName}"."count" + 1`,
-        [seconds, user]
-      )
-    })
+    const pendingKey = this.pendingKey(tableName, seconds, user)
+    const pending = this.pendingIncrements.get(pendingKey)
+    if (pending === undefined) {
+      this.pendingIncrements.set(pendingKey, { tableName, timestamp: seconds, user, count: 1 })
+    } else {
+      pending.count++
+    }
+  }
+
+  private pendingKey(tableName: CountTableName, timestamp: number, user: string): string {
+    return `${tableName}|${timestamp}|${user}`
+  }
+
+  public async flushPendingIncrements(): Promise<void> {
+    if (this.pendingIncrements.size === 0) return
+
+    const snapshot = [...this.pendingIncrements.entries()]
+
+    const entries = snapshot.map(([, entry]) => entry)
+
+    const byTable = new Map<CountTableName, { timestamp: number; user: string; count: number }[]>()
+    for (const entry of entries) {
+      const table = byTable.get(entry.tableName) ?? []
+      table.push({ timestamp: entry.timestamp, user: entry.user, count: entry.count })
+      byTable.set(entry.tableName, table)
+    }
+
+    const maxRetries = 3
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.databaseManager.transaction(async (database) => {
+          for (const [tableName, rows] of byTable) {
+            const placeholders: string[] = []
+            const values: unknown[] = []
+            let index = 1
+            for (const row of rows) {
+              placeholders.push(`($${index}, $${index + 1}, $${index + 2})`)
+              values.push(row.timestamp, row.user, row.count)
+              index += 3
+            }
+            await database.query(
+              `INSERT INTO "${tableName}" ("timestamp", "user", "count") VALUES ${placeholders.join(', ')}
+               ON CONFLICT ("timestamp", "user") DO UPDATE SET "count" = "${tableName}"."count" + EXCLUDED."count"`,
+              values
+            )
+          }
+        })
+        this.pendingIncrements.clear()
+        return
+      } catch (error) {
+        this.logger.error(`Failed to flush score increments (attempt ${attempt}/${maxRetries}):`, error)
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
+        }
+      }
+    }
+    this.pendingIncrements.clear()
+    this.logger.error('Discarding pending increments after exhausting all retries')
   }
 
   private filterCounts(table: Map<string, CountEntry>, from: number, to: number): CountEntry[] {

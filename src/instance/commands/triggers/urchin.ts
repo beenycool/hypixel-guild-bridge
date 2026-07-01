@@ -1,4 +1,6 @@
-import axios, { isAxiosError } from 'axios'
+import { isAxiosError } from 'axios'
+
+import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
@@ -34,7 +36,7 @@ export default class Urchin extends ChatCommandHandler {
     if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
     try {
-      const response = await axios.get(`https://urchin.ws/player/${uuid}`, {
+      const response = await httpClient.get(`https://urchin.ws/player/${uuid}`, {
         params: {
           key: urchinApiKey,
           sources: 'CHAT'

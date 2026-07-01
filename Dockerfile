@@ -18,15 +18,20 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies
-RUN npm ci --omit=dev
+# Install ALL dependencies (including devDeps for build)
+RUN npm ci
+
+# Build TypeScript
+RUN npm run build
+
+# Remove devDependencies after build
+RUN npm prune --omit=dev
 
 # Stage 2: Runtime
 FROM node:22-bookworm-slim
 
 LABEL authors="aidn5, HyxonQz"
 ENV NODE_ENV=production
-# Fix npm warning about invalid 'before' config often injected by hosting platforms
 ENV npm_config_before=null
 WORKDIR /app
 
@@ -40,17 +45,25 @@ RUN apt-get update && apt-get install -y \
     librsvg2-2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy node_modules from builder
+# Copy node_modules from builder (production only after prune)
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy application source
-COPY . .
+# Copy build output from builder
+COPY --from=builder /app/build ./build
+
+# Copy only the necessary source files
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/resources ./resources
+COPY --from=builder /app/plugins ./plugins
 
 # Create necessary directories and set permissions
 RUN mkdir -p logs config/backup plugins && \
     chown -R node:node /app
 
 # Use non-root user for security
-# USER node
+USER node
 
-CMD ["node", "--import", "tsx/esm", "index.ts"]
+ENV NODE_OPTIONS="--max-old-space-size=512 --expose-gc --optimize-for-size"
+
+RUN printf '#!/bin/sh\nif [ -f /app/build/index.js ]; then exec node /app/build/index.js "$@"; else exec node --import tsx/esm /app/index.ts "$@"; fi\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]

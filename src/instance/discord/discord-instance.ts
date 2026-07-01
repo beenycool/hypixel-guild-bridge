@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 
-import type { Guild, GuildMember, Snowflake, User } from 'discord.js'
+import type { Guild, GuildMember, Message, Snowflake, User } from 'discord.js'
 import { Client, GatewayIntentBits, Options, Partials } from 'discord.js'
 
 import type { StaticDiscordConfig } from '../../application-config.js'
@@ -23,6 +23,8 @@ import StateHandler from './handlers/state-handler.js'
 import StatusHandler from './handlers/status-handler.js'
 
 export default class DiscordInstance extends ConnectableInstance<InstanceType.Discord> {
+  private static readonly PermissionCacheTTL = 5 * 60 * 1000
+
   readonly commandsManager: CommandManager
   readonly guildRequirements: GuildRequirements
   readonly leaderboard: Leaderboard
@@ -33,7 +35,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
 
   private readonly stateHandler: StateHandler
   private readonly statusHandler: StatusHandler
-  private readonly emojiHandler: EmojiHandler
+  readonly emojiHandler: EmojiHandler
   private readonly chatManager: ChatManager
   private readonly loggerManager: LoggerManager
 
@@ -42,6 +44,8 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
 
   private readonly staticConfig: Readonly<StaticDiscordConfig>
   private connected = false
+  private static readonly PermissionCacheMaxSize = 1000
+  private permissionCache = new Map<string, { permission: Permission; expiresAt: number }>()
 
   constructor(app: Application, config: StaticDiscordConfig) {
     super(app, InstanceType.Discord, InstanceType.Discord)
@@ -49,7 +53,32 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.staticConfig = config
 
     this.client = new Client({
-      makeCache: Options.cacheEverything(),
+      makeCache: Options.cacheWithLimits({
+        ApplicationEmojiManager: {},
+        AutoModerationRuleManager: { maxSize: 0 },
+        DMMessageManager: { maxSize: 0 },
+        GuildBanManager: { maxSize: 0 },
+        GuildInviteManager: { maxSize: 0 },
+        GuildMemberManager: { maxSize: 0 },
+        GuildScheduledEventManager: { maxSize: 0 },
+        GuildStickerManager: { maxSize: 0 },
+        MessageManager: {
+          maxSize: 5,
+          keepOverLimit: (msg: Message) => msg.author.id === msg.client.user.id
+        },
+        PresenceManager: { maxSize: 0 },
+        ReactionManager: { maxSize: 0 },
+        ReactionUserManager: { maxSize: 0 },
+        StageInstanceManager: { maxSize: 0 },
+        ThreadManager: { maxSize: 0 },
+        ThreadMemberManager: { maxSize: 0 },
+        UserManager: { maxSize: 0 }
+      }),
+      sweepers: {
+        messages: { interval: 300, lifetime: 1800 },
+        users: { interval: 3600, filter: () => null },
+        threads: { interval: 3600, lifetime: 3600 }
+      },
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
@@ -91,11 +120,14 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     )
   }
 
-  public profileById(userId: Snowflake, guild: Guild | undefined): DiscordProfile | undefined {
-    const user = this.client.users.cache.get(userId)
-    if (user !== undefined) return this.profileByUser(user, guild?.members.cache.get(userId))
-
-    return undefined
+  public async profileById(userId: Snowflake, guild: Guild | undefined): Promise<DiscordProfile | undefined> {
+    try {
+      const user = await this.client.users.fetch(userId)
+      const guildMember = guild ? await guild.members.fetch(userId).catch(() => undefined) : undefined
+      return this.profileByUser(user, guildMember)
+    } catch {
+      return undefined
+    }
   }
 
   public profileByUser(user: User, guildMember: GuildMember | undefined): DiscordProfile {
@@ -125,24 +157,44 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     return undefined
   }
 
-  public resolvePermission(userId: string, bridgeId?: string): Permission {
+  public async resolvePermission(userId: string, bridgeId?: string): Promise<Permission> {
     assert.strictEqual(this.currentStatus(), Status.Connected)
     assert.ok(this.client.isReady())
+
+    const cacheKey = `${userId}:${bridgeId ?? ''}`
+    const cached = this.permissionCache.get(cacheKey)
+    if (cached !== undefined && Date.now() < cached.expiresAt) {
+      return cached.permission
+    }
 
     if (this.staticConfig.adminIds.includes(userId)) return Permission.Admin
 
     let highestPermission = Permission.Anyone
-    for (const guild of this.client.guilds.cache.values()) {
-      const guildMember = guild.members.cache.get(userId)
-      if (guildMember === undefined) continue
-      const permissionLevel = this.resolvePrivilegeLevel(guildMember.roles.cache.keys().toArray(), bridgeId)
-
-      let currentLevel = permissionLevel
-      if (guild.ownerId === userId && currentLevel < Permission.Owner) {
-        currentLevel = Permission.Owner
+    const guildResults = await Promise.allSettled(
+      this.client.guilds.cache.map(async (guild) => {
+        const guildMember = await guild.members.fetch(userId)
+        const permissionLevel = this.resolvePrivilegeLevel(guildMember.roles.cache.keys().toArray(), bridgeId)
+        if (guild.ownerId === userId && permissionLevel < Permission.Owner) {
+          return Permission.Owner
+        }
+        return permissionLevel
+      })
+    )
+    for (const result of guildResults) {
+      if (result.status === 'fulfilled' && result.value > highestPermission) {
+        highestPermission = result.value
       }
+    }
 
-      if (currentLevel > highestPermission) highestPermission = currentLevel
+    this.permissionCache.set(cacheKey, {
+      permission: highestPermission,
+      expiresAt: Date.now() + DiscordInstance.PermissionCacheTTL
+    })
+
+    // Evict oldest entry if cache exceeds max size
+    if (this.permissionCache.size > DiscordInstance.PermissionCacheMaxSize) {
+      const oldestKey = this.permissionCache.keys().next().value
+      if (oldestKey !== undefined) this.permissionCache.delete(oldestKey)
     }
 
     return highestPermission
@@ -215,6 +267,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
   }
 
   async disconnect(): Promise<void> {
+    this.chatManager.dispose()
     await this.client.destroy()
     await this.setAndBroadcastNewStatus(Status.Ended)
     this.logger.debug('discord instance has disconnected')

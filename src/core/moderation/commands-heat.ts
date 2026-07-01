@@ -57,13 +57,13 @@ export class CommandsHeat {
     }
   }
 
-  public add(user: User, type: HeatType): HeatResult {
+  public async add(user: User, type: HeatType): Promise<HeatResult> {
     const currentTime = Date.now()
     const userIdentifier = user.getUserIdentifier()
     const allIdentifiers = user.allIdentifiers()
     const action: HeatAction = { identifier: userIdentifier, timestamp: currentTime, type }
 
-    if (user.immune()) {
+    if (await user.immune()) {
       this.addEntries([action])
       return HeatResult.Allowed
     }
@@ -82,13 +82,13 @@ export class CommandsHeat {
     return HeatResult.Allowed
   }
 
-  public tryAdd(user: User, type: HeatType): HeatResult {
+  public async tryAdd(user: User, type: HeatType): Promise<HeatResult> {
     const currentTime = Date.now()
     const userIdentifier = user.getUserIdentifier()
     const allIdentifiers = user.allIdentifiers()
     const action: HeatAction = { identifier: userIdentifier, timestamp: currentTime, type }
 
-    if (user.immune()) {
+    if (await user.immune()) {
       this.addEntries([action])
       return HeatResult.Allowed
     }

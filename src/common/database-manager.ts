@@ -35,6 +35,7 @@ export class DatabaseManager {
   private cleanTimer: NodeJS.Timeout | undefined
   private writeQueue: Promise<void> = Promise.resolve()
   private closed = false
+  private healthy = true
 
   public constructor(
     private readonly application: Application,
@@ -138,6 +139,17 @@ export class DatabaseManager {
       })
   }
 
+  public isHealthy(): boolean {
+    return this.healthy
+  }
+
+  public getPoolStatus(): { connected: boolean; latencyMs: number } {
+    return {
+      connected: this.pool !== undefined && !this.closed,
+      latencyMs: 0
+    }
+  }
+
   public async flushWrites(): Promise<void> {
     await this.awaitReady()
     await this.writeQueue
@@ -175,6 +187,8 @@ export class DatabaseManager {
     this.closed = true
 
     await this.writeQueue
+
+    await this.flushWrites()
 
     if (this.cleanTimer !== undefined) {
       clearInterval(this.cleanTimer)
@@ -269,7 +283,20 @@ export class DatabaseManager {
   ): Promise<QueryResult<T>> {
     assert.ok(!this.closed, 'Database is closed')
     const pool = this.getPool()
-    return await pool.query<T>(text, values)
+    try {
+      const result = await pool.query<T>(text, values)
+      if (!this.healthy) {
+        this.healthy = true
+        this.logger.info('Database health restored')
+      }
+      return result
+    } catch (error) {
+      if (this.healthy) {
+        this.healthy = false
+        this.logger.error('Database health check failed, marking unhealthy')
+      }
+      throw error
+    }
   }
 
   private getPool(): PoolLike {

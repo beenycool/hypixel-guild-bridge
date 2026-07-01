@@ -43,6 +43,10 @@ import { resolveDiscordMentionsInMessage } from './common/minecraft-discord-ment
 import type { ResolvedDiscordMentions } from './common/minecraft-discord-mentions.js'
 import type DiscordInstance from './discord-instance.js'
 
+const DASH_SEPARATOR = '-'.repeat(53) + '\n'
+const GUILD_PREFIXES = ['§2Guild > ', '§3Officer > ', DASH_SEPARATOR]
+const PLAIN_GUILD_PREFIXES = ['Guild > ', 'Officer > ', DASH_SEPARATOR]
+
 export default class DiscordBridge extends Bridge<DiscordInstance> {
   public readonly messageDeleter: MessageDeleter
   private readonly messageAssociation: MessageAssociation
@@ -51,6 +55,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   private readonly instanceStatusManager: InstanceStatusManager
 
   private readonly staticConfig: Readonly<StaticDiscordConfig>
+
+  private readonly cleanups: (() => void)[] = []
 
   constructor(
     application: Application,
@@ -74,11 +80,20 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       this.errorHandler
     )
 
-    this.application.on('instanceReactive', async (event) => {
+    const onInstanceReactive = async (event: InstanceReactive) => {
       await this.queue
-        .add(async () => this.onInstanceReactiveEvent(event))
+        .run(async () => this.onInstanceReactiveEvent(event))
         .catch(this.errorHandler.promiseCatch('handling event instanceReactive'))
-    })
+    }
+    this.application.on('instanceReactive', onInstanceReactive)
+    this.cleanups.push(() => this.application.off('instanceReactive', onInstanceReactive))
+  }
+
+  override dispose(): void {
+    for (const cleanup of this.cleanups) {
+      cleanup()
+    }
+    super.dispose()
   }
 
   /**
@@ -430,16 +445,16 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           let emoji: ApplicationEmoji | undefined = undefined
           switch (event.type) {
             case MinecraftReactiveEventType.Repeat: {
-              emoji = client.application?.emojis.cache.find((emoji) => emoji.name === RepeatReaction.name)
+              emoji = this.clientInstance.emojiHandler.emojiByName.get(RepeatReaction.name)
               break
             }
             case MinecraftReactiveEventType.Advertise:
             case MinecraftReactiveEventType.Block: {
-              emoji = client.application?.emojis.cache.find((emoji) => emoji.name === BlockReaction.name)
+              emoji = this.clientInstance.emojiHandler.emojiByName.get(BlockReaction.name)
               break
             }
             case MinecraftReactiveEventType.GuildMuted: {
-              emoji = client.application?.emojis.cache.find((emoji) => emoji.name === GuildMutedReaction.name)
+              emoji = this.clientInstance.emojiHandler.emojiByName.get(GuildMutedReaction.name)
               break
             }
           }
@@ -564,10 +579,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   private removeGuildPrefix(message: string): string {
-    const prefixes = ['§2Guild > ', '§3Officer > ', '-'.repeat(53) + '\n']
-
     let finalMessage = message
-    for (const prefix of prefixes) {
+    for (const prefix of GUILD_PREFIXES) {
       if (finalMessage.startsWith(prefix)) finalMessage = finalMessage.slice(prefix.length)
     }
 
@@ -575,10 +588,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   private removePlainGuildPrefix(message: string): string {
-    const prefixes = ['Guild > ', 'Officer > ', '-'.repeat(53) + '\n']
-
     let finalMessage = message
-    for (const prefix of prefixes) {
+    for (const prefix of PLAIN_GUILD_PREFIXES) {
       if (finalMessage.startsWith(prefix)) finalMessage = finalMessage.slice(prefix.length)
     }
 
@@ -671,59 +682,56 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     channels: string[],
     preGeneratedEmbed: APIEmbed | undefined
   ): Promise<Message<true>[]> {
-    const messages: Message<true>[] = []
+    const results = await Promise.all(
+      channels.map(async (channelId) => {
+        try {
+          const channel = await this.clientInstance.getClient().channels.fetch(channelId)
+          if (channel == undefined) return undefined
+          if (!channel.isSendable() || channel.type !== DiscordChannelType.GuildText) return undefined
 
-    for (const channelId of channels) {
-      try {
-        const channel = await this.clientInstance.getClient().channels.fetch(channelId)
-        if (channel == undefined) continue
-        assert.ok(channel.isSendable())
-        assert.ok(channel.type === DiscordChannelType.GuildText)
+          const embed = preGeneratedEmbed ?? (await this.generateEmbed(event, channel.guildId))
+          const message = await channel.send({ embeds: [embed], allowedMentions: { parse: [] } })
 
-        const embed =
-          preGeneratedEmbed ??
-          // commands always have a preGenerated embed
-          (await this.generateEmbed(event, channel.guildId))
-        const message = await channel.send({ embeds: [embed], allowedMentions: { parse: [] } })
+          this.messageAssociation.addMessageId(event.eventId, {
+            guildId: message.inGuild() ? message.guildId : undefined,
+            channelId: message.channelId,
+            messageId: message.id
+          })
+          return message
+        } catch (error: unknown) {
+          this.logger.error(`error sending to ${channelId}`, error)
+          return undefined
+        }
+      })
+    )
 
-        messages.push(message)
-        this.messageAssociation.addMessageId(event.eventId, {
-          guildId: message.inGuild() ? message.guildId : undefined,
-          channelId: message.channelId,
-          messageId: message.id
-        })
-      } catch (error: unknown) {
-        this.logger.error(`error sending to ${channelId}`, error)
-      }
-    }
-
-    return messages
+    return results.filter((m): m is Message<true> => m !== undefined)
   }
 
   private async sendImageToChannels(eventId: string, channels: string[], image: Buffer): Promise<Message<true>[]> {
-    const messages: Message<true>[] = []
+    const results = await Promise.all(
+      channels.map(async (channelId) => {
+        try {
+          const channel = await this.clientInstance.getClient().channels.fetch(channelId)
+          if (channel == undefined) return undefined
+          if (!channel.isSendable() || channel.type !== DiscordChannelType.GuildText) return undefined
 
-    for (const channelId of channels) {
-      try {
-        const channel = await this.clientInstance.getClient().channels.fetch(channelId)
-        if (channel == undefined) continue
-        assert.ok(channel.isSendable())
-        assert.ok(channel.type === DiscordChannelType.GuildText)
+          const message = await channel.send({ files: [{ attachment: image, name: 'image.png' }] })
 
-        const message = await channel.send({ files: [image] })
+          this.messageAssociation.addMessageId(eventId, {
+            guildId: message.inGuild() ? message.guildId : undefined,
+            channelId: message.channelId,
+            messageId: message.id
+          })
+          return message
+        } catch (error: unknown) {
+          this.logger.error(`error sending to ${channelId}`, error)
+          return undefined
+        }
+      })
+    )
 
-        messages.push(message)
-        this.messageAssociation.addMessageId(eventId, {
-          guildId: message.inGuild() ? message.guildId : undefined,
-          channelId: message.channelId,
-          messageId: message.id
-        })
-      } catch (error: unknown) {
-        this.logger.error(`error sending to ${channelId}`, error)
-      }
-    }
-
-    return messages
+    return results.filter((m): m is Message<true> => m !== undefined)
   }
 
   private async sendCommandResponse(event: CommandEvent): Promise<void> {

@@ -1,11 +1,11 @@
 import assert from 'node:assert'
 
 import type { SkyblockV2Dungeons, SkyblockV2Member } from 'hypixel-api-reborn'
-import Moment from 'moment'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import type { MojangApi } from '../../../core/users/mojang'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { relativeTime } from '../../../utility/shared-utility'
 import {
   getDungeonLevelWithOverflow,
   getUuidIfExists,
@@ -63,7 +63,7 @@ export default class CurrentDungeon extends SkyblockPlayerCommand {
 
     message +=
       lastRun.completion_ts + CurrentDungeon.ShowTimeAfter < Date.now()
-        ? ` was last seen ${Moment(lastRun.completion_ts).fromNow()}`
+        ? ` was last seen ${relativeTime(lastRun.completion_ts)}`
         : ` is`
 
     message += ` playing ${floorDisplayName} `

@@ -15,7 +15,7 @@ export default class Insult extends ChatCommandHandler {
 
     const bridgeId = context.message.bridgeId
     const insultMode =
-      bridgeId !== undefined ? context.app.core.bridgeConfigurations.getInsultMode(bridgeId) : undefined
+      bridgeId === undefined ? undefined : context.app.core.bridgeConfigurations.getInsultMode(bridgeId)
     const i18nKey = insultMode === 'custom' ? 'commands.insult' : 'commands.insult.normal'
 
     let messages = context.app.i18n.t(($) => $[i18nKey], { returnObjects: true, name: givenUsername })

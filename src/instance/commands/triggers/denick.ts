@@ -1,4 +1,4 @@
-import DefaultAxios from 'axios'
+import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
@@ -64,7 +64,7 @@ export default class Denick extends ChatCommandHandler {
     const response = await this.queryAuroraApi(apiKey, type, number, range, max)
 
     if (!response.success || response.data === undefined || response.data.length === 0) {
-      return `${response.data === undefined ? 'Aurora API returned an error' : `No players found with ${type}#${number}`}`
+      return response.data === undefined ? 'Aurora API returned an error' : `No players found with ${type}#${number}`
     }
 
     const playerNames = response.data.filter((player) => player.distance <= 0).map((player) => player.name)
@@ -126,7 +126,7 @@ export default class Denick extends ChatCommandHandler {
   ): Promise<AuroraApiResponse> {
     const url = `${Denick.BaseUrl}${type}?key=${encodeURIComponent(apiKey)}&value=${value}&range=${range}&max=${max}`
 
-    const response = await DefaultAxios.get<AuroraApiResponse>(url, {
+    const response = await httpClient.get<AuroraApiResponse>(url, {
       headers: { ['User-Agent']: 'Hypixel-Guild-Discord-Bridge-NumberDenicker/1.0.0' } as Record<string, string>
     })
 

@@ -1,9 +1,9 @@
 import assert from 'node:assert'
 
 import type { Client } from 'minecraft-protocol'
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 
-import type { InstanceType, MinecraftRawChatEvent } from '../../../common/application-event.js'
+import type { ChatEvent, InstanceType, MinecraftRawChatEvent } from '../../../common/application-event.js'
 import { ChannelType, Color, MinecraftSendChatPriority } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'
 import type { GameToggleConfig } from '../../../core/minecraft/minecraft-accounts'
@@ -29,10 +29,14 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
   private ready = false
   private prepared = false
   private sentCommands = 0
-  private singletonQueue = new PromiseQueue(1)
+  private singletonQueue = new SerialExecutor()
+  private singletonPendingCount = 0
 
   private config: GameToggleConfig | undefined
   private lastUuid: string | undefined = undefined
+
+  private readonly chatListener: (event: ChatEvent) => void
+  private readonly minecraftChatListener: (event: MinecraftRawChatEvent) => void
 
   constructor(clientInstance: MinecraftInstance) {
     super(clientInstance)
@@ -46,8 +50,13 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
 
         const config = this.getConfig(uuid)
 
-        if (this.singletonQueue.getQueueLength() == 0 && this.singletonQueue.getPendingLength() == 0) {
-          await this.singletonQueue.add(() => this.sendToggles(config))
+        if (this.singletonPendingCount === 0) {
+          this.singletonPendingCount++
+          await this.singletonQueue
+            .run(() => this.sendToggles(config))
+            .finally(() => {
+              this.singletonPendingCount--
+            })
         }
       },
       {
@@ -56,7 +65,7 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
       }
     )
 
-    this.application.on('chat', (event) => {
+    this.chatListener = (event) => {
       if (event.instanceName !== this.clientInstance.instanceName) return
 
       const uuid = this.clientInstance.uuid()
@@ -67,9 +76,10 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
         config.guildChatEnabled = true
         this.application.core.minecraftAccounts.set(uuid, config)
       }
-    })
+    }
+    this.application.on('chat', this.chatListener)
 
-    this.application.on('minecraftChat', (event: MinecraftRawChatEvent) => {
+    this.minecraftChatListener = (event) => {
       if (event.message.length === 0 || event.instanceName !== this.clientInstance.instanceName) return
 
       const uuid = this.clientInstance.uuid()
@@ -114,7 +124,13 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
         config.guildNotificationsEnabled = false
         this.application.core.minecraftAccounts.set(uuid, config)
       }
-    })
+    }
+    this.application.on('minecraftChat', this.minecraftChatListener)
+  }
+
+  public override dispose(): void {
+    this.application.off('chat', this.chatListener)
+    this.application.off('minecraftChat', this.minecraftChatListener)
   }
 
   private allPrepared(config: GameToggleConfig): boolean {
@@ -209,8 +225,13 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
         this.ready = true
 
         // already waited for the client to be ready
-        if (this.singletonQueue.getQueueLength() == 0 && this.singletonQueue.getPendingLength() == 0) {
-          await this.singletonQueue.add(() => this.sendToggles(config))
+        if (this.singletonPendingCount === 0) {
+          this.singletonPendingCount++
+          await this.singletonQueue
+            .run(() => this.sendToggles(config))
+            .finally(() => {
+              this.singletonPendingCount--
+            })
         }
       },
       {

@@ -7,7 +7,7 @@
     "noImplicitAny": true,
     "noImplicitOverride": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "noEmit": false,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
@@ -16,7 +16,13 @@
     "lib": ["esnext"],
     "baseUrl": "./",
     "typeRoots": ["./src/types", "./node_modules/@types"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@common/*": ["src/common/*"],
+      "@core/*": ["src/core/*"],
+      "@instance/*": ["src/instance/*"],
+      "@utility/*": ["src/utility/*"]
+    }
   },
   "ts-node": {
     "files": true,

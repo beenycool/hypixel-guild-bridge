@@ -25,10 +25,18 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
   private readonly messageAssociation: MessageAssociation
   private readonly lastMuteWarn = new Map<string, number>()
+  private readonly sweepInterval: NodeJS.Timeout
 
   constructor(clientInstance: DiscordInstance, messageAssociation: MessageAssociation) {
     super(clientInstance)
     this.messageAssociation = messageAssociation
+
+    this.sweepInterval = setInterval(
+      () => {
+        this.sweepWarningMaps()
+      },
+      30 * 60 * 1000
+    )
   }
 
   override registerEvents(client: Client): void {
@@ -95,7 +103,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const user = await this.application.core.initializeDiscordUser(userProfile, {})
 
     if (!user.verified() && config.getEnforceVerification()) {
-      const emoji = event.client.application.emojis.cache.find((emoji) => emoji.name === UnverifiedReaction.name)
+      const emoji = this.clientInstance.emojiHandler.emojiByName.get(UnverifiedReaction.name)
       if (emoji !== undefined) await event.react(emoji)
 
       const currentTimestamp = Date.now()
@@ -149,7 +157,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
         filteredMessage: filteredMessage
       })
 
-      const emoji = event.client.application.emojis.cache.find((emoji) => emoji.name === FilteredReaction.name)
+      const emoji = this.clientInstance.emojiHandler.emojiByName.get(FilteredReaction.name)
       if (emoji !== undefined) await event.react(emoji)
       if (emoji === undefined || config.getAlwaysReplyReaction()) {
         await event.reply({
@@ -175,7 +183,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const punishments = user.punishments()
     const mutedTill = punishments.punishedTill(PunishmentType.Mute)
     if (mutedTill != undefined) {
-      const emoji = message.client.application.emojis.cache.find((emoji) => emoji.name === MutedReaction.name)
+      const emoji = this.clientInstance.emojiHandler.emojiByName.get(MutedReaction.name)
       if (emoji !== undefined) await message.react(emoji)
 
       const currentTimestamp = Date.now()
@@ -250,6 +258,21 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
    * without the bridge formatting (e.g., !bw, !sw for in-game stat bots).
    * Returns true if the message was handled as a passthrough command.
    */
+  private sweepWarningMaps(): void {
+    const now = Date.now()
+    const maxAge = 24 * 60 * 60 * 1000
+    for (const map of [
+      this.lastVerificationWarn,
+      this.lastUnmappedChannelWarn,
+      this.unmappedChannelSuppressed,
+      this.lastMuteWarn
+    ]) {
+      for (const [key, timestamp] of map) {
+        if (now - timestamp > maxAge) map.delete(key)
+      }
+    }
+  }
+
   private async handlePassthroughCommand(
     event: Message,
     content: string,
@@ -312,5 +335,9 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     this.logger.debug(`Passthrough command sent to guild chat: ${content}`)
     return true
+  }
+
+  public override dispose(): void {
+    clearInterval(this.sweepInterval)
   }
 }

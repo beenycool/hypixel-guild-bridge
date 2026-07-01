@@ -1,4 +1,6 @@
-import axios, { isAxiosError } from 'axios'
+import { isAxiosError } from 'axios'
+
+import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
@@ -93,15 +95,15 @@ const KNOWN_LANGUAGES = new Set([
 const REQUEST_TIMEOUT_MS = 30_000
 const MAX_RESPONSE_LENGTH = 240
 
-export function parseTargetLanguage(args: string[]): { language: string | undefined; message: string } {
-  if (args.length === 0) return { language: undefined, message: '' }
+export function parseTargetLanguage(arguments_: string[]): { language: string | undefined; message: string } {
+  if (arguments_.length === 0) return { language: undefined, message: '' }
 
-  const first = args[0].toLowerCase()
+  const first = arguments_[0].toLowerCase()
   if (KNOWN_LANGUAGES.has(first)) {
-    return { language: first, message: args.slice(1).join(' ') }
+    return { language: first, message: arguments_.slice(1).join(' ') }
   }
 
-  return { language: undefined, message: args.join(' ') }
+  return { language: undefined, message: arguments_.join(' ') }
 }
 
 export default class Translate extends ChatCommandHandler {
@@ -116,9 +118,9 @@ export default class Translate extends ChatCommandHandler {
   protected async postToOpenRouter(
     apiKey: string,
     model: string,
-    messages: Array<{ role: string; content: string }>
+    messages: { role: string; content: string }[]
   ): Promise<string> {
-    const response = await axios.post(
+    const response = await httpClient.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
         model,
@@ -174,13 +176,13 @@ export default class Translate extends ChatCommandHandler {
         { role: 'user', content: userContent }
       ])
 
-      const maxLen = MAX_RESPONSE_LENGTH
-      if (translatedText.length <= maxLen) {
+      const maxLength = MAX_RESPONSE_LENGTH
+      if (translatedText.length <= maxLength) {
         return `Translation: ${translatedText}`
       }
 
-      const breakIndex = translatedText.lastIndexOf(' ', maxLen - 3)
-      const truncateAt = breakIndex > 0 ? breakIndex : maxLen - 3
+      const breakIndex = translatedText.lastIndexOf(' ', maxLength - 3)
+      const truncateAt = breakIndex > 0 ? breakIndex : maxLength - 3
       return `Translation: ${translatedText.slice(0, truncateAt)}...`
     } catch (error: unknown) {
       if (isAxiosError(error)) {

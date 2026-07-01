@@ -1,6 +1,6 @@
 import type { Client } from 'discord.js'
 import { DiscordAPIError, Routes } from 'discord.js'
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 
 import type Application from '../../../application'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
@@ -9,8 +9,9 @@ import Duration from '../../../utility/duration'
 import { setIntervalAsync } from '../../../utility/scheduling'
 
 export default class MessageDeleter {
-  private static readonly CheckEvery = Duration.seconds(5)
-  private readonly queue = new PromiseQueue(1)
+  private static readonly CheckEvery = Duration.seconds(30)
+  private readonly queue = new SerialExecutor()
+  private pendingCount = 0
 
   constructor(
     private readonly application: Application,
@@ -19,8 +20,7 @@ export default class MessageDeleter {
   ) {
     setIntervalAsync(
       async () => {
-        const totalQueue = this.queue.getPendingLength() + this.queue.getQueueLength()
-        if (totalQueue === 0) await this.queueClean()
+        if (this.pendingCount === 0) await this.queueClean()
       },
       { delay: MessageDeleter.CheckEvery, errorHandler: this.errorHandler.promiseCatch('deleting old interactions') }
     )
@@ -32,7 +32,12 @@ export default class MessageDeleter {
   }
 
   private async queueClean(): Promise<void> {
-    await this.queue.add(() => this.clean())
+    this.pendingCount++
+    await this.queue
+      .run(() => this.clean())
+      .finally(() => {
+        this.pendingCount--
+      })
   }
 
   public async clean(): Promise<void> {

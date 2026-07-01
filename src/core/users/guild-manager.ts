@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { performance } from 'node:perf_hooks'
 
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../../utility/serial-executor.js'
 
 import type { InstanceType, MinecraftRawChatEvent } from '../../common/application-event'
 import { MinecraftSendChatPriority } from '../../common/application-event'
@@ -74,7 +74,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
   private getGuildInfo(instanceName: string): GuildInformation {
     let guild = this.guildInfo.get(instanceName)
     if (guild === undefined) {
-      guild = { commandQueue: new PromiseQueue(1), guild: undefined }
+      guild = { commandQueue: new SerialExecutor(), guild: undefined }
       this.guildInfo.set(instanceName, guild)
     }
 
@@ -90,7 +90,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
    */
   public async queueTask<T>(guild: GuildInformation | string, task: () => Promise<T>): Promise<T> {
     if (typeof guild === 'string') guild = this.getGuildInfo(guild)
-    return guild.commandQueue.add(task)
+    return guild.commandQueue.run(task)
   }
 
   /*
@@ -205,7 +205,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
 }
 
 interface GuildInformation {
-  commandQueue: PromiseQueue
+  commandQueue: SerialExecutor
 
   guild: GuildFetch | undefined
 }

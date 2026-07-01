@@ -33,6 +33,7 @@ export class User {
     }
   }
 
+  /** Returns the best available display name for this user */
   public displayName(): string {
     const mojangProfile = this.mojangProfile()
     if (mojangProfile !== undefined) return mojangProfile.name
@@ -43,6 +44,7 @@ export class User {
     return this.getUserIdentifier().userId.slice(0, 16)
   }
 
+  /** Returns the user's avatar URL, preferring Mojang over Discord */
   public avatar(): string | undefined {
     const mojangProfile = this.mojangProfile()
     if (mojangProfile !== undefined) {
@@ -57,6 +59,7 @@ export class User {
     return undefined
   }
 
+  /** Returns a link to the user's SkyBlock stats page */
   public profileLink(): string | undefined {
     const mojangProfile = this.mojangProfile()
     if (mojangProfile !== undefined) {
@@ -66,22 +69,25 @@ export class User {
     return undefined
   }
 
+  /** Returns the user's Mojang profile if available */
   public mojangProfile(): MojangProfile | undefined {
     return this.userMojang
   }
 
+  /** Returns the user's Discord profile if available */
   public discordProfile(): DiscordProfile | undefined {
     return this.userDiscord
   }
 
-  public permission(bridgeId?: string): Permission {
+  /** Resolves the user's permission level, checking Discord roles and admin username */
+  public async permission(bridgeId?: string): Promise<Permission> {
     let permission = Permission.Anyone
 
     const discordProfile = this.discordProfile()
     if (discordProfile !== undefined) {
       const discordInstance = this.application.discordInstance
       if (discordInstance.currentStatus() === Status.Connected) {
-        const discordPermission = discordInstance.resolvePermission(discordProfile.id, bridgeId)
+        const discordPermission = await discordInstance.resolvePermission(discordProfile.id, bridgeId)
         if (discordPermission > permission) permission = discordPermission
       }
     }
@@ -97,42 +103,29 @@ export class User {
     return permission
   }
 
+  /** Whether the user has linked their Minecraft and Discord accounts */
   public verified(): boolean {
     return this.userLink !== undefined
   }
 
-  public immune(): boolean {
-    if (this.permission() === Permission.Admin) return true
+  /** Whether the user is immune to moderation actions */
+  public async immune(): Promise<boolean> {
+    if ((await this.permission()) >= Permission.Admin) return true
+
+    const discordProfile = this.discordProfile()
+    if (discordProfile !== undefined) {
+      if (this.context.moderation.getImmuneDiscordUsers().includes(discordProfile.id)) return true
+    }
 
     const mojangProfile = this.mojangProfile()
     if (mojangProfile !== undefined) {
-      if (this.application.minecraftManager.isMinecraftBot(mojangProfile.name)) {
-        return true
-      }
-      if (
-        mojangProfile.name.toLowerCase() ===
-        this.application.core.minecraftConfigurations.getAdminUsername().toLowerCase()
-      ) {
-        return true
-      }
-      if (
-        this.context.moderation
-          .getImmuneMojangPlayers()
-          .some((entry) => entry.toLowerCase() === mojangProfile.name.toLowerCase())
-      ) {
-        return true
-      }
-    }
-
-    const discordProfile = this.discordProfile()
-    // noinspection RedundantIfStatementJS
-    if (discordProfile !== undefined && this.context.moderation.getImmuneDiscordUsers().includes(discordProfile.id)) {
-      return true
+      if (this.context.moderation.getImmuneMojangPlayers().includes(mojangProfile.name)) return true
     }
 
     return false
   }
 
+  /** Checks if this user equals another by any shared identifier */
   public equalsUser(other: User): boolean {
     const discordProfile = this.discordProfile()
     if (discordProfile !== undefined && other.discordProfile()?.id === discordProfile.id) {
@@ -155,16 +148,19 @@ export class User {
     return false
   }
 
+  /** Checks if this user matches a specific identifier */
   public equalsIdentifier(identifier: UserIdentifier): boolean {
     return this.allIdentifiers().some(
       (entry) => entry.originInstance === identifier.originInstance && entry.userId === identifier.userId
     )
   }
 
+  /** Returns the primary user identifier */
   public getUserIdentifier(): UserIdentifier {
     return this.userIdentifier
   }
 
+  /** Returns all known identifiers (Mojang, Discord, linked) for this user */
   public allIdentifiers(): UserIdentifier[] {
     const result: UserIdentifier[] = []
 
@@ -197,11 +193,13 @@ export class User {
     return result
   }
 
+  /** Returns the user's punishment history */
   public punishments(): PunishmentInstant {
     const punishments = this.context.punishments.findByUser(this)
     return new PunishmentInstant(this, punishments)
   }
 
+  /** Removes all punishments for this user */
   public async forgive(executor: InformEvent): Promise<SavedPunishment[]> {
     const savedPunishments = this.context.punishments.remove(this)
 
@@ -210,6 +208,7 @@ export class User {
     return savedPunishments
   }
 
+  /** Bans the user for a specified duration and reason */
   public async ban(
     executor: InformEvent,
     purpose: PunishmentPurpose,
@@ -219,6 +218,7 @@ export class User {
     return await this.punish(executor, PunishmentType.Ban, purpose, duration, reason)
   }
 
+  /** Mutes the user for a specified duration and reason */
   public async mute(
     executor: InformEvent,
     purpose: PunishmentPurpose,
@@ -253,14 +253,17 @@ export class User {
     return savedPunishment
   }
 
-  public addModerationAction(type: HeatType): HeatResult {
+  /** Records a moderation heat action (with auto-escalation) */
+  public async addModerationAction(type: HeatType): Promise<HeatResult> {
     return this.context.commandsHeat.add(this, type)
   }
 
-  public tryAddModerationAction(type: HeatType): HeatResult {
+  /** Attempts to record a moderation heat action (no auto-escalation) */
+  public async tryAddModerationAction(type: HeatType): Promise<HeatResult> {
     return this.context.commandsHeat.tryAdd(this, type)
   }
 
+  /** Checks if this user originated from Minecraft */
   public isMojangUser(): this is MinecraftUser {
     if (this.userIdentifier.originInstance === InstanceType.Minecraft) {
       assert.ok(this.userMojang !== undefined)
@@ -270,6 +273,7 @@ export class User {
     return false
   }
 
+  /** Checks if this user originated from Discord */
   public isDiscordUser(): this is DiscordUser {
     if (this.userIdentifier.originInstance === InstanceType.Discord) {
       assert.ok(this.userDiscord !== undefined)
@@ -279,7 +283,7 @@ export class User {
     return false
   }
 
-  // noinspection JSUnusedGlobalSymbols
+  /** Serializes the user to a plain object */
   public toJSON(): object {
     return { ...this.userIdentifier }
   }
@@ -319,10 +323,12 @@ export class PunishmentInstant {
     private readonly punishments: SavedPunishment[]
   ) {}
 
+  /** Returns all punishments for this user */
   public all(): SavedPunishment[] {
     return this.punishments
   }
 
+  /** Finds the longest punishment of a given type */
   public longestPunishment(type: PunishmentType): SavedPunishment | undefined {
     const punishments = this.all()
 
@@ -338,6 +344,7 @@ export class PunishmentInstant {
     return longestPunishment
   }
 
+  /** Returns the expiration timestamp of the longest punishment of a given type */
   public punishedTill(type: PunishmentType): number | undefined {
     return this.longestPunishment(type)?.till
   }

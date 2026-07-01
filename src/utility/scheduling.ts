@@ -1,4 +1,4 @@
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from './serial-executor.js'
 
 import type { PromiseCatchHandler } from '../common/unexpected-error-handler'
 
@@ -13,12 +13,18 @@ export function setIntervalAsync(
   callback: () => Promise<unknown>,
   options: ScheduleOptions & { delay: Duration }
 ): NodeJS.Timeout {
-  const queue = new PromiseQueue(1)
+  const queue = new SerialExecutor()
+  let pendingCount = 0
 
   return setInterval(() => {
-    const totalQueue = queue.getPendingLength() + queue.getQueueLength()
-    if (totalQueue === 0) {
-      void queue.add(() => callback()).catch(options.errorHandler)
+    if (pendingCount === 0) {
+      pendingCount++
+      void queue
+        .run(() => callback())
+        .finally(() => {
+          pendingCount--
+        })
+        .catch(options.errorHandler)
     }
   }, options.delay.toMilliseconds())
 }
@@ -27,10 +33,10 @@ export function setTimeoutAsync(
   callback: () => Promise<unknown>,
   options: ScheduleOptions & { delay: Duration }
 ): NodeJS.Timeout {
-  const queue = new PromiseQueue(1)
+  const queue = new SerialExecutor()
 
   return setTimeout(() => {
     // allow to queue as many as possible if refresh() is used
-    void queue.add(() => callback()).catch(options.errorHandler)
+    void queue.run(() => callback()).catch(options.errorHandler)
   }, options.delay.toMilliseconds())
 }

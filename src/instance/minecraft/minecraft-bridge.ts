@@ -32,6 +32,10 @@ import type MessageAssociation from './common/message-association.js'
 import type MinecraftInstance from './minecraft-instance.js'
 
 export default class MinecraftBridge extends Bridge<MinecraftInstance> {
+  override dispose(): void {
+    super.dispose()
+  }
+
   constructor(
     application: Application,
     clientInstance: MinecraftInstance,

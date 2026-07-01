@@ -1,5 +1,5 @@
 import type { AxiosResponse } from 'axios'
-import DefaultAxios from 'axios'
+import { httpClient } from '../../../common/http.js'
 import NodeCache from 'node-cache'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
@@ -116,10 +116,12 @@ export default class Soopy extends ChatCommandHandler {
     }
 
     try {
-      const result = await DefaultAxios.get(Soopy.SoopyApiUrl, {
-        timeout: 2 * 60 * 1000,
-        data: { m: fullCommand, u: context.username }
-      }).then((response: AxiosResponse<string, unknown>) => response.data)
+      const result = await httpClient
+        .get(Soopy.SoopyApiUrl, {
+          timeout: 2 * 60 * 1000,
+          data: { m: fullCommand, u: context.username }
+        })
+        .then((response: AxiosResponse<string, unknown>) => response.data)
 
       this.cache.set(Soopy.createCacheKey(context.username, fullCommand), result)
       return Soopy.formatResponse(context.username, result)

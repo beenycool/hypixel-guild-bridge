@@ -1,4 +1,8 @@
-const API_KEY = 'cdf8e5bc-c5bc-4a32-9858-90601eef67a2'
+const API_KEY = process.env.HYPIXEL_API_KEY
+if (!API_KEY) {
+  console.error('HYPIXEL_API_KEY environment variable is required')
+  process.exit(1)
+}
 
 async function main() {
   const res = await fetch(`https://api.hypixel.net/v2/player?key=${API_KEY}&uuid=f2cda349c6f547b2b7070ec6d06f6a5e`)

@@ -23,6 +23,22 @@ export default class GuildOnlineMetrics {
   private static readonly SnapshotInterval = Duration.minutes(30)
   private static readonly EventRetention = Duration.days(90)
   private static readonly SnapshotRetention = Duration.days(365)
+  private static readonly GuildListCacheTTL = Duration.seconds(30)
+  private guildListCache = new Map<
+    string,
+    {
+      members: {
+        uuid: string
+        username: string
+        online: boolean
+        rank: string
+        joinedAtTimestamp: number
+        weeklyExperience: number
+        expHistory: { date: Date; exp: number }[]
+      }[]
+      cachedAt: number
+    }
+  >()
 
   private readonly guildTotalMembersCount: Gauge
   private readonly guildOnlineMembersCount: Gauge
@@ -151,6 +167,35 @@ export default class GuildOnlineMetrics {
     })
   }
 
+  private async getCachedGuildList(instanceName: string): Promise<{
+    members: {
+      uuid: string
+      username: string
+      online: boolean
+      rank: string
+      joinedAtTimestamp: number
+      weeklyExperience: number
+      expHistory: { date: Date; exp: number }[]
+    }[]
+  }> {
+    const cached = this.guildListCache.get(instanceName)
+    if (cached && Date.now() - cached.cachedAt < GuildOnlineMetrics.GuildListCacheTTL.toMilliseconds()) {
+      return cached
+    }
+    const guildList = await this.app.core.guildManager.list(instanceName)
+    const members = guildList.members as {
+      uuid: string
+      username: string
+      online: boolean
+      rank: string
+      joinedAtTimestamp: number
+      weeklyExperience: number
+      expHistory: { date: Date; exp: number }[]
+    }[]
+    this.guildListCache.set(instanceName, { members, cachedAt: Date.now() })
+    return { members }
+  }
+
   async collectMetrics(app: Application): Promise<void> {
     this.resetMetrics()
 
@@ -163,8 +208,7 @@ export default class GuildOnlineMetrics {
     for (const instanceName of instanceNames) {
       // Guild list (members + online) – independent promise with catch
       guildTasks.push(
-        app.core.guildManager
-          .list(instanceName)
+        this.getCachedGuildList(instanceName)
           .then((guild) => {
             this.guildTotalMembersCount.set({ name: instanceName }, guild.members.length)
             this.guildOnlineMembersCount.set(
@@ -193,7 +237,7 @@ export default class GuildOnlineMetrics {
           // Try to get online status from guild list, but don't fail if disconnected
           let onlineUuids = new Set<string>()
           try {
-            const guildList = await app.core.guildManager.list(instanceName)
+            const guildList = await this.getCachedGuildList(instanceName)
             const onlineUsernames = guildList.members.filter((member) => member.online).map((member) => member.username)
             const onlineProfiles = await this.resolveOnlineProfiles(onlineUsernames)
             onlineUuids = new Set([...onlineProfiles.values()].filter((uuid): uuid is string => uuid !== undefined))
@@ -357,14 +401,13 @@ export default class GuildOnlineMetrics {
     for (const guild of client.guilds.cache.values()) {
       tasks.push(
         (async () => {
-          const [roles, members] = await Promise.all([
-            guild.roles.fetch(),
-            guild.members.fetch().catch(() => guild.members.cache)
-          ])
+          // Fetch all members first so role.members reflects accurate counts
+          await guild.members.fetch().catch(() => undefined)
+          const roles = await guild.roles.fetch()
           for (const role of roles.values()) {
             this.discordRoleMembers.set(
               { guild_id: guild.id, role_id: role.id, role_name: role.name },
-              members.filter((member) => member.roles.cache.has(role.id)).size
+              role.members.size
             )
           }
         })().catch(() => undefined)

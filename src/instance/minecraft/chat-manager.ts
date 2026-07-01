@@ -12,7 +12,7 @@ import SubInstance from '../../common/sub-instance'
 import type ClientSession from './client-session.js'
 import type { MinecraftChatMessage } from './common/chat-interface.js'
 import type MessageAssociation from './common/message-association.js'
-import { stufDecode } from './common/stuf.js'
+import { stufDecode } from './common/url-encoder.js'
 import type MinecraftInstance from './minecraft-instance.js'
 
 export default class ChatManager extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {

@@ -3,8 +3,6 @@
  Discord: Aura#5051
  Minecraft username: _aura
 */
-import { evaluate } from 'mathjs'
-
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 
@@ -17,7 +15,7 @@ export default class Calculate extends ChatCommandHandler {
     })
   }
 
-  handler(context: ChatCommandContext): string {
+  async handler(context: ChatCommandContext): Promise<string> {
     if (context.args.length === 0) return `${context.username}, example: !calc 1 + 1`
 
     const expression = context.args
@@ -27,7 +25,8 @@ export default class Calculate extends ChatCommandHandler {
       .replaceAll(',', '') // removes commas from numbers
 
     try {
-      const result = evaluate(expression)
+      const mathjs = await import('mathjs')
+      const result = mathjs.evaluate(expression)
 
       // The following if-statement is purely an Easter egg
       // It can be removed without causing any adverse affects on the bridge

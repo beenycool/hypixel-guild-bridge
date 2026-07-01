@@ -37,6 +37,7 @@ export class BridgeResolver {
   private publicChannelToBridge = new Map<string, string>()
   private officerChannelToBridge = new Map<string, string>()
   private loggerChannelToBridge = new Map<string, string>()
+  private bridgeById = new Map<string, ResolvedBridge>()
 
   constructor(staticBridges: BridgeConfig[] | undefined) {
     this.staticBridges = staticBridges ?? []
@@ -68,6 +69,7 @@ export class BridgeResolver {
     this.publicChannelToBridge.clear()
     this.officerChannelToBridge.clear()
     this.loggerChannelToBridge.clear()
+    this.bridgeById.clear()
 
     // First, add static bridges
     for (const bridge of this.staticBridges) {
@@ -98,6 +100,10 @@ export class BridgeResolver {
           this.loggerChannelToBridge.set(channelId, bridgeId)
         }
       }
+    }
+
+    for (const bridge of this.getAllBridges()) {
+      this.bridgeById.set(bridge.id, bridge)
     }
   }
 
@@ -186,7 +192,7 @@ export class BridgeResolver {
    * @returns The resolved bridge, or undefined if not found
    */
   public getBridgeById(bridgeId: string): ResolvedBridge | undefined {
-    return this.getAllBridges().find((b) => b.id === bridgeId)
+    return this.bridgeById.get(bridgeId)
   }
 
   /**

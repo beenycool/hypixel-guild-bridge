@@ -5,7 +5,7 @@ export class Timeout<T> {
   private hasFinished = false
   private hasTimedOut = false
   private readonly promise: Promise<T | undefined>
-  private resolveFunction: (argument: T) => void
+  private resolveFunction!: (argument: T) => void
   private timeoutId: NodeJS.Timeout | undefined
 
   constructor(
@@ -29,7 +29,6 @@ export class Timeout<T> {
       this.timeoutId = timeout
     })
 
-    // @ts-expect-error Promise is executed before the constructor is returned
     assert.ok(this.resolveFunction)
   }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 
-import DefaultAxios from 'axios'
+import { httpClient } from '../../../common/http.js'
 
 import { ChatCommandHandler } from '../../../common/commands.js'
 
@@ -23,7 +23,8 @@ export default class DadJoke extends ChatCommandHandler {
     }
     /* eslint-enable @typescript-eslint/naming-convention */
 
-    return await DefaultAxios.get<DadJokeResponse>(`https://icanhazdadjoke.com/`, config)
+    return await httpClient
+      .get<DadJokeResponse>(`https://icanhazdadjoke.com/`, config)
       .then((response) => response.data)
       .then((value) => {
         assert.strictEqual(value.status, 200)

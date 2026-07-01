@@ -60,7 +60,7 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
       })
     })
     setIntervalAsync(() => this.collectMetrics(), {
-      delay: Duration.seconds(30),
+      delay: Duration.seconds(300),
       errorHandler: (error) => {
         this.logger.error('Background metric collection failed', error)
       }

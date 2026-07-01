@@ -1,7 +1,7 @@
 import { hash } from 'node:crypto'
 import fs from 'node:fs/promises'
 
-import type { ApplicationEmojiManager, Client } from 'discord.js'
+import type { ApplicationEmoji, ApplicationEmojiManager, Client } from 'discord.js'
 
 import type { InstanceType } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'
@@ -10,6 +10,8 @@ import { AllEmojis } from '../common/discord-config.js'
 import type DiscordInstance from '../discord-instance.js'
 
 export default class EmojiHandler extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
+  public emojiByName = new Map<string, ApplicationEmoji>()
+
   override registerEvents(client: Client): void {
     client.on('clientReady', (readyClient) => {
       void this.registerEmojis(readyClient.application.emojis).catch(
@@ -59,5 +61,11 @@ export default class EmojiHandler extends SubInstance<DiscordInstance, InstanceT
     }
 
     this.application.core.discordEmojis.replaceAll(toSaveEmojis)
+
+    const fetched = await manager.fetch()
+    this.emojiByName.clear()
+    for (const [, emoji] of fetched) {
+      if (emoji.name) this.emojiByName.set(emoji.name, emoji)
+    }
   }
 }

@@ -11,9 +11,11 @@ import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'
 
 export default class PunishmentHandler extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {
+  private readonly guildPlayerListener: (event: GuildPlayerEvent) => Promise<void>
+
   constructor(clientInstance: MinecraftInstance) {
     super(clientInstance)
-    this.application.on('guildPlayer', async (event) => {
+    this.guildPlayerListener = async (event) => {
       if (
         event.instanceName !== this.clientInstance.instanceName ||
         event.instanceType !== this.clientInstance.instanceType
@@ -21,7 +23,12 @@ export default class PunishmentHandler extends SubInstance<MinecraftInstance, In
         return
 
       await this.onGuildPlayer(event).catch(this.errorHandler.promiseCatch('handling guildPlayer event'))
-    })
+    }
+    this.application.on('guildPlayer', this.guildPlayerListener)
+  }
+
+  public override dispose(): void {
+    this.application.off('guildPlayer', this.guildPlayerListener)
   }
 
   private async onGuildPlayer(event: GuildPlayerEvent): Promise<void> {
@@ -54,7 +61,7 @@ export default class PunishmentHandler extends SubInstance<MinecraftInstance, In
       return
     }
 
-    const heatResult = event.responsible.addModerationAction(heatType)
+    const heatResult = await event.responsible.addModerationAction(heatType)
 
     if (heatResult === HeatResult.Warn) {
       await this.application.emit('broadcast', {

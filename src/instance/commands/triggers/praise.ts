@@ -17,7 +17,7 @@ export default class Praise extends ChatCommandHandler {
     if (Math.random() <= 0.01) {
       const bridgeId = context.message.bridgeId
       const insultMode =
-        bridgeId !== undefined ? context.app.core.bridgeConfigurations.getInsultMode(bridgeId) : undefined
+        bridgeId === undefined ? undefined : context.app.core.bridgeConfigurations.getInsultMode(bridgeId)
       const i18nKey = insultMode === 'custom' ? 'commands.insult' : 'commands.insult.normal'
       const messages = context.app.i18n.t(($) => $[i18nKey], { returnObjects: true, name: givenUsername })
       let message = messages[Math.floor(Math.random() * messages.length)]

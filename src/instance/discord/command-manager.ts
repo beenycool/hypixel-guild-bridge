@@ -13,6 +13,7 @@ import type { DiscordAutoCompleteContext, DiscordCommandContext, DiscordCommandH
 import { CommandScope, OptionToAddMinecraftInstances } from '../../common/commands.js'
 import SubInstance from '../../common/sub-instance'
 import Duration from '../../utility/duration'
+import { UserRateLimiter } from '../../utility/rate-limiter-map.js'
 import { setTimeoutAsync } from '../../utility/scheduling'
 
 import AcceptCommand from './commands/accept.js'
@@ -37,6 +38,8 @@ import type DiscordInstance from './discord-instance.js'
 
 export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   readonly commands = new Collection<string, DiscordCommandHandler>()
+
+  private static readonly rateLimiter = new UserRateLimiter(5, 10_000)
 
   constructor(clientInstance: DiscordInstance) {
     super(clientInstance)
@@ -117,7 +120,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       guild: interaction.guild ?? undefined
     })
     const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(interaction.channelId)
-    const permission = user.permission(bridgeId)
+    const permission = await user.permission(bridgeId)
     const focusedOption = interaction.options.getFocused(true)
 
     if (focusedOption.name === 'instance') {
@@ -174,6 +177,14 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     const command = this.commands.get(interaction.commandName)
 
     try {
+      if (!CommandManager.rateLimiter.tryAcquire(interaction.user.id)) {
+        await interaction.reply({
+          content: 'Please slow down. You are sending commands too fast!',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+
       const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(interaction.channelId)
       const channelType = this.getChannelType(interaction.channelId, bridgeId)
       const identifier = this.clientInstance.profileByUser(
@@ -183,7 +194,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       const user = await this.application.core.initializeDiscordUser(identifier, {
         guild: interaction.guild ?? undefined
       })
-      const permission = user.permission(bridgeId)
+      const permission = await user.permission(bridgeId)
 
       if (command == undefined) {
         this.logger.debug(`command but it doesn't exist: ${interaction.commandName}`)

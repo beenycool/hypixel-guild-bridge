@@ -1,7 +1,6 @@
 import assert from 'node:assert'
 import fs from 'node:fs'
 
-import deepcopy from 'deepcopy'
 import Defaults from 'defaults'
 import deepEqual from 'fast-deep-equal'
 import type { Logger } from 'log4js'
@@ -23,7 +22,7 @@ export class ConfigManager<T extends object> {
     this.configFilePath = filepath
     assert.ok(!Array.isArray(data), 'configuration not allowed to be an array. Only Objects')
     this.data = data
-    this.defaultConfig = deepcopy(data)
+    this.defaultConfig = structuredClone(data)
 
     application.applicationIntegrity.addConfigPath(this.configFilePath)
 
@@ -53,7 +52,7 @@ export class ConfigManager<T extends object> {
 
     const mergedData = Defaults(
       { data: fileData } satisfies DataContainer,
-      { data: deepcopy(this.defaultConfig) } satisfies DataContainer
+      { data: structuredClone(this.defaultConfig) } satisfies DataContainer
     )
 
     const readyToSave = JSON.stringify(
@@ -94,7 +93,7 @@ export class ConfigManager<T extends object> {
     }
 
     for (const definedKey of Object.keys(defaults)) {
-      if (!(definedKey in defaults)) {
+      if (!(definedKey in data)) {
         this.logger.warn(`Key '${definedKey}' not defined in current configuration for some reason??`)
         continue
       }

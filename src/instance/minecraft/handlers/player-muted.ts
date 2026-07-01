@@ -1,4 +1,4 @@
-import type { InstanceType } from '../../../common/application-event.js'
+import type { ChatEvent, InstanceType } from '../../../common/application-event.js'
 import { ChannelType, Color } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'
 import type ClientSession from '../client-session.js'
@@ -7,9 +7,11 @@ import type MinecraftInstance from '../minecraft-instance.js'
 export default class PlayerMuted extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {
   public static readonly DefaultMessage = '{username} is currently muted and is unable to message right now.'
 
+  private readonly chatListener: (event: ChatEvent) => Promise<void>
+
   constructor(clientInstance: MinecraftInstance) {
     super(clientInstance)
-    this.application.on('chat', async (event) => {
+    this.chatListener = async (event) => {
       if (
         event.instanceName !== this.clientInstance.instanceName ||
         event.instanceType !== this.clientInstance.instanceType
@@ -44,6 +46,11 @@ export default class PlayerMuted extends SubInstance<MinecraftInstance, Instance
         user: event.user,
         message: message
       })
-    })
+    }
+    this.application.on('chat', this.chatListener)
+  }
+
+  public override dispose(): void {
+    this.application.off('chat', this.chatListener)
   }
 }

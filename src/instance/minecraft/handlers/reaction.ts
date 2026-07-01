@@ -1,4 +1,10 @@
-import { ChannelType, Color, GuildPlayerEventType, type InstanceType } from '../../../common/application-event.js'
+import {
+  ChannelType,
+  Color,
+  type GuildPlayerEvent,
+  GuildPlayerEventType,
+  type InstanceType
+} from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'
 import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'
@@ -33,10 +39,12 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
     'Goodbye {username}. Forever.'
   ]
 
+  private readonly guildPlayerListener: (event: GuildPlayerEvent) => Promise<void>
+
   constructor(clientInstance: MinecraftInstance) {
     super(clientInstance)
 
-    this.application.on('guildPlayer', async (event) => {
+    this.guildPlayerListener = async (event) => {
       if (
         event.instanceName !== this.clientInstance.instanceName ||
         event.instanceType !== this.clientInstance.instanceType
@@ -136,6 +144,11 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           message: message
         })
       }
-    })
+    }
+    this.application.on('guildPlayer', this.guildPlayerListener)
+  }
+
+  public override dispose(): void {
+    this.application.off('guildPlayer', this.guildPlayerListener)
   }
 }

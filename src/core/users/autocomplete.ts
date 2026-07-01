@@ -10,6 +10,8 @@ import type { Core } from '../core'
 
 export default class Autocomplete extends SubInstance<Core, InstanceType.Core, void> {
   private static readonly MaxLife = Duration.years(1)
+  private readonly pendingUsernames = new Set<string>()
+  private readonly pendingRanks = new Set<string>()
 
   constructor(
     clientInstance: Core,
@@ -18,22 +20,37 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
     super(clientInstance)
 
     this.application.on('chat', (event) => {
-      this.addUsernames([event.user.displayName()])
+      this.pendingUsernames.add(event.user.displayName())
     })
     this.application.on('guildPlayer', (event) => {
-      this.addUsernames([event.user.mojangProfile().name])
+      this.pendingUsernames.add(event.user.mojangProfile().name)
     })
     this.application.on('command', (event) => {
-      this.addUsernames([event.user.displayName()])
+      this.pendingUsernames.add(event.user.displayName())
     })
     this.application.on('commandFeedback', (event) => {
-      this.addUsernames([event.user.displayName()])
+      this.pendingUsernames.add(event.user.displayName())
     })
 
     setIntervalAsync(async () => this.fetchGuildInfo(), {
-      delay: Duration.seconds(60),
+      delay: Duration.seconds(300),
       errorHandler: this.errorHandler.promiseCatch('fetching guild info for autocomplete')
     })
+
+    setIntervalAsync(
+      async () => {
+        const usernames = [...this.pendingUsernames]
+        const ranks = [...this.pendingRanks]
+        this.pendingUsernames.clear()
+        this.pendingRanks.clear()
+        if (usernames.length > 0) this.addUsernames(usernames)
+        if (ranks.length > 0) this.addRanks(ranks)
+      },
+      {
+        delay: Duration.seconds(30),
+        errorHandler: this.errorHandler.promiseCatch('flushing pending autocomplete entries')
+      }
+    )
 
     const ranksResolver = setTimeoutAsync(async () => this.resolveGuildRanks(), {
       delay: Duration.seconds(10),
@@ -64,6 +81,16 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
           this.logger.debug(`Deleted ${count} old autocomplete entry`)
         }
       })
+    })
+
+    this.application.addShutdownListener(async () => {
+      const usernames = [...this.pendingUsernames]
+      const ranks = [...this.pendingRanks]
+      if (usernames.length > 0 || ranks.length > 0) {
+        this.logger.debug(`Flushing ${usernames.length} usernames and ${ranks.length} ranks on shutdown`)
+        if (usernames.length > 0) this.addUsernames(usernames)
+        if (ranks.length > 0) this.addRanks(ranks)
+      }
     })
   }
 

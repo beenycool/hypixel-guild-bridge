@@ -1,13 +1,19 @@
-/* eslint-disable import/no-restricted-paths */
-
-import Mute from '../instance/commands/triggers/mute'
-import Roulette from '../instance/commands/triggers/roulette'
-import Vengeance from '../instance/commands/triggers/vengeance'
-import PlayerMuted from '../instance/minecraft/handlers/player-muted'
-import Reaction from '../instance/minecraft/handlers/reaction'
-import { SkyblockReminders } from '../instance/skyblock-reminders'
-
 import type { Configuration, ConfigurationsManager } from './configurations'
+
+import { DefaultMuteMessages } from '../common/constants/mute-defaults.js'
+import { DefaultRouletteWinMessages, DefaultRouletteLoseMessages } from '../common/constants/roulette-defaults.js'
+import {
+  DefaultVengeanceWinMessages,
+  DefaultVengeanceDrawMessages,
+  DefaultVengeanceLoseMessages
+} from '../common/constants/vengeance-defaults.js'
+import {
+  DefaultReactionJoinMessages,
+  DefaultReactionLeaveMessages,
+  DefaultReactionKickMessages
+} from '../common/constants/reaction-defaults.js'
+import { DefaultPlayerMutedMessage } from '../common/constants/player-muted-defaults.js'
+import { DefaultDarkAuctionMessage, DefaultStarfallMessage } from '../common/constants/skyblock-reminders-defaults.js'
 
 export enum ApplicationLanguages {
   English = 'en',
@@ -32,7 +38,7 @@ export class LanguageConfigurations {
   }
 
   public getDarkAuctionReminder(): string {
-    return this.configuration.getString('darkAuctionReminder', SkyblockReminders.DefaultDarkAuctionMessage)
+    return this.configuration.getString('darkAuctionReminder', DefaultDarkAuctionMessage)
   }
 
   public setDarkAuctionReminder(darkAuctionReminder: string): void {
@@ -40,7 +46,7 @@ export class LanguageConfigurations {
   }
 
   public getStarfallReminder(): string {
-    return this.configuration.getString('starfallReminder', SkyblockReminders.DefaultStarfallMessage)
+    return this.configuration.getString('starfallReminder', DefaultStarfallMessage)
   }
 
   public setStarfallReminder(starfallReminder: string): void {
@@ -48,7 +54,7 @@ export class LanguageConfigurations {
   }
 
   public getCommandMuteGame(): string[] {
-    return this.configuration.getStringArray('commandMuteGame', Mute.DefaultMessages)
+    return this.configuration.getStringArray('commandMuteGame', DefaultMuteMessages)
   }
 
   public setCommandMuteGame(values: string[]): void {
@@ -56,34 +62,34 @@ export class LanguageConfigurations {
   }
 
   public getCommandRouletteWin(): string[] {
-    return this.configuration.getStringArray('commandRouletteWin', Roulette.WinMessages)
+    return this.configuration.getStringArray('commandRouletteWin', DefaultRouletteWinMessages)
   }
   public setCommandRouletteWin(values: string[]): void {
     this.configuration.setStringArray('commandRouletteWin', values)
   }
   public getCommandRouletteLose(): string[] {
-    return this.configuration.getStringArray('commandRouletteLose', Roulette.LossMessages)
+    return this.configuration.getStringArray('commandRouletteLose', DefaultRouletteLoseMessages)
   }
   public setCommandRouletteLose(values: string[]): void {
     this.configuration.setStringArray('commandRouletteLose', values)
   }
 
   public getCommandVengeanceWin(): string[] {
-    return this.configuration.getStringArray('commandVengeanceWin', Vengeance.WinMessages)
+    return this.configuration.getStringArray('commandVengeanceWin', DefaultVengeanceWinMessages)
   }
   public setCommandVengeanceWin(values: string[]): void {
     this.configuration.setStringArray('commandVengeanceWin', values)
   }
 
   public getCommandVengeanceDraw(): string[] {
-    return this.configuration.getStringArray('commandVengeanceDraw', Vengeance.DrawMessages)
+    return this.configuration.getStringArray('commandVengeanceDraw', DefaultVengeanceDrawMessages)
   }
   public setCommandVengeanceDraw(values: string[]): void {
     this.configuration.setStringArray('commandVengeanceDraw', values)
   }
 
   public getCommandVengeanceLose(): string[] {
-    return this.configuration.getStringArray('commandVengeanceLose', Vengeance.LossMessages)
+    return this.configuration.getStringArray('commandVengeanceLose', DefaultVengeanceLoseMessages)
   }
 
   public setCommandVengeanceLose(values: string[]): void {
@@ -91,7 +97,7 @@ export class LanguageConfigurations {
   }
 
   public getAnnounceMutedPlayer(): string {
-    return this.configuration.getString('announceMutedPlayer', PlayerMuted.DefaultMessage)
+    return this.configuration.getString('announceMutedPlayer', DefaultPlayerMutedMessage)
   }
 
   public setAnnounceMutedPlayer(value: string): void {
@@ -99,7 +105,7 @@ export class LanguageConfigurations {
   }
 
   public getGuildJoinReaction(): string[] {
-    return this.configuration.getStringArray('guildJoinReaction', Reaction.JoinMessages)
+    return this.configuration.getStringArray('guildJoinReaction', DefaultReactionJoinMessages)
   }
 
   public setGuildJoinReaction(values: string[]): void {
@@ -107,7 +113,7 @@ export class LanguageConfigurations {
   }
 
   public getGuildLeaveReaction(): string[] {
-    return this.configuration.getStringArray('guildLeaveReaction', Reaction.LeaveMessages)
+    return this.configuration.getStringArray('guildLeaveReaction', DefaultReactionLeaveMessages)
   }
 
   public setGuildLeaveReaction(values: string[]): void {
@@ -115,7 +121,7 @@ export class LanguageConfigurations {
   }
 
   public getGuildKickReaction(): string[] {
-    return this.configuration.getStringArray('guildKickReaction', Reaction.KickMessages)
+    return this.configuration.getStringArray('guildKickReaction', DefaultReactionKickMessages)
   }
 
   public setGuildKickReaction(values: string[]): void {

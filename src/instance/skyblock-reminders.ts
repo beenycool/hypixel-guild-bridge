@@ -85,7 +85,7 @@ export class SkyblockReminders extends Instance<InstanceType.Utility> {
           }
         }
       },
-      { errorHandler: this.errorHandler.promiseCatch('show dark auction reminder'), delay: Duration.seconds(5) }
+      { errorHandler: this.errorHandler.promiseCatch('show dark auction reminder'), delay: Duration.seconds(60) }
     )
   }
 
@@ -136,7 +136,7 @@ export class SkyblockReminders extends Instance<InstanceType.Utility> {
           }
         }
       },
-      { errorHandler: this.errorHandler.promiseCatch('show starfall reminder'), delay: Duration.seconds(5) }
+      { errorHandler: this.errorHandler.promiseCatch('show starfall reminder'), delay: Duration.seconds(60) }
     )
   }
 

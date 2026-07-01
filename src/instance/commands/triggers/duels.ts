@@ -211,7 +211,7 @@ export default class Duels extends HypixelPlayerCommand {
     const commandArguments = context.args
 
     const firstArgument = commandArguments[0]?.toLowerCase()
-    const resolvedFirstArgument = DuelTypeAliases.get(firstArgument as string) ?? firstArgument
+    const resolvedFirstArgument = DuelTypeAliases.get(firstArgument) ?? firstArgument
     const isFirstArgumentDuelType = resolvedFirstArgument && Duels.ValidDuelTypes.has(resolvedFirstArgument as DuelType)
 
     const duelType: DuelType | undefined = isFirstArgumentDuelType ? (resolvedFirstArgument as DuelType) : undefined

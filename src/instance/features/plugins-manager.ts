@@ -55,8 +55,13 @@ export class PluginsManager extends Instance<InstanceType.Utility> {
       this.logger.info(`Loading plugin: ${pluginPath}`)
       const plugin = await import(newPath)
         .then((resolved: { default: typeof PluginInstance }) => resolved.default)
-        // @ts-expect-error although it says it is an abstract, the class isn't since it is extended.
-        .then((clazz) => new clazz(this.application, this) as PluginInstance)
+        .then(
+          (clazz) =>
+            new (clazz as unknown as new (application: Application, pluginsManager: PluginsManager) => PluginInstance)(
+              this.application,
+              this
+            )
+        )
 
       plugins.push(plugin)
     }

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { httpClient } from '../common/http.js'
 import minecraftProtocol from 'minecraft-protocol'
 
 const { ping: MinecraftPing } = minecraftProtocol
@@ -22,6 +22,7 @@ interface RssItem {
 interface IncidentState {
   notified: boolean
   updates: Set<string>
+  lastUpdated: number
 }
 
 export default class HypixelUpdates extends Instance<InstanceType.Utility> {
@@ -87,6 +88,24 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
     if (this.isFlagEnabled(config.skyblockVersion)) {
       await this.checkSkyblockVersion().catch(this.errorHandler.promiseCatch('checking skyblock version'))
     }
+    this.purgeStale()
+  }
+
+  private purgeStale(): void {
+    const maxNewsKeys = 1000
+    if (this.newsKeys.size > maxNewsKeys) {
+      const toDelete = [...this.newsKeys].slice(0, this.newsKeys.size - maxNewsKeys)
+      for (const key of toDelete) {
+        this.newsKeys.delete(key)
+      }
+    }
+
+    const cutoff = Date.now() - Duration.hours(HypixelUpdates.LookbackHours * 2).toMilliseconds()
+    for (const [key, incident] of this.incidents) {
+      if (incident.lastUpdated < cutoff) {
+        this.incidents.delete(key)
+      }
+    }
   }
 
   private async checkHypixelNews(firstRun = false): Promise<void> {
@@ -131,7 +150,8 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
 
       if (item.pubDate && item.pubDate + lookbackMs < now) continue
 
-      const incident = this.incidents.get(title) ?? { notified: false, updates: new Set<string>() }
+      const incident = this.incidents.get(title) ?? { notified: false, updates: new Set<string>(), lastUpdated: now }
+      incident.lastUpdated = now
       if (!incident.notified) {
         const link = item.link ?? 'https://status.hypixel.net'
         await this.broadcast(`[HYPIXEL STATUS] ${title} | ${link}`, Color.Info)
@@ -155,9 +175,12 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
     const config = this.application.getHypixelUpdatesConfig()
     if (!config?.enabled || !this.isFlagEnabled(config.skyblockVersion)) return
 
-    const { data } = await axios.get<{ version?: string }>('https://api.hypixel.net/v2/resources/skyblock/skills', {
-      timeout: 10_000
-    })
+    const { data } = await httpClient.get<{ version?: string }>(
+      'https://api.hypixel.net/v2/resources/skyblock/skills',
+      {
+        timeout: 10_000
+      }
+    )
 
     const version = data.version
     if (!version) return
@@ -199,7 +222,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
   }
 
   private async fetchRss(url: string): Promise<RssItem[]> {
-    const response = await axios.get<string>(url, {
+    const response = await httpClient.get<string>(url, {
       responseType: 'text',
       timeout: 10_000,
       headers: {

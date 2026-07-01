@@ -11,8 +11,8 @@ export default class QMuted extends ChatCommandHandler {
     })
   }
 
-  handler(context: ChatCommandContext): string {
-    if (context.message.user.permission() < Permission.Officer) {
+  async handler(context: ChatCommandContext): Promise<string> {
+    if ((await context.message.user.permission()) < Permission.Officer) {
       return `${context.username}, you must be Officer or higher to use this command.`
     }
 

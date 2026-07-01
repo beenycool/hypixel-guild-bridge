@@ -154,6 +154,28 @@ export function beautifyInstanceName(instanceName: string): string {
  * @param query the usernames to look for
  * @param collection collection to look up the query in
  */
+export function relativeTime(timestamp: number, includeSuffix = true): string {
+  const diff = timestamp - Date.now()
+  const absSeconds = Math.floor(Math.abs(diff) / 1000)
+
+  let str: string
+  if (absSeconds < 10) str = 'a few seconds'
+  else if (absSeconds < 45) str = `${absSeconds} seconds`
+  else if (absSeconds < 90) str = 'a minute'
+  else if (absSeconds < 45 * 60) str = `${Math.round(absSeconds / 60)} minutes`
+  else if (absSeconds < 90 * 60) str = 'an hour'
+  else if (absSeconds < 22 * 60 * 60) str = `${Math.round(absSeconds / 3600)} hours`
+  else if (absSeconds < 36 * 60 * 60) str = 'a day'
+  else if (absSeconds < 26 * 24 * 60 * 60) str = `${Math.round(absSeconds / 86400)} days`
+  else if (absSeconds < 45 * 24 * 60 * 60) str = 'a month'
+  else if (absSeconds < 345 * 24 * 60 * 60) str = `${Math.round(absSeconds / 2592000)} months`
+  else if (absSeconds < 545 * 24 * 60 * 60) str = 'a year'
+  else str = `${Math.round(absSeconds / 31536000)} years`
+
+  if (!includeSuffix) return str
+  return diff > 0 ? `in ${str}` : `${str} ago`
+}
+
 export function search(query: string, collection: string[]): string[] {
   const copy = [...collection]
   copy.sort((a, b) => a.localeCompare(b))

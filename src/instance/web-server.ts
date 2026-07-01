@@ -199,6 +199,18 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
 
+      const healthToken = process.env.HEALTH_TOKEN
+      if (healthToken) {
+        const provided = request.headers['authorization']?.replace('Bearer ', '') ?? ''
+        if (
+          provided.length !== healthToken.length ||
+          !timingSafeEqual(Buffer.from(provided), Buffer.from(healthToken))
+        ) {
+          this.sendJson(response, HttpStatusCode.Unauthorized, { error: 'Unauthorized' })
+          return
+        }
+      }
+
       this.sendJson(response, HttpStatusCode.Ok, {
         success: true,
         uptime: Date.now() - this.startTime
@@ -212,10 +224,42 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
 
+      const healthToken = process.env.HEALTH_TOKEN
+      if (healthToken) {
+        const provided = request.headers['authorization']?.replace('Bearer ', '') ?? ''
+        if (
+          provided.length !== healthToken.length ||
+          !timingSafeEqual(Buffer.from(provided), Buffer.from(healthToken))
+        ) {
+          this.sendJson(response, HttpStatusCode.Unauthorized, { error: 'Unauthorized' })
+          return
+        }
+      }
+
+      const discordClient = this.application.discordInstance?.getClient()
+      const minecraftInstances = this.application.getInstancesNames(InstanceType.Minecraft).map((name) => ({
+        name,
+        status:
+          this.application.minecraftManager
+            .getAllInstances()
+            .find((i) => i.instanceName === name)
+            ?.currentStatus() ?? 'unknown'
+      }))
+
       this.sendJson(response, HttpStatusCode.Ok, {
         status: 'ok',
         uptime: Date.now() - this.startTime,
-        version: PackageJson.version
+        version: PackageJson.version,
+        components: {
+          database: this.application.core.databaseManager.getPoolStatus(),
+          discord: {
+            connected: discordClient?.isReady() ?? false,
+            guilds: discordClient?.guilds.cache.size ?? 0
+          },
+          minecraft: {
+            instances: minecraftInstances
+          }
+        }
       })
       return
     }

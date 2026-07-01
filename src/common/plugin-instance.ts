@@ -7,8 +7,6 @@ import type { ChatCommandHandler, DiscordCommandHandler } from './commands.js'
 import { Instance } from './instance.js'
 
 export default abstract class PluginInstance extends Instance<InstanceType.Plugin> {
-  // noinspection TypeScriptAbstractClassConstructorCanBeMadeProtected
-
   protected readonly pluginsManager: PluginsManager
 
   /**

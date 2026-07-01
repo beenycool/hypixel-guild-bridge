@@ -258,6 +258,11 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     }
   }
 
+  public dispose(): void {
+    this.clearInstanceStatusListener()
+    this.clearConnectionTimeout()
+  }
+
   private async tryRestarting(): Promise<void> {
     this.logger.info(`minecraft attempt ${this.loginAttempts}`)
     if (this.loginAttempts > StateHandler.MaxLoginAttempts) {

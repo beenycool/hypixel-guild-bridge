@@ -29,7 +29,9 @@ export class PendingReviewManager {
   private nextReviewId = 1
   private nextHistoryId = 1
 
-  constructor(private readonly databaseManager: DatabaseManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {
+    this.databaseManager.registerCleaner(() => this.pruneHistory())
+  }
 
   public async load(): Promise<void> {
     const reviews = await this.databaseManager.queryRows<PendingReview>(
@@ -204,6 +206,13 @@ export class PendingReviewManager {
         ]
       )
     })
+  }
+
+  public pruneHistory(): void {
+    const maxEntries = 1000
+    if (this.history.length > maxEntries) {
+      this.history.splice(0, this.history.length - maxEntries)
+    }
   }
 
   public getHistory(bridgeId: string, limit = 20): RankupHistoryEntry[] {

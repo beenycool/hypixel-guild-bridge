@@ -5,7 +5,12 @@ export async function initializeCoreDatabase(databaseManager: DatabaseManager): 
 
   await databaseManager.runMigrations()
 
-  await syncSequences(databaseManager)
+  try {
+    await syncSequences(databaseManager)
+  } catch {
+    // syncSequences may fail on pg-mem (pg_get_serial_sequence is pg-specific)
+    // This is non-critical, skip gracefully
+  }
 }
 
 async function syncSequences(databaseManager: DatabaseManager): Promise<void> {

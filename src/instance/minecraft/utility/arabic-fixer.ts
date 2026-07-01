@@ -2,6 +2,12 @@ import assert from 'node:assert'
 
 import esrever from 'esrever'
 
+let _compiledPatterns: { regex: RegExp; replace: string }[] | undefined
+
+export function getCompiledPatterns(): { regex: RegExp; replace: string }[] {
+  return (_compiledPatterns ??= ArabicFixer.compilePatterns())
+}
+
 export default class ArabicFixer {
   public encode(message: string): string {
     const ArabicLanguage = /[\u0600-\u06FF\u200C\u200F\uFB8A]+/g
@@ -61,7 +67,7 @@ export default class ArabicFixer {
     let newMessage = message
     do {
       changed = false
-      for (const rule of ArabicFixer.compilePatterns()) {
+      for (const rule of getCompiledPatterns()) {
         const changedMessage = newMessage.replaceAll(rule.regex, rule.replace)
         if (newMessage !== changedMessage) {
           newMessage = changedMessage
@@ -74,7 +80,7 @@ export default class ArabicFixer {
   }
 
   // Credit: https://github.com/omd0/Arabic-Fixer
-  private static compilePatterns(): { regex: RegExp; replace: string }[] {
+  static compilePatterns(): { regex: RegExp; replace: string }[] {
     const nonJoinerLetters = 'ﺬآداﺇﺁﺃﺎﺈﺂﺄرﺮزﺰژﮋذﺲﺶﺺﺾوﭗﺚﺖﺞﭻﺢﺦﺐﻂﻆﻊﻎﻒﻖﮏﮓﻚﻞﻢﻦﻮﻪﻰﺊﻲﺪﻼﻻﻺﻹﻶﻵﻸﻷﷺﷲﺔﻪﺅ'
     const nospaceAfter = String.raw`(?!\s|$|^)`
     const spaceAfter = String.raw`(?=\s|^|$)`
@@ -190,3 +196,5 @@ export default class ArabicFixer {
     return allRules
   }
 }
+
+getCompiledPatterns()

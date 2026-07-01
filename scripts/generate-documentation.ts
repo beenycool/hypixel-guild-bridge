@@ -11,7 +11,7 @@ process.exit(0)
 
 async function generateCommands(): Promise<void> {
   let featuresPage = ''
-  featuresPage += fs.readFileSync('scripts/PERMISSIONS.md', 'utf8').trim()
+  featuresPage += fs.readFileSync('scripts/PERMISSIONS-HEADER.md', 'utf8').trim()
 
   featuresPage += '\n\n## Chat Commands\n\n'
   featuresPage += fs.readFileSync('scripts/CHAT-COMMANDS-HEADER.md', 'utf8').trim() + '\n\n'
@@ -35,8 +35,7 @@ async function generateChatCommands(): Promise<string> {
     const resolvedPath = '../' + chatCommandsDirectory + chatCommandPath.replaceAll('.ts', '.js')
     const importedModule = (await import(resolvedPath)) as unknown as { default: ChatCommandHandler | PartyManager }
     const module = importedModule.default
-    // @ts-expect-error it is an extended ChatCommandHandler with filled constructors
-    const loadedModule = new module() as unknown as ChatCommandHandler | PartyManager
+    const loadedModule = new (module as unknown as new () => ChatCommandHandler | PartyManager)()
     if (loadedModule instanceof ChatCommandHandler) {
       table.push([`\`${loadedModule.triggers[0]}\``, loadedModule.description])
     } else if (loadedModule instanceof PartyManager) {

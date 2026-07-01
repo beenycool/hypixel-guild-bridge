@@ -4,6 +4,24 @@ import { ChannelType, MinecraftSendChatPriority } from '../../../common/applicat
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import { Timeout } from '../../../utility/timeout.js'
 
+const CHAT_PREFIXES = ['/ac', '/pc', '/gc', '/gchat', '/oc', '/ochat', '/msg', '/whisper', '/w', '/tell', '/boop']
+const GUILD_PREFIXES = [
+  '/g ',
+  '/guild',
+  '/gc',
+  '/gchat',
+  '/oc',
+  '/ochat',
+  '/chat guild',
+  '/chat g',
+  '/chat officer',
+  '/chat o',
+  '/c g',
+  '/c guild',
+  '/c o',
+  '/c officer'
+]
+
 export enum CommandType {
   Generic = 'generic',
   HighPriority = 'high_priority',
@@ -18,7 +36,6 @@ const CommandTypeSleep: Record<CommandType, number> = {
   [CommandType.GuildCommand]: 2000
 }
 
-// noinspection InfiniteLoopJS
 export class SendQueue {
   private priorityQueue = new PriorityQueue()
 
@@ -140,31 +157,13 @@ export class SendQueue {
     const types: CommandType[] = []
     let priority = 3
 
-    const chatPrefix = ['/ac', '/pc', '/gc', '/gchat', '/oc', '/ochat', '/msg', '/whisper', '/w', 'tell', '/boop']
-    const guildPrefix = [
-      '/g ',
-      '/guild',
-      '/gc',
-      'gchat',
-      '/oc',
-      'ochat',
-      '/chat guild',
-      '/chat g',
-      '/chat officer',
-      '/chat o',
-      '/c g',
-      '/c guild',
-      '/c o',
-      '/c officer'
-    ]
-
     const loweredCaseCommand = command.toLowerCase()
 
-    if (guildPrefix.some((prefix) => loweredCaseCommand.startsWith(prefix))) {
+    if (GUILD_PREFIXES.some((prefix) => loweredCaseCommand.startsWith(prefix))) {
       types.push(CommandType.GuildCommand)
       priority = 5
     }
-    if (chatPrefix.some((prefix) => loweredCaseCommand.startsWith(prefix)) || !loweredCaseCommand.startsWith('/')) {
+    if (CHAT_PREFIXES.some((prefix) => loweredCaseCommand.startsWith(prefix)) || !loweredCaseCommand.startsWith('/')) {
       types.push(CommandType.ChatMessage)
       priority = 10
     }

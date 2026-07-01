@@ -11,7 +11,11 @@ export interface InactivityEntry {
 export class Inactivity {
   private readonly entries = new Map<string, InactivityEntry>()
 
-  constructor(private readonly databaseManager: DatabaseManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {
+    this.databaseManager.registerCleaner(() => {
+      this.purgeExpired()
+    })
+  }
 
   public async load(): Promise<void> {
     const rows = await this.databaseManager.queryRows<InactivityEntry>('SELECT * FROM "inactivity"')

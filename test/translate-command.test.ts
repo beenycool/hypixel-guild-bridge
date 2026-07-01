@@ -1,5 +1,6 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+
 import { AxiosError } from 'axios'
 
 import type { ChatCommandContext } from '../src/common/commands.js'
@@ -32,7 +33,7 @@ function makeMockContext(
   } as unknown as ChatCommandContext
 }
 
-type MockImpl = (apiKey: string, model: string, messages: Array<{ role: string; content: string }>) => Promise<string>
+type MockImpl = (apiKey: string, model: string, messages: { role: string; content: string }[]) => Promise<string>
 
 class TestTranslate extends Translate {
   mockImpl: MockImpl | null = null
@@ -40,7 +41,7 @@ class TestTranslate extends Translate {
   protected override async postToOpenRouter(
     apiKey: string,
     model: string,
-    messages: Array<{ role: string; content: string }>
+    messages: { role: string; content: string }[]
   ): Promise<string> {
     if (this.mockImpl) return this.mockImpl(apiKey, model, messages)
     throw new Error('No mockImpl set — use mockImpl to control behavior')

@@ -1,5 +1,3 @@
-# Permissions
-
 | Name    | Description                                                                                                        |
 | ------- | ------------------------------------------------------------------------------------------------------------------ |
 | Anyone  | Anything that usually can be seen in-game guild chat<br> e.g. public chat, join/leave notification, etc            |

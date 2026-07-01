@@ -1,20 +1,20 @@
 import assert from 'node:assert'
 
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../utility/serial-executor.js'
 
 import type Application from '../application'
 import { ChannelType, type ChatEvent, Color, InstanceType, PunishmentPurpose } from '../common/application-event'
 import { Instance } from '../common/instance'
 import SubInstance from '../common/sub-instance'
 import type { User } from '../common/user'
-import { SpontaneousEventsNames } from '../core/spontanmous-events-configurations'
+import { SpontaneousEventsNames } from '../core/spontaneous-events-configurations'
 import triviaData from '../resources/data/trivia-entries.json' with { type: 'json' }
 import Duration from '../utility/duration'
 import { Timeout } from '../utility/timeout'
 
 export class SpontaneousEvents extends Instance<InstanceType.Utility> {
   private readonly registeredEventHandlers: SpontaneousEventHandler[] = []
-  private readonly singletonPromise = new PromiseQueue(1)
+  private readonly singletonPromise = new SerialExecutor()
 
   private lastEventAt = -1
   private lastEventType: SpontaneousEventHandler | undefined
@@ -26,7 +26,7 @@ export class SpontaneousEvents extends Instance<InstanceType.Utility> {
 
     this.application.on('chat', async (event: ChatEvent) => {
       if (event.channelType !== ChannelType.Public) return
-      await this.singletonPromise.add(() => this.handlePublicChatEvent(event.user, event.createdAt, event.bridgeId))
+      await this.singletonPromise.run(() => this.handlePublicChatEvent(event.user, event.createdAt, event.bridgeId))
     })
 
     this.registerEvent(new QuickMath(this))

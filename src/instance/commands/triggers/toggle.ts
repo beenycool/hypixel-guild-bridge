@@ -11,8 +11,8 @@ export default class Toggle extends ChatCommandHandler {
     })
   }
 
-  handler(context: ChatCommandContext): string {
-    if (context.message.user.permission() < Permission.Helper) {
+  async handler(context: ChatCommandContext): Promise<string> {
+    if ((await context.message.user.permission()) < Permission.Helper) {
       return `${context.username}, Command can only be executed in officer chat or by the bridge admin`
     }
 

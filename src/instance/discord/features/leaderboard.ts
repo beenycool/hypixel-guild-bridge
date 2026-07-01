@@ -17,7 +17,7 @@ import { DefaultTimeout, interactivePaging } from '../utility/discord-pager'
 
 export default class Leaderboard extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   private static readonly EntriesPerPage = 10
-  private static readonly CheckUpdateEvery = Duration.minutes(1)
+  private static readonly CheckUpdateEvery = Duration.minutes(5)
   private static readonly UpdateEvery = Duration.minutes(30)
   private static readonly MyPositionId = 'my-position'
 

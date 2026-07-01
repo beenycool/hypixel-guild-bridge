@@ -1,4 +1,4 @@
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 
 import type { InstanceType } from '../../../common/application-event.js'
 import { MinecraftSendChatPriority } from '../../../common/application-event.js'
@@ -11,7 +11,8 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   private static readonly DefaultTimeout = 5 * 60 * 1000
   private static readonly DefaultAcquire = 10 * 60 * 1000
 
-  private queue = new PromiseQueue(1)
+  private queue = new SerialExecutor()
+  private pendingCount = 0
 
   public async acquire(
     timeout: number = LimboHandler.DefaultTimeout,
@@ -19,8 +20,9 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   ): Promise<Timeout<void>> {
     const queueHandler = new Timeout<Timeout<void>>(timeout)
 
+    this.pendingCount++
     void this.queue
-      .add(() => {
+      .run(() => {
         if (queueHandler.finished()) return Promise.resolve()
 
         const acquireHandler = new Timeout<void>(maxAcquire)
@@ -29,6 +31,7 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
         return acquireHandler.wait()
       })
       .finally(() => {
+        this.pendingCount--
         if (this.empty()) {
           void this.limbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
         }
@@ -52,7 +55,7 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private empty(): boolean {
-    return this.queue.getQueueLength() === 0 && this.queue.getPendingLength() === 0
+    return this.pendingCount === 0
   }
 
   private async triggerLimbo(): Promise<void> {

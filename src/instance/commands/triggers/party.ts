@@ -1,10 +1,8 @@
-import Moment from 'moment'
-
 import { ChannelType, InstanceType } from '../../../common/application-event.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 import Duration from '../../../utility/duration'
-import { getDuration } from '../../../utility/shared-utility'
+import { getDuration, relativeTime } from '../../../utility/shared-utility'
 
 interface Party {
   username: string
@@ -67,7 +65,7 @@ class PartyList extends ChatCommandHandler {
     let response = `${context.username}, parties: `
     for (const [index, party] of this.partyManager.activeParties.entries()) {
       // utc() is not directly exported
-      response += `${index + 1}. ${party.username}, ${party.count} players, ${party.purpose}, with ${Moment.utc(party.expiresAt).fromNow(true)} left\n`
+      response += `${index + 1}. ${party.username}, ${party.count} players, ${party.purpose}, with ${relativeTime(party.expiresAt, false)} left\n`
     }
 
     response += `/p join [name] or message the leader to join one of the parties`

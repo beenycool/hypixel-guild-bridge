@@ -135,7 +135,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
-    if (!this.ensurePermission(interaction)) {
+    if (!(await this.ensurePermission(interaction))) {
       await interaction.editReply('You do not have permission to accept guild requests.')
       return
     }
@@ -159,8 +159,8 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     }
   }
 
-  private ensurePermission(interaction: ButtonInteraction): boolean {
-    const permission = this.clientInstance.resolvePermission(interaction.user.id)
+  private async ensurePermission(interaction: ButtonInteraction): Promise<boolean> {
+    const permission = await this.clientInstance.resolvePermission(interaction.user.id)
     return permission >= Permission.Helper
   }
 

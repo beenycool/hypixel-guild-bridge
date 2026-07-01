@@ -33,8 +33,12 @@ export function parseApplicationConfig(fileString: string): ApplicationConfig {
     }
   }
 
-  // @ts-expect-error the validity of the object has not been checked yet till at last
-  if (config.version === undefined || typeof config.version !== 'number' || config.version < ApplicationConfigVersion) {
+  if (
+    !isRawConfig(config) ||
+    config.version === undefined ||
+    typeof config.version !== 'number' ||
+    config.version < ApplicationConfigVersion
+  ) {
     throw new Error(
       `Configuration is too old. ` +
         `Check config_example.yaml for the new configuration format. ` +
@@ -52,6 +56,10 @@ export function parseApplicationConfig(fileString: string): ApplicationConfig {
   }
 
   return config
+}
+
+function isRawConfig(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
 function assertsConfigValidity(value: unknown): asserts value is ApplicationConfig {

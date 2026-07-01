@@ -214,7 +214,6 @@ export default [
                 'src/instance/commands',
                 'src/instance/discord',
                 'src/instance/features',
-                'src/instance/metrics',
                 'src/instance/minecraft',
                 'src/instance/prometheus'
               ],

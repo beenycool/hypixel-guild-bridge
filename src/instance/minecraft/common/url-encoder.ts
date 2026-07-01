@@ -1,4 +1,5 @@
 export function stufEncode(message: string): string {
+  if (!message.includes('http')) return message
   return message
     .split(' ')
     .map((part) => {
@@ -13,6 +14,7 @@ export function stufEncode(message: string): string {
 }
 
 export function stufDecode(message: string): string {
+  if (!message.includes('l$')) return message
   return message
     .split(' ')
     .map((part) => {

@@ -1,7 +1,9 @@
 import assert from 'node:assert'
 
-import DefaultAxios, { AxiosError, HttpStatusCode } from 'axios'
-import PromiseQueue from 'promise-queue'
+import { AxiosError, HttpStatusCode } from 'axios'
+
+import { httpClient } from '../../common/http.js'
+import { SerialExecutor } from '../../utility/serial-executor.js'
 
 import type { DatabaseManager } from '../../common/database-manager'
 import type { MojangProfile } from '../../common/user'
@@ -10,7 +12,8 @@ import RateLimiter from '../../utility/rate-limiter'
 export class MojangApi {
   private static readonly RetryCount = 3
   private static readonly MaxQueueSize = 15
-  private readonly queue = new PromiseQueue(1)
+  private readonly queue = new SerialExecutor()
+  private pendingCount = 0
   private readonly rateLimit = new RateLimiter(1, 800)
 
   private readonly mojangDatabase: MojangDatabase
@@ -27,29 +30,34 @@ export class MojangApi {
     const cachedResult = this.mojangDatabase.profileByUsername(username)
     if (cachedResult) return cachedResult
 
-    if (this.queue.getQueueLength() >= MojangApi.MaxQueueSize) {
+    if (this.pendingCount >= MojangApi.MaxQueueSize) {
       throw new Error('Mojang API queue is full. Try again later.')
     }
 
-    const result = await this.queue.add(async () => {
-      let lastError: Error | undefined
-      for (let retry = 0; retry < MojangApi.RetryCount; retry++) {
-        await this.rateLimit.wait()
+    this.pendingCount++
+    const result = await this.queue
+      .run(async () => {
+        let lastError: Error | undefined
+        for (let retry = 0; retry < MojangApi.RetryCount; retry++) {
+          await this.rateLimit.wait()
 
-        try {
-          return await DefaultAxios.get<MojangProfile>(
-            `https://api.minecraftservices.com/minecraft/profile/lookup/name/${username}`
-          ).then((response) => response.data)
-        } catch (error: unknown) {
-          if (error instanceof Error) lastError = error
-          if (error instanceof AxiosError && error.status === HttpStatusCode.TooManyRequests) continue
+          try {
+            return await httpClient
+              .get<MojangProfile>(`https://api.minecraftservices.com/minecraft/profile/lookup/name/${username}`)
+              .then((response) => response.data)
+          } catch (error: unknown) {
+            if (error instanceof Error) lastError = error
+            if (error instanceof AxiosError && error.status === HttpStatusCode.TooManyRequests) continue
 
-          throw error
+            throw error
+          }
         }
-      }
 
-      throw lastError ?? new Error('Failed fetching new data')
-    })
+        throw lastError ?? new Error('Failed fetching new data')
+      })
+      .finally(() => {
+        this.pendingCount--
+      })
 
     this.cache([result])
     return result
@@ -61,30 +69,35 @@ export class MojangApi {
     const cachedResult = this.mojangDatabase.profileByUuid(uuid)
     if (cachedResult) return cachedResult
 
-    if (this.queue.getQueueLength() >= MojangApi.MaxQueueSize) {
+    if (this.pendingCount >= MojangApi.MaxQueueSize) {
       throw new Error('Mojang API queue is full. Try again later.')
     }
 
-    const result = await this.queue.add(async () => {
-      let lastError: Error | undefined
+    this.pendingCount++
+    const result = await this.queue
+      .run(async () => {
+        let lastError: Error | undefined
 
-      for (let retry = 0; retry < MojangApi.RetryCount; retry++) {
-        await this.rateLimit.wait()
+        for (let retry = 0; retry < MojangApi.RetryCount; retry++) {
+          await this.rateLimit.wait()
 
-        try {
-          return await DefaultAxios.get<MojangProfile>(
-            `https://api.minecraftservices.com/minecraft/profile/lookup/${uuid}`
-          ).then((response) => response.data)
-        } catch (error: unknown) {
-          if (error instanceof Error) lastError = error
-          if (error instanceof AxiosError && error.status === HttpStatusCode.TooManyRequests) continue
+          try {
+            return await httpClient
+              .get<MojangProfile>(`https://api.minecraftservices.com/minecraft/profile/lookup/${uuid}`)
+              .then((response) => response.data)
+          } catch (error: unknown) {
+            if (error instanceof Error) lastError = error
+            if (error instanceof AxiosError && error.status === HttpStatusCode.TooManyRequests) continue
 
-          throw error
+            throw error
+          }
         }
-      }
 
-      throw lastError ?? new Error('Failed fetching new data')
-    })
+        throw lastError ?? new Error('Failed fetching new data')
+      })
+      .finally(() => {
+        this.pendingCount--
+      })
 
     this.cache([result])
     return result
@@ -142,29 +155,35 @@ export class MojangApi {
   }
 
   private async lookupUsernames(usernames: string[]): Promise<MojangProfile[]> {
-    if (this.queue.getQueueLength() >= MojangApi.MaxQueueSize) {
+    if (this.pendingCount >= MojangApi.MaxQueueSize) {
       throw new Error('Mojang API queue is full. Try again later.')
     }
 
-    const result = await this.queue.add(async () => {
-      let lastError: Error | undefined
-      for (let retry = 0; retry < MojangApi.RetryCount; retry++) {
-        await this.rateLimit.wait()
-        try {
-          return await DefaultAxios.post<MojangProfile[]>(
-            'https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname',
-            usernames
-          ).then((response) => response.data)
-        } catch (error: unknown) {
-          if (error instanceof Error) lastError = error
-          if (error instanceof AxiosError && error.status === HttpStatusCode.TooManyRequests) continue
+    this.pendingCount++
+    const result = await this.queue
+      .run(async () => {
+        let lastError: Error | undefined
+        for (let retry = 0; retry < MojangApi.RetryCount; retry++) {
+          await this.rateLimit.wait()
+          try {
+            return await httpClient
+              .post<
+                MojangProfile[]
+              >('https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname', usernames)
+              .then((response) => response.data)
+          } catch (error: unknown) {
+            if (error instanceof Error) lastError = error
+            if (error instanceof AxiosError && error.status === HttpStatusCode.TooManyRequests) continue
 
-          throw error
+            throw error
+          }
         }
-      }
 
-      throw lastError ?? new Error('Failed fetching new data')
-    })
+        throw lastError ?? new Error('Failed fetching new data')
+      })
+      .finally(() => {
+        this.pendingCount--
+      })
 
     this.cache(result)
     return result
@@ -177,7 +196,9 @@ class MojangDatabase {
   private readonly profilesByLoweredName = new Map<string, CachedMojangProfile>()
   private readonly profilesByUuid = new Map<string, CachedMojangProfile>()
 
-  constructor(private readonly databaseManager: DatabaseManager) {}
+  constructor(private readonly databaseManager: DatabaseManager) {
+    this.databaseManager.registerCleaner(() => this.purgeStale())
+  }
 
   public async load(): Promise<void> {
     const rows = await this.databaseManager.queryRows<CachedMojangProfile>(
@@ -207,13 +228,18 @@ class MojangDatabase {
 
     this.databaseManager.enqueueTransaction('caching mojang profiles', async (database) => {
       for (const profile of profiles) {
-        await database.query('DELETE FROM "mojang" WHERE "uuid" = $1 OR "loweredName" = $2', [
-          profile.id,
-          profile.name.toLowerCase()
+        const loweredName = profile.name.toLowerCase()
+        await database.query(`DELETE FROM "mojang" WHERE "loweredName" = $1 AND "uuid" != $2`, [
+          loweredName,
+          profile.id
         ])
         await database.query(
-          'INSERT INTO "mojang" ("uuid", "username", "loweredName", "createdAt") VALUES ($1, $2, $3, $4)',
-          [profile.id, profile.name, profile.name.toLowerCase(), createdAt]
+          `INSERT INTO "mojang" ("uuid", "username", "loweredName", "createdAt") VALUES ($1, $2, $3, $4)
+           ON CONFLICT ("uuid") DO UPDATE SET
+             "username" = EXCLUDED."username",
+             "loweredName" = EXCLUDED."loweredName",
+             "createdAt" = EXCLUDED."createdAt"`,
+          [profile.id, profile.name, loweredName, createdAt]
         )
       }
     })
@@ -226,6 +252,17 @@ class MojangDatabase {
     }
 
     return { id: cached.uuid, name: cached.username }
+  }
+
+  public async purgeStale(): Promise<void> {
+    const cutoff = Math.floor((Date.now() - MojangDatabase.MaxAge) / 1000)
+    for (const [key, profile] of this.profilesByUuid) {
+      if (profile.createdAt < cutoff) {
+        this.profilesByUuid.delete(key)
+        this.profilesByLoweredName.delete(profile.loweredName)
+      }
+    }
+    await this.databaseManager.execute('DELETE FROM "mojang" WHERE "createdAt" < $1', [cutoff]).catch(() => undefined)
   }
 
   public profileByUuid(uuid: string): MojangProfile | undefined {

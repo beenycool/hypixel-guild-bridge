@@ -1,5 +1,5 @@
 import type { Logger } from 'log4js'
-import PromiseQueue from 'promise-queue'
+import { SerialExecutor } from '../utility/serial-executor.js'
 
 import type Application from '../application.js'
 
@@ -27,7 +27,8 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
 
   protected readonly logger: Logger
   protected readonly errorHandler: UnexpectedErrorHandler
-  protected readonly queue: PromiseQueue = new PromiseQueue(1)
+  protected readonly queue: SerialExecutor = new SerialExecutor()
+  private readonly cleanups: (() => void)[] = []
 
   protected constructor(
     application: Application,
@@ -40,48 +41,76 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
     this.logger = logger
     this.errorHandler = errorHandler
 
-    this.application.on('command', async (event) => {
+    const onCommand = async (event: CommandEvent) => {
       await this.queue
-        .add(() => Promise.resolve(this.onCommand(event)))
+        .run(() => Promise.resolve(this.onCommand(event)))
         .catch(this.errorHandler.promiseCatch('handling command event'))
-    })
-    this.application.on('commandFeedback', async (event) => {
+    }
+    this.application.on('command', onCommand)
+    this.cleanups.push(() => this.application.off('command', onCommand))
+
+    const onCommandFeedback = async (event: CommandFeedbackEvent) => {
       await this.queue
-        .add(() => Promise.resolve(this.onCommandFeedback(event)))
+        .run(() => Promise.resolve(this.onCommandFeedback(event)))
         .catch(this.errorHandler.promiseCatch('handling command feedback'))
-    })
+    }
+    this.application.on('commandFeedback', onCommandFeedback)
+    this.cleanups.push(() => this.application.off('commandFeedback', onCommandFeedback))
 
-    this.application.on('chat', async (event) => {
+    const onChat = async (event: ChatEvent) => {
       await this.queue
-        .add(() => Promise.resolve(this.onChat(event)))
+        .run(() => Promise.resolve(this.onChat(event)))
         .catch(this.errorHandler.promiseCatch('handling chat event'))
-    })
+    }
+    this.application.on('chat', onChat)
+    this.cleanups.push(() => this.application.off('chat', onChat))
 
-    this.application.on('guildPlayer', async (event) => {
+    const onGuildPlayer = async (event: GuildPlayerEvent) => {
       await this.queue
-        .add(() => Promise.resolve(this.onGuildPlayer(event)))
+        .run(() => Promise.resolve(this.onGuildPlayer(event)))
         .catch(this.errorHandler.promiseCatch('handling guildPlayer event'))
-    })
-    this.application.on('guildGeneral', async (event) => {
+    }
+    this.application.on('guildPlayer', onGuildPlayer)
+    this.cleanups.push(() => this.application.off('guildPlayer', onGuildPlayer))
+
+    const onGuildGeneral = async (event: GuildGeneralEvent) => {
       await this.queue
-        .add(() => Promise.resolve(this.onGuildGeneral(event)))
+        .run(() => Promise.resolve(this.onGuildGeneral(event)))
         .catch(this.errorHandler.promiseCatch('handling guildGeneral event'))
-    })
-    this.application.on('minecraftChatEvent', async (event) => {
+    }
+    this.application.on('guildGeneral', onGuildGeneral)
+    this.cleanups.push(() => this.application.off('guildGeneral', onGuildGeneral))
+
+    const onMinecraftChatEvent = async (event: MinecraftReactiveEvent) => {
       await this.queue
-        .add(() => Promise.resolve(this.onMinecraftChatEvent(event)))
+        .run(() => Promise.resolve(this.onMinecraftChatEvent(event)))
         .catch(this.errorHandler.promiseCatch('handling minecraftChat event'))
-    })
-    this.application.on('instanceStatus', async (event) => {
+    }
+    this.application.on('minecraftChatEvent', onMinecraftChatEvent)
+    this.cleanups.push(() => this.application.off('minecraftChatEvent', onMinecraftChatEvent))
+
+    const onInstanceStatus = async (event: InstanceStatus) => {
       await this.queue
-        .add(() => Promise.resolve(this.onInstance(event)))
+        .run(() => Promise.resolve(this.onInstance(event)))
         .catch(this.errorHandler.promiseCatch('handling instance event'))
-    })
-    this.application.on('broadcast', async (event) => {
+    }
+    this.application.on('instanceStatus', onInstanceStatus)
+    this.cleanups.push(() => this.application.off('instanceStatus', onInstanceStatus))
+
+    const onBroadcast = async (event: BroadcastEvent) => {
       await this.queue
-        .add(() => Promise.resolve(this.onBroadcast(event)))
+        .run(() => Promise.resolve(this.onBroadcast(event)))
         .catch(this.errorHandler.promiseCatch('handling broadcast event'))
-    })
+    }
+    this.application.on('broadcast', onBroadcast)
+    this.cleanups.push(() => this.application.off('broadcast', onBroadcast))
+  }
+
+  public dispose(): void {
+    for (const cleanup of this.cleanups) {
+      cleanup()
+    }
+    this.cleanups.length = 0
   }
 
   protected abstract onCommand(event: CommandEvent): void | Promise<void>

@@ -57,6 +57,8 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   /** Latest tab-list ping (ms) from Hypixel `player_info` for this bot; reset on reconnect. */
   private latestTabPingMs: number | undefined
 
+  private cachedUuid?: string
+
   constructor(app: Application, instanceName: string, config: MinecraftInstanceConfig) {
     // Resolve the bridge ID for this instance from the application's bridge resolver
     const bridgeId = app.bridgeResolver.getBridgeIdForInstance(instanceName)
@@ -157,8 +159,10 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       version: this.defaultVersion,
       username: this.config.name,
       auth: authOption,
-      // @ts-expect-error profilesFolder is directly passed to 'prismarine-auth'.Authflow, which that library also allow a factory function
-      profilesFolder: usesIasAuth ? false : sessionsManager.getSessionsFactory(this.instanceName),
+      // profilesFolder is forwarded to prismarine-auth.Authflow which accepts a CacheFactory
+      profilesFolder: (usesIasAuth ? false : sessionsManager.getSessionsFactory(this.instanceName)) as unknown as
+        | string
+        | false,
 
       ...resolveProxyIfExist(this.logger, this.config.proxy, {
         host: currentHost,
@@ -190,7 +194,14 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
   async disconnect(): Promise<void> {
     this.latestTabPingMs = undefined
+    this.cachedUuid = undefined
     this.clientSession?.client.end(QuitOwnVolition)
+    this.reactionHandler.dispose()
+    this.punishmentHandler.dispose()
+    this.playerMuted.dispose()
+    this.gameToggle.dispose()
+    this.stateHandler.dispose()
+    this.bridge.dispose()
 
     // wait till next cycle to let the clients close properly
     await setImmediate()
@@ -203,7 +214,9 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
   uuid(): string | undefined {
     const uuid = this.clientSession?.client.uuid
-    return uuid == undefined ? undefined : uuid.split('-').join('')
+    if (uuid === undefined) return undefined
+    this.cachedUuid ??= uuid.replaceAll('-', '')
+    return this.cachedUuid
   }
 
   /**

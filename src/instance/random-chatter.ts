@@ -89,6 +89,9 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
           !this.application.core.bridgeConfigurations.getAllBridgeIds().includes(event.bridgeId)
         ) {
           this.lastSentAt.delete(event.bridgeId)
+          this.nextSendAt.delete(event.bridgeId)
+          this.antiRepeatMemory.delete(event.bridgeId)
+          this.lastActivityAt.delete(event.bridgeId)
         }
       } catch {
         // swallow errors from cleanup
