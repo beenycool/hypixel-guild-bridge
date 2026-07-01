@@ -1,8 +1,8 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
-import { signToken } from '../../../instance/web/signed-token.js'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
+import { signToken } from '../../../instance/web/signed-token.js'
 
 interface AppSettingRow {
   value: string
@@ -25,7 +25,26 @@ async function getBaseUrl(context: Readonly<DiscordCommandContext>): Promise<str
 
 export default {
   getCommandBuilder: () =>
-    new SlashCommandBuilder().setName('dashboard').setDescription('Open the web dashboard for bridge management'),
+    new SlashCommandBuilder()
+      .setName('dashboard')
+      .setDescription('Open the web dashboard for bridge management')
+      .addStringOption((opt) =>
+        opt
+          .setName('page')
+          .setDescription('Page to open (optional)')
+          .setRequired(false)
+          .addChoices(
+            { name: 'Overview', value: '' },
+            { name: 'Player Lookup', value: 'player' },
+            { name: 'Guild Overview', value: 'guild' },
+            { name: 'Leaderboard', value: 'leaderboard' },
+            { name: 'Pending Reviews', value: 'rankup-pending' },
+            { name: 'History', value: 'rankup-history' },
+            { name: 'Settings', value: 'settings' },
+            { name: 'Punishments', value: 'punishments' },
+            { name: 'Inactivity', value: 'inactivity' }
+          )
+      ),
 
   permission: Permission.Helper,
 
@@ -33,7 +52,7 @@ export default {
     const { interaction } = context
     const userId = interaction.user.id
     const discordInstance = context.application.discordInstance
-    const userPermission = discordInstance?.resolvePermission(userId) ?? Permission.Anyone
+    const userPermission = discordInstance.resolvePermission(userId)
 
     if (userPermission < Permission.Helper) {
       await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true })
@@ -41,7 +60,7 @@ export default {
     }
 
     const webConfig = context.application.getWebConfig()
-    if (!webConfig || !webConfig.signingSecret) {
+    if (!webConfig?.signingSecret) {
       await interaction.reply({ content: 'Web server is not configured.', ephemeral: true })
       return
     }
@@ -51,12 +70,25 @@ export default {
       {
         sub: userId,
         perm: userPermission,
-        exp: Math.floor(Date.now() / 1000) + 86400,
+        exp: Math.floor(Date.now() / 1000) + 86_400,
         iat: Math.floor(Date.now() / 1000)
       },
       signingSecret
     )
     const t = encodeURIComponent(signedToken)
+
+    const page = context.interaction.options.getString('page') ?? ''
+    const pagePath = page ? `${page}.html` : ''
+
+    if (pagePath) {
+      const embed = new EmbedBuilder()
+        .setTitle('Web Dashboard')
+        .setDescription(`Open the [dashboard](${base}/${pagePath}?token=${t}) to manage your bridge settings.`)
+        .setColor(0x00_aa_ff)
+
+      await interaction.reply({ embeds: [embed], ephemeral: true })
+      return
+    }
 
     const showSettings = userPermission >= Permission.Owner
 

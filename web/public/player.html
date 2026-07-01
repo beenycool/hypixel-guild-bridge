@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Player — Rankup</title>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container">
+      <div class="page-header">
+        <h1 class="page-title">Player Lookup</h1>
+      </div>
+      <div class="card mb-md">
+        <div class="card-header"><h2>Search Player</h2></div>
+        <div class="card-body">
+          <div class="flex gap-sm">
+            <input type="text" class="input" id="player-input" placeholder="Minecraft username..." autocomplete="off" />
+            <button class="btn btn-primary" id="player-search-btn">Search</button>
+          </div>
+          <div id="player-error" class="mt-sm"></div>
+          <div id="player-result" class="mt-sm"></div>
+        </div>
+      </div>
+    </div>
+    <script src="js/common.js"></script>
+    <script>
+      'use strict'
+      ;(function () {
+        const input = document.querySelector('#player-input')
+        const searchBtn = document.querySelector('#player-search-btn')
+        const resultEl = document.querySelector('#player-result')
+        const errorEl = document.querySelector('#player-error')
+
+        const navItems = [
+          { name: 'Overview', href: 'index.html', key: 'overview' },
+          { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
+          { name: 'History', href: 'rankup-history.html', key: 'history' },
+          { name: 'Player', href: 'player.html', key: 'player' }
+        ]
+        const perm = App.getPermission()
+        if (perm === 'owner' || perm === 'admin') {
+          navItems.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
+        }
+
+        function buildNav(activeKey) {
+          const host = document.querySelector('#app-nav')
+          if (!host) return
+          let html = '<nav class="nav">'
+          html += '<a class="nav-brand" href="index.html">Rankup</a>'
+          html += '<div class="nav-items">'
+          for (const it of navItems) {
+            const cls = activeKey === it.key ? 'nav-item active' : 'nav-item'
+            html += '<a class="nav-link ' + cls + '" href="' + it.href + '">' + App.escapeHtml(it.name) + '</a>'
+          }
+          html += '</div>'
+          html +=
+            '<div class="nav-right"><button class="btn btn-secondary btn-sm" id="app-nav-disconnect">Disconnect</button></div>'
+          html += '</nav>'
+          host.innerHTML = html
+          const dc = host.querySelector('#app-nav-disconnect')
+          if (dc)
+            dc.addEventListener('click', () => {
+              App.clearToken()
+              globalThis.location.reload()
+            })
+        }
+
+        async function doSearch() {
+          const username = input.value.trim()
+          if (!username) {
+            errorEl.innerHTML = '<div class="text-sm text-muted">Enter a username first.</div>'
+            resultEl.innerHTML = ''
+            return
+          }
+          errorEl.innerHTML = ''
+          resultEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+          try {
+            const data = await App.apiGet('/api/player/' + encodeURIComponent(username))
+            resultEl.innerHTML = ''
+            errorEl.innerHTML = ''
+
+            const player = data.player || data
+            const onlineBadge = player.online
+              ? '<span class="badge badge-success">Online</span>'
+              : '<span class="badge badge-muted">Offline</span>'
+            const rankBadge =
+              player.rank && player.rank !== 'NONE'
+                ? '<span class="badge badge-gold">' + App.escapeHtml(player.rank) + '</span>'
+                : ''
+
+            // Player info card
+            resultEl.innerHTML +=
+              '<div class="card mb-md">' +
+              '<div class="card-header"><h2>' +
+              App.escapeHtml(player.displayName || username) +
+              ' ' +
+              onlineBadge +
+              ' ' +
+              rankBadge +
+              '</h2></div>' +
+              '<div class="card-body">' +
+              '<div class="grid grid-cols-2">' +
+              '<div><span class="stat-label">Hypixel Level</span><div class="text-sm">' +
+              (player.hypixelLevel != null ? Math.floor(player.hypixelLevel).toLocaleString() : '—') +
+              '</div></div>' +
+              '<div><span class="stat-label">Karma</span><div class="text-sm">' +
+              (player.karma != null ? Number(player.karma).toLocaleString() : '—') +
+              '</div></div>' +
+              '<div><span class="stat-label">First Login</span><div class="text-sm">' +
+              (player.firstLogin ? App.formatDate(player.firstLogin) : '—') +
+              '</div></div>' +
+              '<div><span class="stat-label">Last Login</span><div class="text-sm">' +
+              (player.lastLogin ? App.formatDate(player.lastLogin) : '—') +
+              '</div></div>' +
+              '<div><span class="stat-label">Guild</span><div class="text-sm">' +
+              App.escapeHtml(player.guildName || '—') +
+              '</div></div>' +
+              '<div><span class="stat-label">Guild Rank</span><div class="text-sm">' +
+              App.escapeHtml(player.guildRank || '—') +
+              '</div></div>' +
+              '</div>' +
+              '</div>'
+
+            // Stats section
+            if (player.stats) {
+              const s = player.stats
+
+              resultEl.innerHTML += '<div class="grid grid-cols-3 mt-md">'
+
+              // Bedwars
+              const bwFkdr = s.bedwars && s.bedwars.fkdr != null ? s.bedwars.fkdr.toFixed(2) : '—'
+              const bwStars = s.bedwars && s.bedwars.stars != null ? s.bedwars.stars : '—'
+              const bwWins = s.bedwars && s.bedwars.wins != null ? Number(s.bedwars.wins).toLocaleString() : '—'
+              resultEl.innerHTML +=
+                '<div class="card stat-card">' +
+                '<div class="card-header"><h2>Bedwars</h2></div>' +
+                '<div class="stat-value">' +
+                bwStars +
+                '</div>' +
+                '<div class="stat-label">Stars</div>' +
+                '<div class="flex-between mt-sm"><span class="stat-label">FKDR</span><span class="text-sm text-mono">' +
+                bwFkdr +
+                '</span></div>' +
+                '<div class="flex-between"><span class="stat-label">Wins</span><span class="text-sm text-mono">' +
+                bwWins +
+                '</span></div>' +
+                '</div>'
+
+              // Skywars
+              const swKdr = s.skywars && s.skywars.kdr != null ? s.skywars.kdr.toFixed(2) : '—'
+              const swLevel = s.skywars && s.skywars.level != null ? s.skywars.level : '—'
+              const swWins = s.skywars && s.skywars.wins != null ? Number(s.skywars.wins).toLocaleString() : '—'
+              resultEl.innerHTML +=
+                '<div class="card stat-card">' +
+                '<div class="card-header"><h2>Skywars</h2></div>' +
+                '<div class="stat-value">' +
+                swLevel +
+                '</div>' +
+                '<div class="stat-label">Level</div>' +
+                '<div class="flex-between mt-sm"><span class="stat-label">KDR</span><span class="text-sm text-mono">' +
+                swKdr +
+                '</span></div>' +
+                '<div class="flex-between"><span class="stat-label">Wins</span><span class="text-sm text-mono">' +
+                swWins +
+                '</span></div>' +
+                '</div>'
+
+              // Duels
+              const duelsDiv = s.duels && s.duels.division ? s.duels.division : '—'
+              const duelsWins = s.duels && s.duels.wins != null ? Number(s.duels.wins).toLocaleString() : '—'
+              const duelsKdr = s.duels && s.duels.kdr != null ? s.duels.kdr.toFixed(2) : '—'
+              resultEl.innerHTML +=
+                '<div class="card stat-card">' +
+                '<div class="card-header"><h2>Duels</h2></div>' +
+                '<div class="stat-value">' +
+                App.escapeHtml(duelsDiv) +
+                '</div>' +
+                '<div class="stat-label">Division</div>' +
+                '<div class="flex-between mt-sm"><span class="stat-label">KDR</span><span class="text-sm text-mono">' +
+                duelsKdr +
+                '</span></div>' +
+                '<div class="flex-between"><span class="stat-label">Wins</span><span class="text-sm text-mono">' +
+                duelsWins +
+                '</span></div>' +
+                '</div>'
+
+              resultEl.innerHTML += '</div>'
+            }
+          } catch (error) {
+            resultEl.innerHTML = ''
+            errorEl.innerHTML = '<div class="text-sm text-danger">' + App.escapeHtml(error.message) + '</div>'
+          }
+        }
+
+        function init() {
+          buildNav('player')
+          searchBtn.addEventListener('click', doSearch)
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doSearch()
+          })
+        }
+
+        const token = App.requireAuth()
+        if (token) init()
+        else globalThis.addEventListener('authsuccess', init, { once: true })
+      })()
+    </script>
+  </body>
+</html>

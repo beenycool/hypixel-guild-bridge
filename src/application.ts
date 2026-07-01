@@ -21,14 +21,15 @@ import type { ApplicationConfig, DatabaseConfig } from './application-config.js'
 import type { ApplicationEvents, InstanceIdentifier, MinecraftSendChatPriority } from './common/application-event.js'
 import { InstanceSignalType, InstanceType } from './common/application-event.js'
 import { BridgeResolver } from './common/bridge-resolver.js'
+import { CommandConfigManager } from './common/command-config-manager.js'
 import { ConnectableInstance, Status } from './common/connectable-instance.js'
 import PluginInstance from './common/plugin-instance.js'
 import UnexpectedErrorHandler from './common/unexpected-error-handler.js'
 import { Core } from './core/core'
 import { ApplicationLanguages, LanguageConfigurations } from './core/language-configurations'
 import type { MojangApi } from './core/users/mojang'
-import { CommandConfigManager } from './common/command-config-manager.js'
 import ApplicationIntegrity from './instance/application-integrity.js'
+import AutoLinker from './instance/auto-linker'
 import AutoRestart from './instance/auto-restart'
 import { CommandsInstance } from './instance/commands/commands-instance.js'
 import DiscordInstance from './instance/discord/discord-instance.js'
@@ -54,6 +55,7 @@ export type AllInstances =
   | MinecraftInstance
   | PluginInstance
   | ApplicationIntegrity
+  | AutoLinker
   | HypixelUpdates
   | SkyblockReminders
   | SpontaneousEvents
@@ -73,13 +75,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly hypixelApi: HypixelClient
   public readonly mojangApi: MojangApi
 
-  private _commandConfigManager: CommandConfigManager | undefined
+  private commandConfigManagerField: CommandConfigManager | undefined
 
   public get commandConfigManager(): CommandConfigManager {
-    if (!this._commandConfigManager) {
-      this._commandConfigManager = new CommandConfigManager(this)
-    }
-    return this._commandConfigManager
+    this.commandConfigManagerField ??= new CommandConfigManager(this)
+    return this.commandConfigManagerField
   }
 
   public get hypixelApiKey(): string {
@@ -176,6 +176,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly spontaneousEvents: SpontaneousEvents
   public readonly randomChatter: RandomChatter
   public readonly statMonitor: StatMonitor
+  private readonly autoLinker: AutoLinker
   private readonly autoRestart: AutoRestart
 
   public constructor(
@@ -231,6 +232,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.randomChatter = new RandomChatter(this)
     this.statMonitor = new StatMonitor(this)
     this.autoRestart = new AutoRestart(this)
+    this.autoLinker = new AutoLinker(this)
   }
 
   /** Optional Aurora API key used by some plugins */
@@ -511,6 +513,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       ...this.pluginsManager.getAllInstances(),
       this.core,
       this.applicationIntegrity,
+      this.autoLinker,
 
       this.discordInstance, // discord second to send any notification about connecting
 

@@ -5,7 +5,8 @@ import { InstanceType } from '../common/application-event'
 import { Instance } from '../common/instance'
 import Duration from '../utility/duration'
 import { setIntervalAsync } from '../utility/scheduling'
-import { runQotdFlow } from './discord/commands/qotd'
+
+import { runQotdFlow } from './qotd-flow'
 
 const QotdCommandName = 'qotd'
 
@@ -59,7 +60,7 @@ export class QotdScheduler extends Instance<InstanceType.Utility> {
       minute: 'numeric',
       day: 'numeric'
     }).formatToParts(now)
-    const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? NaN)
+    const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? Number.NaN)
     return { hour: get('hour'), minute: get('minute'), day: get('day') }
   }
 

@@ -7,51 +7,24 @@ import type {
   RESTPostAPIChatInputApplicationCommandsJSONBody
 } from 'discord.js'
 import { Collection, DiscordAPIError, escapeMarkdown, MessageFlags, REST, Routes } from 'discord.js'
-import type { Logger } from 'log4js'
 
-import type Application from '../../application.js'
 import { ChannelType, Color, InstanceType, Permission } from '../../common/application-event.js'
 import type { DiscordAutoCompleteContext, DiscordCommandContext, DiscordCommandHandler } from '../../common/commands.js'
 import { CommandScope, OptionToAddMinecraftInstances } from '../../common/commands.js'
-import type EventHelper from '../../common/event-helper.js'
 import SubInstance from '../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.js'
 import Duration from '../../utility/duration'
 import { setTimeoutAsync } from '../../utility/scheduling'
 
-import AboutCommand from './commands/about.js'
 import AcceptCommand from './commands/accept.js'
 import BlacklistCommand from './commands/blacklist.js'
-import ConnectivityCommand from './commands/connectivity.js'
-import CreateLeaderboardCommand from './commands/create-leaderboard.js'
-import DemoteCommand from './commands/demote.js'
+import DashboardCommand from './commands/dashboard.js'
 import DisconnectCommand from './commands/disconnect.js'
 import ExecuteCommand from './commands/execute.js'
-import GexpCheckCommand from './commands/gexp-check.js'
-import GuildTopCommand from './commands/guildtop.js'
-import HelpCommand from './commands/help.js'
-import InactivityCommand from './commands/inactivity.js'
 import InviteCommand from './commands/invite.js'
 import JoinCommand from './commands/join.js'
-import LeaderboardCommand from './commands/leaderboard.js'
-import LinkCommand from './commands/link.js'
-import ListLeaderboardCommand from './commands/list-leaderboard'
-import ListCommand from './commands/list.js'
-import LogCommand from './commands/log.js'
-import PingCommand from './commands/ping.js'
-import ProfanityCommand from './commands/profanity.js'
-import PromoteCommand from './commands/promote.js'
-import PunishmentsCommand from './commands/punishments.js'
-import QotdCommand from './commands/qotd.js'
+import RankCommand from './commands/rank.js'
 import ReconnectCommand from './commands/reconnect.js'
-import RequirementsCommand from './commands/requirements.js'
 import RestartCommand from './commands/restart.js'
-import SetrankCommand from './commands/setrank.js'
-import SkyblockCommand from './commands/skyblock.js'
-import StatsCommand from './commands/stats.js'
-import UnlinkCommand from './commands/unlink.js'
-import VerificationCommand from './commands/verification.js'
-import DashboardCommand from './commands/dashboard.js'
 import {
   getBridgeMinecraftInstanceNames,
   getConnectedBridgeMinecraftInstanceNames
@@ -108,39 +81,16 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
 
   private addDefaultCommands(): void {
     const toAdd = [
-      AboutCommand,
       AcceptCommand,
-      ConnectivityCommand,
-      CreateLeaderboardCommand,
-      DashboardCommand,
-      GexpCheckCommand,
-      GuildTopCommand,
-      DemoteCommand,
-      DisconnectCommand,
-      HelpCommand,
-      InviteCommand,
-      InactivityCommand,
-      JoinCommand,
-      LeaderboardCommand,
       BlacklistCommand,
-      LinkCommand,
-      ListCommand,
-      ListLeaderboardCommand,
-      LogCommand,
+      DashboardCommand,
+      DisconnectCommand,
       ExecuteCommand,
-      PingCommand,
-      ProfanityCommand,
-      PromoteCommand,
-      PunishmentsCommand,
-      QotdCommand,
+      InviteCommand,
+      JoinCommand,
+      RankCommand,
       ReconnectCommand,
-      RequirementsCommand,
-      SetrankCommand,
-      StatsCommand,
-      RestartCommand,
-      UnlinkCommand,
-      SkyblockCommand,
-      VerificationCommand
+      RestartCommand
     ]
 
     for (const command of toAdd) {

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guild — Rankup</title>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container">
+      <div class="page-header">
+        <h1 class="page-title">Guild Overview</h1>
+      </div>
+      <div id="guild-summary"></div>
+      <div class="card mb-md">
+        <div class="card-header">
+          <h2>Members</h2>
+          <input
+            type="text"
+            class="input"
+            style="max-width: 220px"
+            id="member-filter"
+            placeholder="Filter by name..."
+            autocomplete="off"
+          />
+        </div>
+        <div class="card-body" id="members-content">
+          <div class="loading"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+    </div>
+    <script src="js/common.js"></script>
+    <script>
+      'use strict'
+      ;(function () {
+        const summaryEl = document.querySelector('#guild-summary')
+        const membersContent = document.querySelector('#members-content')
+        const filterInput = document.querySelector('#member-filter')
+
+        let allMembers = []
+        let guildData = null
+
+        const navItems = [
+          { name: 'Overview', href: 'index.html', key: 'overview' },
+          { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
+          { name: 'History', href: 'rankup-history.html', key: 'history' },
+          { name: 'Guild', href: 'guild.html', key: 'guild' }
+        ]
+        const perm = App.getPermission()
+        if (perm === 'owner' || perm === 'admin') {
+          navItems.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
+        }
+
+        function buildNav(activeKey) {
+          const host = document.querySelector('#app-nav')
+          if (!host) return
+          let html = '<nav class="nav">'
+          html += '<a class="nav-brand" href="index.html">Rankup</a>'
+          html += '<div class="nav-items">'
+          for (const it of navItems) {
+            const cls = activeKey === it.key ? 'nav-item active' : 'nav-item'
+            html += '<a class="nav-link ' + cls + '" href="' + it.href + '">' + App.escapeHtml(it.name) + '</a>'
+          }
+          html += '</div>'
+          html +=
+            '<div class="nav-right"><button class="btn btn-secondary btn-sm" id="app-nav-disconnect">Disconnect</button></div>'
+          html += '</nav>'
+          host.innerHTML = html
+          const dc = host.querySelector('#app-nav-disconnect')
+          if (dc)
+            dc.addEventListener('click', () => {
+              App.clearToken()
+              globalThis.location.reload()
+            })
+        }
+
+        function renderSummary() {
+          if (!guildData) return
+          const g = guildData
+          const gexpFmt = g.weeklyGexp != null ? Number(g.weeklyGexp).toLocaleString() : '—'
+          summaryEl.innerHTML =
+            '' +
+            '<div class="grid grid-cols-4 mb-md">' +
+            '<div class="card stat-card"><div class="stat-value">' +
+            App.escapeHtml(g.name || '—') +
+            '</div><div class="stat-label">Guild Name</div></div>' +
+            '<div class="card stat-card"><div class="stat-value">' +
+            (g.level || '—') +
+            '</div><div class="stat-label">Level</div></div>' +
+            '<div class="card stat-card"><div class="stat-value">' +
+            (g.memberCount || allMembers.length || '—') +
+            '</div><div class="stat-label">Members</div></div>' +
+            '<div class="card stat-card"><div class="stat-value">' +
+            gexpFmt +
+            '</div><div class="stat-label">Weekly GEXP</div></div>' +
+            '</div>'
+        }
+
+        function renderMembers(filter) {
+          const q = (filter || '').trim().toLowerCase()
+          const filtered = q
+            ? allMembers.filter(function (m) {
+                return (m.name || '').toLowerCase().includes(q)
+              })
+            : allMembers
+
+          if (filtered.length === 0) {
+            membersContent.innerHTML =
+              '<div class="empty-state"><div class="empty-state-text">' +
+              (q ? 'No members match your filter.' : 'No members found.') +
+              '</div></div>'
+            return
+          }
+
+          let html =
+            '<div class="table-wrap"><table class="table">' +
+            '<thead><tr><th>Rank</th><th>Name</th><th>Status</th><th>Weekly GEXP</th><th>Joined</th></tr></thead>' +
+            '<tbody>'
+          for (const m of filtered) {
+            const onlineBadge = m.online
+              ? '<span class="badge badge-success">Online</span>'
+              : '<span class="badge badge-muted">Offline</span>'
+            const gexp = m.weeklyGexp != null ? Number(m.weeklyGexp).toLocaleString() : '—'
+            html +=
+              '<tr>' +
+              '<td class="text-mono">' +
+              App.escapeHtml(m.rank || '—') +
+              '</td>' +
+              '<td><span class="text-mono">' +
+              App.escapeHtml(m.name || '—') +
+              '</span></td>' +
+              '<td>' +
+              onlineBadge +
+              '</td>' +
+              '<td class="text-mono">' +
+              gexp +
+              '</td>' +
+              '<td class="text-xs text-secondary">' +
+              (m.joinedAt ? App.formatDate(m.joinedAt) : '—') +
+              '</td>' +
+              '</tr>'
+          }
+          html += '</tbody></table></div>'
+          html +=
+            '<div class="text-xs text-muted mt-sm">Showing ' +
+            filtered.length +
+            ' of ' +
+            allMembers.length +
+            ' members</div>'
+          membersContent.innerHTML = html
+        }
+
+        async function loadData() {
+          membersContent.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+          try {
+            const [overviewRes, membersRes] = await Promise.all([
+              App.apiGet('/api/guild/overview'),
+              App.apiGet('/api/guild/members')
+            ])
+            guildData = overviewRes && overviewRes.guild ? overviewRes.guild : overviewRes || {}
+            allMembers = membersRes && Array.isArray(membersRes.members) ? membersRes.members : []
+            renderSummary()
+            renderMembers(filterInput.value)
+          } catch (error) {
+            membersContent.innerHTML =
+              '<div class="empty-state"><div class="empty-state-text text-danger">Failed to load guild data: ' +
+              App.escapeHtml(error.message) +
+              '</div></div>'
+          }
+        }
+
+        function init() {
+          buildNav('guild')
+          filterInput.addEventListener('input', function () {
+            renderMembers(this.value)
+          })
+          loadData()
+        }
+
+        const token = App.requireAuth()
+        if (token) init()
+        else globalThis.addEventListener('authsuccess', init, { once: true })
+      })()
+    </script>
+  </body>
+</html>

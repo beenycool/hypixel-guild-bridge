@@ -246,6 +246,10 @@ export class Core extends Instance<InstanceType.Core> {
     return this.punishments.all()
   }
 
+  public forgivePunishment(id: number): boolean {
+    return this.punishments.removeById(id)
+  }
+
   public async awaitReady(): Promise<void> {
     await this.ready
   }

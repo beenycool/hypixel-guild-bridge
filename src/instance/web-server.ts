@@ -1,7 +1,7 @@
 import { existsSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import http from 'node:http'
-import { extname, join, normalize, relative, resolve, sep } from 'node:path'
+import path from 'node:path'
 
 import { HttpStatusCode } from 'axios'
 import type { RawData } from 'ws'
@@ -15,10 +15,17 @@ import { InstanceType, MinecraftSendChatPriority, Permission } from '../common/a
 import { Instance } from '../common/instance.js'
 
 import { buildTokenSet, verifyToken } from './web/auth.js'
+import { GuildApiHandler } from './web/guild-api.js'
+import { InactivityApiHandler } from './web/inactivity-api.js'
+import { InstanceApiHandler } from './web/instance-api.js'
+import { PlayerApiHandler } from './web/player-api.js'
+import { PunishmentsApiHandler } from './web/punishments-api.js'
+import { QotdApiHandler } from './web/qotd-api.js'
 import { RankupApiHandler } from './web/rankup-api.js'
 import { RankupWsEvents } from './web/rankup-ws-events.js'
 import { SettingsApiHandler } from './web/settings-api.js'
 import { SettingsWsEvents } from './web/settings-ws.js'
+import { StatusApiHandler } from './web/status-api.js'
 
 interface WebMessagePayload {
   type?: string
@@ -71,7 +78,7 @@ interface DispatchResult {
   }
 }
 
-const STATIC_MIME_TYPES = new Map<string, string>([
+const MimeTypes = new Map<string, string>([
   ['.html', 'text/html; charset=utf-8'],
   ['.css', 'text/css; charset=utf-8'],
   ['.js', 'application/javascript; charset=utf-8'],
@@ -94,10 +101,17 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly wsServer: WebSocketServer
   private readonly connections = new Set<WebSocket>()
   private readonly config: WebConfig
+  private readonly guildApi: GuildApiHandler
+  private readonly inactivityApi: InactivityApiHandler
+  private readonly instanceApi: InstanceApiHandler
+  private readonly playerApi: PlayerApiHandler
+  private readonly punishmentsApi: PunishmentsApiHandler
+  private readonly qotdApi: QotdApiHandler
   private readonly rankupApi: RankupApiHandler
   private readonly rankupWs: RankupWsEvents
   private readonly settingsApi: SettingsApiHandler
   private readonly settingsWs: SettingsWsEvents
+  private readonly statusApi: StatusApiHandler
   private readonly staticRoot: string
   private knownPublicUrl: string | undefined
 
@@ -144,11 +158,18 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       this.broadcastChat(event)
     })
 
+    this.guildApi = new GuildApiHandler(application, this.logger)
+    this.inactivityApi = new InactivityApiHandler(application, this.logger)
+    this.instanceApi = new InstanceApiHandler(application, this.logger)
+    this.playerApi = new PlayerApiHandler(application, this.logger)
+    this.punishmentsApi = new PunishmentsApiHandler(application, this.logger)
+    this.qotdApi = new QotdApiHandler(application, this.logger)
     this.rankupApi = new RankupApiHandler(application, this.logger)
     this.rankupWs = new RankupWsEvents(application, this.logger)
     this.settingsApi = new SettingsApiHandler(application, this.logger)
     this.settingsWs = new SettingsWsEvents(application, this.logger)
-    this.staticRoot = resolve(process.cwd(), 'web/public')
+    this.statusApi = new StatusApiHandler(application, this.logger)
+    this.staticRoot = path.resolve(process.cwd(), 'web/public')
 
     this.rankupWs.start()
     this.settingsWs.start()
@@ -206,6 +227,41 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       }
 
       await this.handleMessageRequest(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/status')) {
+      await this.statusApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/player')) {
+      await this.playerApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/guild')) {
+      await this.guildApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/punishments')) {
+      await this.punishmentsApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/inactivity')) {
+      await this.inactivityApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/qotd')) {
+      await this.qotdApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/instance')) {
+      await this.instanceApi.handle(request, response)
       return
     }
 
@@ -273,8 +329,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     const relativePath = route === '/' ? 'index.html' : route.replace(/^\/+/, '')
     if (relativePath.includes('\0')) return false
 
-    const filePath = normalize(join(this.staticRoot, relativePath))
-    if (relative(this.staticRoot, filePath).startsWith('..')) {
+    const filePath = path.normalize(path.join(this.staticRoot, relativePath))
+    if (path.relative(this.staticRoot, filePath).startsWith('..')) {
       return false
     }
 
@@ -282,16 +338,15 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     const stats = statSync(filePath)
     if (!stats.isFile()) return false
 
-    const extension = extname(filePath).toLowerCase()
-    const contentType = STATIC_MIME_TYPES.get(extension) ?? 'application/octet-stream'
+    const extension = path.extname(filePath).toLowerCase()
+    const contentType = MimeTypes.get(extension) ?? 'application/octet-stream'
     const cacheControl = extension === '.html' ? 'no-cache' : 'public, max-age=3600'
 
     try {
       const content = await readFile(filePath)
-      response.writeHead(HttpStatusCode.Ok, {
-        'Content-Type': contentType,
-        'Cache-Control': cacheControl
-      })
+      response.writeHead(HttpStatusCode.Ok)
+      response.setHeader('Content-Type', contentType)
+      response.setHeader('Cache-Control', cacheControl)
       response.end(content)
       return true
     } catch (error: unknown) {
@@ -301,8 +356,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private recordPublicUrl(request: http.IncomingMessage): void {
-    const host =
-      (request.headers['x-forwarded-host'] as string | undefined) ?? (request.headers.host as string | undefined)
+    const host = (request.headers['x-forwarded-host'] as string | undefined) ?? request.headers.host
     if (!host) return
 
     const proto = (request.headers['x-forwarded-proto'] as string | undefined) ?? 'https'
@@ -332,11 +386,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
 
-      payload = JSON.parse(body) as WebMessagePayload | undefined
-      if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+      const parsed: unknown = JSON.parse(body)
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
         this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid payload format' })
         return
       }
+      payload = parsed as WebMessagePayload
     } catch (error: unknown) {
       this.logger.warn('Invalid /message payload', error)
       this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON payload' })
@@ -450,11 +505,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     let payload: WebMessagePayload
     try {
       const text = WebServer.rawDataToString(data)
-      payload = JSON.parse(text) as WebMessagePayload
-      if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+      const parsed: unknown = JSON.parse(text)
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
         this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid payload' })
         return
       }
+      payload = parsed as WebMessagePayload
     } catch {
       this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid JSON payload' })
       return
@@ -565,7 +621,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private sendJson(response: http.ServerResponse, status: number, body: Record<string, unknown>): void {
-    response.writeHead(status, { 'Content-Type': 'application/json' })
+    response.writeHead(status)
+    response.setHeader('Content-Type', 'application/json')
     response.end(JSON.stringify(body))
   }
 

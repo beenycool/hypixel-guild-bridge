@@ -220,6 +220,19 @@ export default class Punishments {
       return rest
     })
   }
+
+  public removeById(id: number): boolean {
+    const index = this.entries.findIndex((entry) => entry.id === id)
+    if (index === -1) return false
+
+    this.entries.splice(index, 1)
+
+    this.databaseManager.enqueueWrite('removing punishment by id', async (database) => {
+      await database.query('DELETE FROM "punishments" WHERE "id" = $1', [id])
+    })
+
+    return true
+  }
 }
 
 function identifierKey(identifier: UserIdentifier): string {

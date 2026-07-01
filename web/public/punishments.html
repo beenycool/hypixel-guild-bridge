@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Punishments — Rankup</title>
+    <link rel="stylesheet" href="css/app.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container">
+      <div class="page-header">
+        <h1 class="page-title">Punishments</h1>
+      </div>
+      <div id="punishment-summary"></div>
+      <div class="card">
+        <div class="card-header">
+          <h2>Active Punishments</h2>
+          <button class="btn btn-secondary btn-sm" id="refresh-punishments-btn">Refresh</button>
+        </div>
+        <div class="card-body" id="punishment-list">
+          <div class="loading"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+    </div>
+    <script src="js/common.js"></script>
+    <script>
+      'use strict'
+      ;(function () {
+        const summaryEl = document.querySelector('#punishment-summary')
+        const listEl = document.querySelector('#punishment-list')
+        const refreshBtn = document.querySelector('#refresh-punishments-btn')
+        let punishments = []
+
+        const navItems = [
+          { name: 'Overview', href: 'index.html', key: 'overview' },
+          { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
+          { name: 'History', href: 'rankup-history.html', key: 'history' },
+          { name: 'Punishments', href: 'punishments.html', key: 'punishments' }
+        ]
+        const perm = App.getPermission()
+        if (perm === 'owner' || perm === 'admin') {
+          navItems.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
+        }
+
+        function buildNav(activeKey) {
+          const host = document.querySelector('#app-nav')
+          if (!host) return
+          let html = '<nav class="nav">'
+          html += '<a class="nav-brand" href="index.html">Rankup</a>'
+          html += '<div class="nav-items">'
+          for (const it of navItems) {
+            const cls = activeKey === it.key ? 'nav-item active' : 'nav-item'
+            html += '<a class="nav-link ' + cls + '" href="' + it.href + '">' + App.escapeHtml(it.name) + '</a>'
+          }
+          html += '</div>'
+          html +=
+            '<div class="nav-right"><button class="btn btn-secondary btn-sm" id="app-nav-disconnect">Disconnect</button></div>'
+          html += '</nav>'
+          host.innerHTML = html
+          const dc = host.querySelector('#app-nav-disconnect')
+          if (dc)
+            dc.addEventListener('click', () => {
+              App.clearToken()
+              globalThis.location.reload()
+            })
+        }
+
+        function renderSummary() {
+          const active = punishments.filter(function (p) {
+            return !p.expired && p.active !== false
+          }).length
+          const banned = punishments.filter(function (p) {
+            return p.type === 'ban' && !p.expired
+          }).length
+          const muted = punishments.filter(function (p) {
+            return p.type === 'mute' && !p.expired
+          }).length
+          summaryEl.innerHTML =
+            '' +
+            '<div class="grid grid-cols-4 mb-md">' +
+            '<div class="card stat-card"><div class="stat-value">' +
+            punishments.length +
+            '</div><div class="stat-label">Total</div></div>' +
+            '<div class="card stat-card"><div class="stat-value text-success">' +
+            active +
+            '</div><div class="stat-label">Active</div></div>' +
+            '<div class="card stat-card"><div class="stat-value text-danger">' +
+            banned +
+            '</div><div class="stat-label">Banned</div></div>' +
+            '<div class="card stat-card"><div class="stat-value text-gold">' +
+            muted +
+            '</div><div class="stat-label">Muted</div></div>' +
+            '</div>'
+        }
+
+        function renderList() {
+          if (punishments.length === 0) {
+            listEl.innerHTML =
+              '<div class="empty-state"><div class="empty-state-icon">✓</div><div class="empty-state-text">No punishments on record.</div></div>'
+            return
+          }
+          var html =
+            '<div class="table-wrap"><table class="table">' +
+            '<thead><tr><th>Player</th><th>Type</th><th>Reason</th><th>Issued</th><th>Expires</th><th>Status</th><th></th></tr></thead>' +
+            '<tbody>'
+          for (var i = 0; i < punishments.length; i++) {
+            var p = punishments[i]
+            var expired = p.expired || p.active === false
+            var typeBadge =
+              p.type === 'ban'
+                ? '<span class="badge badge-danger">Ban</span>'
+                : p.type === 'mute'
+                  ? '<span class="badge badge-warning">Mute</span>'
+                  : '<span class="badge badge-muted">' + App.escapeHtml(p.type || '—') + '</span>'
+            var statusBadge = expired
+              ? '<span class="badge badge-muted">Expired</span>'
+              : '<span class="badge badge-success">Active</span>'
+            var forgiveBtn = expired
+              ? ''
+              : '<button class="btn btn-success btn-sm" data-forgive="' + i + '">Forgive</button>'
+            html +=
+              '<tr>' +
+              '<td class="text-mono">' +
+              App.escapeHtml(p.name || p.username || '—') +
+              '</td>' +
+              '<td>' +
+              typeBadge +
+              '</td>' +
+              '<td class="text-sm">' +
+              App.escapeHtml(p.reason || '—') +
+              '</td>' +
+              '<td class="text-xs text-secondary">' +
+              (p.createdAt ? App.formatDate(p.createdAt) : '—') +
+              '</td>' +
+              '<td class="text-xs text-secondary">' +
+              (p.expiresAt ? App.formatDate(p.expiresAt) : expired ? '—' : 'Never') +
+              '</td>' +
+              '<td>' +
+              statusBadge +
+              '</td>' +
+              '<td>' +
+              forgiveBtn +
+              '</td>' +
+              '</tr>'
+          }
+          html += '</tbody></table></div>'
+          listEl.innerHTML = html
+
+          // Wire forgive buttons
+          listEl.querySelectorAll('[data-forgive]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var idx = parseInt(btn.dataset.forgive)
+              doForgive(idx)
+            })
+          })
+        }
+
+        async function doForgive(idx) {
+          var p = punishments[idx]
+          if (!p || !p.id) return
+          if (!App.confirmAction('Forgive this punishment for ' + (p.name || p.username) + '?')) return
+          try {
+            await App.apiPost('/api/punishments/' + p.id + '/forgive')
+            App.showToast('Punishment forgiven', 'success')
+            loadPunishments()
+          } catch (error) {
+            App.showToast('Failed to forgive: ' + error.message, 'error')
+          }
+        }
+
+        async function loadPunishments() {
+          listEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+          try {
+            var res = await App.apiGet('/api/punishments')
+            punishments = res && Array.isArray(res.punishments) ? res.punishments : []
+            renderSummary()
+            renderList()
+          } catch (error) {
+            listEl.innerHTML =
+              '<div class="empty-state"><div class="empty-state-text text-danger">Failed to load punishments: ' +
+              App.escapeHtml(error.message) +
+              '</div></div>'
+          }
+        }
+
+        function init() {
+          buildNav('punishments')
+          refreshBtn.addEventListener('click', loadPunishments)
+          loadPunishments()
+        }
+
+        const token = App.requireAuth()
+        if (token) init()
+        else globalThis.addEventListener('authsuccess', init, { once: true })
+      })()
+    </script>
+  </body>
+</html>
