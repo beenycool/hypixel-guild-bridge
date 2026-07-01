@@ -1357,3 +1357,86 @@ body {
   box-shadow: 0 0 6px var(--status-warning);
   animation: pulse 1.2s ease-in-out infinite;
 }
+
+/* ===== Permission Overview ===== */
+.permission-overview {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.perm-tier {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.perm-tier:last-child {
+  border-bottom: none;
+}
+
+.perm-tier-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+.perm-tier-header:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.perm-tier-arrow {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+  flex-shrink: 0;
+}
+.perm-tier-arrow.open {
+  transform: rotate(90deg);
+}
+
+.perm-tier-note {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.perm-tier-body {
+  padding: 0 14px 12px 38px;
+}
+
+.perm-list-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 8px;
+  margin-bottom: 3px;
+}
+
+.perm-grants-title {
+  color: var(--status-success);
+}
+.perm-missing-title {
+  color: var(--status-danger);
+}
+
+.perm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.perm-item {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  padding: 1px 0;
+}
+.perm-grant {
+  color: var(--status-success);
+}
+.perm-missing {
+  color: var(--text-muted);
+}

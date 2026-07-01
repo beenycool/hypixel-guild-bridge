@@ -103,6 +103,74 @@
       description: 'Discord roles that gate access to bridge commands.',
       fields: [
         {
+          t: 'permissionOverview',
+          tiers: [
+            {
+              name: 'Helper',
+              badge: 'info',
+              note: 'Lowest privilege. Includes all Anyone commands.',
+              grants: [
+                'Manage user links — /verification, /accept, /blacklist',
+                'View guild activity logs — /log',
+                'Invite / join guild — /invite, /join',
+                'Punishments — mute, check, list',
+                'QOTD management — /qotd',
+                'GEXP threshold checking — /gexp-check',
+                'Connect / disconnect Minecraft — /disconnect, /reconnect',
+                'Toggle chat commands — !toggle'
+              ],
+              missing: [
+                'Dashboard & profanity mgmt (Officer) — /dashboard, /profanity',
+                'Cross-bridge chat moderation (Officer) — !qmute, !qunmute, !qmuted',
+                'Persistent leaderboard (Officer) — /create-leaderboard',
+                'Destructive punishments (Owner) — ban, kick, forgive',
+                'Rank management (Owner) — /demote, /promote, /setrank',
+                'Raw command execution (Owner) — /execute',
+                'Bridge restart & raw in-game exec (Admin) — /restart, !execute'
+              ]
+            },
+            {
+              name: 'Officer',
+              badge: 'cyan',
+              note: 'Includes all Helper commands.',
+              grants: [
+                'Web dashboard — /dashboard',
+                'Profanity filter management — /profanity',
+                'Persistent leaderboard — /create-leaderboard',
+                'Cross-bridge chat moderation — !qmute, !qunmute, !qmuted'
+              ],
+              missing: [
+                'Destructive punishments (Owner) — ban, kick, forgive',
+                'Rank management (Owner) — /demote, /promote, /setrank',
+                'Raw command execution (Owner) — /execute',
+                'Bridge restart & raw in-game exec (Admin) — /restart, !execute'
+              ]
+            },
+            {
+              name: 'Owner',
+              badge: 'warning',
+              note: 'Includes all Officer commands.',
+              grants: [
+                'Destructive punishments — ban, kick, forgive',
+                'Rank management — /demote, /promote, /setrank',
+                'Raw command execution — /execute'
+              ],
+              missing: ['Bridge restart & raw in-game exec (Admin only) — /restart, !execute']
+            },
+            {
+              name: 'Admin',
+              badge: 'danger',
+              note: 'Service administrator. Set in config.yaml.',
+              grants: [
+                'Bridge restart — /restart',
+                'Raw in-game command execution — !execute',
+                'Full command manager — rename, enable/disable any command'
+              ],
+              missing: []
+            }
+          ]
+        },
+        {
           id: 'helperRoleIds',
           t: 'tag',
           label: 'Helper Roles',
@@ -683,11 +751,45 @@
     </div>`
   }
 
+  function renderPermissionOverview(field) {
+    let html = ''
+    for (const tier of field.tiers) {
+      const grantsHtml = tier.grants.map((g) => `<div class="perm-item perm-grant">+ ${esc(g)}</div>`).join('')
+      const missingHtml = tier.missing.map((m) => `<div class="perm-item perm-missing">- ${esc(m)}</div>`).join('')
+      html += `<div class="perm-tier">
+      <div class="perm-tier-header" data-perm-toggle="${esc(tier.name)}">
+        <span class="perm-tier-arrow">▶</span>
+        <span class="badge badge-${tier.badge}">${esc(tier.name)}</span>
+        <span class="perm-tier-note">${esc(tier.note)}</span>
+      </div>
+      <div class="perm-tier-body hidden" data-perm-body="${esc(tier.name)}">
+        ${
+          grantsHtml
+            ? `<div class="perm-list-title perm-grants-title">Grants access to:</div>
+        <div class="perm-list">${grantsHtml}</div>`
+            : ''
+        }
+        ${
+          missingHtml
+            ? `<div class="perm-list-title perm-missing-title">Does NOT grant:</div>
+        <div class="perm-list">${missingHtml}</div>`
+            : ''
+        }
+      </div>
+    </div>`
+    }
+    return `<div class="permission-overview">${html}</div>`
+  }
+
   function renderCategoryPanel(cat) {
     const data = categoryData(cat.key)
     let bodyHTML = ''
 
     for (const f of cat.fields) {
+      if (f.t === 'permissionOverview') {
+        bodyHTML += renderPermissionOverview(f)
+        continue
+      }
       if (f.t === 'section') {
         bodyHTML += renderSection(f, data)
         continue
@@ -753,6 +855,7 @@
 
     function walk(fields) {
       for (const f of fields || []) {
+        if (f.t === 'permissionOverview') continue
         if (f.t === 'section') {
           walk(f.children)
           continue
@@ -916,6 +1019,7 @@
 
     function walk(fields, target) {
       for (const f of fields || []) {
+        if (f.t === 'permissionOverview') continue
         if (f.t === 'section') {
           walk(f.children, target)
           continue
@@ -947,6 +1051,7 @@
     const subset = {}
     function walk(fields) {
       for (const f of fields || []) {
+        if (f.t === 'permissionOverview') continue
         if (f.t === 'section') {
           walk(f.children)
           continue
@@ -1194,6 +1299,17 @@
       }
       if (e.target.closest('#discard-btn')) {
         discardCategory()
+        return
+      }
+      const toggle = e.target.closest('[data-perm-toggle]')
+      if (toggle) {
+        const name = toggle.dataset.permToggle
+        const body = document.querySelector(`[data-perm-body="${cssEscape(name)}"]`)
+        const arrow = toggle.querySelector('.perm-tier-arrow')
+        if (body) {
+          body.classList.toggle('hidden')
+          if (arrow) arrow.classList.toggle('open')
+        }
         return
       }
     })
