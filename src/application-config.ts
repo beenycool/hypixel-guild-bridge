@@ -29,8 +29,6 @@ export interface WebConfig {
   enabled: boolean
   port: number
   token: string
-  helperToken?: string
-  ownerToken?: string
   signingSecret?: string
   minecraftInstance?: string
 }

@@ -126,7 +126,7 @@ export class SettingsApiHandler {
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
     const webConfig = this.application.getWebConfig()
-    if (!webConfig || !webConfig.token) return null
+    if (!webConfig || !webConfig.signingSecret) return null
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)

@@ -41,12 +41,12 @@ export default {
     }
 
     const webConfig = context.application.getWebConfig()
-    if (!webConfig || !webConfig.token) {
+    if (!webConfig || !webConfig.signingSecret) {
       await interaction.reply({ content: 'Web server is not configured.', ephemeral: true })
       return
     }
     const base = await getBaseUrl(context)
-    const signingSecret = webConfig.signingSecret ?? webConfig.token
+    const signingSecret = webConfig.signingSecret
     const signedToken = signToken(
       {
         sub: userId,
