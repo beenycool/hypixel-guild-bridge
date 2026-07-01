@@ -283,21 +283,42 @@
 
     const permission = getPermission()
     const brand = 'Rankup'
-    const items = [
-      { name: 'Overview', href: 'index.html', key: 'overview' },
-      { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
-      { name: 'History', href: 'rankup-history.html', key: 'history' }
+
+    const navSections = [
+      {
+        label: 'Main',
+        items: [
+          { name: 'Overview', href: 'index.html', key: 'overview' },
+          { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
+          { name: 'History', href: 'rankup-history.html', key: 'history' },
+          { name: 'Leaderboard', href: 'leaderboard.html', key: 'leaderboard' }
+        ]
+      },
+      {
+        label: 'Guild',
+        items: [
+          { name: 'Guild', href: 'guild.html', key: 'guild' },
+          { name: 'Player', href: 'player.html', key: 'player' },
+          { name: 'Punishments', href: 'punishments.html', key: 'punishments' },
+          { name: 'Inactivity', href: 'inactivity.html', key: 'inactivity' }
+        ]
+      },
+      { label: 'System', items: [{ name: 'Status', href: 'status.html', key: 'status' }] }
     ]
     if (permission === 'owner' || permission === 'admin') {
-      items.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
+      navSections[2].items.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
     }
 
     let navHTML = `<nav class="nav">`
     navHTML += `<a class="nav-brand" href="index.html">${escapeHtml(brand)}</a>`
+    navHTML += `<button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">☰</button>`
     navHTML += `<div class="nav-items">`
-    for (const it of items) {
-      const cls = activePage === it.key ? 'nav-item active' : 'nav-item'
-      navHTML += `<a class="nav-link ${cls}" href="${it.href}">${escapeHtml(it.name)}</a>`
+    for (const section of navSections) {
+      navHTML += `<div class="nav-section-label">${escapeHtml(section.label)}</div>`
+      for (const it of section.items) {
+        const cls = activePage === it.key ? 'nav-item active' : 'nav-item'
+        navHTML += `<a class="nav-link ${cls}" href="${it.href}">${escapeHtml(it.name)}</a>`
+      }
     }
     navHTML += `</div>`
     navHTML += `<div class="nav-right"><button class="btn btn-secondary btn-sm" id="app-nav-disconnect">Disconnect</button></div>`
@@ -310,6 +331,19 @@
       button.addEventListener('click', () => {
         clearToken()
         globalThis.location.reload()
+      })
+    }
+
+    const toggle = navHost.querySelector('#nav-toggle')
+    const itemsContainer = navHost.querySelector('.nav-items')
+    if (toggle && itemsContainer) {
+      toggle.addEventListener('click', () => {
+        itemsContainer.classList.toggle('open')
+      })
+      document.addEventListener('click', (e) => {
+        if (!navHost.contains(e.target)) {
+          itemsContainer.classList.remove('open')
+        }
       })
     }
   }

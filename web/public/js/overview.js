@@ -81,6 +81,7 @@
   const renderBridgeCards = () => {
     if (bridges.length === 0) {
       setEmpty(bridgeCardsElement, 'No bridges configured')
+      document.querySelector('#stat-bridges').textContent = 'No bridges configured'
       return
     }
     const grid = document.createElement('div')
@@ -92,10 +93,31 @@
     bridgeCardsElement.append(grid)
   }
 
+  const renderSummaryStats = (bridges) => {
+    const totalBridges = bridges.length
+    const totalPending = bridges.reduce((sum, b) => sum + (b.pendingCount || 0), 0)
+    const timestamps = bridges.map((b) => b.lastCheckAt).filter(Boolean)
+    const latest = timestamps.length > 0 ? new Date(Math.max(...timestamps.map((t) => new Date(t).getTime()))) : null
+    const hasEnabled = bridges.some((b) => b.enabled)
+
+    document.querySelector('#stat-bridges').textContent = totalBridges
+    document.querySelector('#stat-pending').textContent = totalPending
+    document.querySelector('#stat-last-check').textContent = latest ? App.formatRelativeTime(latest.toISOString()) : '—'
+    const statusEl = document.querySelector('#stat-status')
+    if (hasEnabled) {
+      statusEl.textContent = 'Live'
+      statusEl.className = 'stat-value text-success'
+    } else {
+      statusEl.textContent = 'Idle'
+      statusEl.className = 'stat-value'
+    }
+  }
+
   const loadBridgeCards = async () => {
     try {
       const res = await App.apiGet('/api/rankup/bridges')
       bridges = res && Array.isArray(res.bridges) ? res.bridges : []
+      renderSummaryStats(bridges)
       renderBridgeCards()
     } catch (error) {
       setEmpty(bridgeCardsElement, `Failed to load bridges: ${error.message}`)

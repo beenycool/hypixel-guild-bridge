@@ -65,40 +65,6 @@
         const submitResult = document.querySelector('#inact-submit-result')
         const pendingEl = document.querySelector('#pending-requests')
 
-        const navItems = [
-          { name: 'Overview', href: 'index.html', key: 'overview' },
-          { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
-          { name: 'History', href: 'rankup-history.html', key: 'history' },
-          { name: 'Inactivity', href: 'inactivity.html', key: 'inactivity' }
-        ]
-        const perm = App.getPermission()
-        if (perm === 'owner' || perm === 'admin') {
-          navItems.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
-        }
-
-        function buildNav(activeKey) {
-          const host = document.querySelector('#app-nav')
-          if (!host) return
-          let html = '<nav class="nav">'
-          html += '<a class="nav-brand" href="index.html">Rankup</a>'
-          html += '<div class="nav-items">'
-          for (const it of navItems) {
-            const cls = activeKey === it.key ? 'nav-item active' : 'nav-item'
-            html += '<a class="nav-link ' + cls + '" href="' + it.href + '">' + App.escapeHtml(it.name) + '</a>'
-          }
-          html += '</div>'
-          html +=
-            '<div class="nav-right"><button class="btn btn-secondary btn-sm" id="app-nav-disconnect">Disconnect</button></div>'
-          html += '</nav>'
-          host.innerHTML = html
-          const dc = host.querySelector('#app-nav-disconnect')
-          if (dc)
-            dc.addEventListener('click', () => {
-              App.clearToken()
-              globalThis.location.reload()
-            })
-        }
-
         function getDurationDays() {
           var val = durationSelect.value
           if (val === 'custom') return parseInt(customDays.value) || 1
@@ -245,7 +211,7 @@
         }
 
         function init() {
-          buildNav('inactivity')
+          App.injectNav('inactivity')
 
           durationSelect.addEventListener('change', function () {
             customGroup.classList.toggle('hidden', this.value !== 'custom')
