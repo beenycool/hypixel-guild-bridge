@@ -36,6 +36,7 @@ import DarkAuction from './triggers/darkauction.js'
 import DevelopmentExcuse from './triggers/devexcuse.js'
 import Discord from './triggers/discord'
 import Dojo from './triggers/dojo.js'
+import Bow from './triggers/bow.js'
 import DuelsBridge from './triggers/duels-bridge.js'
 import Duels from './triggers/duels.js'
 import Eggs from './triggers/eggs'
@@ -122,6 +123,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new AuctionHouse(),
       new Bits(),
       new Bedwars(),
+      new Bow(),
       new Duels(),
       new DuelsBridge(),
       new Bestiary(),
