@@ -25,9 +25,16 @@ await describe('web server /health', async () => {
         /* noop */
       },
       getInstancesNames: () => [],
-      i18n: { t: () => '' }
+      i18n: { t: () => '' },
+      core: {
+        databaseManager: {
+          execute: async () => {
+            /* noop */
+          }
+        }
+      }
     } as unknown as Application
-    const server = new WebServer(app, { port: 0, token: 'test', enabled: true })
+    const server = new WebServer(app, { port: 0, token: undefined, enabled: true })
 
     await new Promise<void>((resolve) => {
       const httpServer = (server as unknown as { httpServer: http.Server }).httpServer
@@ -52,10 +59,14 @@ await describe('web server /health', async () => {
         .on('error', reject)
     })
 
-    const json = JSON.parse(body) as { status: string; uptime: number; version: string }
-    assert.strictEqual(json.status, 'ok')
-    assert.strictEqual(typeof json.uptime, 'number')
-    assert.strictEqual(json.version, PackageJson.version)
-    ;(server as unknown as { httpServer: http.Server }).httpServer.close()
+    try {
+      const json = JSON.parse(body) as { success: boolean; data: { status: string; uptime: number; version: string } }
+      assert.strictEqual(json.success, true)
+      assert.strictEqual(json.data.status, 'ok')
+      assert.strictEqual(typeof json.data.uptime, 'number')
+      assert.strictEqual(json.data.version, PackageJson.version)
+    } finally {
+      ;(server as unknown as { httpServer: http.Server }).httpServer.close()
+    }
   })
 })

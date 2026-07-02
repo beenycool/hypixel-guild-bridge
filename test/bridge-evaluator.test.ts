@@ -25,6 +25,9 @@ await describe('BridgeEvaluator', async () => {
   }
 
   const baseLogger = {
+    info: () => {
+      /* noop */
+    },
     error: () => {
       /* noop */
     },
@@ -33,29 +36,41 @@ await describe('BridgeEvaluator', async () => {
     }
   }
 
+  function createFakeApplication(members: any[]) {
+    return {
+      hypixelApi: {
+        getGuild: async () => ({
+          ...baseGuild,
+          members
+        })
+      },
+      minecraftManager: {
+        getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
+      },
+      core: {
+        databaseManager: {
+          queryRows: async () => []
+        },
+        inactivity: {
+          getActiveByUuid: () => undefined
+        }
+      }
+    } as any
+  }
+
   await it('dispatches promotion when member meets promotion rules', async () => {
     const dispatchCalls: unknown[][] = []
 
     const evaluator = new BridgeEvaluator(
-      {
-        hypixelApi: {
-          getGuild: async () => ({
-            ...baseGuild,
-            members: [
-              {
-                uuid: 'uuid-promote',
-                rank: 'Member',
-                joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                weeklyExperience: 50_000,
-                expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
-              }
-            ]
-          })
-        },
-        minecraftManager: {
-          getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
+      createFakeApplication([
+        {
+          uuid: 'uuid-promote',
+          rank: 'Member',
+          joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          weeklyExperience: 50_000,
+          expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
-      } as any,
+      ]),
       {
         ...baseBridgeConfig,
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }]
@@ -92,24 +107,14 @@ await describe('BridgeEvaluator', async () => {
     const dispatchCalls: unknown[][] = []
 
     const evaluator = new BridgeEvaluator(
-      {
-        hypixelApi: {
-          getGuild: async () => ({
-            ...baseGuild,
-            members: [
-              {
-                uuid: 'uuid-demote',
-                rank: 'Officer',
-                joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 500, totalExp: 500 }]
-              }
-            ]
-          })
-        },
-        minecraftManager: {
-          getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
+      createFakeApplication([
+        {
+          uuid: 'uuid-demote',
+          rank: 'Officer',
+          joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 500, totalExp: 500 }]
         }
-      } as any,
+      ]),
       {
         ...baseBridgeConfig,
         getRankupDemotionRules: () => [
@@ -149,24 +154,14 @@ await describe('BridgeEvaluator', async () => {
     const dispatchCalls: unknown[][] = []
 
     const evaluator = new BridgeEvaluator(
-      {
-        hypixelApi: {
-          getGuild: async () => ({
-            ...baseGuild,
-            members: [
-              {
-                uuid: 'uuid-excluded',
-                rank: 'Member',
-                joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
-              }
-            ]
-          })
-        },
-        minecraftManager: {
-          getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
+      createFakeApplication([
+        {
+          uuid: 'uuid-excluded',
+          rank: 'Member',
+          joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
-      } as any,
+      ]),
       {
         ...baseBridgeConfig,
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }],
@@ -204,24 +199,14 @@ await describe('BridgeEvaluator', async () => {
     const dispatchCalls: unknown[][] = []
 
     const evaluator = new BridgeEvaluator(
-      {
-        hypixelApi: {
-          getGuild: async () => ({
-            ...baseGuild,
-            members: [
-              {
-                uuid: 'uuid-unknown-rank',
-                rank: 'UnknownRank',
-                joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
-              }
-            ]
-          })
-        },
-        minecraftManager: {
-          getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
+      createFakeApplication([
+        {
+          uuid: 'uuid-unknown-rank',
+          rank: 'UnknownRank',
+          joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
-      } as any,
+      ]),
       {
         ...baseBridgeConfig,
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }]
@@ -257,25 +242,15 @@ await describe('BridgeEvaluator', async () => {
     const dispatchCalls: unknown[][] = []
 
     const evaluator = new BridgeEvaluator(
-      {
-        hypixelApi: {
-          getGuild: async () => ({
-            ...baseGuild,
-            members: [
-              {
-                uuid: 'uuid-manual',
-                rank: 'Member',
-                joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                weeklyExperience: 50_000,
-                expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
-              }
-            ]
-          })
-        },
-        minecraftManager: {
-          getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
+      createFakeApplication([
+        {
+          uuid: 'uuid-manual',
+          rank: 'Member',
+          joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          weeklyExperience: 50_000,
+          expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
-      } as any,
+      ]),
       {
         ...baseBridgeConfig,
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }],
@@ -320,24 +295,14 @@ await describe('BridgeEvaluator', async () => {
     const sendNotifyCalls: unknown[][] = []
 
     const evaluator = new BridgeEvaluator(
-      {
-        hypixelApi: {
-          getGuild: async () => ({
-            ...baseGuild,
-            members: [
-              {
-                uuid: 'uuid-notify',
-                rank: 'Officer',
-                joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-                expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 500, totalExp: 500 }]
-              }
-            ]
-          })
-        },
-        minecraftManager: {
-          getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
+      createFakeApplication([
+        {
+          uuid: 'uuid-notify',
+          rank: 'Officer',
+          joinedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 500, totalExp: 500 }]
         }
-      } as any,
+      ]),
       {
         ...baseBridgeConfig,
         getRankupDemotionRules: () => [

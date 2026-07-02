@@ -90,4 +90,38 @@ export class NotificationManager {
       }
     }
   }
+
+  public async sendNotifyOnly(
+    bridgeId: string,
+    channelIds: string[],
+    decision: { uuid: string; currentRank: string; reason: string }
+  ): Promise<void> {
+    const name = await this.application.mojangApi
+      .profileByUuid(decision.uuid)
+      .then((p) => p.name)
+      .catch(() => decision.uuid)
+
+    const embed = new EmbedBuilder()
+      .setTitle('⚠️ Rankup Notification')
+      .setColor('#FFA500')
+      .setDescription(`**${name}** has triggered a notification-only demotion rule.`)
+      .addFields(
+        { name: 'Player', value: name, inline: true },
+        { name: 'Current Rank', value: decision.currentRank, inline: true },
+        { name: 'Reason', value: decision.reason }
+      )
+      .setTimestamp()
+
+    for (const channelId of channelIds) {
+      const instance = this.application.discordInstance
+      const client = instance.getClient()
+      const channel = await client.channels.fetch(channelId).catch(() => undefined)
+      if (channel?.isSendable()) {
+        await channel.send({ embeds: [embed] }).catch((error: unknown) => {
+          this.logger.error(error)
+        })
+      }
+    }
+  }
 }
+

@@ -8,8 +8,7 @@ export default class RequestCommand extends ChatCommandHandler {
     super({
       triggers: ['req', 'requirements'],
       description: 'Check if a player meets the guild requirements',
-      example: 'req %s',
-      cooldownMs: 15_000
+      example: 'req %s'
     })
   }
 

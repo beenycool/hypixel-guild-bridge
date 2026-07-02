@@ -87,7 +87,10 @@ await describe('BridgeResolver', async () => {
       getMinecraftInstances: () => [],
       getPublicChannelIds: () => [],
       getOfficerChannelIds: () => [],
-      getLoggerChannelIds: () => loggerChannelIds
+      getLoggerChannelIds: () => loggerChannelIds,
+      getPromoteChannelIds: () => [],
+      getChatSummaryChannelIds: () => [],
+      getChatSummaryEnabled: () => false
     } as unknown as BridgeConfigurations
 
     const resolver = new BridgeResolver(undefined)

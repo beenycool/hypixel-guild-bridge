@@ -6,8 +6,7 @@ export default class GtopCommand extends ChatCommandHandler {
     super({
       triggers: ['gtop', 'topgexp'],
       description: 'Shows the top 5 GEXP earners in the guild for today',
-      example: 'gtop',
-      cooldownMs: 30_000
+      example: 'gtop'
     })
   }
 
