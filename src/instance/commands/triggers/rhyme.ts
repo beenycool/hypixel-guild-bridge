@@ -44,14 +44,15 @@ export default class Rhyme extends ChatCommandHandler {
       return 'OpenRouter API key is not configured. Set `openrouterApiKey` in config.yaml.'
     }
 
-    const model = context.app.openrouterModel
+    const model = context.app.openrouterModel ?? 'nvidia/nemotron-3-nano-30b-a3b:free'
     const client = new OpenRouterClient(apiKey, { defaultModel: model })
 
     try {
       const result = await client.chatCompletion({
         systemPrompt: RHYME_SYSTEM_PROMPT,
         userPrompt: `Word: ${word}`,
-        temperature: 0.7
+        temperature: 0.7,
+        reasoningEffort: 'low'
       })
 
       return result.content
