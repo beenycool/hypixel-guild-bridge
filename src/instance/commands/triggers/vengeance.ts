@@ -78,7 +78,17 @@ export default class Vengeance extends ChatCommandHandler {
         Vengeance.MuteDuration,
         'Lost in Vengeance game'
       )
-      messages = context.app.core.languageConfigurations.getCommandVengeanceWin()
+      const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
+      const override = translator?.('commands.vengeance.win')
+      if (override && override !== 'commands.vengeance.win') {
+        try {
+          messages = JSON.parse(override)
+        } catch {
+          messages = [override]
+        }
+      } else {
+        messages = context.app.core.languageConfigurations.getCommandVengeanceWin()
+      }
     } else if (this.lose()) {
       await context.message.user.mute(
         context.eventHelper.fillBaseEvent(),
@@ -88,10 +98,30 @@ export default class Vengeance extends ChatCommandHandler {
       )
 
       this.countSinceLastWin++
-      messages = context.app.core.languageConfigurations.getCommandVengeanceLose()
+      const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
+      const override = translator?.('commands.vengeance.lose')
+      if (override && override !== 'commands.vengeance.lose') {
+        try {
+          messages = JSON.parse(override)
+        } catch {
+          messages = [override]
+        }
+      } else {
+        messages = context.app.core.languageConfigurations.getCommandVengeanceLose()
+      }
     } else {
       this.countSinceLastWin++
-      messages = context.app.core.languageConfigurations.getCommandVengeanceDraw()
+      const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
+      const override = translator?.('commands.vengeance.draw')
+      if (override && override !== 'commands.vengeance.draw') {
+        try {
+          messages = JSON.parse(override)
+        } catch {
+          messages = [override]
+        }
+      } else {
+        messages = context.app.core.languageConfigurations.getCommandVengeanceDraw()
+      }
     }
 
     return messages[Math.floor(Math.random() * messages.length)]

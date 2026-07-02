@@ -70,7 +70,9 @@ export default class PunishmentHandler extends SubInstance<MinecraftInstance, In
         color: Color.Info,
 
         user: event.responsible,
-        message: `${username}, you have been issuing too many dangerous commands in a short time. Slow down!`
+        message: this.application.getTranslatorForBridge(this.clientInstance.bridgeId)('instance.heat.warn', {
+          username
+        })
       })
     } else if (heatResult === HeatResult.Denied) {
       await this.application.emit('broadcast', {
@@ -79,7 +81,9 @@ export default class PunishmentHandler extends SubInstance<MinecraftInstance, In
         color: Color.Bad,
 
         user: event.responsible,
-        message: `${username}, you have issued too many dangerous commands in a short time. Stop it!`
+        message: this.application.getTranslatorForBridge(this.clientInstance.bridgeId)('instance.heat.denied', {
+          username
+        })
       })
 
       await this.clientInstance.send(`/g demote ${uuid}`, MinecraftSendChatPriority.High, undefined)

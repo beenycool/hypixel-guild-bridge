@@ -55,7 +55,18 @@ export default class Mute extends ChatCommandHandler {
       `randomly selected by ${context.commandPrefix}${this.triggers[0]}`
     )
 
-    const messages = context.app.core.languageConfigurations.getCommandMuteGame()
+    const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
+    const override = translator?.('commands.mute.game')
+    let messages: string[]
+    if (override && override !== 'commands.mute.game') {
+      try {
+        messages = JSON.parse(override)
+      } catch {
+        messages = [override]
+      }
+    } else {
+      messages = context.app.core.languageConfigurations.getCommandMuteGame()
+    }
     return messages[Math.floor(Math.random() * messages.length)]
       .replaceAll('{username}', context.username)
       .replaceAll('{target}', selectedUsername)

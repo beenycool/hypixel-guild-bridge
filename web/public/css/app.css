@@ -1538,6 +1538,40 @@ body {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+/* ===== Collapsible sections ===== */
+.settings-collapsible {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.settings-collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: background 0.15s;
+}
+.settings-collapsible-header:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.settings-collapsible-arrow {
+  font-size: 11px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.settings-collapsible-arrow.open {
+  transform: rotate(90deg);
+}
+.settings-collapsible-body {
+  padding: 4px 12px 12px;
+}
+
 /* ===== Permission Overview ===== */
 .permission-overview {
   background-color: var(--bg-elevated);

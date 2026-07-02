@@ -131,7 +131,13 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       if (item.pubDate && item.pubDate + lookbackMs < now) continue
       if (!item.title || !item.link) continue
 
-      await this.broadcast(`[HYPIXEL UPDATE] ${item.title} | ${item.link}`, Color.Info)
+      await this.broadcast(
+        this.application.getTranslatorForBridge(undefined)('instance.hypixel.news', {
+          title: item.title,
+          link: item.link
+        }),
+        Color.Info
+      )
       await sleep(HypixelUpdates.MessageDelayMs)
     }
   }
@@ -154,7 +160,10 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       incident.lastUpdated = now
       if (!incident.notified) {
         const link = item.link ?? 'https://status.hypixel.net'
-        await this.broadcast(`[HYPIXEL STATUS] ${title} | ${link}`, Color.Info)
+        await this.broadcast(
+          this.application.getTranslatorForBridge(undefined)('instance.hypixel.status', { title, link }),
+          Color.Info
+        )
         incident.notified = true
         await sleep(HypixelUpdates.MessageDelayMs)
       }
@@ -163,7 +172,10 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       for (const update of updates) {
         if (incident.updates.has(update)) continue
         incident.updates.add(update)
-        await this.broadcast(`[HYPIXEL STATUS UPDATE] ${title} | ${update}`, Color.Info)
+        await this.broadcast(
+          this.application.getTranslatorForBridge(undefined)('instance.hypixel.statusUpdate', { title, update }),
+          Color.Info
+        )
         await sleep(HypixelUpdates.MessageDelayMs)
       }
 
@@ -187,7 +199,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
 
     if (this.skyblockVersion && this.skyblockVersion !== version) {
       await this.broadcast(
-        `[HYPIXEL SKYBLOCK] Skyblock version has been updated to ${version}! Server restarts might occur!`,
+        this.application.getTranslatorForBridge(undefined)('instance.hypixel.skyblockVersion', { version }),
         Color.Info
       )
     }
@@ -214,7 +226,10 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
       this.lastAlphaPlayerCount <= HypixelUpdates.AlphaPlayerThreshold &&
       now - this.lastAlphaMessageAt >= HypixelUpdates.AlphaCooldown.toMilliseconds()
     ) {
-      await this.broadcast(`[ALPHA] Alpha Hypixel is open, current player count: ${playerCount}`, Color.Info)
+      await this.broadcast(
+        this.application.getTranslatorForBridge(undefined)('instance.hypixel.alpha', { count: String(playerCount) }),
+        Color.Info
+      )
       this.lastAlphaMessageAt = now
     }
 

@@ -157,7 +157,13 @@ class QuickMath extends SpontaneousEventHandler {
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Quick Math: ${math.expression}`, Color.Good, bridgeId)
+    await this.broadcastMessage(
+      this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.quickMath.question', {
+        expression: math.expression
+      }),
+      Color.Good,
+      bridgeId
+    )
     timeout.refresh()
 
     const result = await timeout.wait()
@@ -165,9 +171,21 @@ class QuickMath extends SpontaneousEventHandler {
 
     // eslint-disable-next-line unicorn/prefer-ternary
     if (result === undefined) {
-      await this.broadcastMessage(`The answer is: ${math.answer} :(`, Color.Info, bridgeId)
+      await this.broadcastMessage(
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.quickMath.answer', {
+          answer: math.answer
+        }),
+        Color.Info,
+        bridgeId
+      )
     } else {
-      await this.broadcastMessage(`Good job ${result.user.displayName()}!`, Color.Good, bridgeId)
+      await this.broadcastMessage(
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.quickMath.correct', {
+          user: result.user.displayName()
+        }),
+        Color.Good,
+        bridgeId
+      )
     }
   }
 
@@ -250,17 +268,27 @@ class CountingChain extends SpontaneousEventHandler {
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Start counting chain from 1 to infinity!`, Color.Good, bridgeId)
+    await this.broadcastMessage(
+      this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.counting.start'),
+      Color.Good,
+      bridgeId
+    )
     timeout.refresh()
 
     await timeout.wait()
     this.application.off('chat', listener)
 
     if (beforeLast === undefined) {
-      await this.broadcastMessage(`Never mind the counting chain :(`, Color.Info, bridgeId)
+      await this.broadcastMessage(
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.counting.fail'),
+        Color.Info,
+        bridgeId
+      )
     } else {
       await this.broadcastMessage(
-        `${beforeLast.displayName()} was the 2nd to last to stop counting. How dare you!`,
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.counting.blame', {
+          user: beforeLast.displayName()
+        }),
         Color.Good,
         bridgeId
       )
@@ -329,7 +357,13 @@ class Unscramble extends SpontaneousEventHandler {
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Unscramble: ${chosenWord.scrambled}`, Color.Good, bridgeId)
+    await this.broadcastMessage(
+      this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.unscramble.question', {
+        word: chosenWord.scrambled
+      }),
+      Color.Good,
+      bridgeId
+    )
     timeout.refresh()
 
     const result = await timeout.wait()
@@ -337,9 +371,21 @@ class Unscramble extends SpontaneousEventHandler {
 
     // eslint-disable-next-line unicorn/prefer-ternary
     if (result === undefined) {
-      await this.broadcastMessage(`The answer is: ${chosenWord.original} :(`, Color.Info, bridgeId)
+      await this.broadcastMessage(
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.unscramble.answer', {
+          word: chosenWord.original
+        }),
+        Color.Info,
+        bridgeId
+      )
     } else {
-      await this.broadcastMessage(`Good job ${result.user.displayName()}!`, Color.Good, bridgeId)
+      await this.broadcastMessage(
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.unscramble.correct', {
+          user: result.user.displayName()
+        }),
+        Color.Good,
+        bridgeId
+      )
     }
   }
 
@@ -402,7 +448,13 @@ class Trivia extends SpontaneousEventHandler {
     }
 
     this.application.on('chat', listener)
-    await this.broadcastMessage(`Quick Trivia: ${trivia.question}`, Color.Good, bridgeId)
+    await this.broadcastMessage(
+      this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.trivia.question', {
+        question: trivia.question
+      }),
+      Color.Good,
+      bridgeId
+    )
     timeout.refresh()
 
     await timeout.wait()
@@ -411,13 +463,17 @@ class Trivia extends SpontaneousEventHandler {
     // eslint-disable-next-line unicorn/prefer-ternary
     if (correctUsers.length === 0) {
       await this.broadcastMessage(
-        `The answer is: ${trivia.answerDisplay}. Remember you can only answer with the letter!`,
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.trivia.answer', {
+          answer: trivia.answerDisplay
+        }),
         Color.Info,
         bridgeId
       )
     } else {
       await this.broadcastMessage(
-        `Good job ${correctUsers.map((user) => user.displayName()).join(', ')}!`,
+        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.trivia.correct', {
+          users: correctUsers.map((u) => u.displayName()).join(', ')
+        }),
         Color.Good,
         bridgeId
       )

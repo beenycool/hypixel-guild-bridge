@@ -361,8 +361,11 @@ export class SkyblockReminders extends Instance<InstanceType.Utility> {
   }
 
   private async broadcastSkyblockEvent(event: SkyblockEventNext, minutes: number, bridgeId?: string): Promise<void> {
+    const t = this.application.getTranslatorForBridge(bridgeId)
     const message =
-      minutes === 0 ? `[EVENT] ${event.name}: Starting now!` : `[EVENT] ${event.name}: Starting in ${minutes}m!`
+      minutes === 0
+        ? t('instance.skyblockEvent.starting', { eventName: event.name })
+        : t('instance.skyblockEvent.startingIn', { eventName: event.name, minutes: String(minutes) })
 
     await this.application.emit('broadcast', {
       ...this.eventHelper.fillBaseEvent(),

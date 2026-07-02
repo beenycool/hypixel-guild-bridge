@@ -258,6 +258,7 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'When NOT Persisted',
           condition: (data) => !bool(data.persistOnlineOffline),
           children: [
@@ -274,6 +275,7 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'Random Chatter',
           children: [
             { id: 'chatterEnabled', t: 'boolean', label: 'Enable Random Chatter' },
@@ -325,6 +327,7 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'Reminders',
           children: [
             { id: 'darkAuctionReminder', t: 'boolean', label: 'Dark Auction Reminder' },
@@ -333,6 +336,7 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'Per-Event Reminders',
           children: Object.keys(SKYBLOCK_EVENT_NAMES).map((key) => ({
             id: `event_${key}`,
@@ -351,6 +355,7 @@
       fields: [
         {
           t: 'section',
+          collapsible: true,
           title: 'Guild Reactions',
           children: [
             { id: 'guildJoinReaction', t: 'boolean', label: 'Guild Join Reaction' },
@@ -394,6 +399,7 @@
       fields: [
         {
           t: 'section',
+          collapsible: true,
           title: 'Guild Reaction Messages',
           children: [
             { id: 'joinMessages', t: 'msglist', label: 'Join Messages', hint: 'Random one sent per guild join.' },
@@ -403,6 +409,7 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'Skyblock Reminder Messages',
           children: [
             { id: 'darkAuctionReminderText', t: 'text', label: 'Dark Auction Reminder Text', max: 1000 },
@@ -411,8 +418,282 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'Other Messages',
           children: [{ id: 'announcePlayerMutedText', t: 'text', label: 'Announce Player Muted Text', max: 1000 }]
+        }
+      ]
+    },
+    {
+      key: 'translations',
+      name: 'Translations',
+      icon: '🌐',
+      description: 'Override any bot message per-bridge. Insults, praise, errors, and everything else the bot says.',
+      fields: [
+        {
+          t: 'section',
+          title: 'Commands (insults, praise, errors)',
+          collapsible: true,
+          children: [
+            {
+              id: 'commands.praise',
+              t: 'msglist',
+              label: 'Praise Messages',
+              hint: '22 random praise messages the bot says.'
+            },
+            {
+              id: 'commands.insult',
+              t: 'msglist',
+              label: 'Insult Messages (custom)',
+              hint: '23 custom insult messages.'
+            },
+            {
+              id: 'commands.insult.normal',
+              t: 'msglist',
+              label: 'Insult Messages (normal)',
+              hint: '58 normal insult messages.'
+            },
+            {
+              id: 'commands.explain',
+              t: 'textarea',
+              label: 'Explain Command',
+              hint: 'What the bot says when asked !explain.'
+            },
+            { id: 'commands.error.must-be-ingame', t: 'text', label: 'Error: Must be in-game' },
+            { id: 'commands.error.must-be-admin', t: 'text', label: 'Error: Must be admin' },
+            { id: 'commands.error.username-not-exists', t: 'text', label: 'Error: Username not found' },
+            { id: 'commands.error.never-joined-hypixel', t: 'text', label: 'Error: Never joined Hypixel' },
+            { id: 'commands.error.never-joined-skyblock', t: 'text', label: 'Error: Never joined Skyblock' },
+            { id: 'commands.urchin.no-key', t: 'text', label: 'Urchin: No API key' },
+            { id: 'commands.urchin.no-tags', t: 'text', label: 'Urchin: No tags' },
+            { id: 'commands.urchin.tags', t: 'text', label: 'Urchin: Tags result' },
+            { id: 'commands.urchin.not-found', t: 'text', label: 'Urchin: Not found' },
+            { id: 'commands.urchin.invalid-key', t: 'text', label: 'Urchin: Invalid key' },
+            { id: 'commands.urchin.error', t: 'text', label: 'Urchin: Error' },
+            { id: 'commands.sessions.no-key', t: 'text', label: 'Sessions: No API key' },
+            { id: 'commands.sessions.game-not-found', t: 'text', label: 'Sessions: Game not found' },
+            { id: 'commands.sessions.no-changes', t: 'text', label: 'Sessions: No changes' },
+            { id: 'commands.sessions.result', t: 'textarea', label: 'Sessions: Result' },
+            { id: 'commands.sessions.not-found', t: 'text', label: 'Sessions: Not found' },
+            { id: 'commands.sessions.invalid-key', t: 'text', label: 'Sessions: Invalid key' },
+            { id: 'commands.sessions.api-degraded', t: 'text', label: 'Sessions: API degraded' },
+            { id: 'commands.sessions.api-ok-but-error', t: 'text', label: 'Sessions: API returned error' },
+            { id: 'commands.sessions.api-down', t: 'text', label: 'Sessions: API down' }
+          ]
+        },
+        {
+          t: 'section',
+          title: 'Discord Messages',
+          collapsible: true,
+          children: [
+            { id: 'discord.status.chat-interrupted', t: 'text', label: 'Chat Interrupted' },
+            { id: 'discord.status.chat-resumed', t: 'text', label: 'Chat Resumed' },
+            { id: 'discord.status.chat-failed', t: 'text', label: 'Chat Failed' },
+            { id: 'discord.status.chat-notice', t: 'text', label: 'Chat Notice' },
+            { id: 'discord.status.requires-authentication', t: 'text', label: 'Requires Authentication' },
+            { id: 'discord.status.instance-started', t: 'text', label: 'Instance Started' },
+            { id: 'discord.message.no-permission', t: 'text', label: 'No Permission' },
+            { id: 'discord.message.no-permission-roles', t: 'textarea', label: 'No Permission (Roles)' },
+            { id: 'discord.message.no-permission-admin', t: 'textarea', label: 'No Permission (Admin)' },
+            { id: 'discord.message.no-permission-roles-admin', t: 'textarea', label: 'No Permission (Roles Admin)' }
+          ]
+        },
+        {
+          t: 'section',
+          title: 'Discord Commands (/settings, /commands)',
+          collapsible: true,
+          children: [
+            { id: 'discord.commands.settings.essential', t: 'text', label: 'Settings: Essential' },
+            { id: 'discord.commands.settings.recommended', t: 'text', label: 'Settings: Recommended' },
+            { id: 'discord.commands.settings.warning', t: 'text', label: 'Settings: Warning' },
+            { id: 'discord.commands.settings.header', t: 'textarea', label: 'Settings: Header' },
+            { id: 'discord.commands.settings.header1', t: 'text', label: 'Settings: Header 1' },
+            { id: 'discord.commands.settings.header2', t: 'text', label: 'Settings: Header 2' },
+            { id: 'discord.commands.settings.header3', t: 'text', label: 'Settings: Header 3' },
+            { id: 'discord.commands.settings.faq', t: 'text', label: 'Settings: FAQ' },
+            { id: 'discord.commands.settings.main.title', t: 'text', label: 'Settings: Main title' },
+            { id: 'discord.commands.settings.main.description', t: 'textarea', label: 'Settings: Main description' },
+            { id: 'discord.commands.commands.title', t: 'text', label: 'Commands: Title' },
+            { id: 'discord.commands.commands.description', t: 'textarea', label: 'Commands: Description' },
+            { id: 'discord.commands.commands.stats.discord', t: 'text', label: 'Commands: Discord stats' },
+            { id: 'discord.commands.commands.stats.minecraft', t: 'text', label: 'Commands: Minecraft stats' },
+            { id: 'discord.commands.commands.stats.commands', t: 'text', label: 'Commands: Command stats' },
+            { id: 'discord.commands.commands.tabs.discord', t: 'text', label: 'Commands: Discord tab' },
+            { id: 'discord.commands.commands.tabs.minecraft', t: 'text', label: 'Commands: Minecraft tab' },
+            { id: 'discord.commands.commands.actions.search', t: 'text', label: 'Commands: Search action' },
+            { id: 'discord.commands.commands.actions.categories', t: 'text', label: 'Commands: Categories action' },
+            { id: 'discord.commands.commands.actions.details', t: 'text', label: 'Commands: Details action' },
+            { id: 'discord.commands.commands.actions.back-to-list', t: 'text', label: 'Commands: Back to list' },
+            { id: 'discord.commands.commands.actions.clear-search', t: 'text', label: 'Commands: Clear search' },
+            { id: 'discord.commands.commands.actions.clear-category', t: 'text', label: 'Commands: Clear category' },
+            { id: 'discord.commands.commands.filters.search', t: 'text', label: 'Commands: Search filter' },
+            { id: 'discord.commands.commands.filters.category', t: 'text', label: 'Commands: Category filter' },
+            { id: 'discord.commands.commands.no-results', t: 'text', label: 'Commands: No results' },
+            {
+              id: 'discord.commands.commands.try-different-filters',
+              t: 'text',
+              label: 'Commands: Try different filters'
+            },
+            { id: 'discord.commands.commands.no-categories', t: 'text', label: 'Commands: No categories' },
+            { id: 'discord.commands.commands.command-not-found', t: 'text', label: 'Commands: Command not found' },
+            { id: 'discord.commands.commands.pagination.info', t: 'text', label: 'Commands: Pagination info' },
+            {
+              id: 'discord.commands.commands.pagination.display',
+              t: 'textarea',
+              label: 'Commands: Pagination display'
+            },
+            { id: 'discord.commands.commands.pagination.previous', t: 'text', label: 'Commands: Previous page' },
+            { id: 'discord.commands.commands.pagination.next', t: 'text', label: 'Commands: Next page' },
+            { id: 'discord.commands.commands.search.title', t: 'text', label: 'Commands: Search title' },
+            { id: 'discord.commands.commands.search.label', t: 'text', label: 'Commands: Search label' },
+            { id: 'discord.commands.commands.categories.title', t: 'text', label: 'Commands: Categories title' },
+            {
+              id: 'discord.commands.commands.categories.description',
+              t: 'text',
+              label: 'Commands: Categories description'
+            },
+            { id: 'discord.commands.commands.categories.select', t: 'text', label: 'Commands: Category select' },
+            { id: 'discord.commands.commands.details.category', t: 'text', label: 'Commands: Details category' },
+            { id: 'discord.commands.commands.details.aliases', t: 'text', label: 'Commands: Details aliases' },
+            { id: 'discord.commands.commands.details.permission', t: 'text', label: 'Commands: Details permission' },
+            { id: 'discord.commands.commands.details.status', t: 'text', label: 'Commands: Details status' },
+            { id: 'discord.commands.commands.details.enabled', t: 'text', label: 'Commands: Details enabled' },
+            { id: 'discord.commands.commands.details.disabled', t: 'text', label: 'Commands: Details disabled' },
+            { id: 'discord.commands.commands.details.custom-name', t: 'text', label: 'Commands: Details custom name' },
+            { id: 'discord.commands.commands.admin.title', t: 'text', label: 'Commands: Admin title' },
+            { id: 'discord.commands.commands.admin.description', t: 'textarea', label: 'Commands: Admin description' },
+            { id: 'discord.commands.commands.admin.rename.button', t: 'text', label: 'Commands: Rename button' },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.title',
+              t: 'text',
+              label: 'Commands: Rename modal title'
+            },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.label',
+              t: 'text',
+              label: 'Commands: Rename modal label'
+            },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.placeholder',
+              t: 'text',
+              label: 'Commands: Rename modal placeholder'
+            },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.success',
+              t: 'text',
+              label: 'Commands: Rename success'
+            },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.error.empty',
+              t: 'text',
+              label: 'Commands: Rename error empty'
+            },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.error.invalid',
+              t: 'text',
+              label: 'Commands: Rename error invalid'
+            },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.error.duplicate',
+              t: 'text',
+              label: 'Commands: Rename error duplicate'
+            },
+            {
+              id: 'discord.commands.commands.admin.rename.modal.error.protected',
+              t: 'text',
+              label: 'Commands: Rename error protected'
+            },
+            { id: 'discord.commands.commands.admin.toggle.enable', t: 'text', label: 'Commands: Toggle enable' },
+            { id: 'discord.commands.commands.admin.toggle.disable', t: 'text', label: 'Commands: Toggle disable' },
+            { id: 'discord.commands.commands.admin.toggle.success', t: 'text', label: 'Commands: Toggle success' },
+            {
+              id: 'discord.commands.commands.admin.toggle.error.protected',
+              t: 'text',
+              label: 'Commands: Toggle error protected'
+            },
+            { id: 'discord.commands.commands.admin.audit.title', t: 'text', label: 'Commands: Audit title' },
+            { id: 'discord.commands.commands.admin.audit.empty', t: 'text', label: 'Commands: Audit empty' },
+            {
+              id: 'discord.commands.commands.admin.audit.entry.rename',
+              t: 'text',
+              label: 'Commands: Audit rename entry'
+            },
+            {
+              id: 'discord.commands.commands.admin.audit.entry.enable',
+              t: 'text',
+              label: 'Commands: Audit enable entry'
+            },
+            {
+              id: 'discord.commands.commands.admin.audit.entry.disable',
+              t: 'text',
+              label: 'Commands: Audit disable entry'
+            },
+            {
+              id: 'discord.commands.commands.admin.audit.entry.restore',
+              t: 'text',
+              label: 'Commands: Audit restore entry'
+            },
+            { id: 'discord.commands.commands.admin.audit.timestamp', t: 'text', label: 'Commands: Audit timestamp' },
+            { id: 'discord.commands.commands.admin.audit.by', t: 'text', label: 'Commands: Audit by' },
+            {
+              id: 'discord.commands.commands.admin.confirm.disable.title',
+              t: 'text',
+              label: 'Commands: Confirm disable title'
+            },
+            {
+              id: 'discord.commands.commands.admin.confirm.disable.message',
+              t: 'textarea',
+              label: 'Commands: Confirm disable message'
+            },
+            {
+              id: 'discord.commands.commands.admin.confirm.disable.confirm',
+              t: 'text',
+              label: 'Commands: Confirm disable confirm'
+            },
+            {
+              id: 'discord.commands.commands.admin.confirm.disable.cancel',
+              t: 'text',
+              label: 'Commands: Confirm disable cancel'
+            }
+          ]
+        },
+        {
+          t: 'section',
+          title: 'Instance Messages (disconnect, auth, errors)',
+          collapsible: true,
+          children: [
+            { id: 'instance.message.authentication-code', t: 'text', label: 'Auth Code' },
+            { id: 'instance.message.authentication-code-expired', t: 'text', label: 'Auth Code Expired' },
+            { id: 'instance.message.no-autoconnect', t: 'textarea', label: 'No Auto-connect' },
+            { id: 'instance.message.minecraft-kicked', t: 'text', label: 'Minecraft Kicked' },
+            { id: 'instance.message.minecraft-banned', t: 'text', label: 'Minecraft Banned' },
+            { id: 'instance.message.internet-problems', t: 'text', label: 'Internet Problems' },
+            { id: 'instance.message.failed-too-many-times', t: 'text', label: 'Failed Too Many Times' },
+            { id: 'instance.message.minecraft-ended', t: 'text', label: 'Minecraft Ended' },
+            { id: 'instance.message.version-incompatible', t: 'text', label: 'Version Incompatible' },
+            { id: 'instance.message.logged-from-another-location', t: 'text', label: 'Logged From Another Location' },
+            { id: 'instance.message.xbox-down', t: 'text', label: 'Xbox Down' },
+            { id: 'instance.message.xbox-throttled', t: 'text', label: 'Xbox Throttled' },
+            { id: 'instance.message.no-account', t: 'textarea', label: 'No Account' },
+            { id: 'instance.message.proxy-problem', t: 'text', label: 'Proxy Problem' },
+            { id: 'instance.message.restarting', t: 'text', label: 'Restarting' },
+            { id: 'instance.message.guild-kicked', t: 'text', label: 'Guild Kicked' },
+            { id: 'instance.message.auth-expired', t: 'textarea', label: 'Auth Expired' },
+            { id: 'instance.message.auth-invalid', t: 'textarea', label: 'Auth Invalid' },
+            { id: 'instance.status.change', t: 'text', label: 'Status Change' },
+            { id: 'instance.status.fresh', t: 'text', label: 'Status Fresh' },
+            { id: 'instance.status.connecting', t: 'text', label: 'Status Connecting' },
+            { id: 'instance.status.connected', t: 'text', label: 'Status Connected' },
+            { id: 'instance.status.disconnected', t: 'text', label: 'Status Disconnected' },
+            { id: 'instance.status.ended', t: 'text', label: 'Status Ended' },
+            { id: 'instance.status.failed', t: 'text', label: 'Status Failed' }
+          ]
+        },
+        {
+          t: 'section',
+          title: 'Game Messages (coming soon)',
+          collapsible: true,
+          children: []
         }
       ]
     },
@@ -424,6 +705,7 @@
       fields: [
         {
           t: 'section',
+          collapsible: true,
           title: 'Heat Punishments',
           children: [
             {
@@ -450,6 +732,7 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'Immunity List',
           children: [
             {
@@ -473,6 +756,7 @@
         },
         {
           t: 'section',
+          collapsible: true,
           title: 'Profanity Filter',
           children: [
             {
@@ -646,6 +930,25 @@
   }
 
   function fieldValue(data, field) {
+    if (currentCategory === 'translations') {
+      const override = rawData.translationOverrides ? rawData.translationOverrides[field.id] : undefined
+      const raw =
+        override !== undefined
+          ? override
+          : rawData.translationDefaults
+            ? rawData.translationDefaults[field.id]
+            : undefined
+      if (raw === undefined) return ''
+      if (field.t === 'msglist') {
+        try {
+          return JSON.parse(raw)
+        } catch {}
+        return []
+      }
+      if (field.t === 'boolean') return raw === 'true' || raw === '1'
+      if (field.t === 'number') return num(raw)
+      return raw
+    }
     if (field.t === 'tag' || field.t === 'msglist') return arr(data[field.id])
     if (field.t === 'boolean') return bool(data[field.id])
     if (field.t === 'number') return num(data[field.id])
@@ -704,6 +1007,9 @@
       case 'tag':
         control = `<div data-tag-host="${esc(id)}"></div>`
         break
+      case 'textarea':
+        control = `<textarea class="input textarea" data-field="${esc(id)}" rows="3">${esc(value)}</textarea>`
+        break
       case 'msglist':
         control = `<div data-msglist-host="${esc(id)}"></div>`
         break
@@ -751,6 +1057,16 @@
       }
       const v = fieldValue(data, f)
       inner += fieldRowHTML(f, v, data)
+    }
+    const content = `<div class="settings-subsection">${inner}</div>`
+    if (section.collapsible) {
+      return `<div class="settings-collapsible">
+        <div class="settings-collapsible-header" data-collapse-target>
+          <span class="settings-collapsible-arrow">▶</span>
+          <span>${esc(section.title)}</span>
+        </div>
+        <div class="settings-collapsible-body" style="display:none">${content}</div>
+      </div>`
     }
     return `<div class="settings-subsection">
       <div class="settings-subsection-title">${esc(section.title)}</div>
@@ -1018,7 +1334,11 @@
       applyDemotionTargetStates()
     }
     // Reset dirty baseline for the active category
-    savedSnapshot = serializeCategory(cat, data)
+    if (cat.key === 'translations') {
+      savedSnapshot = serializeCategory(cat, readCategoryState(cat))
+    } else {
+      savedSnapshot = serializeCategory(cat, data)
+    }
     isDirty = false
     updateDirtyUI()
   }
@@ -1052,7 +1372,7 @@
         } else if (f.t === 'msglist') {
           const host = panel.querySelector(`[data-msglist-host="${cssEscape(f.id)}"]`)
           if (!host) continue
-          mountMessageList(host, f, arr(data[f.id]))
+          mountMessageList(host, f, arr(fieldValue(data, f)))
         }
       }
     }
@@ -1289,8 +1609,32 @@
   // ---- Read form state back into a category object -------------------------
 
   function readCategoryState(cat) {
-    const data = JSON.parse(JSON.stringify(categoryData(cat.key) || {}))
     const panel = document.querySelector('#settings-panel')
+
+    if (cat.key === 'translations') {
+      const overrides = {}
+      function walk(fields) {
+        for (const f of fields || []) {
+          if (f.t === 'section') {
+            walk(f.children)
+            continue
+          }
+          if (f.t === 'link' || f.t === 'danger') continue
+          if (f.t === 'msglist') {
+            const host = panel.querySelector(`[data-msglist-host="${cssEscape(f.id)}"]`)
+            overrides[f.id] = JSON.stringify(host && host._getMessageList ? host._getMessageList() : [])
+            continue
+          }
+          const el = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
+          if (!el) continue
+          overrides[f.id] = el.value
+        }
+      }
+      walk(cat.fields)
+      return { overrides }
+    }
+
+    const data = JSON.parse(JSON.stringify(categoryData(cat.key) || {}))
 
     function walk(fields, target) {
       for (const f of fields || []) {
@@ -1331,6 +1675,9 @@
   }
 
   function serializeCategory(cat, data) {
+    if (cat.key === 'translations') {
+      return JSON.stringify(data.overrides || {})
+    }
     const subset = {}
     function walk(fields) {
       for (const f of fields || []) {
@@ -1406,8 +1753,12 @@
       const url = `/api/bridges/${encodeURIComponent(currentBridgeId)}/settings/${encodeURIComponent(cat.key)}`
       await App.apiPut(url, payload)
       // Merge into rawData
-      rawData.categories = rawData.categories || {}
-      rawData.categories[cat.key] = payload
+      if (cat.key === 'translations') {
+        rawData.translationOverrides = payload.overrides || {}
+      } else {
+        rawData.categories = rawData.categories || {}
+        rawData.categories[cat.key] = payload
+      }
       // Reset dirty baseline so the snapshot reflects server state
       savedSnapshot = serializeCategory(cat, payload)
       isDirty = false
@@ -1668,6 +2019,17 @@
         if (body) {
           body.classList.toggle('hidden')
           if (arrow) arrow.classList.toggle('open')
+        }
+        return
+      }
+      const collapseToggle = e.target.closest('[data-collapse-target]')
+      if (collapseToggle) {
+        const body = collapseToggle.nextElementSibling
+        const arrow = collapseToggle.querySelector('.settings-collapsible-arrow')
+        if (body && body.classList.contains('settings-collapsible-body')) {
+          const isHidden = body.style.display === 'none'
+          body.style.display = isHidden ? '' : 'none'
+          if (arrow) arrow.classList.toggle('open', isHidden)
         }
         return
       }
