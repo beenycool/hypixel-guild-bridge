@@ -55,6 +55,14 @@ export class ChatMessagesService {
     return rows.map((r) => r.message).reverse()
   }
 
+  async getMessagesByUsername(username: string): Promise<string[]> {
+    const rows = await this.databaseManager.queryRows<{ message: string }>(
+      `SELECT "message" FROM "ChatMessages" WHERE LOWER("username") = LOWER($1) ORDER BY "createdAt" DESC LIMIT ${MAX_MESSAGES_TO_FETCH}`,
+      [username]
+    )
+    return rows.map((r) => r.message).reverse()
+  }
+
   async getCachedIq(userId: string): Promise<number | undefined> {
     const row = await this.databaseManager.queryOne<{ iq: number; calculatedAt: number }>(
       `SELECT "iq", "calculatedAt" FROM "IqScores" WHERE "userId" = $1`,
