@@ -39,6 +39,7 @@ import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
 import { QotdScheduler } from './instance/qotd-scheduler'
+import { ChatSummaryScheduler } from './instance/chat-summary-scheduler'
 import { RandomChatter } from './instance/random-chatter'
 import { SkyblockReminders } from './instance/skyblock-reminders'
 import { SpontaneousEvents } from './instance/spontaneous-events'
@@ -65,6 +66,7 @@ export type AllInstances =
   | PluginsManager
   | RandomChatter
   | QotdScheduler
+  | ChatSummaryScheduler
 
 export default class Application extends Emittery<ApplicationEvents> implements InstanceIdentifier {
   public readonly instanceName: string = InstanceType.Main
@@ -143,6 +145,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly webServer: WebServer | undefined
 
   private readonly qotdScheduler: QotdScheduler
+  private readonly chatSummaryScheduler: ChatSummaryScheduler
   private readonly skyblockReminders: SkyblockReminders
   private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
@@ -198,6 +201,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.commandsInstance = new CommandsInstance(this)
 
     this.qotdScheduler = new QotdScheduler(this)
+    this.chatSummaryScheduler = new ChatSummaryScheduler(this)
     this.skyblockReminders = new SkyblockReminders(this)
     this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
@@ -315,6 +319,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.qotdScheduler.start()
     } catch (error: unknown) {
       this.errorHandler.promiseCatch('starting qotd scheduler')(error)
+    }
+    try {
+      this.chatSummaryScheduler.start()
+    } catch (error: unknown) {
+      this.errorHandler.promiseCatch('starting chat summary scheduler')(error)
     }
   }
 
@@ -492,6 +501,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.commandsInstance,
       ...this.minecraftManager.getAllInstances(),
       this.qotdScheduler,
+      this.chatSummaryScheduler,
       this.skyblockReminders,
       this.hypixelUpdates,
       this.spontaneousEvents,

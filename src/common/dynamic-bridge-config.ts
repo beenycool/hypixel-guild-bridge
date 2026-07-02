@@ -10,4 +10,6 @@ export interface DynamicBridgeConfig {
   getOfficerChannelIds(bridgeId: string): string[]
   getLoggerChannelIds(bridgeId: string): string[]
   getPromoteChannelIds(bridgeId: string): string[]
+  getChatSummaryChannelIds(bridgeId: string): string[]
+  getChatSummaryEnabled(bridgeId: string): boolean
 }

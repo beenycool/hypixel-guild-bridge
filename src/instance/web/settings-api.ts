@@ -192,6 +192,7 @@ export class SettingsApiHandler {
     for (const id of arr((categories.channels as SettingObject)?.officerChannelIds)) channelIds.add(id)
     for (const id of arr((categories.channels as SettingObject)?.loggerChannelIds)) channelIds.add(id)
     for (const id of arr((categories.channels as SettingObject)?.promoteChannelIds)) channelIds.add(id)
+    for (const id of arr((categories.channels as SettingObject)?.chatSummaryChannelIds)) channelIds.add(id)
     for (const id of arr((categories.rankup as SettingObject)?.notificationChannelIds)) channelIds.add(id)
 
     // Collect role IDs for name resolution
@@ -295,6 +296,8 @@ export class SettingsApiHandler {
           cfg.setOfficerChannelIds(bridgeId, arr(body.officerChannelIds))
           cfg.setLoggerChannelIds(bridgeId, arr(body.loggerChannelIds))
           cfg.setPromoteChannelIds(bridgeId, arr(body.promoteChannelIds))
+          cfg.setChatSummaryChannelIds(bridgeId, arr(body.chatSummaryChannelIds))
+          cfg.setChatSummaryEnabled(bridgeId, bool(body.chatSummaryEnabled))
           break
         case 'instances':
           cfg.setMinecraftInstances(bridgeId, arr(body.minecraftInstances))

@@ -87,6 +87,21 @@
           placeholder: 'Channel ID…',
           max: 5,
           channelLabel: true
+        },
+        {
+          id: 'chatSummaryEnabled',
+          t: 'boolean',
+          label: 'Enable Daily Chat Summary',
+          hint: 'Summarize public guild chat at the end of every day using AI.'
+        },
+        {
+          id: 'chatSummaryChannelIds',
+          t: 'tag',
+          label: 'Chat Summary Channels',
+          hint: 'Where daily AI summaries are posted (max 5).',
+          placeholder: 'Channel ID…',
+          max: 5,
+          channelLabel: true
         }
       ]
     },

@@ -25,13 +25,22 @@ export class ChatMessagesService {
       if (event.message.startsWith('!')) return
 
       const userId = event.user.discordProfile()?.id ?? event.user.mojangProfile()?.id ?? event.user.displayName()
+      const username = event.user.displayName()
+      const discordId = event.user.discordProfile()?.id ?? null
+      const bridgeId = event.bridgeId ?? this.app.bridgeResolver.getBridgeIdForInstance(event.instanceName) ?? null
 
       this.databaseManager.enqueueWrite(`storing chat message for ${userId}`, async (database) => {
-        await database.query(`INSERT INTO "ChatMessages" ("userId", "message", "createdAt") VALUES ($1, $2, $3)`, [
-          userId,
-          event.message,
-          Math.floor(Date.now() / 1000)
-        ])
+        await database.query(
+          `INSERT INTO "ChatMessages" ("userId", "message", "createdAt", "bridgeId", "username", "discordId") VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            userId,
+            event.message,
+            Math.floor(Date.now() / 1000),
+            bridgeId,
+            username,
+            discordId
+          ]
+        )
       })
     })
 

@@ -74,6 +74,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_officerChannelIds`)
     this.configuration.delete(`${bridgeId}_loggerChannelIds`)
     this.configuration.delete(`${bridgeId}_promoteChannelIds`)
+    this.configuration.delete(`${bridgeId}_chatSummaryChannelIds`)
+    this.configuration.delete(`${bridgeId}_chatSummaryEnabled`)
     this.configuration.delete(`${bridgeId}_minecraftInstances`)
     this.configuration.delete(`${bridgeId}_helperRoleIds`)
     this.configuration.delete(`${bridgeId}_ownerRoleIds`)
@@ -206,6 +208,38 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setPromoteChannelIds(bridgeId: string, channelIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_promoteChannelIds`, channelIds)
+  }
+
+  /**
+   * Get chat summary channel IDs for a specific bridge
+   */
+  public getChatSummaryChannelIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_chatSummaryChannelIds`, [])
+  }
+
+  /**
+   * Set chat summary channel IDs for a specific bridge
+   */
+  public setChatSummaryChannelIds(bridgeId: string, channelIds: string[]): void {
+    this.setConfig(bridgeId, `${bridgeId}_chatSummaryChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_chatSummaryChannelIds`, channelIds)
+    })
+  }
+
+  /**
+   * Get whether chat summary is enabled for a specific bridge
+   */
+  public getChatSummaryEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_chatSummaryEnabled`, false)
+  }
+
+  /**
+   * Set whether chat summary is enabled for a specific bridge
+   */
+  public setChatSummaryEnabled(bridgeId: string, enabled: boolean): void {
+    this.setConfig(bridgeId, `${bridgeId}_chatSummaryEnabled`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_chatSummaryEnabled`, enabled)
+    })
   }
 
   /**
@@ -1096,7 +1130,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         publicChannelIds: channels,
         officerChannelIds: officerChannels,
         loggerChannelIds: loggerChannels,
-        promoteChannelIds: this.getPromoteChannelIds(bridgeId)
+        promoteChannelIds: this.getPromoteChannelIds(bridgeId),
+        chatSummaryChannelIds: this.getChatSummaryChannelIds(bridgeId),
+        chatSummaryEnabled: this.getChatSummaryEnabled(bridgeId)
       },
       instances: {
         minecraftInstances: this.getMinecraftInstances(bridgeId)
