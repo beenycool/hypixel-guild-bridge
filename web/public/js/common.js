@@ -8,7 +8,9 @@
     if (urlToken) {
       try {
         localStorage.setItem(TOKEN_KEY, urlToken)
-        const cleanUrl = globalThis.location.pathname + globalThis.location.hash
+        params.delete('token')
+        const cleanUrl =
+          globalThis.location.pathname + (params.toString() ? '?' + params.toString() : '') + globalThis.location.hash
         globalThis.history.replaceState({}, '', cleanUrl)
         if (window.AppAuth) window.AppAuth.fetchPermission()
       } catch {}
