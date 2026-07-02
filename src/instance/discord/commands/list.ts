@@ -83,7 +83,7 @@ export default {
       )
       .setName('list')
       .setDescription('List players in your guild(s)'),
-  scope: CommandScope.Chat,
+  scope: CommandScope.Anywhere,
 
   handler: async function (context) {
     const t0 = performance.now()

@@ -1,12 +1,12 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
 import type { Permission } from '../../common/application-event.js'
 
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 const PlayerPrefix = '/api/player'
 
@@ -50,11 +50,11 @@ export class PlayerApiHandler {
   ) {}
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
-      this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
     return result.permission
@@ -77,7 +77,7 @@ export class PlayerApiHandler {
 
     const username = pathPart.slice(PlayerPrefix.length + 1)
     if (!username || username.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing username', 400)
       return true
     }
 
@@ -92,7 +92,7 @@ export class PlayerApiHandler {
       uuid = profile.id
       username = profile.name
     } catch {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid username', 400)
       return
     }
 
@@ -128,7 +128,7 @@ export class PlayerApiHandler {
       // skyblock not critical
     }
 
-    this.sendJson(response, HttpStatusCode.Ok, {
+    sendSuccess(response, {
       uuid,
       username,
       player: player,
@@ -199,14 +199,8 @@ export class PlayerApiHandler {
     }
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status)
-    response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

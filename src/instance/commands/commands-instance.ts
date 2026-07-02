@@ -1,6 +1,7 @@
 import type Application from '../../application.js'
 import type { ChatEvent, CommandLike } from '../../common/application-event.js'
 import { InstanceType, Permission } from '../../common/application-event.js'
+import { CommandApiCache } from '../../common/command-api-cache.js'
 import type { ChatCommandHandler } from '../../common/commands.js'
 import {
   calculateSimilarityScore,
@@ -373,6 +374,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     try {
       const commandResponse = await command.handler({
         app: this.application,
+
+        apiCache: new CommandApiCache(),
 
         eventHelper: this.eventHelper,
         logger: this.logger,

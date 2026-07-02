@@ -1,6 +1,5 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -10,6 +9,7 @@ import type EventHelper from '../../common/event-helper.js'
 import { checkChatTriggers, InviteAcceptChat, RankChat } from '../../utility/chat-triggers.js'
 
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 const GuildPrefix = '/api/guild'
 
@@ -20,11 +20,11 @@ export class GuildApiHandler {
   ) {}
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
-      this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
     return result.permission
@@ -79,7 +79,7 @@ export class GuildApiHandler {
         return true
       }
       if (permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleMemberAccept(request, response)
@@ -93,7 +93,7 @@ export class GuildApiHandler {
         return true
       }
       if (permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleMemberInvite(request, response)
@@ -107,7 +107,7 @@ export class GuildApiHandler {
         return true
       }
       if (permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleMemberPromote(request, response)
@@ -121,7 +121,7 @@ export class GuildApiHandler {
         return true
       }
       if (permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleMemberDemote(request, response)
@@ -135,7 +135,7 @@ export class GuildApiHandler {
         return true
       }
       if (permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleMemberSetrank(request, response)
@@ -160,7 +160,7 @@ export class GuildApiHandler {
         return true
       }
       if (permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleBlacklist(request, response)
@@ -179,14 +179,14 @@ export class GuildApiHandler {
   private async handleOverview(response: http.ServerResponse): Promise<void> {
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
     try {
       const guild = await this.application.hypixelApi.getGuild('player', instance, {})
       const weeklyGexp = guild.members.reduce((sum, m) => sum + m.weeklyExperience, 0)
-      this.sendJson(response, HttpStatusCode.Ok, {
+      sendSuccess(response, {
         name: guild.name,
         memberCount: guild.members.length,
         weeklyGexp,
@@ -195,14 +195,14 @@ export class GuildApiHandler {
       })
     } catch (error: unknown) {
       this.logger.error('Failed to fetch guild overview', error)
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'Failed to fetch guild data' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to fetch guild data', 502)
     }
   }
 
   private async handleMembers(response: http.ServerResponse): Promise<void> {
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
@@ -226,17 +226,17 @@ export class GuildApiHandler {
           }
         })
       )
-      this.sendJson(response, HttpStatusCode.Ok, { members })
+      sendSuccess(response, { members })
     } catch (error: unknown) {
       this.logger.error('Failed to fetch guild members', error)
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'Failed to fetch guild members' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to fetch guild members', 502)
     }
   }
 
   private async handleLog(response: http.ServerResponse): Promise<void> {
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
@@ -265,10 +265,10 @@ export class GuildApiHandler {
         this.application.on('minecraftChat', listener)
       })
 
-      this.sendJson(response, HttpStatusCode.Ok, { entries: log })
+      sendSuccess(response, { entries: log })
     } catch (error: unknown) {
       this.logger.error('Failed to fetch guild log', error)
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'Failed to fetch guild log' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to fetch guild log', 502)
     }
   }
 
@@ -311,13 +311,10 @@ export class GuildApiHandler {
         .slice(0, 100)
         .map((m) => ({ name: m.uuid, value: m.totalTime }))
 
-      this.sendJson(response, HttpStatusCode.Ok, { gexp, messages, onlineTime })
+      sendSuccess(response, { gexp, messages, onlineTime })
     } catch (error: unknown) {
       this.logger.error('Failed to fetch leaderboard', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, {
-        success: false,
-        error: 'Failed to fetch leaderboard'
-      })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to fetch leaderboard', 500)
     }
   }
 
@@ -326,13 +323,13 @@ export class GuildApiHandler {
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid username', 400)
       return
     }
 
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
@@ -346,16 +343,18 @@ export class GuildApiHandler {
         username
       )
       if (result.status === 'success') {
-        this.sendJson(response, HttpStatusCode.Ok, { success: true })
+        sendSuccess(response, { success: true })
       } else {
-        this.sendJson(response, HttpStatusCode.BadGateway, {
-          success: false,
-          error: result.message.map((m) => m.content).join('; ') || 'Failed to accept invite'
-        })
+        sendError(
+          response,
+          'INTERNAL_ERROR',
+          result.message.map((m) => m.content).join('; ') || 'Failed to accept invite',
+          502
+        )
       }
     } catch (error: unknown) {
       this.logger.error('Failed to accept guild member', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, { success: false, error: 'Failed to accept invite' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to accept invite', 500)
     }
   }
 
@@ -364,13 +363,13 @@ export class GuildApiHandler {
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid username', 400)
       return
     }
 
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
@@ -384,16 +383,18 @@ export class GuildApiHandler {
         username
       )
       if (result.status === 'success') {
-        this.sendJson(response, HttpStatusCode.Ok, { success: true })
+        sendSuccess(response, { success: true })
       } else {
-        this.sendJson(response, HttpStatusCode.BadGateway, {
-          success: false,
-          error: result.message.map((m) => m.content).join('; ') || 'Failed to invite player'
-        })
+        sendError(
+          response,
+          'INTERNAL_ERROR',
+          result.message.map((m) => m.content).join('; ') || 'Failed to invite player',
+          502
+        )
       }
     } catch (error: unknown) {
       this.logger.error('Failed to invite guild member', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, { success: false, error: 'Failed to invite player' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to invite player', 500)
     }
   }
 
@@ -402,13 +403,13 @@ export class GuildApiHandler {
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid username', 400)
       return
     }
 
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
@@ -422,16 +423,18 @@ export class GuildApiHandler {
         username
       )
       if (result.status === 'success') {
-        this.sendJson(response, HttpStatusCode.Ok, { success: true })
+        sendSuccess(response, { success: true })
       } else {
-        this.sendJson(response, HttpStatusCode.BadGateway, {
-          success: false,
-          error: result.message.map((m) => m.content).join('; ') || 'Failed to promote player'
-        })
+        sendError(
+          response,
+          'INTERNAL_ERROR',
+          result.message.map((m) => m.content).join('; ') || 'Failed to promote player',
+          502
+        )
       }
     } catch (error: unknown) {
       this.logger.error('Failed to promote guild member', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, { success: false, error: 'Failed to promote player' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to promote player', 500)
     }
   }
 
@@ -440,13 +443,13 @@ export class GuildApiHandler {
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid username', 400)
       return
     }
 
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
@@ -460,16 +463,18 @@ export class GuildApiHandler {
         username
       )
       if (result.status === 'success') {
-        this.sendJson(response, HttpStatusCode.Ok, { success: true })
+        sendSuccess(response, { success: true })
       } else {
-        this.sendJson(response, HttpStatusCode.BadGateway, {
-          success: false,
-          error: result.message.map((m) => m.content).join('; ') || 'Failed to demote player'
-        })
+        sendError(
+          response,
+          'INTERNAL_ERROR',
+          result.message.map((m) => m.content).join('; ') || 'Failed to demote player',
+          502
+        )
       }
     } catch (error: unknown) {
       this.logger.error('Failed to demote guild member', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, { success: false, error: 'Failed to demote player' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to demote player', 500)
     }
   }
 
@@ -478,17 +483,17 @@ export class GuildApiHandler {
     if (body === undefined) return
     const { username, rank } = body as { username?: string; rank?: string }
     if (!username || typeof username !== 'string') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid username', 400)
       return
     }
     if (!rank || typeof rank !== 'string') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid rank' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid rank', 400)
       return
     }
 
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
@@ -502,16 +507,18 @@ export class GuildApiHandler {
         username
       )
       if (result.status === 'success') {
-        this.sendJson(response, HttpStatusCode.Ok, { success: true })
+        sendSuccess(response, { success: true })
       } else {
-        this.sendJson(response, HttpStatusCode.BadGateway, {
-          success: false,
-          error: result.message.map((m) => m.content).join('; ') || 'Failed to set rank'
-        })
+        sendError(
+          response,
+          'INTERNAL_ERROR',
+          result.message.map((m) => m.content).join('; ') || 'Failed to set rank',
+          502
+        )
       }
     } catch (error: unknown) {
       this.logger.error('Failed to set rank for guild member', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, { success: false, error: 'Failed to set rank' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to set rank', 500)
     }
   }
 
@@ -520,30 +527,27 @@ export class GuildApiHandler {
     if (body === undefined) return
     const { action, username } = body as { action?: string; username?: string }
     if (!action || typeof action !== 'string' || (action !== 'add' && action !== 'remove')) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'action must be "add" or "remove"' })
+      sendError(response, 'VALIDATION_ERROR', 'action must be "add" or "remove"', 400)
       return
     }
     if (!username || typeof username !== 'string') {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid username', 400)
       return
     }
 
     const instance = this.getInstanceName()
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.BadGateway, { success: false, error: 'No connected Minecraft instance' })
+      sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
     }
 
     const command = action === 'add' ? `/ignore add ${username}` : `/ignore remove ${username}`
     try {
       await this.application.sendMinecraft([instance], MinecraftSendChatPriority.High, undefined, command)
-      this.sendJson(response, HttpStatusCode.Ok, { success: true })
+      sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to update blacklist', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, {
-        success: false,
-        error: 'Failed to update blacklist'
-      })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to update blacklist', 500)
     }
   }
 
@@ -553,18 +557,18 @@ export class GuildApiHandler {
       raw = await this.readBody(request)
     } catch (error: unknown) {
       this.logger.warn('Failed to read request body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Failed to read request body' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
       return undefined
     }
     if (raw.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing request body' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
       return undefined
     }
     try {
       return JSON.parse(raw)
     } catch (error: unknown) {
       this.logger.warn('Invalid JSON body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON body' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
       return undefined
     }
   }
@@ -583,14 +587,8 @@ export class GuildApiHandler {
     })
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status)
-    response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

@@ -1,6 +1,5 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -8,6 +7,7 @@ import type { Permission } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 const StatusPrefix = '/api/status'
 
@@ -20,11 +20,11 @@ export class StatusApiHandler {
   ) {}
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
-      this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
     return result.permission
@@ -89,7 +89,7 @@ export class StatusApiHandler {
       type: 'minecraft'
     }))
 
-    this.sendJson(response, HttpStatusCode.Ok, {
+    sendSuccess(response, {
       uptime: Date.now() - this.startTime,
       version: '2',
       minecraftConnected: connectedInstances.length > 0,
@@ -101,14 +101,8 @@ export class StatusApiHandler {
     })
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status)
-    response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

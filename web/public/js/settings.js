@@ -78,6 +78,15 @@
           placeholder: 'Channel ID…',
           max: 5,
           channelLabel: true
+        },
+        {
+          id: 'promoteChannelIds',
+          t: 'tag',
+          label: 'Promote Channels',
+          hint: 'Where Promote/Demote events are forwarded (max 5).',
+          placeholder: 'Channel ID…',
+          max: 5,
+          channelLabel: true
         }
       ]
     },
@@ -1379,7 +1388,7 @@
     updateDirtyUI()
     try {
       const payload = readCategoryState(cat)
-      const url = `/api/settings/${encodeURIComponent(currentBridgeId)}/${encodeURIComponent(cat.key)}`
+      const url = `/api/bridges/${encodeURIComponent(currentBridgeId)}/settings/${encodeURIComponent(cat.key)}`
       await App.apiPut(url, payload)
       // Merge into rawData
       rawData.categories = rawData.categories || {}
@@ -1419,7 +1428,7 @@
       btn.textContent = 'Deleting…'
     }
     try {
-      await App.apiDelete(`/api/settings/${encodeURIComponent(currentBridgeId)}`)
+      await App.apiDelete(`/api/bridges/${encodeURIComponent(currentBridgeId)}`)
       App.showToast('Bridge deleted', 'success')
       currentBridgeId = null
       rawData = null
@@ -1484,7 +1493,7 @@
     isLoading = true
     showLoading()
     try {
-      const res = await App.apiGet(`/api/settings/${encodeURIComponent(currentBridgeId)}`)
+      const res = await App.apiGet(`/api/bridges/${encodeURIComponent(currentBridgeId)}/settings`)
       rawData = res || {}
       rebuildChannelNameMap(rawData)
       rebuildRoleNameMap(rawData)
@@ -1696,17 +1705,15 @@
         const bridgeId = globalThis.prompt('Enter a unique bridge ID:')
         if (!bridgeId || !bridgeId.trim()) return
         try {
-          const res = await App.apiPost('/api/settings', { bridgeId: bridgeId.trim().toLowerCase() })
-          if (res && res.success) {
-            App.showToast(`Bridge "${res.bridgeId}" created`, 'success')
-            // Reload bridge selector
-            const select = document.querySelector('#bridge-select')
-            if (select) {
-              App.populateBridgeSelector(select, (bid) => {
-                currentBridgeId = bid
-                loadCategory(currentCategory)
-              })
-            }
+          await App.apiPost('/api/bridges', { bridgeId: bridgeId.trim().toLowerCase() })
+          App.showToast('Bridge created', 'success')
+          const select = document.querySelector('#bridge-select')
+          if (select) {
+            App.populateBridgeSelector(select, (bid) => {
+              currentBridgeId = bid
+              currentCategory = null
+              onBridgeChange(bid)
+            })
           }
         } catch (error) {
           App.showToast(`Failed to create bridge: ${error.message}`, 'error')

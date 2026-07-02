@@ -12,6 +12,7 @@ export interface ResolvedBridge {
   publicChannelIds: string[]
   officerChannelIds: string[]
   loggerChannelIds: string[]
+  promoteChannelIds: string[]
 }
 
 /**
@@ -38,6 +39,7 @@ export class BridgeResolver {
   private officerChannelToBridge = new Map<string, string>()
   private loggerChannelToBridge = new Map<string, string>()
   private bridgeById = new Map<string, ResolvedBridge>()
+  private promoteChannelToBridge = new Map<string, string>()
 
   constructor(staticBridges: BridgeConfig[] | undefined) {
     this.staticBridges = staticBridges ?? []
@@ -70,6 +72,7 @@ export class BridgeResolver {
     this.officerChannelToBridge.clear()
     this.loggerChannelToBridge.clear()
     this.bridgeById.clear()
+    this.promoteChannelToBridge.clear()
 
     // First, add static bridges
     for (const bridge of this.staticBridges) {
@@ -98,6 +101,9 @@ export class BridgeResolver {
         }
         for (const channelId of this.dynamicConfig.getLoggerChannelIds(bridgeId)) {
           this.loggerChannelToBridge.set(channelId, bridgeId)
+        }
+        for (const channelId of this.dynamicConfig.getPromoteChannelIds(bridgeId)) {
+          this.promoteChannelToBridge.set(channelId, bridgeId)
         }
       }
     }
@@ -130,7 +136,8 @@ export class BridgeResolver {
         minecraftInstanceNames: [...bridge.minecraftInstanceNames],
         publicChannelIds: [...bridge.discord.publicChannelIds],
         officerChannelIds: [...bridge.discord.officerChannelIds],
-        loggerChannelIds: []
+        loggerChannelIds: [],
+        promoteChannelIds: []
       })
     }
 
@@ -142,7 +149,8 @@ export class BridgeResolver {
           minecraftInstanceNames: this.dynamicConfig.getMinecraftInstances(bridgeId),
           publicChannelIds: this.dynamicConfig.getPublicChannelIds(bridgeId),
           officerChannelIds: this.dynamicConfig.getOfficerChannelIds(bridgeId),
-          loggerChannelIds: this.dynamicConfig.getLoggerChannelIds(bridgeId)
+          loggerChannelIds: this.dynamicConfig.getLoggerChannelIds(bridgeId),
+          promoteChannelIds: this.dynamicConfig.getPromoteChannelIds(bridgeId)
         })
       }
     }
@@ -170,7 +178,8 @@ export class BridgeResolver {
     return (
       this.publicChannelToBridge.get(channelId) ??
       this.officerChannelToBridge.get(channelId) ??
-      this.loggerChannelToBridge.get(channelId)
+      this.loggerChannelToBridge.get(channelId) ??
+      this.promoteChannelToBridge.get(channelId)
     )
   }
 
@@ -179,10 +188,11 @@ export class BridgeResolver {
    * @param channelId The Discord channel ID to look up
    * @returns The channel type, or undefined if the channel is not part of any bridge
    */
-  public getChannelTypeForChannel(channelId: string): 'public' | 'officer' | 'logger' | undefined {
+  public getChannelTypeForChannel(channelId: string): 'public' | 'officer' | 'logger' | 'promote' | undefined {
     if (this.publicChannelToBridge.has(channelId)) return 'public'
     if (this.officerChannelToBridge.has(channelId)) return 'officer'
     if (this.loggerChannelToBridge.has(channelId)) return 'logger'
+    if (this.promoteChannelToBridge.has(channelId)) return 'promote'
     return undefined
   }
 
@@ -238,6 +248,21 @@ export class BridgeResolver {
 
     const bridge = this.getBridgeById(bridgeId)
     return bridge?.loggerChannelIds ?? []
+  }
+
+  /**
+   * Get all promote channel IDs for a specific bridge.
+   * If bridgeId is undefined and multi-bridge is disabled, returns empty array
+   * (caller should use legacy configuration).
+   * @param bridgeId - The bridge ID to get channels for
+   * @returns Array of promote channel IDs
+   */
+  public getPromoteChannelIds(bridgeId: string | undefined): string[] {
+    if (!this.isMultiBridgeEnabled()) return []
+    if (bridgeId === undefined) return []
+
+    const bridge = this.getBridgeById(bridgeId)
+    return bridge?.promoteChannelIds ?? []
   }
 
   /**

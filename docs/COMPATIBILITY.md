@@ -27,7 +27,7 @@ This is due to how sockets needs to be able to filter and rewrite events before 
 Officially maintained plugins are always supported and won't require any manual intervention when updating PATCH and
 MINOR versions. They are auto updated along the application.  
 Upon updating a major version, there is a chance `config.yaml` needs to be updated to continue using the plugin.  
-All official plugins are listed in `./src/plugins/` directory.
+All official plugins are listed in `./plugins/` directory.
 
 ## Community Maintained Plugins
 

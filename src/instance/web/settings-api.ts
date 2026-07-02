@@ -1,6 +1,5 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -9,11 +8,12 @@ import Duration from '../../utility/duration.js'
 
 import { Permission } from '../../common/application-event.js'
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 type Primitive = boolean | number | string
 type SettingObject = Record<string, Primitive | Primitive[] | Record<string, Primitive> | undefined>
 
-const PREFIX = '/api/settings'
+const PREFIX = '/api/bridges'
 
 function str(s: unknown, d = ''): string {
   if (typeof s === 'string') return s
@@ -76,10 +76,16 @@ export class SettingsApiHandler {
     const permission = this.verifyAuth(request, response)
     if (permission === null) return true
 
-    // POST /api/settings (create a new bridge)
+    // GET /api/bridges (list all bridges)
+    if (method === 'GET' && segments.length === 0) {
+      await this.handleBridgesList(response)
+      return true
+    }
+
+    // POST /api/bridges (create a new bridge)
     if (method === 'POST' && segments.length === 0) {
       if (permission < Permission.Admin) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
+        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
       const body = await this.readJsonBody(request as never, response)
@@ -88,57 +94,93 @@ export class SettingsApiHandler {
       return true
     }
 
-    // DELETE /api/settings/:bridgeId
+    // GET /api/bridges/:bridgeId (get bridge details)
+    if (method === 'GET' && segments.length === 1) {
+      if (permission < Permission.Owner) {
+        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
+        return true
+      }
+      await this.handleBridgeGet(response, segments[0])
+      return true
+    }
+
+    // DELETE /api/bridges/:bridgeId
     if (method === 'DELETE' && segments.length === 1) {
       if (permission < Permission.Admin) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
+        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
       await this.handleDelete(response, segments[0])
       return true
     }
 
-    // PUT /api/settings/:bridgeId/:category
-    if (method === 'PUT' && segments.length === 2) {
+    // GET /api/bridges/:bridgeId/settings
+    if (method === 'GET' && segments.length === 2 && segments[1] === 'settings') {
       if (permission < Permission.Owner) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
-        return true
-      }
-      const body = await this.readJsonBody(request as never, response)
-      if (body === undefined) return true
-      await this.handlePut(response, segments[0], segments[1], body as SettingObject)
-      return true
-    }
-
-    // GET /api/settings/:bridgeId
-    if (method === 'GET' && segments.length === 1) {
-      if (permission < Permission.Owner) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Forbidden' })
+        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
       await this.handleGet(response, segments[0])
       return true
     }
 
-    this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Not found' })
+    // PUT /api/bridges/:bridgeId/settings/:category
+    if (method === 'PUT' && segments.length === 3 && segments[1] === 'settings') {
+      if (permission < Permission.Owner) {
+        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
+        return true
+      }
+      const body = await this.readJsonBody(request as never, response)
+      if (body === undefined) return true
+      await this.handlePut(response, segments[0], segments[2], body as SettingObject)
+      return true
+    }
+
+    sendError(response, 'NOT_FOUND', 'Not found', 404)
     return true
   }
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig || !webConfig.signingSecret) return null
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)
     if (result.ok) return result.permission
-    this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+    sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
     return null
+  }
+
+  private async handleBridgesList(response: http.ServerResponse): Promise<void> {
+    try {
+      const bridgeConfigurations = this.application.core.bridgeConfigurations
+      const bridgeIds = bridgeConfigurations.getAllBridgeIds()
+      const bridges = await Promise.all(
+        bridgeIds.map(async (id) => {
+          const settings = bridgeConfigurations.getAllSettings(id)
+          return { id, ...settings }
+        })
+      )
+      sendSuccess(response, bridges)
+    } catch (e: unknown) {
+      sendError(response, 'INTERNAL_ERROR', e instanceof Error ? e.message : 'Failed to list bridges', 500)
+    }
+  }
+
+  private async handleBridgeGet(response: http.ServerResponse, bridgeId: string): Promise<void> {
+    const ids = this.application.core.bridgeConfigurations.getAllBridgeIds()
+    if (!ids.includes(bridgeId)) {
+      sendError(response, 'NOT_FOUND', 'Bridge not found', 404)
+      return
+    }
+    const settings = this.application.core.bridgeConfigurations.getAllSettings(bridgeId)
+    sendSuccess(response, { id: bridgeId, ...settings })
   }
 
   private async handleGet(response: http.ServerResponse, bridgeId: string): Promise<void> {
     const ids = this.application.core.bridgeConfigurations.getAllBridgeIds()
     if (!ids.includes(bridgeId)) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Bridge not found' })
+      sendError(response, 'NOT_FOUND', 'Bridge not found', 404)
       return
     }
 
@@ -149,6 +191,7 @@ export class SettingsApiHandler {
     for (const id of arr((categories.channels as SettingObject)?.publicChannelIds)) channelIds.add(id)
     for (const id of arr((categories.channels as SettingObject)?.officerChannelIds)) channelIds.add(id)
     for (const id of arr((categories.channels as SettingObject)?.loggerChannelIds)) channelIds.add(id)
+    for (const id of arr((categories.channels as SettingObject)?.promoteChannelIds)) channelIds.add(id)
     for (const id of arr((categories.rankup as SettingObject)?.notificationChannelIds)) channelIds.add(id)
 
     // Collect role IDs for name resolution
@@ -221,7 +264,7 @@ export class SettingsApiHandler {
       }
     }
 
-    this.sendJson(response, HttpStatusCode.Ok, {
+    sendSuccess(response, {
       bridgeId,
       channels: resolvedChannels,
       roles: resolvedRoles,
@@ -239,7 +282,7 @@ export class SettingsApiHandler {
   ): Promise<void> {
     const ids = this.application.core.bridgeConfigurations.getAllBridgeIds()
     if (!ids.includes(bridgeId)) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Bridge not found' })
+      sendError(response, 'NOT_FOUND', 'Bridge not found', 404)
       return
     }
 
@@ -251,6 +294,7 @@ export class SettingsApiHandler {
           cfg.setPublicChannelIds(bridgeId, arr(body.publicChannelIds))
           cfg.setOfficerChannelIds(bridgeId, arr(body.officerChannelIds))
           cfg.setLoggerChannelIds(bridgeId, arr(body.loggerChannelIds))
+          cfg.setPromoteChannelIds(bridgeId, arr(body.promoteChannelIds))
           break
         case 'instances':
           cfg.setMinecraftInstances(bridgeId, arr(body.minecraftInstances))
@@ -335,63 +379,62 @@ export class SettingsApiHandler {
           cfg.setRankupExcludedPlayers(bridgeId, arr(body.excludedPlayers))
           break
         default:
-          this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: `Unknown category: ${category}` })
+          sendError(response, 'NOT_FOUND', `Unknown category: ${category}`, 404)
           return
       }
 
-      this.sendJson(response, HttpStatusCode.Ok, { success: true })
+      sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to save settings for bridge %s category %s:', bridgeId, category, error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, { success: false, error: 'Failed to save settings' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to save settings', 500)
     }
   }
 
   private async handleCreateBridge(response: http.ServerResponse, body: { bridgeId?: unknown }): Promise<void> {
     const rawId = body?.bridgeId
     if (typeof rawId !== 'string' || rawId.trim().length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid bridgeId' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid bridgeId', 400)
       return
     }
 
     const bridgeId = rawId.trim().toLowerCase()
     if (bridgeId.length > 32) {
-      this.sendJson(response, HttpStatusCode.BadRequest, {
-        success: false,
-        error: 'bridgeId must be 32 characters or less'
-      })
+      sendError(response, 'VALIDATION_ERROR', 'bridgeId must be 32 characters or less', 400)
       return
     }
 
     if (!/^[a-z0-9_-]+$/.test(bridgeId)) {
-      this.sendJson(response, HttpStatusCode.BadRequest, {
-        success: false,
-        error: 'bridgeId can only contain lowercase letters, numbers, hyphens, and underscores'
-      })
+      sendError(
+        response,
+        'VALIDATION_ERROR',
+        'bridgeId can only contain lowercase letters, numbers, hyphens, and underscores',
+        400
+      )
       return
     }
 
     const existing = this.application.core.bridgeConfigurations.getAllBridgeIds()
     if (existing.includes(bridgeId)) {
-      this.sendJson(response, HttpStatusCode.Conflict, { success: false, error: `Bridge "${bridgeId}" already exists` })
+      sendError(response, 'CONFLICT', `Bridge "${bridgeId}" already exists`, 409)
       return
     }
 
     this.application.core.bridgeConfigurations.addBridgeId(bridgeId)
     await this.application.bridgeResolver.rebuildLookupMaps()
 
-    this.sendJson(response, HttpStatusCode.Ok, { success: true, bridgeId })
+    sendSuccess(response, { success: true, bridgeId })
   }
 
   private async handleDelete(response: http.ServerResponse, bridgeId: string): Promise<void> {
     const ids = this.application.core.bridgeConfigurations.getAllBridgeIds()
     if (!ids.includes(bridgeId)) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Bridge not found' })
+      sendError(response, 'NOT_FOUND', 'Bridge not found', 404)
       return
     }
 
     this.application.core.bridgeConfigurations.removeBridgeId(bridgeId)
     await this.application.bridgeResolver.rebuildLookupMaps()
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private async readJsonBody(
@@ -403,12 +446,12 @@ export class SettingsApiHandler {
       raw = await this.readBody(request)
     } catch (error: unknown) {
       this.logger.warn('Failed to read request body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Failed to read request body' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
       return undefined
     }
 
     if (raw.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing request body' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
       return undefined
     }
 
@@ -416,7 +459,7 @@ export class SettingsApiHandler {
       return JSON.parse(raw)
     } catch (error: unknown) {
       this.logger.warn('Invalid JSON body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON body' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
       return undefined
     }
   }
@@ -433,10 +476,5 @@ export class SettingsApiHandler {
       })
       request.on('error', reject)
     })
-  }
-
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status, { 'Content-Type': 'application/json' })
-    response.end(JSON.stringify(body))
   }
 }

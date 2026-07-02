@@ -125,7 +125,19 @@ export class Core extends Instance<InstanceType.Core> {
 
     this.disconnectLogger = new DisconnectLogger(this.databaseManager)
     this.statusHistory = new StatusHistory(this.databaseManager, this.logger)
-    this.pendingReviewManager = new PendingReviewManager(this.databaseManager)
+    this.pendingReviewManager = new PendingReviewManager(this.databaseManager, (type, data) => {
+      switch (type) {
+        case 'reviewAdded':
+          void application.emit('pendingReviewAdded', data as any)
+          break
+        case 'reviewRemoved':
+          void application.emit('pendingReviewRemoved', data as any)
+          break
+        case 'historyAppended':
+          void application.emit('pendingHistoryAppended', data as any)
+          break
+      }
+    })
 
     this.applicationConfigurations = new ApplicationConfigurations(this.configurationsManager)
     this.languageConfigurations = new LanguageConfigurations(this.configurationsManager)

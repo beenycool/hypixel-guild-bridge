@@ -96,7 +96,11 @@
     const dateCell =
       `<div>${App.escapeHtml(App.formatDate(entry.createdAt))}</div>` +
       `<div class="text-xs text-muted">${App.escapeHtml(App.formatRelativeTime(entry.createdAt))}</div>`
-    const playerCell = `<span class="text-mono text-sm">${App.escapeHtml(entry.name || App.uuidShort(entry.uuid))}</span>`
+    const avatarUrl = entry.uuid ? `https://cravatar.eu/helmavatar/${entry.uuid}/32.png` : ''
+    const avatarHtml = avatarUrl
+      ? `<img class="avatar" src="${avatarUrl}" alt="" loading="lazy" width="18" height="18" style="border-radius:50%;vertical-align:middle;margin-right:4px">`
+      : ''
+    const playerCell = `<span class="text-mono text-sm">${avatarHtml}${App.escapeHtml(entry.name || App.uuidShort(entry.uuid))}</span>`
     const actionCell = App.actionBadge(entry.action)
     const rankCell = renderRankChange(entry)
     const triggerCell = `<span class="text-mono text-sm text-secondary">${App.escapeHtml(entry.triggeredBy || '—')}</span>`

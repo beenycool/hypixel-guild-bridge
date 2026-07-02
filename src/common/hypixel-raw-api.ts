@@ -90,9 +90,8 @@ export class HypixelRawApi {
       throw new Error('Player has no SkyBlock profiles.')
     }
 
-    const profileData = profiles.find((p) => p.selected) ?? profiles[0] // Fallback to first if none selected? Source says "throw if no selected".
-
-    if (!profileData.selected) {
+    const profileData = profiles.find((p) => p.selected)
+    if (profileData == undefined) {
       throw new Error('Player does not have a selected profile.')
     }
 

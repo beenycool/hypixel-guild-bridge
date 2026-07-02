@@ -162,14 +162,13 @@ export class CommandsHeat {
     })
   }
 
-  private resolveType(type: HeatType): { expire: Duration; maxLimit: number; warnLimit: number; warnEvery: Duration } {
-    const common = { expire: CommandsHeat.ActionExpiresAfter, warnEvery: CommandsHeat.WarnEvery }
+  private resolveType(type: HeatType): { maxLimit: number; warnLimit: number } {
     switch (type) {
       case HeatType.Mute: {
-        return { ...common, ...CommandsHeat.resolveLimits(this.moderationConfig.getMutesPerDay()) }
+        return { ...CommandsHeat.resolveLimits(this.moderationConfig.getMutesPerDay()) }
       }
       case HeatType.Kick: {
-        return { ...common, ...CommandsHeat.resolveLimits(this.moderationConfig.getKicksPerDay()) }
+        return { ...CommandsHeat.resolveLimits(this.moderationConfig.getKicksPerDay()) }
       }
     }
 

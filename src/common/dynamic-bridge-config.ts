@@ -9,4 +9,5 @@ export interface DynamicBridgeConfig {
   getPublicChannelIds(bridgeId: string): string[]
   getOfficerChannelIds(bridgeId: string): string[]
   getLoggerChannelIds(bridgeId: string): string[]
+  getPromoteChannelIds(bridgeId: string): string[]
 }

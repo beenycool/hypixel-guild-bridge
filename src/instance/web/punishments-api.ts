@@ -1,6 +1,5 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -8,6 +7,7 @@ import { Permission } from '../../common/application-event.js'
 import type { SavedPunishment } from '../../core/moderation/punishments.js'
 
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 const PunishmentIdPattern = /^\/api\/punishments\/([^/]+)\/forgive$/
 
@@ -26,11 +26,11 @@ export class PunishmentsApiHandler {
   ) {}
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
-      this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
     return result.permission
@@ -47,7 +47,7 @@ export class PunishmentsApiHandler {
     if (permission === undefined) return true
 
     if (permission < Permission.Helper) {
-      this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+      sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
       return true
     }
 
@@ -107,30 +107,27 @@ export class PunishmentsApiHandler {
         })
       )
 
-      this.sendJson(response, HttpStatusCode.Ok, { punishments: enriched })
+      sendSuccess(response, { punishments: enriched })
     } catch (error: unknown) {
       this.logger.error('Failed to list punishments', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, {
-        success: false,
-        error: 'Failed to list punishments'
-      })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to list punishments', 500)
     }
   }
 
   private async handleForgive(idStr: string, response: http.ServerResponse): Promise<void> {
     const id = parseInt(idStr, 10)
     if (!Number.isFinite(id)) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid punishment id' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid punishment id', 400)
       return
     }
 
     const removed = this.application.core.forgivePunishment(id)
     if (!removed) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Punishment not found' })
+      sendError(response, 'NOT_FOUND', 'Punishment not found', 404)
       return
     }
 
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private parseQuery(queryPart: string | undefined): Record<string, string> {
@@ -143,14 +140,8 @@ export class PunishmentsApiHandler {
     return out
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status)
-    response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

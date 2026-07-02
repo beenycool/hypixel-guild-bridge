@@ -34,7 +34,7 @@ Make sure to check the new settings and apply back all your old configurations.
 Runtime-managed configuration is stored in the application database. The `./config/` directory is still used for local runtime files and backups.
 
 - You should back up `config.yaml` and your PostgreSQL database. The `./config/` directory is only needed for local runtime files and backups.
-- New installs must configure `database.url` or `DATABASE_URL` before runtime-managed state can be saved. If you still have data only in a legacy `config/users.sqlite` file from an older release, migrate that data to PostgreSQL using a **previous** bridge version that included SQLite migration tooling, then upgrade to this version.
+- New installs must configure `database.url` or `DATABASE_URL` before runtime-managed state can be saved. SQLite is no longer supported; all data must be in PostgreSQL.
 - If you change something, make sure all changes are **valid and will not break** the application in any unintentional.
 - You can safely delete any file there to reset a part of the application.
 
@@ -43,18 +43,3 @@ Runtime-managed configuration is stored in the application database. The `./conf
 There is a directory called `./plugins` at the root of the project. Move all plugins to this directory.
 Application will auto-detect and load them.  
 Only applications ending with `.ts` file extension and at the top of the directory will be loaded.
-
-## Migrate from 2.x to 3.x
-
-Breaking changes:
-
-- `config.yaml` has been reformatted. Check the new `config_example.yaml` and compare it with the old config file.
-- Version 3.x websocket is incompatible with older versions. You cannot connect the new version with the old one.
-- Chat Commands have been moved to their own instance in `config.yaml`. Only enable one instance when using websocket.
-- Project has been moved to ESM. Old plugins that still use commonjs will not work anymore.
-- The Minecraft bot and websocket have been stripped down to bare metal. Any plugins that use those features must be
-  updated accordingly.
-- The punishment system has been revised and now uses `./configs/` to save its state as a file. The `./configs/`
-  directory is now git-ignored.
-- Any unexpected errors during the launching phase will result in a shutdown with an exit code instead of sending a
-  notification.

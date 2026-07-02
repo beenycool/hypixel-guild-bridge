@@ -49,7 +49,7 @@ export function translateInstanceMessage(t: Translator, key: InstanceMessageType
       return t('instance.message.proxy-problem')
     }
     case InstanceMessageType.MinecraftRestarting: {
-      return t('instance.message.no-autoconnect')
+      return t('instance.message.restarting')
     }
     case InstanceMessageType.MinecraftGuildKicked: {
       return t('instance.message.guild-kicked')

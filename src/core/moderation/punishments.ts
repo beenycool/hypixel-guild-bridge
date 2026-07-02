@@ -1,5 +1,3 @@
-import fs from 'node:fs'
-
 import type { Logger } from 'log4js'
 
 import type Application from '../../application'
@@ -48,7 +46,6 @@ export default class Punishments {
 
   public async initialize(): Promise<void> {
     await this.load()
-    await this.migrateAnyOldData(this.application, this.logger)
   }
 
   public async load(): Promise<void> {
@@ -65,86 +62,6 @@ export default class Punishments {
       if (entry.id > maxId) maxId = entry.id
     }
     this.nextId = maxId + 1
-  }
-
-  private async migrateAnyOldData(application: Application, logger: Logger): Promise<void> {
-    interface OldEntry {
-      userName: string
-      userUuid?: string
-      till: number
-      reason: string
-    }
-
-    interface OldType {
-      mute: OldEntry[]
-      ban: OldEntry[]
-    }
-
-    async function findIdentifier(entry: OldEntry): Promise<UserIdentifier | undefined> {
-      if (entry.userUuid) {
-        return { originInstance: InstanceType.Minecraft, userId: entry.userUuid }
-      }
-
-      try {
-        const mojangProfile = await application.mojangApi.profileByUsername(entry.userName)
-        logger.debug(
-          `Found a mojang profile to username "${entry.userName}". Migrating the punishment to mojang uuid ${mojangProfile.id}`
-        )
-        return { originInstance: InstanceType.Minecraft, userId: mojangProfile.id }
-      } catch (error: unknown) {
-        logger.error(`Failed migrating a legacy punishment entry: ${JSON.stringify(entry)}`)
-        logger.warn('Entry will be entirely skipped. Manually re-add the entry if needed.')
-        logger.error(error)
-        return undefined
-      }
-    }
-
-    const path = application.getConfigFilePath('punishments.json')
-    if (!fs.existsSync(path)) return
-    logger.info('Found old punishments file. Migrating this file into the new system...')
-
-    const oldObject = JSON.parse(fs.readFileSync(path, 'utf8')) as OldType
-    const currentTime = Date.now()
-    const punishments: SavedPunishment[] = []
-    let total = 0
-
-    for (const entry of oldObject.mute) {
-      if (entry.till < currentTime) continue
-      total++
-
-      const identifier = await findIdentifier(entry)
-      if (identifier == undefined) continue
-      punishments.push({
-        ...identifier,
-        type: PunishmentType.Mute,
-        purpose: PunishmentPurpose.Manual,
-        till: entry.till,
-        reason: entry.reason,
-        createdAt: currentTime
-      })
-    }
-
-    for (const entry of oldObject.ban) {
-      if (entry.till < currentTime) continue
-      total++
-
-      const identifier = await findIdentifier(entry)
-      if (identifier == undefined) continue
-      punishments.push({
-        ...identifier,
-        type: PunishmentType.Ban,
-        purpose: PunishmentPurpose.Manual,
-        till: entry.till,
-        reason: entry.reason,
-        createdAt: currentTime
-      })
-    }
-
-    logger.info(`Successfully parsed ${punishments.length} legacy punishments out of ${total}`)
-    this.addEntries(punishments)
-
-    logger.debug('Deleting punishments legacy file...')
-    fs.rmSync(path)
   }
 
   public add(punishment: SavedPunishment): void {

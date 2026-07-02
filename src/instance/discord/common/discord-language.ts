@@ -21,7 +21,6 @@ export function translateNoPermission(
       if (bridgeId) {
         roles.push(
           ...application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
-          ...application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
           ...application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
         )
       }
@@ -33,10 +32,7 @@ export function translateNoPermission(
         ...application.core.discordConfigurations.getOwnerRoleIds()
       )
       if (bridgeId) {
-        roles.push(
-          ...application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
-          ...application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
-        )
+        roles.push(...application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId))
       }
       break
     }

@@ -5,9 +5,6 @@ import type Application from '../../application.js'
 
 export class SettingsWsEvents {
   private readonly subscribers = new Set<WebSocket>()
-  private readonly snapshots = new Map<string, string>()
-  private timer: NodeJS.Timeout | null = null
-  private static readonly DEFAULT_INTERVAL_MS = 3000
 
   constructor(
     private readonly application: Application,
@@ -23,67 +20,31 @@ export class SettingsWsEvents {
 
   public subscribe(socket: WebSocket): void {
     this.subscribers.add(socket)
+    this.sendSnapshot(socket)
   }
 
   public unsubscribe(socket: WebSocket): void {
     this.subscribers.delete(socket)
   }
 
-  public async tick(): Promise<number> {
-    if (this.subscribers.size === 0) return 0
-    let eventCount = 0
-    try {
-      const bridgeIds = this.application.core.bridgeConfigurations.getAllBridgeIds()
-      const cfg = this.application.core.bridgeConfigurations
-
-      for (const bridgeId of bridgeIds) {
-        const raw = JSON.stringify(cfg.getAllSettings(bridgeId))
-        const previous = this.snapshots.get(bridgeId)
-
-        if (previous === undefined) {
-          this.snapshots.set(bridgeId, raw)
-          continue
-        }
-
-        if (raw !== previous) {
-          this.snapshots.set(bridgeId, raw)
-          this.broadcast({
-            type: 'settings.configChanged',
-            data: { bridgeId, category: 'all', updatedBy: 'external' }
-          })
-          eventCount++
-        }
-      }
-
-      for (const bridgeId of this.snapshots.keys()) {
-        if (!bridgeIds.includes(bridgeId)) {
-          this.snapshots.delete(bridgeId)
-        }
-      }
-    } catch (error: unknown) {
-      this.logger.error('SettingsWsEvents tick failed', error)
-    }
-
-    return eventCount
-  }
-
-  public start(intervalMs: number = SettingsWsEvents.DEFAULT_INTERVAL_MS): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer)
-    }
-    this.timer = setInterval(() => {
-      this.tick().catch((error: unknown) => {
-        this.logger.error('SettingsWsEvents tick rejected', error)
-      })
-    }, intervalMs)
+  public start(): void {
+    // No-op: events are push-based via Application events
   }
 
   public stop(): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer)
-      this.timer = null
-    }
     this.subscribers.clear()
+  }
+
+  private sendSnapshot(socket: WebSocket): void {
+    const bridgeIds = this.application.core.bridgeConfigurations.getAllBridgeIds()
+    const cfg = this.application.core.bridgeConfigurations
+    const data: Record<string, Record<string, unknown>> = {}
+
+    for (const bridgeId of bridgeIds) {
+      data[bridgeId] = cfg.getAllSettings(bridgeId)
+    }
+
+    this.send(socket, { type: 'settings.snapshot', data })
   }
 
   private broadcast(message: { type: string; data: unknown }): void {
@@ -100,6 +61,15 @@ export class SettingsWsEvents {
         this.logger.warn('Failed to send settings websocket payload', error)
         this.subscribers.delete(socket)
       }
+    }
+  }
+
+  private send(socket: WebSocket, message: { type: string; data: unknown }): void {
+    if (socket.readyState !== WebSocket.OPEN) return
+    try {
+      socket.send(JSON.stringify(message))
+    } catch (error: unknown) {
+      this.logger.warn('Failed to send settings websocket payload', error)
     }
   }
 }

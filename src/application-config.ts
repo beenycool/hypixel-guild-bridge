@@ -143,7 +143,7 @@ export interface BridgeConfig {
 }
 
 export interface ApplicationConfig {
-  version: 2 // typeof ApplicationConfigVersion
+  version: typeof ApplicationConfigVersion
   general: GeneralConfig
   discord: StaticDiscordConfig
   prometheus: PrometheusConfig

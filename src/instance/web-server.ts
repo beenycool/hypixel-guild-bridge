@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises'
 import http from 'node:http'
 import path from 'node:path'
 
-import { HttpStatusCode } from 'axios'
 import type { RawData } from 'ws'
 import { WebSocket, WebSocketServer } from 'ws'
 
@@ -15,6 +14,7 @@ import { InstanceType, MinecraftSendChatPriority, Permission } from '../common/a
 import { Instance } from '../common/instance.js'
 
 import { buildTokenSet, verifyToken } from './web/auth.js'
+import { sendSuccess, sendError } from './web/api-utils.js'
 import { GuildApiHandler } from './web/guild-api.js'
 import { InactivityApiHandler } from './web/inactivity-api.js'
 import { InstanceApiHandler } from './web/instance-api.js'
@@ -124,10 +124,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       void this.handleHttpRequest(request, response).catch((error: unknown) => {
         this.logger.error('Failed to handle web request', error)
         if (!response.headersSent) {
-          this.sendJson(response, HttpStatusCode.InternalServerError, {
-            success: false,
-            error: 'Internal server error'
-          })
+          sendError(response, 'INTERNAL_ERROR', 'Internal server error', 500)
           return
         }
         response.end()
@@ -187,7 +184,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private async handleHttpRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
     const route = request.url?.split('?')[0]
     if (!route) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid route' })
+      sendError(response, 'NOT_FOUND', 'Invalid route', 404)
       return
     }
 
@@ -202,19 +199,13 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       const healthToken = process.env.HEALTH_TOKEN
       if (healthToken) {
         const provided = request.headers['authorization']?.replace('Bearer ', '') ?? ''
-        if (
-          provided.length !== healthToken.length ||
-          !timingSafeEqual(Buffer.from(provided), Buffer.from(healthToken))
-        ) {
-          this.sendJson(response, HttpStatusCode.Unauthorized, { error: 'Unauthorized' })
+        if (provided !== healthToken) {
+          sendError(response, 'UNAUTHORIZED', 'Unauthorized', 401)
           return
         }
       }
 
-      this.sendJson(response, HttpStatusCode.Ok, {
-        success: true,
-        uptime: Date.now() - this.startTime
-      })
+      sendSuccess(response, { uptime: Date.now() - this.startTime })
       return
     }
 
@@ -227,11 +218,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       const healthToken = process.env.HEALTH_TOKEN
       if (healthToken) {
         const provided = request.headers['authorization']?.replace('Bearer ', '') ?? ''
-        if (
-          provided.length !== healthToken.length ||
-          !timingSafeEqual(Buffer.from(provided), Buffer.from(healthToken))
-        ) {
-          this.sendJson(response, HttpStatusCode.Unauthorized, { error: 'Unauthorized' })
+        if (provided !== healthToken) {
+          sendError(response, 'UNAUTHORIZED', 'Unauthorized', 401)
           return
         }
       }
@@ -246,7 +234,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
             ?.currentStatus() ?? 'unknown'
       }))
 
-      this.sendJson(response, HttpStatusCode.Ok, {
+      sendSuccess(response, {
         status: 'ok',
         uptime: Date.now() - this.startTime,
         version: PackageJson.version,
@@ -314,7 +302,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       return
     }
 
-    if (route.startsWith('/api/settings')) {
+    if (route.startsWith('/api/bridges')) {
       await this.settingsApi.handle(request, response)
       return
     }
@@ -331,7 +319,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
           ? `https://${process.env.HEROKU_APP_NAME}.herokuapp.com`
           : `http://localhost:${process.env.PORT}`)
 
-      this.sendJson(response, HttpStatusCode.Ok, { url })
+      sendSuccess(response, { url })
       return
     }
 
@@ -344,21 +332,21 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       const authHeader = request.headers.authorization
       const result = verifyToken(buildTokenSet(this.config), authHeader)
       if (!result.ok) {
-        this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+        sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
         return
       }
 
       const permissionName = Permission[result.permission].toLowerCase()
-      const body: Record<string, unknown> = { success: true, permission: permissionName }
+      const body: Record<string, unknown> = { permission: permissionName }
       if (result.userId) {
         body.userId = result.userId
       }
-      this.sendJson(response, HttpStatusCode.Ok, body)
+      sendSuccess(response, body)
       return
     }
 
     if (route.startsWith('/api/')) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid API route' })
+      sendError(response, 'NOT_FOUND', 'Invalid API route', 404)
       return
     }
 
@@ -366,7 +354,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       return
     }
 
-    this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Invalid route' })
+    sendError(response, 'NOT_FOUND', 'Invalid route', 404)
   }
 
   private async serveStatic(route: string, response: http.ServerResponse): Promise<boolean> {
@@ -390,7 +378,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       const content = await readFile(filePath)
       response.setHeader('Content-Type', contentType)
       response.setHeader('Cache-Control', cacheControl)
-      response.writeHead(HttpStatusCode.Ok)
+      response.writeHead(200)
       response.end(content)
       return true
     } catch (error: unknown) {
@@ -426,38 +414,42 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     try {
       const body = await this.readBody(request)
       if (!body) {
-        this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing request body' })
+        sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
         return
       }
 
       const parsed: unknown = JSON.parse(body)
       if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid payload format' })
+        sendError(response, 'VALIDATION_ERROR', 'Invalid payload format', 400)
         return
       }
       payload = parsed as WebMessagePayload
     } catch (error: unknown) {
       this.logger.warn('Invalid /message payload', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON payload' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON payload', 400)
       return
     }
 
     const result = await this.dispatchMessage(payload)
-    this.sendJson(response, result.status, result.body)
+    if (result.body.success) {
+      sendSuccess(response, { success: true })
+    } else {
+      sendError(response, 'INTERNAL_ERROR', result.body.error ?? 'Unknown error', result.status)
+    }
   }
 
   private async dispatchMessage(payload: WebMessagePayload): Promise<DispatchResult> {
     const auth = verifyToken(buildTokenSet(this.config), undefined, payload.token)
     if (!auth.ok) {
       return {
-        status: HttpStatusCode.Unauthorized,
+        status: 401,
         body: { success: false, error: 'Invalid token' }
       }
     }
 
     if (payload.data == undefined || typeof payload.data !== 'string' || payload.data.trim().length === 0) {
       return {
-        status: HttpStatusCode.BadRequest,
+        status: 400,
         body: { success: false, error: 'Missing message data' }
       }
     }
@@ -466,7 +458,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     const target = this.resolveTargetInstances(payload.instance)
     if (target.error) {
       return {
-        status: HttpStatusCode.BadRequest,
+        status: 400,
         body: { success: false, error: target.error }
       }
     }
@@ -474,13 +466,13 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     try {
       await this.application.sendMinecraft(target.instances, MinecraftSendChatPriority.Default, undefined, message)
       return {
-        status: HttpStatusCode.Ok,
+        status: 200,
         body: { success: true }
       }
     } catch (error: unknown) {
       this.logger.error('Failed to send web message to Minecraft', error)
       return {
-        status: HttpStatusCode.InternalServerError,
+        status: 500,
         body: { success: false, error: 'Failed to send message' }
       }
     }
@@ -664,15 +656,9 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     return payload
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: Record<string, unknown>): void {
-    response.setHeader('Content-Type', 'application/json')
-    response.writeHead(status)
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 
   private sendWebSocket(socket: WebSocket, message: WebSocketAckMessage): void {

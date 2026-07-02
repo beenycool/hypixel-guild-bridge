@@ -50,6 +50,7 @@ export default class AutoLinker extends Instance<InstanceType.Utility> {
       for (const id of bridge.publicChannelIds) configuredChannelIds.add(id)
       for (const id of bridge.officerChannelIds) configuredChannelIds.add(id)
       for (const id of bridge.loggerChannelIds) configuredChannelIds.add(id)
+      for (const id of bridge.promoteChannelIds) configuredChannelIds.add(id)
     }
 
     if (configuredChannelIds.size === 0) return

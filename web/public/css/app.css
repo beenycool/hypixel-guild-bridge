@@ -15,6 +15,17 @@
   --accent-gold-dim: rgba(251, 191, 36, 0.15);
   --accent-cyan: #22d3ee;
   --accent-cyan-dim: rgba(34, 211, 238, 0.15);
+  --color-good: #43b581;
+  --color-info: #5865f2;
+  --color-error: #f04747;
+  --color-warning: #faa61a;
+  --bg-primary: #0a0e14;
+  --bg-secondary: #111720;
+  --bg-tertiary: #1a2430;
+  --border-color: #2a3744;
+  --status-online: #43b581;
+  --status-offline: #f04747;
+  --status-connecting: #faa61a;
   --status-success: #34d399;
   --status-warning: #f59e0b;
   --status-danger: #f43f5e;
@@ -319,6 +330,33 @@ body {
   .nav-right {
     margin-left: auto;
   }
+}
+
+/* ===== Status indicator ===== */
+.status-indicator {
+  display: inline-block;
+  font-size: 12px;
+  margin-left: 8px;
+  transition: color 0.3s;
+}
+.status-unknown {
+  color: var(--text-secondary);
+}
+.status-online {
+  color: var(--status-online);
+}
+.status-offline {
+  color: var(--status-offline);
+}
+.status-connecting {
+  color: var(--status-connecting);
+}
+
+/* ===== Avatar ===== */
+.avatar {
+  border-radius: 50%;
+  vertical-align: middle;
+  object-fit: cover;
 }
 
 /* ===== Cards ===== */

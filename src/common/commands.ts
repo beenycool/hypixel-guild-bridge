@@ -10,6 +10,7 @@ import type { Logger } from 'log4js'
 import type Application from '../application.js'
 
 import type { ChatEvent, InstanceType, Permission } from './application-event.js'
+import type { CommandApiCache } from './command-api-cache.js'
 import type EventHelper from './event-helper.js'
 import type UnexpectedErrorHandler from './unexpected-error-handler.js'
 import type { DiscordUser } from './user'
@@ -34,6 +35,8 @@ export abstract class ChatCommandHandler {
 
 export interface ChatCommandContext {
   app: Application
+
+  apiCache: CommandApiCache
 
   eventHelper: EventHelper<InstanceType.Commands>
   logger: Logger

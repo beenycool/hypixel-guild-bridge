@@ -1,12 +1,12 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 const QotdPrefix = '/api/qotd'
 
@@ -17,11 +17,11 @@ export class QotdApiHandler {
   ) {}
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
-      this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
     return result.permission
@@ -40,7 +40,7 @@ export class QotdApiHandler {
     if (permission === undefined) return true
 
     if (permission < Permission.Owner) {
-      this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+      sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
       return true
     }
 
@@ -75,7 +75,7 @@ export class QotdApiHandler {
       }
     }
 
-    this.sendJson(response, HttpStatusCode.Ok, {
+    sendSuccess(response, {
       enabled,
       channelId: channelId,
       channelName
@@ -99,15 +99,12 @@ export class QotdApiHandler {
       } else if (channelId === null) {
         this.application.core.discordConfigurations.setQotdChannelId(undefined)
       } else {
-        this.sendJson(response, HttpStatusCode.BadRequest, {
-          success: false,
-          error: 'channelId must be a string or null'
-        })
+        sendError(response, 'VALIDATION_ERROR', 'channelId must be a string or null', 400)
         return
       }
     }
 
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
@@ -116,18 +113,18 @@ export class QotdApiHandler {
       raw = await this.readBody(request)
     } catch (error: unknown) {
       this.logger.warn('Failed to read request body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Failed to read request body' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
       return undefined
     }
     if (raw.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing request body' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
       return undefined
     }
     try {
       return JSON.parse(raw)
     } catch (error: unknown) {
       this.logger.warn('Invalid JSON body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON body' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
       return undefined
     }
   }
@@ -146,14 +143,8 @@ export class QotdApiHandler {
     })
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status)
-    response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

@@ -48,8 +48,8 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
   constructor(application: Application) {
     super(application, 'hypixel-updates', InstanceType.Utility)
 
-    this.pollInterval = HypixelUpdates.resolvePollInterval(this.application.getHypixelUpdatesConfig())
-    this.alphaInterval = HypixelUpdates.resolveAlphaInterval(this.application.getHypixelUpdatesConfig())
+    this.pollInterval = HypixelUpdates.resolvePollInterval(this.application.config.hypixelUpdates)
+    this.alphaInterval = HypixelUpdates.resolveAlphaInterval(this.application.config.hypixelUpdates)
 
     setIntervalAsync(
       async () => {
@@ -76,7 +76,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
   }
 
   private async pollUpdates(): Promise<void> {
-    const config = this.application.getHypixelUpdatesConfig()
+    const config = this.application.config.hypixelUpdates
     if (!config?.enabled) return
 
     if (this.isFlagEnabled(config.hypixelNews)) {
@@ -109,7 +109,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
   }
 
   private async checkHypixelNews(firstRun = false): Promise<void> {
-    const config = this.application.getHypixelUpdatesConfig()
+    const config = this.application.config.hypixelUpdates
     if (!config?.enabled || !this.isFlagEnabled(config.hypixelNews)) return
 
     const [newsItems, skyblockItems] = await Promise.all([
@@ -137,7 +137,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
   }
 
   private async checkStatusUpdates(): Promise<void> {
-    const config = this.application.getHypixelUpdatesConfig()
+    const config = this.application.config.hypixelUpdates
     if (!config?.enabled || !this.isFlagEnabled(config.statusUpdates)) return
 
     const items = await this.fetchRss('https://status.hypixel.net/history.rss')
@@ -172,7 +172,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
   }
 
   private async checkSkyblockVersion(): Promise<void> {
-    const config = this.application.getHypixelUpdatesConfig()
+    const config = this.application.config.hypixelUpdates
     if (!config?.enabled || !this.isFlagEnabled(config.skyblockVersion)) return
 
     const { data } = await httpClient.get<{ version?: string }>(
@@ -196,7 +196,7 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
   }
 
   private async checkAlphaPlayerCount(): Promise<void> {
-    const config = this.application.getHypixelUpdatesConfig()
+    const config = this.application.config.hypixelUpdates
     if (!config?.enabled || !this.isFlagEnabled(config.alphaPlayerCount)) return
 
     const response = await MinecraftPing({

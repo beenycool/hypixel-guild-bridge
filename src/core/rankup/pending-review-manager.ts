@@ -29,7 +29,10 @@ export class PendingReviewManager {
   private nextReviewId = 1
   private nextHistoryId = 1
 
-  constructor(private readonly databaseManager: DatabaseManager) {
+  constructor(
+    private readonly databaseManager: DatabaseManager,
+    private readonly onEvent?: (type: string, data: any) => void
+  ) {
     this.databaseManager.registerCleaner(() => this.pruneHistory())
   }
 
@@ -77,6 +80,7 @@ export class PendingReviewManager {
       notifiedAt: undefined
     }
     this.reviews.set(review.id, review)
+    this.onEvent?.('reviewAdded', { bridgeId, review })
 
     this.databaseManager.enqueueWrite(`saving rankup review ${bridgeId}:${uuid}`, async (database) => {
       await database.query(
@@ -118,17 +122,26 @@ export class PendingReviewManager {
   }
 
   public removeReview(id: number): void {
+    const review = this.reviews.get(id)
     this.reviews.delete(id)
+    if (review !== undefined) {
+      this.onEvent?.('reviewRemoved', { bridgeId: review.bridgeId, id: review.id })
+    }
     this.databaseManager.enqueueWrite(`removing rankup review ${id}`, async (database) => {
       await database.query('DELETE FROM "rankupPendingReviews" WHERE "id" = $1', [id])
     })
   }
 
   public removeReviewByUuid(bridgeId: string, uuid: string): void {
+    const toDelete: number[] = []
     for (const review of this.reviews.values()) {
       if (review.bridgeId === bridgeId && review.uuid === uuid) {
-        this.reviews.delete(review.id)
+        toDelete.push(review.id)
       }
+    }
+    for (const id of toDelete) {
+      this.reviews.delete(id)
+      this.onEvent?.('reviewRemoved', { bridgeId, id })
     }
 
     this.databaseManager.enqueueWrite(`removing rankup review ${bridgeId}:${uuid}`, async (database) => {
@@ -141,6 +154,7 @@ export class PendingReviewManager {
     for (const review of this.reviews.values()) {
       if (review.bridgeId === bridgeId && !keep.has(review.uuid)) {
         this.reviews.delete(review.id)
+        this.onEvent?.('reviewRemoved', { bridgeId, id: review.id })
       }
     }
 
@@ -189,6 +203,7 @@ export class PendingReviewManager {
       createdAt: Math.floor(Date.now() / 1000)
     }
     this.history.push(entry)
+    this.onEvent?.('historyAppended', { bridgeId, entry })
 
     this.databaseManager.enqueueWrite(`saving rankup history ${bridgeId}:${uuid}`, async (database) => {
       await database.query(

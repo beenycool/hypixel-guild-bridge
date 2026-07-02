@@ -59,7 +59,7 @@ export default {
       return
     }
 
-    const webConfig = context.application.getWebConfig()
+    const webConfig = context.application.config.web
     if (!webConfig?.signingSecret) {
       await interaction.reply({ content: 'Web server is not configured.', ephemeral: true })
       return

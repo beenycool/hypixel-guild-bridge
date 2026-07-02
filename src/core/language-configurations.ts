@@ -17,7 +17,6 @@ import { DefaultDarkAuctionMessage, DefaultStarfallMessage } from '../common/con
 
 export enum ApplicationLanguages {
   English = 'en',
-  German = 'de',
   Arabic = 'ar'
 }
 

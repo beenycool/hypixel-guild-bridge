@@ -1,6 +1,5 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -8,6 +7,7 @@ import { Permission } from '../../common/application-event.js'
 import type { InactivityEntry } from '../../core/users/inactivity.js'
 
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 const InactivityPrefix = '/api/inactivity'
 
@@ -21,11 +21,11 @@ export class InactivityApiHandler {
     request: http.IncomingMessage,
     response: http.ServerResponse
   ): { permission: Permission; userId?: string } | undefined {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
-      this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
     return { permission: result.permission, userId: result.userId }
@@ -45,7 +45,7 @@ export class InactivityApiHandler {
 
     if (method === 'GET' && pathPart === InactivityPrefix) {
       if (auth.permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleList(response)
@@ -61,7 +61,7 @@ export class InactivityApiHandler {
       const approveMatch = pathPart.match(/^\/api\/inactivity\/([^/]+)\/approve$/)
       if (approveMatch) {
         if (auth.permission < Permission.Helper) {
-          this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+          sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
           return true
         }
         await this.handleApprove(approveMatch[1], response)
@@ -71,7 +71,7 @@ export class InactivityApiHandler {
       const rejectMatch = pathPart.match(/^\/api\/inactivity\/([^/]+)\/reject$/)
       if (rejectMatch) {
         if (auth.permission < Permission.Helper) {
-          this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+          sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
           return true
         }
         await this.handleReject(rejectMatch[1], response)
@@ -109,13 +109,10 @@ export class InactivityApiHandler {
           }
         })
       )
-      this.sendJson(response, HttpStatusCode.Ok, { requests })
+      sendSuccess(response, { requests })
     } catch (error: unknown) {
       this.logger.error('Failed to list inactivity entries', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, {
-        success: false,
-        error: 'Failed to list inactivity entries'
-      })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to list inactivity entries', 500)
     }
   }
 
@@ -134,15 +131,15 @@ export class InactivityApiHandler {
     }
 
     if (typeof username !== 'string' || username.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid username' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid username', 400)
       return
     }
     if (typeof reason !== 'string' || reason.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid reason' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid reason', 400)
       return
     }
     if (typeof durationDays !== 'number' || !Number.isFinite(durationDays) || durationDays < 1) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid durationDays' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid durationDays', 400)
       return
     }
 
@@ -151,10 +148,7 @@ export class InactivityApiHandler {
       const profile = await this.application.mojangApi.profileByUsername(username)
       uuid = profile.id
     } catch {
-      this.sendJson(response, HttpStatusCode.BadRequest, {
-        success: false,
-        error: 'Could not resolve Minecraft username'
-      })
+      sendError(response, 'VALIDATION_ERROR', 'Could not resolve Minecraft username', 400)
       return
     }
 
@@ -168,34 +162,31 @@ export class InactivityApiHandler {
         reason,
         expiresAt
       })
-      this.sendJson(response, HttpStatusCode.Ok, { success: true })
+      sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to create inactivity entry', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, {
-        success: false,
-        error: 'Failed to create inactivity entry'
-      })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to create inactivity entry', 500)
     }
   }
 
   private async handleApprove(uuid: string, response: http.ServerResponse): Promise<void> {
     const entry = this.application.core.inactivity.getActiveByUuid(uuid)
     if (!entry) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Inactivity request not found' })
+      sendError(response, 'NOT_FOUND', 'Inactivity request not found', 404)
       return
     }
     this.application.core.inactivity.removeByUuid(uuid)
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private async handleReject(uuid: string, response: http.ServerResponse): Promise<void> {
     const entry = this.application.core.inactivity.getActiveByUuid(uuid)
     if (!entry) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Inactivity request not found' })
+      sendError(response, 'NOT_FOUND', 'Inactivity request not found', 404)
       return
     }
     this.application.core.inactivity.removeByUuid(uuid)
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
@@ -204,18 +195,18 @@ export class InactivityApiHandler {
       raw = await this.readBody(request)
     } catch (error: unknown) {
       this.logger.warn('Failed to read request body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Failed to read request body' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
       return undefined
     }
     if (raw.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing request body' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
       return undefined
     }
     try {
       return JSON.parse(raw)
     } catch (error: unknown) {
       this.logger.warn('Invalid JSON body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON body' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
       return undefined
     }
   }
@@ -234,14 +225,8 @@ export class InactivityApiHandler {
     })
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status)
-    response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

@@ -98,22 +98,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.config.general.openrouterModel
   }
 
-  public getStatsChannelsConfig(): ApplicationConfig['statsChannels'] {
-    return this.config.statsChannels
-  }
-
-  public getVerificationConfig(): ApplicationConfig['verification'] {
-    return this.config.verification
-  }
-
-  public getGuildRequirementsConfig(): ApplicationConfig['guildRequirements'] {
-    return this.config.guildRequirements
-  }
-
-  public getInactivityConfig(): ApplicationConfig['inactivity'] {
-    return this.config.inactivity
-  }
-
   public getSkyblockEventsConfig(bridgeId?: string): ApplicationConfig['skyblockEvents'] {
     const staticConfig = this.config.skyblockEvents
 
@@ -136,30 +120,18 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return merged
   }
 
-  public getHypixelUpdatesConfig(): ApplicationConfig['hypixelUpdates'] {
-    return this.config.hypixelUpdates
-  }
-
-  public getWebConfig(): ApplicationConfig['web'] {
-    return this.config.web
-  }
-
   public getDatabaseConfig(): DatabaseConfig | undefined {
     return this.config.database
-  }
-
-  public getRootDirectory(): string {
-    return this.rootDirectory
   }
 
   public readonly logger: Logger
   private readonly errorHandler: UnexpectedErrorHandler
   private readonly shutdownListeners: (() => void | Promise<void>)[] = []
 
-  private readonly rootDirectory
+  public readonly rootDirectory: string
   private readonly configsDirectory
   private readonly backupDirectory
-  private readonly config: Readonly<ApplicationConfig>
+  public readonly config: Readonly<ApplicationConfig>
 
   public readonly discordInstance: DiscordInstance
   public readonly minecraftManager: MinecraftManager
@@ -235,9 +207,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.autoLinker = new AutoLinker(this)
   }
 
-  /** Optional Aurora API key used by some plugins */
   public get auroraApiKey(): string | undefined {
-    // Prefer environment variable; fallback to undefined (not all configs include this key)
     return process.env.AURORA_API_KEY
   }
 

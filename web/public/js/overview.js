@@ -115,7 +115,7 @@
 
   const loadBridgeCards = async () => {
     try {
-      const res = await App.apiGet('/api/rankup/bridges')
+      const res = await App.apiGet('/api/bridges')
       bridges = res && Array.isArray(res.bridges) ? res.bridges : []
       renderSummaryStats(bridges)
       renderBridgeCards()
@@ -192,7 +192,7 @@
     }
     setLoading(systemStatusElement)
     try {
-      const res = await App.apiGet(`/api/rankup/status?bridgeId=${encodeURIComponent(bridgeId)}`)
+      const res = await App.apiGet(`/api/status?bridgeId=${encodeURIComponent(bridgeId)}`)
       renderSystemStatus(res || {})
     } catch (error) {
       setEmpty(systemStatusElement, `Failed to load status: ${error.message}`)

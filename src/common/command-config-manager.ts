@@ -61,24 +61,6 @@ export interface CommandAuditLogEntry {
 }
 
 /**
- * Migrate numeric permission levels in a set of command configs.
- * Old Admin (3) is now Owner (3) and Admin is (4).
- * Since Owner didn't exist before, any stored '3' must be bumped to '4'.
- * @param configs - The command configs to migrate
- * @returns Whether any changes were made
- */
-function migratePermissionConfigs(configs: Record<string, CommandConfig>): boolean {
-  let didChange = false
-  for (const config of Object.values(configs)) {
-    if (config.permission === 3) {
-      config.permission = Permission.Admin
-      didChange = true
-    }
-  }
-  return didChange
-}
-
-/**
  * Manages command configurations and persist them to disk
  */
 export class CommandConfigManager {
@@ -95,20 +77,6 @@ export class CommandConfigManager {
     const logger: Logger = Logger4Js.getLogger('CommandConfig')
     this.configManager = new ConfigManager(application, logger, configPath, CommandConfigManager.DefaultConfig)
     this.application = application
-    this.migratePermissions()
-  }
-
-  /**
-   * Migrate numeric permission levels after Owner was added.
-   */
-  private migratePermissions(): void {
-    if (
-      migratePermissionConfigs(this.configManager.data.discord) ||
-      migratePermissionConfigs(this.configManager.data.minecraft)
-    ) {
-      this.configManager.markDirty()
-      this.save()
-    }
   }
 
   /**

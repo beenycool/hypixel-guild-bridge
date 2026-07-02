@@ -73,10 +73,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_publicChannelIds`)
     this.configuration.delete(`${bridgeId}_officerChannelIds`)
     this.configuration.delete(`${bridgeId}_loggerChannelIds`)
+    this.configuration.delete(`${bridgeId}_promoteChannelIds`)
     this.configuration.delete(`${bridgeId}_minecraftInstances`)
     this.configuration.delete(`${bridgeId}_helperRoleIds`)
     this.configuration.delete(`${bridgeId}_ownerRoleIds`)
-    this.configuration.delete(`${bridgeId}_adminRoleIds`) // legacy cleanup
+
     this.configuration.delete(`${bridgeId}_alwaysReplyReaction`)
     this.configuration.delete(`${bridgeId}_enforceVerification`)
     this.configuration.delete(`${bridgeId}_textToImage`)
@@ -138,8 +139,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_rankupDemotionRules`)
     this.configuration.delete(`${bridgeId}_rankupExcludedRanks`)
     this.configuration.delete(`${bridgeId}_rankupExcludedPlayers`)
-    // Legacy guild chaos (plugin removed); keep delete so old keys are purged with the bridge.
-    this.configuration.delete(`${bridgeId}_guildChaos`)
 
     // Notify listeners that a bridge was removed so utilities can cleanup memory
     if (this.onChange) {
@@ -196,6 +195,20 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   /**
+   * Get promote channel IDs for a specific bridge
+   */
+  public getPromoteChannelIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_promoteChannelIds`, [])
+  }
+
+  /**
+   * Set promote channel IDs for a specific bridge
+   */
+  public setPromoteChannelIds(bridgeId: string, channelIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_promoteChannelIds`, channelIds)
+  }
+
+  /**
    * Get Minecraft instance names for a specific bridge
    */
   public getMinecraftInstances(bridgeId: string): string[] {
@@ -233,15 +246,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get helper role IDs for a specific bridge
    */
   public getHelperRoleIds(bridgeId: string): string[] {
-    const helper = this.configuration.getStringArray(`${bridgeId}_helperRoleIds`, [])
-    const officer = this.configuration.getStringArray(`${bridgeId}_officerRoleIds`, [])
-    if (officer.length > 0) {
-      const merged = [...new Set([...helper, ...officer])]
-      this.configuration.setStringArray(`${bridgeId}_helperRoleIds`, merged)
-      this.configuration.delete(`${bridgeId}_officerRoleIds`)
-      return merged
-    }
-    return helper
+    return this.configuration.getStringArray(`${bridgeId}_helperRoleIds`, [])
   }
 
   /**
@@ -255,15 +260,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    * Get owner role IDs for a specific bridge
    */
   public getOwnerRoleIds(bridgeId: string): string[] {
-    const ownerRoleIds = this.configuration.getStringArray(`${bridgeId}_ownerRoleIds`, [])
-    if (ownerRoleIds.length === 0) {
-      const legacyAdminRoleIds = this.configuration.getStringArray(`${bridgeId}_adminRoleIds`, [])
-      if (legacyAdminRoleIds.length > 0) {
-        this.setOwnerRoleIds(bridgeId, legacyAdminRoleIds)
-        return legacyAdminRoleIds
-      }
-    }
-    return ownerRoleIds
+    return this.configuration.getStringArray(`${bridgeId}_ownerRoleIds`, [])
   }
 
   /**
@@ -1098,7 +1095,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       channels: {
         publicChannelIds: channels,
         officerChannelIds: officerChannels,
-        loggerChannelIds: loggerChannels
+        loggerChannelIds: loggerChannels,
+        promoteChannelIds: this.getPromoteChannelIds(bridgeId)
       },
       instances: {
         minecraftInstances: this.getMinecraftInstances(bridgeId)

@@ -108,9 +108,13 @@
 
     const notified = review.notifiedAt == undefined ? '' : `<span class="badge badge-info">Notified</span>`
 
+    const avatarUrl = review.uuid ? `https://cravatar.eu/helmavatar/${review.uuid}/32.png` : ''
+    const avatarHtml = avatarUrl
+      ? `<img class="avatar" src="${avatarUrl}" alt="" loading="lazy" width="20" height="20" style="border-radius:50%;vertical-align:middle;margin-right:6px">`
+      : ''
     card.innerHTML = `
       <div class="card-header">
-        <span class="text-mono text-sm">${App.escapeHtml(review.name || App.uuidShort(review.uuid))}</span>
+        <span class="text-mono text-sm">${avatarHtml}${App.escapeHtml(review.name || App.uuidShort(review.uuid))}</span>
         ${App.actionBadge(review.action)}
       </div>
       <div class="card-body">

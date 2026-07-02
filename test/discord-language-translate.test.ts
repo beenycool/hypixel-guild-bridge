@@ -30,7 +30,6 @@ interface FakeApp {
     }
     bridgeConfigurations: {
       getHelperRoleIds: () => string[]
-      getOfficerRoleIds: () => string[]
       getOwnerRoleIds: () => string[]
     }
   }
@@ -48,7 +47,6 @@ function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: 
       },
       bridgeConfigurations: {
         getHelperRoleIds: () => [],
-        getOfficerRoleIds: () => [],
         getOwnerRoleIds: () => []
       }
     },

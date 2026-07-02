@@ -376,6 +376,25 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       }
     }
 
+    if (
+      (event.type === GuildPlayerEventType.Promote || event.type === GuildPlayerEventType.Demote) &&
+      event.bridgeId !== undefined
+    ) {
+      const promoteChannelIds = this.application.core.bridgeConfigurations.getPromoteChannelIds(event.bridgeId)
+      if (promoteChannelIds.length > 0) {
+        const clickableUsername = hyperlink(username, event.user.profileLink())
+        const withoutPrefix = event.message.replaceAll(/^-+/g, '')
+        const newMessage = escapeMarkdown(withoutPrefix).replaceAll(escapeMarkdown(username), clickableUsername)
+        const promoteEmbed = {
+          url: event.user.profileLink(),
+          description: newMessage,
+          color: event.color
+        } satisfies APIEmbed
+
+        await this.sendEmbedToChannels({ ...event, type: undefined }, promoteChannelIds, promoteEmbed)
+      }
+    }
+
     if (event.type === GuildPlayerEventType.Join || event.type === GuildPlayerEventType.Leave) {
       const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
       if (bridgeId !== undefined) {

@@ -27,7 +27,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
   constructor(clientInstance: DiscordInstance) {
     super(clientInstance)
 
-    this.updateInterval = StatsChannels.resolveUpdateInterval(this.application.getStatsChannelsConfig())
+    this.updateInterval = StatsChannels.resolveUpdateInterval(this.application.config.statsChannels)
 
     setIntervalAsync(() => this.updateChannels(), {
       delay: this.updateInterval,
@@ -51,7 +51,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
   }
 
   private async updateChannels(): Promise<void> {
-    const config = this.application.getStatsChannelsConfig()
+    const config = this.application.config.statsChannels
     if (!config?.enabled) return
     if (config.channels.length === 0) {
       this.logger.warn('Stats channels enabled but no channels are configured.')

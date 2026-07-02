@@ -34,7 +34,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
   constructor(clientInstance: DiscordInstance) {
     super(clientInstance)
 
-    const config = this.application.getVerificationConfig()
+    const config = this.application.config.verification
     if (config?.autoRoleUpdater.enabled) {
       const interval = VerificationRoleManager.resolveUpdateInterval(config)
       setIntervalAsync(() => this.updateAll(), {
@@ -46,7 +46,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
 
   override registerEvents(client: Client): void {
     client.on('clientReady', () => {
-      const config = this.application.getVerificationConfig()
+      const config = this.application.config.verification
       if (!config?.autoRoleUpdater.enabled) return
 
       void this.updateAll().catch(this.errorHandler.promiseCatch('updating verification roles for all users'))
@@ -61,7 +61,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
       hypixelGuild?: HypixelGuild
     } = {}
   ): Promise<UpdateSummary> {
-    const config = this.application.getVerificationConfig()
+    const config = this.application.config.verification
     if (!config) return emptyUpdateSummary()
 
     const client = this.clientInstance.getClient()
@@ -129,7 +129,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
   }
 
   public async updateAll(options: { guild?: Guild } = {}): Promise<UpdateAllSummary> {
-    const config = this.application.getVerificationConfig()
+    const config = this.application.config.verification
     if (!config) return { ...emptyUpdateSummary(), updatedUsers: 0, failedUsers: 0 }
 
     const links = this.application.core.verification.getAllLinks()

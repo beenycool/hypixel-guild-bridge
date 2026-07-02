@@ -207,10 +207,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
         return Permission.Owner
       }
 
-      if (roles.some((role) => bridgeConfig.getOfficerRoleIds(bridgeId).includes(role))) {
-        return Permission.Officer
-      }
-
       if (roles.some((role) => bridgeConfig.getHelperRoleIds(bridgeId).includes(role))) {
         return Permission.Helper
       }

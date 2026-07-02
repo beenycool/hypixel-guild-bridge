@@ -1,12 +1,12 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import { Permission } from '../../common/application-event.js'
 import type Application from '../../application.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 interface BridgeListEntry {
   bridgeId: string
@@ -56,13 +56,13 @@ export class RankupApiHandler {
   ) {}
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig || !webConfig.signingSecret) return null
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)
     if (result.ok) return result.permission
-    this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+    sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
     return null
   }
 
@@ -82,7 +82,7 @@ export class RankupApiHandler {
     if (permission === null) return true
 
     if (permission < Permission.Helper) {
-      this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+      sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
       return true
     }
 
@@ -126,7 +126,7 @@ export class RankupApiHandler {
         return true
       }
       if (method === 'PUT' && permission < Permission.Owner) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       if (method === 'PUT') {
@@ -180,14 +180,14 @@ export class RankupApiHandler {
     if (pathPart.startsWith(`${PREFIX}/pending/`)) {
       const segments = pathPart.slice(`${PREFIX}/pending/`.length).split('/')
       if (segments.length !== 2) {
-        this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Not found' })
+        sendError(response, 'NOT_FOUND', 'Not found', 404)
         return true
       }
       const [idRaw, action] = segments
       const id = Number(idRaw)
       this.logger.debug('Pending review action: path=%s, idRaw=%s, parsedId=%d, action=%s', pathPart, idRaw, id, action)
       if (!Number.isInteger(id) || id <= 0) {
-        this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid review id' })
+        sendError(response, 'VALIDATION_ERROR', 'Invalid review id', 400)
         return true
       }
       if (method !== 'POST') {
@@ -202,7 +202,7 @@ export class RankupApiHandler {
         await this.handleReject(response, id)
         return true
       }
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Not found' })
+      sendError(response, 'NOT_FOUND', 'Not found', 404)
       return true
     }
 
@@ -222,19 +222,19 @@ export class RankupApiHandler {
       lastCheckAt: this.lastCheckByBridge.get(bridgeId) ?? null
     }))
 
-    this.sendJson(response, HttpStatusCode.Ok, { bridges })
+    sendSuccess(response, { bridges })
   }
 
   private async handlePendingList(response: http.ServerResponse, bridgeId: string): Promise<void> {
     const reviews: PendingReview[] = this.application.core.pendingReviewManager.getReviews(bridgeId)
     const reviewsWithNames = await this.resolveNames(reviews)
-    this.sendJson(response, HttpStatusCode.Ok, { reviews: reviewsWithNames })
+    sendSuccess(response, { reviews: reviewsWithNames })
   }
 
   private async handleHistory(response: http.ServerResponse, bridgeId: string, limit: number): Promise<void> {
     const history: RankupHistoryEntry[] = this.application.core.pendingReviewManager.getHistory(bridgeId, limit)
     const historyWithNames = await this.resolveNames(history)
-    this.sendJson(response, HttpStatusCode.Ok, { history: historyWithNames })
+    sendSuccess(response, { history: historyWithNames })
   }
 
   private async handleGetRules(response: http.ServerResponse, bridgeId: string): Promise<void> {
@@ -265,7 +265,7 @@ export class RankupApiHandler {
       excludedRanks: cfg.getRankupExcludedRanks(bridgeId),
       excludedPlayers: cfg.getRankupExcludedPlayers(bridgeId)
     }
-    this.sendJson(response, HttpStatusCode.Ok, rules)
+    sendSuccess(response, rules)
   }
 
   private async handlePutRules(
@@ -278,7 +278,7 @@ export class RankupApiHandler {
 
     const error = this.validateRulesBody(body)
     if (error !== null) {
-      this.sendError(response, HttpStatusCode.BadRequest, error)
+      sendError(response, 'VALIDATION_ERROR', error, 400)
       return
     }
 
@@ -293,13 +293,13 @@ export class RankupApiHandler {
     cfg.setRankupExcludedRanks(bridgeId, rules.excludedRanks)
     cfg.setRankupExcludedPlayers(bridgeId, rules.excludedPlayers)
 
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private async handleGuildRanks(response: http.ServerResponse, bridgeId: string): Promise<void> {
     const instances = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
     if (instances.length === 0) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'No Minecraft instances configured for this bridge')
+      sendError(response, 'VALIDATION_ERROR', 'No Minecraft instances configured for this bridge', 400)
       return
     }
 
@@ -310,7 +310,7 @@ export class RankupApiHandler {
     const botUuid = mcInstance?.uuid()
 
     if (!botUuid) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'Minecraft instance is not connected or UUID is unavailable')
+      sendError(response, 'INTERNAL_ERROR', 'Minecraft instance is not connected or UUID is unavailable', 502)
       return
     }
 
@@ -319,15 +319,15 @@ export class RankupApiHandler {
       const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
       if (!guild) {
         this.logger.info(`Guild not found for bridge ${bridgeId} (bot UUID: ${botUuid}) — returning empty ranks`)
-        this.sendJson(response, HttpStatusCode.Ok, { ranks: [] })
+        sendSuccess(response, { ranks: [] })
         return
       }
       const rankNames = guild.ranks.map((r) => r.name)
       this.logger.debug(`Fetched ${rankNames.length} guild ranks for bridge ${bridgeId}: [${rankNames.join(', ')}]`)
-      this.sendJson(response, HttpStatusCode.Ok, { ranks: rankNames })
+      sendSuccess(response, { ranks: rankNames })
     } catch (error: unknown) {
       this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId} (bot UUID: ${botUuid}):`, error)
-      this.sendError(response, HttpStatusCode.BadGateway, 'Failed to fetch guild ranks')
+      sendError(response, 'INTERNAL_ERROR', 'Failed to fetch guild ranks', 502)
     }
   }
 
@@ -341,7 +341,7 @@ export class RankupApiHandler {
     const usernameRaw = query.username
     const username = Array.isArray(usernameRaw) ? usernameRaw[0] : usernameRaw
     if (!username || username.length === 0) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'Missing or empty username')
+      sendError(response, 'VALIDATION_ERROR', 'Missing or empty username', 400)
       return
     }
 
@@ -350,7 +350,7 @@ export class RankupApiHandler {
       .then((p) => p.id)
       .catch(() => undefined)
     if (!uuid) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'Invalid username')
+      sendError(response, 'VALIDATION_ERROR', 'Invalid username', 400)
       return
     }
 
@@ -358,20 +358,20 @@ export class RankupApiHandler {
 
     const instances = bridgeConfig.getMinecraftInstances(bridgeId)
     if (instances.length === 0) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'No Minecraft instances configured for this bridge')
+      sendError(response, 'VALIDATION_ERROR', 'No Minecraft instances configured for this bridge', 400)
       return
     }
 
     const botName = instances[0]
     const guild = await this.application.hypixelApi.getGuild('player', botName, {}).catch(() => undefined)
     if (!guild) {
-      this.sendError(response, HttpStatusCode.BadGateway, 'Could not fetch guild data')
+      sendError(response, 'INTERNAL_ERROR', 'Could not fetch guild data', 502)
       return
     }
 
     const member = guild.members.find((m) => m.uuid === uuid)
     if (!member) {
-      this.sendError(response, HttpStatusCode.NotFound, 'Player is not in the guild')
+      sendError(response, 'NOT_FOUND', 'Player is not in the guild', 404)
       return
     }
 
@@ -403,7 +403,7 @@ export class RankupApiHandler {
       rankPriority
     )
 
-    this.sendJson(response, HttpStatusCode.Ok, {
+    sendSuccess(response, {
       uuid,
       username,
       currentRank: member.rank,
@@ -420,13 +420,13 @@ export class RankupApiHandler {
     if (body === undefined) return
 
     if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'Invalid body')
+      sendError(response, 'VALIDATION_ERROR', 'Invalid body', 400)
       return
     }
 
     const bridgeId = (body as { bridgeId?: unknown }).bridgeId
     if (typeof bridgeId !== 'string' || bridgeId.length === 0) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'Missing or empty bridgeId')
+      sendError(response, 'VALIDATION_ERROR', 'Missing or empty bridgeId', 400)
       return
     }
 
@@ -436,11 +436,11 @@ export class RankupApiHandler {
     })
 
     this.lastCheckByBridge.set(bridgeId, Date.now())
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private handleStatus(response: http.ServerResponse, bridgeId: string): void {
-    this.sendJson(response, HttpStatusCode.Ok, {
+    sendSuccess(response, {
       running: false,
       lastCheckAt: this.lastCheckByBridge.get(bridgeId) ?? null,
       nextCheckAt: null
@@ -451,16 +451,16 @@ export class RankupApiHandler {
     this.logger.debug('handleApprove: id=%d', id)
     const review = this.application.core.pendingReviewManager.getReview(id)
     if (review === undefined) {
-      this.sendError(response, HttpStatusCode.NotFound, 'Review not found')
+      sendError(response, 'NOT_FOUND', 'Review not found', 404)
       return
     }
 
     try {
       await this.application.core.rankupManager.approveReview(review.bridgeId, id)
-      this.sendJson(response, HttpStatusCode.Ok, { success: true })
+      sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to approve review %d: %s', id, error)
-      this.sendError(response, HttpStatusCode.InternalServerError, 'Failed to approve review')
+      sendError(response, 'INTERNAL_ERROR', 'Failed to approve review', 500)
     }
   }
 
@@ -468,7 +468,7 @@ export class RankupApiHandler {
     this.logger.debug('handleReject: id=%d', id)
     const review = this.application.core.pendingReviewManager.getReview(id)
     if (review === undefined) {
-      this.sendError(response, HttpStatusCode.NotFound, 'Review not found')
+      sendError(response, 'NOT_FOUND', 'Review not found', 404)
       return
     }
 
@@ -481,7 +481,7 @@ export class RankupApiHandler {
       'web'
     )
     this.application.core.pendingReviewManager.removeReview(id)
-    this.sendJson(response, HttpStatusCode.Ok, { success: true })
+    sendSuccess(response, { success: true })
   }
 
   private validateRulesBody(body: unknown): string | null {
@@ -613,7 +613,7 @@ export class RankupApiHandler {
     const raw = query.bridgeId
     const value = Array.isArray(raw) ? raw[0] : raw
     if (value === undefined || value.length === 0) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'Missing or empty bridgeId')
+      sendError(response, 'VALIDATION_ERROR', 'Missing or empty bridgeId', 400)
       return null
     }
     return value
@@ -628,12 +628,12 @@ export class RankupApiHandler {
       raw = await this.readBody(request)
     } catch (error: unknown) {
       this.logger.warn('Failed to read request body', error)
-      this.sendError(response, HttpStatusCode.BadRequest, 'Failed to read request body')
+      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
       return undefined
     }
 
     if (raw.length === 0) {
-      this.sendError(response, HttpStatusCode.BadRequest, 'Missing request body')
+      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
       return undefined
     }
 
@@ -642,7 +642,7 @@ export class RankupApiHandler {
       parsed = JSON.parse(raw)
     } catch (error: unknown) {
       this.logger.warn('Invalid JSON body', error)
-      this.sendError(response, HttpStatusCode.BadRequest, 'Invalid JSON body')
+      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
       return undefined
     }
 
@@ -663,17 +663,8 @@ export class RankupApiHandler {
     })
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status, { 'Content-Type': 'application/json' })
-    response.end(JSON.stringify(body))
-  }
-
-  private sendError(response: http.ServerResponse, status: number, error: string): void {
-    this.sendJson(response, status, { success: false, error })
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

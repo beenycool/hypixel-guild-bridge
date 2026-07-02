@@ -1,5 +1,6 @@
 import type { Status } from './connectable-instance.js'
 import type { DiscordUser, MinecraftUser, User } from './user'
+import type { PendingReview, RankupHistoryEntry } from '../core/rankup/pending-review-manager.js'
 
 /*
  All events must be immutable.
@@ -93,6 +94,10 @@ export interface ApplicationEvents {
    * Event emitted when a bridge-specific configuration changes dynamically
    */
   bridgeConfigChanged: Readonly<{ bridgeId: string; key: string; value: unknown }>
+
+  pendingReviewAdded: Readonly<{ bridgeId: string; review: PendingReview }>
+  pendingReviewRemoved: Readonly<{ bridgeId: string; id: number }>
+  pendingHistoryAppended: Readonly<{ bridgeId: string; entry: RankupHistoryEntry }>
 }
 
 /**

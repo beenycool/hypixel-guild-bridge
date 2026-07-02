@@ -5,8 +5,6 @@ import prettier from 'eslint-plugin-prettier/recommended'
 import eslintPluginUnicorn from 'eslint-plugin-unicorn'
 import tseslint from 'typescript-eslint'
 import { jsdoc } from 'eslint-plugin-jsdoc'
-//TODO: add functionality one day when it is supported
-// requireExtensions from 'eslint-plugin-require-extensions'
 
 /**
  * Credit: https://github.com/Callanplays (Discord: callanftw)

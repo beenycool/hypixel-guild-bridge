@@ -24,6 +24,10 @@
         </div>
       </div>
     </div>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/ws.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/common.js"></script>
     <script>
       'use strict'
@@ -57,9 +61,13 @@
                 : ''
 
             // Player info card
+            const avatarId = player.uuid || player.displayName || username
             resultEl.innerHTML +=
               '<div class="card mb-md">' +
               '<div class="card-header"><h2>' +
+              '<img class="avatar" src="https://cravatar.eu/helmavatar/' +
+              avatarId +
+              '/32.png" alt="" loading="lazy" width="24" height="24" style="border-radius:50%;vertical-align:middle;margin-right:8px">' +
               App.escapeHtml(player.displayName || username) +
               ' ' +
               onlineBadge +

@@ -56,13 +56,11 @@ export class LinksSanitizer {
             if (typeof contentType !== 'string') return '(link)'
 
             const type = contentType.split('/')[0]
-            if (type === 'image') return this.describeImage(part)
-            if (type === 'video') return '(video)'
-            if (contentType.includes('application/pdf')) return '(pdf)'
-            return '(link)'
-          })
-          .catch(() => '(link)')
-      )
+            if (type === 'image' || type === 'video') {
+              const description = await this.describeMedia(part, type as 'image' | 'video')
+              newMessage.push(description)
+            } else if (contentType.includes('application/pdf')) newMessage.push('(pdf)')
+            else newMessage.push('(link)')
     }
 
     const results = await Promise.all(promises)
@@ -73,10 +71,13 @@ export class LinksSanitizer {
     return parts.join(' ')
   }
 
-  private async describeImage(imageUrl: string): Promise<string> {
-    if (!this.openrouterApiKey) return '(image)'
+  private async describeMedia(url: string, type: 'image' | 'video'): Promise<string> {
+    if (!this.openrouterApiKey) return `(${type})`
 
     try {
+      const contentBlock =
+        type === 'video' ? { type: 'video_url', video_url: { url } } : { type: 'image_url', image_url: { url } }
+
       const response = await httpClient.post(
         'https://openrouter.ai/api/v1/chat/completions',
         {
@@ -84,10 +85,7 @@ export class LinksSanitizer {
           messages: [
             {
               role: 'user',
-              content: [
-                { type: 'text', text: 'Describe this image concisely in under 80 characters.' },
-                { type: 'image_url', image_url: { url: imageUrl } }
-              ]
+              content: [{ type: 'text', text: `Describe this ${type} concisely in under 80 characters.` }, contentBlock]
             }
           ],
           max_tokens: 100,
@@ -104,7 +102,7 @@ export class LinksSanitizer {
       )
 
       const content: unknown = response.data?.choices?.[0]?.message?.content
-      if (typeof content !== 'string' || content.length === 0) return '(image)'
+      if (typeof content !== 'string' || content.length === 0) return `(${type})`
 
       const maxLength = 80
       if (content.length <= maxLength) return content
@@ -113,7 +111,7 @@ export class LinksSanitizer {
       const truncateAt = breakIndex > 0 ? breakIndex : maxLength - 3
       return `${content.slice(0, truncateAt)}...`
     } catch {
-      return '(image)'
+      return `(${type})`
     }
   }
 }

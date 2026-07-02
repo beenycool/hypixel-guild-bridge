@@ -241,7 +241,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     if (messageEvent.attachments.size > 0) {
       for (const [, attachment] of messageEvent.attachments) {
-        if (attachment.contentType?.includes('image') === true) {
+        if (attachment.contentType?.includes('image') === true || attachment.contentType?.includes('video') === true) {
           const link = attachment.url
           content += ` ${link}`
         } else {

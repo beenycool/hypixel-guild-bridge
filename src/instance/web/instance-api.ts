@@ -1,12 +1,12 @@
 import type http from 'node:http'
 
-import { HttpStatusCode } from 'axios'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
 import { InstanceSignalType, MinecraftSendChatPriority, Permission } from '../../common/application-event.js'
 
 import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess, sendError } from './api-utils.js'
 
 const InstancePrefix = '/api/instance'
 
@@ -17,11 +17,11 @@ export class InstanceApiHandler {
   ) {}
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.getWebConfig()
+    const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
-      this.sendJson(response, HttpStatusCode.Unauthorized, { success: false, error: 'Invalid token' })
+      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
     return result.permission
@@ -45,7 +45,7 @@ export class InstanceApiHandler {
     // POST /api/instance/execute
     if (pathPart === `${InstancePrefix}/execute`) {
       if (permission < Permission.Helper) {
-        this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
       await this.handleExecute(request, response)
@@ -58,7 +58,7 @@ export class InstanceApiHandler {
     const rest = pathPart.slice(InstancePrefix.length + 1)
     const segments = rest.split('/')
     if (segments.length !== 2) {
-      this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Not found' })
+      sendError(response, 'NOT_FOUND', 'Not found', 404)
       return true
     }
 
@@ -68,20 +68,20 @@ export class InstanceApiHandler {
       case 'disconnect':
       case 'reconnect': {
         if (permission < Permission.Helper) {
-          this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+          sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
           return true
         }
         break
       }
       case 'restart': {
         if (permission < Permission.Admin) {
-          this.sendJson(response, HttpStatusCode.Forbidden, { success: false, error: 'Insufficient permissions' })
+          sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
           return true
         }
         break
       }
       default: {
-        this.sendJson(response, HttpStatusCode.NotFound, { success: false, error: 'Unknown action' })
+        sendError(response, 'NOT_FOUND', 'Unknown action', 404)
         return true
       }
     }
@@ -100,10 +100,7 @@ export class InstanceApiHandler {
       .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
 
     if (!instance) {
-      this.sendJson(response, HttpStatusCode.NotFound, {
-        success: false,
-        error: `Instance "${instanceName}" not found`
-      })
+      sendError(response, 'NOT_FOUND', `Instance "${instanceName}" not found`, 404)
       return
     }
 
@@ -122,13 +119,10 @@ export class InstanceApiHandler {
           break
         }
       }
-      this.sendJson(response, HttpStatusCode.Ok, { success: true })
+      sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to %s instance %s', action, instanceName, error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, {
-        success: false,
-        error: `Failed to ${action} instance`
-      })
+      sendError(response, 'INTERNAL_ERROR', `Failed to ${action} instance`, 500)
     }
   }
 
@@ -139,7 +133,7 @@ export class InstanceApiHandler {
     const { command, instance: instanceName } = body as { command?: unknown; instance?: unknown }
 
     if (typeof command !== 'string' || command.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing or invalid command' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing or invalid command', 400)
       return
     }
 
@@ -149,10 +143,7 @@ export class InstanceApiHandler {
     if (typeof instanceName === 'string' && instanceName.length > 0) {
       const match = instances.find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
       if (!match) {
-        this.sendJson(response, HttpStatusCode.NotFound, {
-          success: false,
-          error: `Instance "${instanceName}" not found`
-        })
+        sendError(response, 'NOT_FOUND', `Instance "${instanceName}" not found`, 404)
         return
       }
       targetInstances = [match.instanceName]
@@ -162,13 +153,10 @@ export class InstanceApiHandler {
 
     try {
       await this.application.sendMinecraft(targetInstances, MinecraftSendChatPriority.High, undefined, command)
-      this.sendJson(response, HttpStatusCode.Ok, { success: true })
+      sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to execute command on instance', error)
-      this.sendJson(response, HttpStatusCode.InternalServerError, {
-        success: false,
-        error: 'Failed to execute command'
-      })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to execute command', 500)
     }
   }
 
@@ -178,18 +166,18 @@ export class InstanceApiHandler {
       raw = await this.readBody(request)
     } catch (error: unknown) {
       this.logger.warn('Failed to read request body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Failed to read request body' })
+      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
       return undefined
     }
     if (raw.length === 0) {
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Missing request body' })
+      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
       return undefined
     }
     try {
       return JSON.parse(raw)
     } catch (error: unknown) {
       this.logger.warn('Invalid JSON body', error)
-      this.sendJson(response, HttpStatusCode.BadRequest, { success: false, error: 'Invalid JSON body' })
+      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
       return undefined
     }
   }
@@ -208,14 +196,8 @@ export class InstanceApiHandler {
     })
   }
 
-  private sendJson(response: http.ServerResponse, status: number, body: object): void {
-    response.writeHead(status)
-    response.setHeader('Content-Type', 'application/json')
-    response.end(JSON.stringify(body))
-  }
-
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
     response.setHeader('Allow', allowed.join(', '))
-    this.sendJson(response, HttpStatusCode.MethodNotAllowed, { success: false, error: 'Method not allowed' })
+    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

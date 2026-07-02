@@ -57,7 +57,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
   }
 
   private async handleJoinRequest(event: GuildPlayerEvent): Promise<void> {
-    const config = this.application.getGuildRequirementsConfig()
+    const config = this.application.config.guildRequirements
     if (!config?.enabled) return
 
     const mojangProfile = event.user.mojangProfile() as ReturnType<typeof event.user.mojangProfile> | undefined

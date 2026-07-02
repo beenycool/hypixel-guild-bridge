@@ -4,20 +4,8 @@ import { WebSocket } from 'ws'
 import type Application from '../../application.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
 
-type Subscriber = WebSocket
-
-interface BridgeSnapshot {
-  reviewIds: Set<number>
-  reviews: Map<number, PendingReview>
-  historyIds: Set<number>
-  history: Map<number, RankupHistoryEntry>
-}
-
 export class RankupWsEvents {
-  private readonly subscribers = new Set<Subscriber>()
-  private readonly snapshots = new Map<string, BridgeSnapshot>()
-  private timer: NodeJS.Timeout | null = null
-  private static readonly DEFAULT_INTERVAL_MS = 1000
+  private readonly subscribers = new Set<WebSocket>()
   private static readonly HISTORY_SNAPSHOT_LIMIT = 50
 
   constructor(
@@ -27,138 +15,70 @@ export class RankupWsEvents {
     void this.application.on('bridgeConfigChanged', (event) => {
       this.broadcast({ type: 'rankup.bridgeConfigChanged', data: { bridgeId: event.bridgeId } })
     })
+
+    void this.application.on('pendingReviewAdded', async (event) => {
+      if (this.subscribers.size === 0) return
+      const data = { ...event.review } as PendingReview & { name?: string }
+      try {
+        const profile = await this.application.mojangApi.profileByUuid(data.uuid)
+        data.name = profile.name
+      } catch {
+        // UUID not resolvable
+      }
+      this.broadcast({ type: 'rankup.reviewAdded', data })
+    })
+
+    void this.application.on('pendingReviewRemoved', (event) => {
+      this.broadcast({ type: 'rankup.reviewRemoved', data: { bridgeId: event.bridgeId, id: event.id } })
+    })
+
+    void this.application.on('pendingHistoryAppended', async (event) => {
+      if (this.subscribers.size === 0) return
+      const data = { ...event.entry } as RankupHistoryEntry & { name?: string }
+      try {
+        const profile = await this.application.mojangApi.profileByUuid(data.uuid)
+        data.name = profile.name
+      } catch {
+        // UUID not resolvable
+      }
+      this.broadcast({ type: 'rankup.historyAppended', data })
+    })
   }
 
   public subscribe(socket: WebSocket): void {
     this.subscribers.add(socket)
+    this.sendSnapshot(socket)
   }
 
   public unsubscribe(socket: WebSocket): void {
     this.subscribers.delete(socket)
   }
 
-  public async tick(): Promise<number> {
-    if (this.subscribers.size === 0) return 0
-    let eventCount = 0
-    try {
-      const bridgeIds = this.application.core.bridgeConfigurations.getAllBridgeIds()
-      const pendingReviewManager = this.application.core.pendingReviewManager
-
-      for (const bridgeId of bridgeIds) {
-        const reviews = pendingReviewManager.getReviews(bridgeId)
-        const history = pendingReviewManager.getHistory(bridgeId, RankupWsEvents.HISTORY_SNAPSHOT_LIMIT)
-
-        const newReviewIds = new Set<number>()
-        const newReviews = new Map<number, PendingReview>()
-        for (const review of reviews) {
-          newReviewIds.add(review.id)
-          newReviews.set(review.id, review)
-        }
-
-        const newHistoryIds = new Set<number>()
-        const newHistory = new Map<number, RankupHistoryEntry>()
-        for (const entry of history) {
-          newHistoryIds.add(entry.id)
-          newHistory.set(entry.id, entry)
-        }
-
-        const previous = this.snapshots.get(bridgeId)
-        if (previous === undefined) {
-          this.snapshots.set(bridgeId, {
-            reviewIds: newReviewIds,
-            reviews: newReviews,
-            historyIds: newHistoryIds,
-            history: newHistory
-          })
-          continue
-        }
-
-        const newReviewEntries = []
-        for (const review of newReviews.values()) {
-          if (!previous.reviewIds.has(review.id)) {
-            newReviewEntries.push(review)
-          }
-        }
-
-        const newHistoryEntries = []
-        for (const entry of newHistory.values()) {
-          if (!previous.historyIds.has(entry.id)) {
-            newHistoryEntries.push(entry)
-          }
-        }
-
-        const resolveNames = async <T extends { uuid: string }>(items: T[]): Promise<(T & { name?: string })[]> => {
-          const uuids = [...new Set(items.map((r) => r.uuid))]
-          const names = new Map<string, string>()
-          await Promise.all(
-            uuids.map(async (uuid) => {
-              try {
-                const profile = await this.application.mojangApi.profileByUuid(uuid)
-                names.set(uuid, profile.name)
-              } catch {
-                // UUID not resolvable
-              }
-            })
-          )
-          return items.map((item) => ({ ...item, name: names.get(item.uuid) }))
-        }
-
-        const namedReviews = await resolveNames(newReviewEntries)
-        for (const review of namedReviews) {
-          this.broadcast({ type: 'rankup.reviewAdded', data: review })
-          eventCount++
-        }
-
-        for (const id of previous.reviewIds) {
-          if (!newReviewIds.has(id)) {
-            this.broadcast({ type: 'rankup.reviewRemoved', data: { id, bridgeId } })
-            eventCount++
-          }
-        }
-
-        const namedHistory = await resolveNames(newHistoryEntries)
-        for (const entry of namedHistory) {
-          this.broadcast({ type: 'rankup.historyAppended', data: entry })
-          eventCount++
-        }
-
-        this.snapshots.set(bridgeId, {
-          reviewIds: newReviewIds,
-          reviews: newReviews,
-          historyIds: newHistoryIds,
-          history: newHistory
-        })
-      }
-
-      for (const bridgeId of this.snapshots.keys()) {
-        if (!bridgeIds.includes(bridgeId)) {
-          this.snapshots.delete(bridgeId)
-        }
-      }
-    } catch (error: unknown) {
-      this.logger.error('RankupWsEvents tick failed', error)
-    }
-
-    return eventCount
+  public tick(): number {
+    return 0
   }
 
-  public start(intervalMs: number = RankupWsEvents.DEFAULT_INTERVAL_MS): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer)
-    }
-    this.timer = setInterval(() => {
-      this.tick().catch((error: unknown) => {
-        this.logger.error('RankupWsEvents tick rejected', error)
-      })
-    }, intervalMs)
+  public start(): void {
+    // No-op: events are push-based via Application events
   }
 
   public stop(): void {
-    if (this.timer !== null) {
-      clearInterval(this.timer)
-      this.timer = null
-    }
     this.subscribers.clear()
+  }
+
+  private sendSnapshot(socket: WebSocket): void {
+    const bridgeIds = this.application.core.bridgeConfigurations.getAllBridgeIds()
+    const pendingReviewManager = this.application.core.pendingReviewManager
+    const bridges: Record<string, { pending: PendingReview[]; history: RankupHistoryEntry[] }> = {}
+
+    for (const bridgeId of bridgeIds) {
+      bridges[bridgeId] = {
+        pending: pendingReviewManager.getReviews(bridgeId),
+        history: pendingReviewManager.getHistory(bridgeId, RankupWsEvents.HISTORY_SNAPSHOT_LIMIT)
+      }
+    }
+
+    this.send(socket, { type: 'rankup.snapshot', data: { bridges } })
   }
 
   private broadcast(message: { type: string; data: unknown }): void {
@@ -175,6 +95,15 @@ export class RankupWsEvents {
         this.logger.warn('Failed to send rankup websocket payload', error)
         this.subscribers.delete(socket)
       }
+    }
+  }
+
+  private send(socket: WebSocket, message: { type: string; data: unknown }): void {
+    if (socket.readyState !== WebSocket.OPEN) return
+    try {
+      socket.send(JSON.stringify(message))
+    } catch (error: unknown) {
+      this.logger.warn('Failed to send rankup websocket payload', error)
     }
   }
 }
