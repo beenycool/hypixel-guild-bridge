@@ -345,18 +345,6 @@ export class SettingsApiHandler {
           cfg.setRandomChatterQuietWindowMinutes(bridgeId, num(body.chatterQuietWindowMinutes, 2))
           break
         }
-        case 'skyblockEvents': {
-          cfg.setSkyblockEventsEnabled(bridgeId, bool(body.enabled))
-          cfg.setDarkAuctionReminder(bridgeId, bool(body.darkAuctionReminder))
-          cfg.setStarfallCultReminder(bridgeId, bool(body.starfallCultReminder))
-          const eventToggles = body.events as Record<string, boolean> | undefined
-          if (eventToggles) {
-            for (const [key, value] of Object.entries(eventToggles)) {
-              cfg.setSkyblockEventNotifier(bridgeId, key, bool(value))
-            }
-          }
-          break
-        }
         case 'qualityOfLife':
           cfg.setJoinGuildReaction(bridgeId, bool(body.guildJoinReaction))
           cfg.setLeaveGuildReaction(bridgeId, bool(body.guildLeaveReaction))
@@ -364,14 +352,6 @@ export class SettingsApiHandler {
           cfg.setJoinReactionEmojiType(bridgeId, str(body.joinDiscordReaction, 'none'))
           cfg.setLeaveReactionEmojiType(bridgeId, str(body.leaveDiscordReaction, 'none'))
           cfg.setAnnounceMutedPlayer(bridgeId, bool(body.announcePlayerMuted))
-          break
-        case 'customMessages':
-          cfg.setGuildJoinReactionMessages(bridgeId, arr(body.joinMessages))
-          cfg.setGuildLeaveReactionMessages(bridgeId, arr(body.leaveMessages))
-          cfg.setGuildKickReactionMessages(bridgeId, arr(body.kickMessages))
-          cfg.setDarkAuctionReminderMessage(bridgeId, str(body.darkAuctionReminderText))
-          cfg.setStarfallReminderMessage(bridgeId, str(body.starfallCultReminderText))
-          cfg.setAnnounceMutedPlayerMessage(bridgeId, str(body.announcePlayerMutedText))
           break
         case 'moderation':
           cfg.setHeatPunishmentEnabled(bridgeId, boolOrUndefined(body.heatPunishmentsEnabled))

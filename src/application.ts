@@ -41,7 +41,6 @@ import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
 import { QotdScheduler } from './instance/qotd-scheduler'
 import { ChatSummaryScheduler } from './instance/chat-summary-scheduler'
 import { RandomChatter } from './instance/random-chatter'
-import { SkyblockReminders } from './instance/skyblock-reminders'
 import { SpontaneousEvents } from './instance/spontaneous-events'
 import StatMonitor from './instance/stat-monitor'
 import WebServer from './instance/web-server'
@@ -58,7 +57,6 @@ export type AllInstances =
   | ApplicationIntegrity
   | AutoLinker
   | HypixelUpdates
-  | SkyblockReminders
   | SpontaneousEvents
   | StatMonitor
   | AutoRestart
@@ -100,28 +98,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.config.general.openrouterModel
   }
 
-  public getSkyblockEventsConfig(bridgeId?: string): ApplicationConfig['skyblockEvents'] {
-    const staticConfig = this.config.skyblockEvents
-
-    // If multi-bridge is not enabled or no bridgeId provided, return static config as-is
-    if (bridgeId === undefined || !this.bridgeResolver.isMultiBridgeEnabled()) return staticConfig
-
-    // Merge static config with bridge-specific overrides (bridge overrides take precedence)
-    const merged: ApplicationConfig['skyblockEvents'] = staticConfig ? { ...staticConfig } : { enabled: true }
-
-    // Bridge-specific enabled flag
-    const enabled = this.core.bridgeConfigurations.getSkyblockEventsEnabled(bridgeId)
-    merged.enabled = enabled
-
-    // Merge notifiers (bridge overrides take precedence)
-    const bridgeNotifiers = this.core.bridgeConfigurations.getSkyblockEventNotifiers(bridgeId)
-    if (bridgeNotifiers !== undefined) {
-      merged.notifiers = { ...merged.notifiers, ...bridgeNotifiers }
-    }
-
-    return merged
-  }
-
   public getDatabaseConfig(): DatabaseConfig | undefined {
     return this.config.database
   }
@@ -146,7 +122,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   private readonly qotdScheduler: QotdScheduler
   private readonly chatSummaryScheduler: ChatSummaryScheduler
-  private readonly skyblockReminders: SkyblockReminders
   private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
   public readonly randomChatter: RandomChatter
@@ -202,7 +177,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
     this.qotdScheduler = new QotdScheduler(this)
     this.chatSummaryScheduler = new ChatSummaryScheduler(this)
-    this.skyblockReminders = new SkyblockReminders(this)
     this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
     this.randomChatter = new RandomChatter(this)
@@ -510,7 +484,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       ...this.minecraftManager.getAllInstances(),
       this.qotdScheduler,
       this.chatSummaryScheduler,
-      this.skyblockReminders,
       this.hypixelUpdates,
       this.spontaneousEvents,
       this.statMonitor,

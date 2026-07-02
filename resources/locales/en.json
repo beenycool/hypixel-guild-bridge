@@ -243,8 +243,20 @@
   "discord.commands.commands.admin.confirm.disable.confirm": "Disable",
   "discord.commands.commands.admin.confirm.disable.cancel": "Cancel",
 
-  "instance.skyblockEvent.starting": "[EVENT] {{eventName}}: Starting now!",
-  "instance.skyblockEvent.startingIn": "[EVENT] {{eventName}}: Starting in {{minutes}}m!",
+  "instance.reaction.join": [
+    "Welcome {username} to our guild! Do /g discord and !help for ingame commands :-)",
+    "{username}, what a nice new member. Why don't you run /g discord & !help here while you're at it :P",
+    "Psst {username}. You just joined. Do /g discord and !help here :D",
+    "{username} since you are a member now, do !e and /g discord",
+    "Can we take a moment to applaud {username} for joining us. Don't forget to do /g discord :3",
+    "{username} joined the guild. What a legend. Do /g discord",
+    "Hey {username} and welcome to the guild! Run /g discord",
+    "{username} nice, new member! Do /g discord to join our community (*・‿・)ノ⌒*:･ﾟ✧"
+  ],
+  "instance.reaction.leave": ["Oh. {username} just left us :(", "{username} has left the guild. Goodbye!"],
+  "instance.reaction.kick": ["{username} was kicked from the guild."],
+  "instance.player.announceMuted": "{{username}} is currently muted and is unable to message right now.",
+
   "instance.heat.warn": "{{username}}, you have been issuing too many dangerous commands in a short time. Slow down!",
   "instance.heat.denied": "{{username}}, you have issued too many dangerous commands in a short time. Stop it!",
   "instance.spontaneous.quickMath.question": "Quick Math: {{expression}}",
@@ -262,7 +274,6 @@
   "instance.hypixel.news": "[HYPIXEL UPDATE] {{title}} | {{link}}",
   "instance.hypixel.status": "[HYPIXEL STATUS] {{title}} | {{link}}",
   "instance.hypixel.statusUpdate": "[HYPIXEL STATUS UPDATE] {{title}} | {{update}}",
-  "instance.hypixel.skyblockVersion": "[HYPIXEL SKYBLOCK] Skyblock version has been updated to {{version}}! Server restarts might occur!",
   "instance.hypixel.alpha": "[ALPHA] Alpha Hypixel is open, current player count: {{count}}",
   "commands.mute.game": "{{json}}",
   "commands.roulette.win": "{{json}}",

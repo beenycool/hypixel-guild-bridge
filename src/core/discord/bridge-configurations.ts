@@ -88,8 +88,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_persistGuildOnlineOffline`)
     this.configuration.delete(`${bridgeId}_temporarilyInteractionsCount`)
     this.configuration.delete(`${bridgeId}_temporarilyInteractionsDuration`)
-    this.configuration.delete(`${bridgeId}_skyblockEventsEnabled`)
-    this.configuration.delete(`${bridgeId}_skyblockNotifiers`)
     // Moderation settings
     this.configuration.delete(`${bridgeId}_heatPunishmentEnabled`)
     this.configuration.delete(`${bridgeId}_kicksPerDay`)
@@ -111,9 +109,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_joinGuildReaction`)
     this.configuration.delete(`${bridgeId}_leaveGuildReaction`)
     this.configuration.delete(`${bridgeId}_kickGuildReaction`)
-    this.configuration.delete(`${bridgeId}_guildJoinReactionMessages`)
-    this.configuration.delete(`${bridgeId}_guildLeaveReactionMessages`)
-    this.configuration.delete(`${bridgeId}_guildKickReactionMessages`)
+
     this.configuration.delete(`${bridgeId}_randomChatterEnabled`)
     this.configuration.delete(`${bridgeId}_randomChatterMessages`)
     this.configuration.delete(`${bridgeId}_randomChatterIntervalMinutes`)
@@ -124,9 +120,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_darkAuctionReminder`)
     this.configuration.delete(`${bridgeId}_starfallCultReminder`)
     this.configuration.delete(`${bridgeId}_announceMutedPlayer`)
-    this.configuration.delete(`${bridgeId}_darkAuctionReminderMessage`)
-    this.configuration.delete(`${bridgeId}_starfallReminderMessage`)
-    this.configuration.delete(`${bridgeId}_announceMutedPlayerMessage`)
+
     // Per-bridge language
     this.configuration.delete(`${bridgeId}_language`)
     // Passthrough commands settings
@@ -422,52 +416,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsDuration`, value.toSeconds())
   }
 
-  // ========== Skyblock Event Configurations ==========
-
-  /**
-   * Get whether Skyblock events are enabled for a specific bridge
-   */
-  public getSkyblockEventsEnabled(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_skyblockEventsEnabled`, true)
-  }
-
-  /**
-   * Set whether Skyblock events are enabled for a specific bridge
-   */
-  public setSkyblockEventsEnabled(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_skyblockEventsEnabled`, enabled)
-  }
-
-  /**
-   * Get Skyblock event notifiers map for a specific bridge
-   */
-  public getSkyblockEventNotifiers(bridgeId: string): Record<string, boolean> | undefined {
-    const raw = this.configuration.getString(`${bridgeId}_skyblockNotifiers`, '{}')
-    try {
-      const parsed = JSON.parse(raw) as Record<string, boolean>
-      // If object has no keys, treat as undefined to allow default behavior
-      return Object.keys(parsed).length === 0 ? undefined : parsed
-    } catch {
-      return undefined
-    }
-  }
-
-  /**
-   * Set a single Skyblock event notifier for a specific bridge
-   */
-  public setSkyblockEventNotifier(bridgeId: string, eventKey: string, enabled: boolean): void {
-    const current = this.getSkyblockEventNotifiers(bridgeId) ?? {}
-    current[eventKey] = enabled
-    this.configuration.setString(`${bridgeId}_skyblockNotifiers`, JSON.stringify(current))
-  }
-
-  /**
-   * Remove all Skyblock notifiers for a specific bridge
-   */
-  public deleteSkyblockNotifiers(bridgeId: string): void {
-    this.configuration.delete(`${bridgeId}_skyblockNotifiers`)
-  }
-
   // ========== Moderation Configurations ==========
 
   /**
@@ -746,30 +694,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setBoolean(`${bridgeId}_kickGuildReaction`, enabled)
   }
 
-  public getGuildJoinReactionMessages(bridgeId: string, defaultMessages: string[]): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_guildJoinReactionMessages`, defaultMessages)
-  }
-
-  public setGuildJoinReactionMessages(bridgeId: string, messages: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_guildJoinReactionMessages`, messages)
-  }
-
-  public getGuildLeaveReactionMessages(bridgeId: string, defaultMessages: string[]): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_guildLeaveReactionMessages`, defaultMessages)
-  }
-
-  public setGuildLeaveReactionMessages(bridgeId: string, messages: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_guildLeaveReactionMessages`, messages)
-  }
-
-  public getGuildKickReactionMessages(bridgeId: string, defaultMessages: string[]): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_guildKickReactionMessages`, defaultMessages)
-  }
-
-  public setGuildKickReactionMessages(bridgeId: string, messages: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_guildKickReactionMessages`, messages)
-  }
-
   public getJoinReactionEmojiType(bridgeId: string): string {
     return this.configuration.getString(`${bridgeId}_joinReactionEmojiType`, 'none')
   }
@@ -852,52 +776,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setNumber(`${bridgeId}_randomChatterQuietWindowMinutes`, clamped)
   }
 
-  public getDarkAuctionReminder(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_darkAuctionReminder`, true)
-  }
-
-  public setDarkAuctionReminder(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_darkAuctionReminder`, enabled)
-  }
-
-  public getStarfallCultReminder(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_starfallCultReminder`, true)
-  }
-
-  public setStarfallCultReminder(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_starfallCultReminder`, enabled)
-  }
-
   public getAnnounceMutedPlayer(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_announceMutedPlayer`, true)
   }
 
   public setAnnounceMutedPlayer(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_announceMutedPlayer`, enabled)
-  }
-
-  public getDarkAuctionReminderMessage(bridgeId: string, defaultMessage: string): string {
-    return this.configuration.getString(`${bridgeId}_darkAuctionReminderMessage`, defaultMessage)
-  }
-
-  public setDarkAuctionReminderMessage(bridgeId: string, message: string): void {
-    this.configuration.setString(`${bridgeId}_darkAuctionReminderMessage`, message)
-  }
-
-  public getStarfallReminderMessage(bridgeId: string, defaultMessage: string): string {
-    return this.configuration.getString(`${bridgeId}_starfallReminderMessage`, defaultMessage)
-  }
-
-  public setStarfallReminderMessage(bridgeId: string, message: string): void {
-    this.configuration.setString(`${bridgeId}_starfallReminderMessage`, message)
-  }
-
-  public getAnnounceMutedPlayerMessage(bridgeId: string, defaultMessage: string): string {
-    return this.configuration.getString(`${bridgeId}_announceMutedPlayerMessage`, defaultMessage)
-  }
-
-  public setAnnounceMutedPlayerMessage(bridgeId: string, message: string): void {
-    this.configuration.setString(`${bridgeId}_announceMutedPlayerMessage`, message)
   }
 
   // ========== Passthrough Commands Configurations ==========
@@ -1135,9 +1019,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     const officerChannels = this.getOfficerChannelIds(bridgeId)
     const loggerChannels = this.getLoggerChannelIds(bridgeId)
 
-    const skyblockNotifiers = this.getSkyblockEventNotifiers(bridgeId) ?? {}
-    const skyblockEventsEnabled = this.getSkyblockEventsEnabled(bridgeId)
-
     return {
       channels: {
         publicChannelIds: channels,
@@ -1174,12 +1055,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         chatterAntiRepeatLength: this.getRandomChatterAntiRepeatLength(bridgeId),
         chatterQuietWindowMinutes: this.getRandomChatterQuietWindowMinutes(bridgeId)
       },
-      skyblockEvents: {
-        enabled: skyblockEventsEnabled,
-        darkAuctionReminder: this.getDarkAuctionReminder(bridgeId),
-        starfallCultReminder: this.getStarfallCultReminder(bridgeId),
-        events: skyblockNotifiers
-      },
       qualityOfLife: {
         guildJoinReaction: this.getJoinGuildReaction(bridgeId),
         guildLeaveReaction: this.getLeaveGuildReaction(bridgeId),
@@ -1190,14 +1065,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       },
       translations: {
         overrides: this.getTranslationOverrides(bridgeId)
-      },
-      customMessages: {
-        joinMessages: this.getGuildJoinReactionMessages(bridgeId, []),
-        leaveMessages: this.getGuildLeaveReactionMessages(bridgeId, []),
-        kickMessages: this.getGuildKickReactionMessages(bridgeId, []),
-        darkAuctionReminderText: this.getDarkAuctionReminderMessage(bridgeId, ''),
-        starfallCultReminderText: this.getStarfallReminderMessage(bridgeId, ''),
-        announcePlayerMutedText: this.getAnnounceMutedPlayerMessage(bridgeId, '')
       },
       moderation: {
         heatPunishmentsEnabled: this.getHeatPunishmentEnabled(bridgeId),

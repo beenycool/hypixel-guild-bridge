@@ -92,17 +92,10 @@ export interface InactivityConfig {
   channelIds: string[]
 }
 
-export interface SkyblockEventsConfig {
-  enabled: boolean
-  notifiers?: Record<string, boolean>
-  customTimes?: Record<string, string[]>
-}
-
 export interface HypixelUpdatesConfig {
   enabled: boolean
   hypixelNews?: boolean
   statusUpdates?: boolean
-  skyblockVersion?: boolean
   alphaPlayerCount?: boolean
   pollIntervalMinutes?: number
   alphaCheckIntervalMinutes?: number
@@ -153,7 +146,6 @@ export interface ApplicationConfig {
   verification?: VerificationConfig
   guildRequirements?: GuildRequirementsConfig
   inactivity?: InactivityConfig
-  skyblockEvents?: SkyblockEventsConfig
   hypixelUpdates?: HypixelUpdatesConfig
   /**
    * Optional bridge configurations for multi-guild support.

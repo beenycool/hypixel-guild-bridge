@@ -38,7 +38,6 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
 
   private readonly newsKeys = new Set<string>()
   private readonly incidents = new Map<string, IncidentState>()
-  private skyblockVersion: string | undefined
   private lastAlphaPlayerCount = 0
   private lastAlphaMessageAt = 0
 
@@ -85,9 +84,6 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
     if (this.isFlagEnabled(config.statusUpdates)) {
       await this.checkStatusUpdates().catch(this.errorHandler.promiseCatch('checking hypixel status updates'))
     }
-    if (this.isFlagEnabled(config.skyblockVersion)) {
-      await this.checkSkyblockVersion().catch(this.errorHandler.promiseCatch('checking skyblock version'))
-    }
     this.purgeStale()
   }
 
@@ -112,15 +108,12 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
     const config = this.application.config.hypixelUpdates
     if (!config?.enabled || !this.isFlagEnabled(config.hypixelNews)) return
 
-    const [newsItems, skyblockItems] = await Promise.all([
-      this.fetchRss('https://hypixel.net/forums/news-and-announcements.4/index.rss'),
-      this.fetchRss('https://hypixel.net/forums/skyblock-patch-notes.158/index.rss')
-    ])
+    const newsItems = await this.fetchRss('https://hypixel.net/forums/news-and-announcements.4/index.rss')
 
     const now = Date.now()
     const lookbackMs = Duration.hours(HypixelUpdates.LookbackHours).toMilliseconds()
 
-    const items = [...newsItems, ...skyblockItems]
+    const items = [...newsItems]
     for (const item of items) {
       const key = item.guid ?? item.link ?? item.title
       if (!key) continue
@@ -181,30 +174,6 @@ export default class HypixelUpdates extends Instance<InstanceType.Utility> {
 
       this.incidents.set(title, incident)
     }
-  }
-
-  private async checkSkyblockVersion(): Promise<void> {
-    const config = this.application.config.hypixelUpdates
-    if (!config?.enabled || !this.isFlagEnabled(config.skyblockVersion)) return
-
-    const { data } = await httpClient.get<{ version?: string }>(
-      'https://api.hypixel.net/v2/resources/skyblock/skills',
-      {
-        timeout: 10_000
-      }
-    )
-
-    const version = data.version
-    if (!version) return
-
-    if (this.skyblockVersion && this.skyblockVersion !== version) {
-      await this.broadcast(
-        this.application.getTranslatorForBridge(undefined)('instance.hypixel.skyblockVersion', { version }),
-        Color.Info
-      )
-    }
-
-    this.skyblockVersion = version
   }
 
   private async checkAlphaPlayerCount(): Promise<void> {

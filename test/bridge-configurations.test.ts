@@ -52,27 +52,6 @@ await Configs.load()
 
 const BridgeId = 'bridge-test'
 
-// default should be true
-assert.strictEqual(BridgeCfg.getSkyblockEventsEnabled(BridgeId), true)
-
-BridgeCfg.setSkyblockEventsEnabled(BridgeId, false)
-assert.strictEqual(BridgeCfg.getSkyblockEventsEnabled(BridgeId), false)
-
-// Notifiers default -> undefined
-assert.strictEqual(BridgeCfg.getSkyblockEventNotifiers(BridgeId), undefined)
-
-BridgeCfg.setSkyblockEventNotifier(BridgeId, 'BANK_INTEREST', false)
-const Notifiers = BridgeCfg.getSkyblockEventNotifiers(BridgeId)
-assert.ok(Notifiers)
-assert.strictEqual(Notifiers.BANK_INTEREST, false)
-
-BridgeCfg.setSkyblockEventNotifier(BridgeId, 'BANK_INTEREST', true)
-const Notifiers2 = BridgeCfg.getSkyblockEventNotifiers(BridgeId)
-assert.strictEqual(Notifiers2?.BANK_INTEREST, true)
-
-BridgeCfg.deleteSkyblockNotifiers(BridgeId)
-assert.strictEqual(BridgeCfg.getSkyblockEventNotifiers(BridgeId), undefined)
-
 // Persist guild online/offline getter/setter
 assert.strictEqual(BridgeCfg.getPersistGuildOnlineOffline(BridgeId), false)
 BridgeCfg.setPersistGuildOnlineOffline(BridgeId, true)

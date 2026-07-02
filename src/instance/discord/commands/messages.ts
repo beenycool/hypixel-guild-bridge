@@ -63,7 +63,7 @@ export default {
     const embed = new EmbedBuilder()
       .setTitle('Bot Messages')
       .setDescription(
-        `Customize what the bot says for this bridge. Open the [Bot Messages page](${base}/settings.html?cat=customMessages&token=${t}) to override any message.`
+        `Customize what the bot says for this bridge. Open the [Bot Messages page](${base}/settings.html?cat=translations&token=${t}) to override any message.`
       )
       .setColor(0x00_aa_ff)
 

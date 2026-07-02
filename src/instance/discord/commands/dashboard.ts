@@ -83,7 +83,7 @@ export default {
     let urlSuffix = `?token=${t}`
     if (page === 'bot-messages') {
       pagePath = 'settings.html'
-      urlSuffix = `?cat=customMessages&token=${t}`
+      urlSuffix = `?cat=translations&token=${t}`
     }
 
     if (pagePath) {

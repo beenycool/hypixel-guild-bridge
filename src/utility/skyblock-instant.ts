@@ -1,6 +1,3 @@
-// Although it only contains static methods right now, it will be extended in the future with more properties
-/* eslint-disable @typescript-eslint/no-extraneous-class */
-
 import assert from 'node:assert'
 
 export class SkyblockInstant {
@@ -163,9 +160,5 @@ export class SkyblockEvents {
 
 export interface EventAppointment {
   type: 'future' | 'happening'
-  /**
-   * time till the event starts if {@link #type} is "future".
-   * time till the event ends if {@link #type} is "happening".
-   */
   time: number
 }

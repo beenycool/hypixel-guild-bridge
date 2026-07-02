@@ -5,8 +5,6 @@ import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'
 
 export default class PlayerMuted extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {
-  public static readonly DefaultMessage = '{username} is currently muted and is unable to message right now.'
-
   private readonly chatListener: (event: ChatEvent) => Promise<void>
 
   constructor(clientInstance: MinecraftInstance) {
@@ -29,13 +27,8 @@ export default class PlayerMuted extends SubInstance<MinecraftInstance, Instance
       if (!event.message.startsWith("Hey! I'm currently muted")) return
       if (!event.rawMessage.includes('§eHey!')) return
 
-      let message = bridgeId
-        ? bridgeConfig.getAnnounceMutedPlayerMessage(
-            bridgeId,
-            this.application.core.languageConfigurations.getAnnounceMutedPlayer()
-          )
-        : this.application.core.languageConfigurations.getAnnounceMutedPlayer()
-      message = message.replaceAll('{username}', event.user.displayName())
+      const t = this.application.getTranslatorForBridge(bridgeId)
+      let message = t('instance.player.announceMuted', { username: event.user.displayName() })
 
       await this.application.emit('broadcast', {
         ...this.eventHelper.fillBaseEvent(),

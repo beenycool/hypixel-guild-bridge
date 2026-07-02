@@ -10,35 +10,6 @@ import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'
 
 export default class Reaction extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {
-  public static JoinMessages = [
-    'Welcome {username} to our guild! Do /g discord and !help for ingame commands :-)',
-    "{username}, what a nice new member. Why don't you run /g discord & !help here while you're at it :P",
-    'Psst {username}. You just joined. Do /g discord and !help here :D',
-    '{username} since you are a member now, do !e and /g discord',
-    "Can we take a moment to applaud {username} for joining us. Don't forget to do /g discord :3",
-    '{username} joined the guild. What a legend. Do /g discord',
-    'Hey {username} and welcome to the guild! Run /g discord',
-    '{username} nice, new member! Do /g discord to join our community (*・‿・)ノ⌒*:･ﾟ✧'
-  ]
-
-  public static readonly LeaveMessages = [
-    'Oh. {username} just left us :(',
-    'L {username} for leaving',
-    'See you later {username}',
-    'Adios {username} o/',
-    "{username} wasn't cool enough for us.",
-    '{username} left. I wonder why?',
-    '{username} left. What a shame.'
-  ]
-
-  public static readonly KickMessages = [
-    '{username} got drop kicked! LOL',
-    'See you later {username}, or not :P',
-    '{username} was forcefully evicted.',
-    "{username} wasn't welcome here.",
-    'Goodbye {username}. Forever.'
-  ]
-
   private readonly guildPlayerListener: (event: GuildPlayerEvent) => Promise<void>
 
   constructor(clientInstance: MinecraftInstance) {
@@ -53,6 +24,7 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
 
       const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(this.clientInstance.instanceName)
       const bridgeConfig = this.application.core.bridgeConfigurations
+      const t = this.application.getTranslatorForBridge(bridgeId)
 
       if (
         event.type === GuildPlayerEventType.Join &&
@@ -60,13 +32,8 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           ? bridgeConfig.getJoinGuildReaction(bridgeId)
           : this.application.core.minecraftConfigurations.getJoinGuildReaction())
       ) {
-        const messages = bridgeId
-          ? bridgeConfig.getGuildJoinReactionMessages(
-              bridgeId,
-              this.application.core.languageConfigurations.getGuildJoinReaction()
-            )
-          : this.application.core.languageConfigurations.getGuildJoinReaction()
-
+        const raw = t('instance.reaction.join')
+        const messages: string[] = JSON.parse(raw)
         if (messages.length === 0) {
           this.logger.error('There is no guild join reaction messages. Dropping the reaction entirely.')
           return
@@ -91,13 +58,8 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           ? bridgeConfig.getLeaveGuildReaction(bridgeId)
           : this.application.core.minecraftConfigurations.getLeaveGuildReaction())
       ) {
-        const messages = bridgeId
-          ? bridgeConfig.getGuildLeaveReactionMessages(
-              bridgeId,
-              this.application.core.languageConfigurations.getGuildLeaveReaction()
-            )
-          : this.application.core.languageConfigurations.getGuildLeaveReaction()
-
+        const raw = t('instance.reaction.leave')
+        const messages: string[] = JSON.parse(raw)
         if (messages.length === 0) {
           this.logger.error('There is no guild leave reaction messages. Dropping the reaction entirely.')
           return
@@ -121,13 +83,8 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           ? bridgeConfig.getKickGuildReaction(bridgeId)
           : this.application.core.minecraftConfigurations.getKickGuildReaction())
       ) {
-        const messages = bridgeId
-          ? bridgeConfig.getGuildKickReactionMessages(
-              bridgeId,
-              this.application.core.languageConfigurations.getGuildKickReaction()
-            )
-          : this.application.core.languageConfigurations.getGuildKickReaction()
-
+        const raw = t('instance.reaction.kick')
+        const messages: string[] = JSON.parse(raw)
         if (messages.length === 0) {
           this.logger.error('There is no guild kick reaction messages. Dropping the reaction entirely.')
           return

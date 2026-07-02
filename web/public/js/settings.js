@@ -22,18 +22,6 @@
   const bool = (s, d = false) => (s == null ? d : !!s)
   const arr = (a) => (Array.isArray(a) ? a.map(String) : [])
 
-  // Pretty names for skyblock event keys (kept in sync with src/utility/skyblock-calendar.ts)
-  const SKYBLOCK_EVENT_NAMES = {
-    BANK_INTEREST: 'Bank Interest',
-    ELECTION_BOOTH_OPENS: 'Election Booth Opens',
-    ELECTION_OVER: 'Election Over',
-    FALLEN_STAR_CULT: 'Cult of the Fallen Star',
-    FEAR_MONGERER: 'Fear Mongerer',
-    JERRYS_WORKSHOP: "Jerry's Workshop",
-    SEASON_OF_JERRY: 'Season of Jerry',
-    HOPPITY_HUNT: "Hoppity's Hunt"
-  }
-
   // ---- Category schema -----------------------------------------------------
   // Each field has a `t` (type) and render/read behaviour.
   //   boolean  -> toggle row
@@ -314,40 +302,6 @@
       ]
     },
     {
-      key: 'skyblockEvents',
-      name: 'Skyblock Events',
-      icon: '☀',
-      description: 'Reminders for scheduled Skyblock events.',
-      fields: [
-        {
-          id: 'enabled',
-          t: 'boolean',
-          label: 'Skyblock Events Enabled',
-          hint: 'Master toggle for Skyblock reminders.'
-        },
-        {
-          t: 'section',
-          collapsible: true,
-          title: 'Reminders',
-          children: [
-            { id: 'darkAuctionReminder', t: 'boolean', label: 'Dark Auction Reminder' },
-            { id: 'starfallCultReminder', t: 'boolean', label: 'Starfall Cult Reminder' }
-          ]
-        },
-        {
-          t: 'section',
-          collapsible: true,
-          title: 'Per-Event Reminders',
-          children: Object.keys(SKYBLOCK_EVENT_NAMES).map((key) => ({
-            id: `event_${key}`,
-            t: 'boolean',
-            label: SKYBLOCK_EVENT_NAMES[key] || key,
-            sourceKey: key
-          }))
-        }
-      ]
-    },
-    {
       key: 'qualityOfLife',
       name: 'Quality of Life',
       icon: '✿',
@@ -388,39 +342,6 @@
           t: 'boolean',
           label: 'Announce Player Muted',
           hint: 'Post a message when a player is muted in Minecraft.'
-        }
-      ]
-    },
-    {
-      key: 'customMessages',
-      name: 'Bot Messages',
-      icon: '✎',
-      description: 'Customize what the bot says per bridge. Override any message the bot sends.',
-      fields: [
-        {
-          t: 'section',
-          collapsible: true,
-          title: 'Guild Reaction Messages',
-          children: [
-            { id: 'joinMessages', t: 'msglist', label: 'Join Messages', hint: 'Random one sent per guild join.' },
-            { id: 'leaveMessages', t: 'msglist', label: 'Leave Messages', hint: 'Random one sent per guild leave.' },
-            { id: 'kickMessages', t: 'msglist', label: 'Kick Messages', hint: 'Random one sent per guild kick.' }
-          ]
-        },
-        {
-          t: 'section',
-          collapsible: true,
-          title: 'Skyblock Reminder Messages',
-          children: [
-            { id: 'darkAuctionReminderText', t: 'text', label: 'Dark Auction Reminder Text', max: 1000 },
-            { id: 'starfallCultReminderText', t: 'text', label: 'Starfall Cult Reminder Text', max: 1000 }
-          ]
-        },
-        {
-          t: 'section',
-          collapsible: true,
-          title: 'Other Messages',
-          children: [{ id: 'announcePlayerMutedText', t: 'text', label: 'Announce Player Muted Text', max: 1000 }]
         }
       ]
     },

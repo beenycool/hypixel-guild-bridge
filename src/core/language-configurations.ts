@@ -7,13 +7,6 @@ import {
   DefaultVengeanceDrawMessages,
   DefaultVengeanceLoseMessages
 } from '../common/constants/vengeance-defaults.js'
-import {
-  DefaultReactionJoinMessages,
-  DefaultReactionLeaveMessages,
-  DefaultReactionKickMessages
-} from '../common/constants/reaction-defaults.js'
-import { DefaultPlayerMutedMessage } from '../common/constants/player-muted-defaults.js'
-import { DefaultDarkAuctionMessage, DefaultStarfallMessage } from '../common/constants/skyblock-reminders-defaults.js'
 
 export enum ApplicationLanguages {
   English = 'en',
@@ -34,22 +27,6 @@ export class LanguageConfigurations {
 
   public setLanguage(language: ApplicationLanguages): void {
     this.configuration.setString('language', language)
-  }
-
-  public getDarkAuctionReminder(): string {
-    return this.configuration.getString('darkAuctionReminder', DefaultDarkAuctionMessage)
-  }
-
-  public setDarkAuctionReminder(darkAuctionReminder: string): void {
-    this.configuration.setString('darkAuctionReminder', darkAuctionReminder)
-  }
-
-  public getStarfallReminder(): string {
-    return this.configuration.getString('starfallReminder', DefaultStarfallMessage)
-  }
-
-  public setStarfallReminder(starfallReminder: string): void {
-    this.configuration.setString('starfallReminder', starfallReminder)
   }
 
   public getCommandMuteGame(): string[] {
@@ -93,37 +70,5 @@ export class LanguageConfigurations {
 
   public setCommandVengeanceLose(values: string[]): void {
     this.configuration.setStringArray('commandVengeanceLose', values)
-  }
-
-  public getAnnounceMutedPlayer(): string {
-    return this.configuration.getString('announceMutedPlayer', DefaultPlayerMutedMessage)
-  }
-
-  public setAnnounceMutedPlayer(value: string): void {
-    this.configuration.setString('announceMutedPlayer', value)
-  }
-
-  public getGuildJoinReaction(): string[] {
-    return this.configuration.getStringArray('guildJoinReaction', DefaultReactionJoinMessages)
-  }
-
-  public setGuildJoinReaction(values: string[]): void {
-    this.configuration.setStringArray('guildJoinReaction', values)
-  }
-
-  public getGuildLeaveReaction(): string[] {
-    return this.configuration.getStringArray('guildLeaveReaction', DefaultReactionLeaveMessages)
-  }
-
-  public setGuildLeaveReaction(values: string[]): void {
-    this.configuration.setStringArray('guildLeaveReaction', values)
-  }
-
-  public getGuildKickReaction(): string[] {
-    return this.configuration.getStringArray('guildKickReaction', DefaultReactionKickMessages)
-  }
-
-  public setGuildKickReaction(values: string[]): void {
-    this.configuration.setStringArray('guildKickReaction', values)
   }
 }
