@@ -78,6 +78,7 @@ import Quakecraft from './triggers/quakecraft.js'
 import QUnmute from './triggers/qunmute.js'
 import Racism from './triggers/racism.js'
 import Reputation from './triggers/reputation.js'
+import Rhyme from './triggers/rhyme.js'
 import Rng from './triggers/rng.js'
 import RockPaperScissors from './triggers/rock-paper-scissors.js'
 import Roulette from './triggers/roulette.js'
@@ -181,6 +182,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Racism(),
       new Quakecraft(),
       new Reputation(),
+      new Rhyme(),
       new Rng(),
       new RockPaperScissors(),
       new Roulette(),
