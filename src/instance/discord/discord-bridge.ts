@@ -56,7 +56,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
   private readonly staticConfig: Readonly<StaticDiscordConfig>
 
-  private readonly cleanups: (() => void)[] = []
+  private readonly localCleanups: (() => void)[] = []
 
   constructor(
     application: Application,
@@ -86,11 +86,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         .catch(this.errorHandler.promiseCatch('handling event instanceReactive'))
     }
     this.application.on('instanceReactive', onInstanceReactive)
-    this.cleanups.push(() => this.application.off('instanceReactive', onInstanceReactive))
+    this.localCleanups.push(() => this.application.off('instanceReactive', onInstanceReactive))
   }
 
   override dispose(): void {
-    for (const cleanup of this.cleanups) {
+    for (const cleanup of this.localCleanups) {
       cleanup()
     }
     super.dispose()

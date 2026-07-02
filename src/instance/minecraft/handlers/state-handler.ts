@@ -258,7 +258,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     }
   }
 
-  public dispose(): void {
+  public override dispose(): void {
     this.clearInstanceStatusListener()
     this.clearConnectionTimeout()
   }

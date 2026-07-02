@@ -176,6 +176,7 @@ await describe('RankupWsEvents', async () => {
     const events = new RankupWsEvents(app, silentLogger)
     const socket = createFakeSocket()
     events.subscribe(asWs(socket))
+    socket.sentMessages = []
 
     eventEmitter.emit('bridgeConfigChanged', { bridgeId: 'a', key: 'foo', value: 'bar' })
 
@@ -192,6 +193,8 @@ await describe('RankupWsEvents', async () => {
     const socketB = createFakeSocket()
     events.subscribe(asWs(socketA))
     events.subscribe(asWs(socketB))
+    socketA.sentMessages = []
+    socketB.sentMessages = []
 
     eventEmitter.emit('bridgeConfigChanged', { bridgeId: 'a', key: 'foo', value: 'bar' })
     assert.strictEqual(socketA.sentMessages.length, 1)

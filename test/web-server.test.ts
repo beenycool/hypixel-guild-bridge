@@ -30,11 +30,15 @@ await describe('web server /health', async () => {
         databaseManager: {
           execute: async () => {
             /* noop */
-          }
+          },
+          getPoolStatus: () => ({
+            connected: true,
+            latencyMs: 5
+          })
         }
       }
     } as unknown as Application
-    const server = new WebServer(app, { port: 0, token: undefined, enabled: true })
+    const server = new WebServer(app, { port: 0, token: undefined as any, enabled: true })
 
     await new Promise<void>((resolve) => {
       const httpServer = (server as unknown as { httpServer: http.Server }).httpServer

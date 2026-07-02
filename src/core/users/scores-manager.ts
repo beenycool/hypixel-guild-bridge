@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import log4js from 'log4js'
 
 import { SerialExecutor } from '../../utility/serial-executor.js'
 
@@ -303,6 +304,7 @@ class ScoreDatabase {
     string,
     { tableName: CountTableName; timestamp: number; user: string; count: number }
   >()
+  private readonly logger = log4js.getLogger('ScoreDatabase')
 
   constructor(
     private readonly scoresManager: ScoresManager,

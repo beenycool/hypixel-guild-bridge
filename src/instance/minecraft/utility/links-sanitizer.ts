@@ -51,16 +51,20 @@ export class LinksSanitizer {
       promises.push(
         httpClient
           .head(part, { timeout: 5000 })
-          .then((response) => {
+          .then(async (response) => {
             const contentType = response.headers['content-type'] as undefined as string | undefined
             if (typeof contentType !== 'string') return '(link)'
 
             const type = contentType.split('/')[0]
             if (type === 'image' || type === 'video') {
-              const description = await this.describeMedia(part, type as 'image' | 'video')
-              newMessage.push(description)
-            } else if (contentType.includes('application/pdf')) newMessage.push('(pdf)')
-            else newMessage.push('(link)')
+              return await this.describeMedia(part, type as 'image' | 'video')
+            } else if (contentType.includes('application/pdf')) {
+              return '(pdf)'
+            }
+            return '(link)'
+          })
+          .catch(() => '(link)')
+      )
     }
 
     const results = await Promise.all(promises)

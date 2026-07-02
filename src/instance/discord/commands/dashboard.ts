@@ -52,7 +52,7 @@ export default {
     const { interaction } = context
     const userId = interaction.user.id
     const discordInstance = context.application.discordInstance
-    const userPermission = discordInstance.resolvePermission(userId)
+    const userPermission = await discordInstance.resolvePermission(userId)
 
     if (userPermission < Permission.Helper) {
       await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true })

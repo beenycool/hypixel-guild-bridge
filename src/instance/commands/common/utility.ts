@@ -189,7 +189,7 @@ const AuroraWinstreakBaseUrl = 'https://bordic.xyz/api/v2/resources/winstreak'
 export async function fetchAuroraWinstreak(uuid: string, apiKey: string): Promise<AuroraWinstreakData | undefined> {
   try {
     const url = `${AuroraWinstreakBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
-    const response = await DefaultAxios.get<{ success: boolean; data?: AuroraWinstreakData }>(url, {
+    const response = await httpClient.get<{ success: boolean; data?: AuroraWinstreakData }>(url, {
       headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-AuroraApi/1.0.0' }
     })
     if (!response.data.success || !response.data.data) return undefined
