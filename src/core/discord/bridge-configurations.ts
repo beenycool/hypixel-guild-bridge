@@ -1115,6 +1115,19 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     })
   }
 
+  public getTranslationOverrides(bridgeId: string): Record<string, string> {
+    const raw = this.configuration.getString(`${bridgeId}_translationOverrides`, '{}')
+    try {
+      return JSON.parse(raw) as Record<string, string>
+    } catch {
+      return {}
+    }
+  }
+
+  public setTranslationOverrides(bridgeId: string, overrides: Record<string, string>): void {
+    this.configuration.setString(`${bridgeId}_translationOverrides`, JSON.stringify(overrides))
+  }
+
   // ========== Bulk settings reader ==========
 
   public getAllSettings(bridgeId: string): Record<string, unknown> {
@@ -1174,6 +1187,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         joinDiscordReaction: this.getJoinReactionEmojiType(bridgeId),
         leaveDiscordReaction: this.getLeaveReactionEmojiType(bridgeId),
         announcePlayerMuted: this.getAnnounceMutedPlayer(bridgeId)
+      },
+      translations: {
+        overrides: this.getTranslationOverrides(bridgeId)
       },
       customMessages: {
         joinMessages: this.getGuildJoinReactionMessages(bridgeId, []),

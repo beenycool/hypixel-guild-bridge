@@ -41,6 +41,7 @@ export default {
             { name: 'Pending Reviews', value: 'rankup-pending' },
             { name: 'History', value: 'rankup-history' },
             { name: 'Settings', value: 'settings' },
+            { name: 'Bot Messages', value: 'bot-messages' },
             { name: 'Punishments', value: 'punishments' },
             { name: 'Inactivity', value: 'inactivity' }
           )
@@ -78,12 +79,17 @@ export default {
     const t = encodeURIComponent(signedToken)
 
     const page = context.interaction.options.getString('page') ?? ''
-    const pagePath = page && page !== 'home' ? `${page}.html` : ''
+    let pagePath = page && page !== 'home' ? `${page}.html` : ''
+    let urlSuffix = `?token=${t}`
+    if (page === 'bot-messages') {
+      pagePath = 'settings.html'
+      urlSuffix = `?cat=customMessages&token=${t}`
+    }
 
     if (pagePath) {
       const embed = new EmbedBuilder()
         .setTitle('Web Dashboard')
-        .setDescription(`Open the [dashboard](${base}/${pagePath}?token=${t}) to manage your bridge settings.`)
+        .setDescription(`Open the [dashboard](${base}/${pagePath}${urlSuffix}) to manage your bridge settings.`)
         .setColor(0x00_aa_ff)
 
       await interaction.reply({ embeds: [embed], ephemeral: true })

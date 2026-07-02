@@ -265,8 +265,10 @@ export default class Application extends Emittery<ApplicationEvents> implements 
    */
   public getTranslatorForBridge(bridgeId?: string): TranslatorFunction {
     let dynamicLang: string | undefined
+    let overrides: Record<string, string> = {}
     if (bridgeId !== undefined) {
       dynamicLang = this.core.bridgeConfigurations.getLanguage(bridgeId)
+      overrides = this.core.bridgeConfigurations.getTranslationOverrides(bridgeId)
     }
 
     let staticLang: string | undefined
@@ -280,11 +282,17 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     const translate = (
       keyOrSelector: string | ((t: (key: string) => string) => string),
       options?: Record<string, unknown>
-    ) =>
-      (this.i18n.t as unknown as TranslatorFunction)(keyOrSelector, {
+    ): string => {
+      // Check per-bridge overrides first for simple string keys
+      if (typeof keyOrSelector === 'string') {
+        const override = overrides[keyOrSelector]
+        if (override !== undefined) return override
+      }
+      return (this.i18n.t as unknown as TranslatorFunction)(keyOrSelector, {
         ...options,
         ...(chosenLang ? { lng: chosenLang } : {})
-      })
+      }) as string
+    }
     return translate as TranslatorFunction
   }
 

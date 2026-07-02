@@ -388,9 +388,9 @@
     },
     {
       key: 'customMessages',
-      name: 'Custom Messages',
+      name: 'Bot Messages',
       icon: '✎',
-      description: 'Override the default announcement and chatter text.',
+      description: 'Customize what the bot says per bridge. Override any message the bot sends.',
       fields: [
         {
           t: 'section',
@@ -411,7 +411,7 @@
         },
         {
           t: 'section',
-          title: 'Other Reminder Messages',
+          title: 'Other Messages',
           children: [{ id: 'announcePlayerMutedText', t: 'text', label: 'Announce Player Muted Text', max: 1000 }]
         }
       ]
@@ -1517,7 +1517,13 @@
         const cat = CATEGORIES.find((c) => c.key === currentCategory)
         if (cat) renderCategoryPanel(cat)
       } else {
-        await selectCategory('channels')
+        const params = new URLSearchParams(globalThis.location.search)
+        const deepCat = params.get('cat')
+        if (deepCat && CATEGORIES.find((c) => c.key === deepCat)) {
+          await selectCategory(deepCat)
+        } else {
+          await selectCategory('channels')
+        }
       }
     } catch (error) {
       isLoading = false

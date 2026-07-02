@@ -25,6 +25,7 @@ import InviteCommand from './commands/invite.js'
 import JoinCommand from './commands/join.js'
 import ListCommand from './commands/list.js'
 import LogCommand from './commands/log.js'
+import MessagesCommand from './commands/messages.js'
 import RankCommand from './commands/rank.js'
 import ReconnectCommand from './commands/reconnect.js'
 import RestartCommand from './commands/restart.js'
@@ -95,6 +96,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       JoinCommand,
       ListCommand,
       LogCommand,
+      MessagesCommand,
       RankCommand,
       ReconnectCommand,
       RestartCommand

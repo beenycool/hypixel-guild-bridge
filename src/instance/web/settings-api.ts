@@ -6,6 +6,8 @@ import type Application from '../../application.js'
 import { ApplicationLanguages } from '../../core/language-configurations.js'
 import Duration from '../../utility/duration.js'
 
+import EnglishTranslations from '../../../resources/locales/en.json'
+
 import { Permission } from '../../common/application-event.js'
 import { buildTokenSet, verifyToken } from './auth.js'
 import { sendSuccess, sendError } from './api-utils.js'
@@ -265,13 +267,28 @@ export class SettingsApiHandler {
       }
     }
 
+    const config = this.application.core.bridgeConfigurations
+    const translationDefaults: Record<string, string> = {}
+    for (const [key, value] of Object.entries(EnglishTranslations)) {
+      if (typeof value === 'string') {
+        translationDefaults[key] = value
+      }
+      if (Array.isArray(value)) {
+        translationDefaults[key] = JSON.stringify(value)
+      }
+    }
+    const overrides = config.getTranslationOverrides(bridgeId)
+
     sendSuccess(response, {
       bridgeId,
       channels: resolvedChannels,
       roles: resolvedRoles,
       availableLanguages,
       guildRanks,
-      categories
+      categories,
+      translationKeys: Object.keys(EnglishTranslations),
+      translationDefaults,
+      translationOverrides: overrides
     })
   }
 
@@ -381,6 +398,13 @@ export class SettingsApiHandler {
           cfg.setRankupExcludedRanks(bridgeId, arr(body.excludedRanks))
           cfg.setRankupExcludedPlayers(bridgeId, arr(body.excludedPlayers))
           break
+        case 'translations': {
+          const overrides = body.overrides as Record<string, string> | undefined
+          if (overrides !== undefined) {
+            cfg.setTranslationOverrides(bridgeId, overrides)
+          }
+          break
+        }
         default:
           sendError(response, 'NOT_FOUND', `Unknown category: ${category}`, 404)
           return
