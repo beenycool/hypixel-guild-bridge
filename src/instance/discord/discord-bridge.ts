@@ -393,20 +393,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
             username: event.user.displayName()
           })
-          await this.sendImageToChannels(event.eventId, promoteChannelIds, image)
+          const imageMessages = await this.sendImageToChannels(event.eventId, promoteChannelIds, image)
+          for (const message of imageMessages) {
+            await message.react('🔥').catch((error) => this.logger.error(error, 'Failed to react to promotion message'))
+          }
         } catch (error) {
-          this.logger.error('Failed to generate Minecraft chat image for promotion, falling back to embed', error)
-          const clickableUsername = hyperlink(username, event.user.profileLink())
-          const newMessage = escapeMarkdown(event.message.replaceAll(/^-+/g, '')).replaceAll(
-            escapeMarkdown(username),
-            clickableUsername
-          )
-          const promoteEmbed = {
-            url: event.user.profileLink(),
-            description: newMessage,
-            color: event.color
-          } satisfies APIEmbed
-          await this.sendEmbedToChannels({ ...event, type: undefined }, promoteChannelIds, promoteEmbed)
+          this.logger.error(error, 'Failed to generate Minecraft chat image for promotion')
         }
       }
     }
