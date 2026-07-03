@@ -2,6 +2,7 @@ import NodeCache from 'node-cache'
 
 export default class MessageAssociation {
   private readonly messageIds = new NodeCache({ stdTTL: 300 })
+  private readonly messageUsernames = new NodeCache({ stdTTL: 300 })
 
   public getMessageId(eventId: string | undefined): DiscordAssociatedMessage[] {
     if (eventId === undefined) return []
@@ -17,6 +18,14 @@ export default class MessageAssociation {
     list.push(options)
 
     this.messageIds.set(eventId, list)
+  }
+
+  public addUsernameForMessage(messageId: string, username: string): void {
+    this.messageUsernames.set(messageId, username)
+  }
+
+  public getUsernameForMessage(messageId: string): string | undefined {
+    return this.messageUsernames.get(messageId)
   }
 }
 

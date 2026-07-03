@@ -217,9 +217,13 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private async getReplyUsername(messageEvent: Message): Promise<string | undefined> {
     if (messageEvent.reference?.messageId === undefined) return
 
-    const channel = messageEvent.channel
+    const messageId = messageEvent.reference.messageId
 
-    const replyMessage = await channel.messages.fetch(messageEvent.reference.messageId)
+    const minecraftUsername = this.messageAssociation.getUsernameForMessage(messageId)
+    if (minecraftUsername !== undefined) return minecraftUsername
+
+    const channel = messageEvent.channel
+    const replyMessage = await channel.messages.fetch(messageId)
     if (replyMessage.webhookId != undefined) return replyMessage.author.username
 
     const resolvedProfile = this.clientInstance.profileByUser(replyMessage.author, replyMessage.member ?? undefined)

@@ -45,27 +45,53 @@ export default class SubmissionGamePlugin extends PluginInstance {
   }
 
   private async onChatEvent(event: ChatEvent): Promise<void> {
-    if (event.instanceType !== InstanceType.Minecraft) return
+    if (event.instanceType !== InstanceType.Minecraft && event.instanceType !== InstanceType.Discord) return
     if (event.channelType !== ChannelType.Public && event.channelType !== ChannelType.Officer) return
 
-    const name = event.user.mojangProfile().name
+    const userMojang = event.user.mojangProfile()
+    const name = userMojang?.name ?? event.user.displayName()
     if (this.application.minecraftManager.isMinecraftBot(name)) return
 
-    const key = `${name}:${event.instanceName}`
     const message = event.message.trim().toLowerCase()
 
-    const session = this.sessions.get(key)
-    if (session !== undefined) {
+    let session: Session | undefined
+    let sessionKey: string | undefined
+
+    if (event.instanceType === InstanceType.Minecraft && userMojang !== undefined) {
+      sessionKey = `${userMojang.name}:${event.instanceName}`
+      session = this.sessions.get(sessionKey)
+    }
+
+    if (session === undefined && event.instanceType === InstanceType.Discord) {
+      const discordId = event.user.discordProfile()?.id
+      if (discordId !== undefined) {
+        sessionKey = `discord:${discordId}`
+        session = this.sessions.get(sessionKey)
+      }
+    }
+
+    if (session === undefined && event.instanceType === InstanceType.Minecraft) {
+      for (const [key, s] of this.sessions) {
+        if (key.startsWith('discord:') && this.matchesReply(s.prompt, message) && s.channelType === event.channelType) {
+          session = s
+          sessionKey = key
+          break
+        }
+      }
+    }
+
+    if (session !== undefined && sessionKey !== undefined) {
       clearTimeout(session.timeoutId)
-      this.sessions.delete(key)
+      this.sessions.delete(sessionKey)
 
       if (this.matchesReply(session.prompt, message)) {
         const reply = this.alternateToggle ? "who's a good boy" : `${name} is the goodest boy online :3`
         this.alternateToggle = !this.alternateToggle
 
         const prefix = session.channelType === ChannelType.Public ? 'gc' : 'oc'
+        const instances = this.resolveMinecraftInstances(event)
         await this.application.sendMinecraft(
-          [event.instanceName],
+          instances,
           MinecraftSendChatPriority.Default,
           undefined,
           `/${prefix} ${reply}`
@@ -78,19 +104,40 @@ export default class SubmissionGamePlugin extends PluginInstance {
       const prompt = PromptTypes[Math.floor(Math.random() * PromptTypes.length)]
 
       const prefix = event.channelType === ChannelType.Public ? 'gc' : 'oc'
+      const instances = this.resolveMinecraftInstances(event)
       await this.application.sendMinecraft(
-        [event.instanceName],
+        instances,
         MinecraftSendChatPriority.Default,
         undefined,
         `/${prefix} ${PromptMessages[prompt]}`
       )
 
+      let newSessionKey: string
+      if (event.instanceType === InstanceType.Minecraft && userMojang !== undefined) {
+        newSessionKey = `${userMojang.name}:${event.instanceName}`
+      } else {
+        const discordId = event.user.discordProfile()?.id
+        newSessionKey = `discord:${discordId ?? name}`
+      }
+
       const timeoutId = setTimeout(() => {
-        this.sessions.delete(key)
+        this.sessions.delete(newSessionKey)
       }, 60_000)
 
-      this.sessions.set(key, { prompt, channelType: event.channelType, timeoutId })
+      this.sessions.set(newSessionKey, { prompt, channelType: event.channelType, timeoutId })
     }
+  }
+
+  private resolveMinecraftInstances(event: ChatEvent): string[] {
+    if (event.instanceType === InstanceType.Minecraft) {
+      return [event.instanceName]
+    }
+
+    const instances = this.application
+      .getInstancesNames(InstanceType.Minecraft)
+      .filter((name) => this.application.bridgeResolver.shouldProcessEvent(event.bridgeId, name))
+
+    return instances.length > 0 ? instances : this.application.getInstancesNames(InstanceType.Minecraft)
   }
 
   private matchesReply(prompt: PromptType, message: string): boolean {

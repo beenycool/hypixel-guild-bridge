@@ -206,7 +206,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
         })
-        await this.sendImageToChannels(event.eventId, [channelId], image)
+        const sentMessages = await this.sendImageToChannels(event.eventId, [channelId], image)
+        for (const msg of sentMessages) {
+          this.messageAssociation.addUsernameForMessage(msg.id, username)
+        }
         if (mentions !== undefined && mentions.userIds.length > 0) {
           const channel = this.clientInstance.getClient().channels.cache.get(channelId)
           if (channel?.isSendable()) {
@@ -277,6 +280,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           channelId: message.channelId,
           messageId: message.id
         })
+        this.messageAssociation.addUsernameForMessage(message.id, username)
       }
     }
   }
