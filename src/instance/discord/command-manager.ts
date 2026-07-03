@@ -28,7 +28,7 @@ import LogCommand from './commands/log.js'
 import MessagesCommand from './commands/messages.js'
 import RankCommand from './commands/rank.js'
 import ReconnectCommand from './commands/reconnect.js'
-import QotdTestCommand from './commands/qotd-test.js'
+import QotdCommand from './commands/qotd.js'
 import RestartCommand from './commands/restart.js'
 import {
   getBridgeMinecraftInstanceNames,
@@ -93,7 +93,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       DashboardCommand,
       DisconnectCommand,
       ExecuteCommand,
-      QotdTestCommand,
+      QotdCommand,
       InviteCommand,
       JoinCommand,
       ListCommand,

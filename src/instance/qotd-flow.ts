@@ -3,12 +3,18 @@ import type { Logger } from 'log4js'
 
 const QotdUserIds = ['878335694295171094', '1173245594752536726', '623714295838015509'] as const
 
+let activeQotdController: AbortController | undefined
+
 export async function runQotdFlow(
   channel: TextChannel,
   _guild: unknown,
   dryRun = false,
   logger?: Logger
 ): Promise<void> {
+  activeQotdController?.abort()
+  const controller = new AbortController()
+  activeQotdController = controller
+
   logger?.info(`[qotd] flow started, dryRun=${dryRun}, members=${QotdUserIds.length}`)
 
   let currentIndex = 0
@@ -32,6 +38,10 @@ export async function runQotdFlow(
 
     let reminderCount = 0
     const reminderInterval = setInterval(() => {
+      if (controller.signal.aborted) {
+        clearInterval(reminderInterval)
+        return
+      }
       reminderCount++
       if (reminderCount <= 9) {
         message?.reply(`⏰ Reminder: ${mention} please respond to the QOTD request!`).catch(() => undefined)
