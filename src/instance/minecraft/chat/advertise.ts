@@ -7,6 +7,7 @@ export default {
 
     const match = regex.exec(context.message)
     if (match != undefined) {
+      const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const originEventId = context.clientInstance.getLastEventIdForSentChatMessage()
       if (originEventId === undefined) {
         context.logger.warn('No originEventId detected. Dropping the event')
@@ -18,7 +19,7 @@ export default {
         color: Color.Info,
         type: MinecraftReactiveEventType.Advertise,
         originEventId: originEventId,
-        message: 'The message has been blocked by Hypixel for advertising.',
+        message: t('instance.reaction.advertise'),
         rawMessage: context.rawMessage
       })
     }

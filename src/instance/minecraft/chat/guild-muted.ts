@@ -7,6 +7,7 @@ export default {
 
     const match = regex.exec(context.message)
     if (match != undefined) {
+      const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const formattedDuration = match[1]
 
       const originEventId = context.clientInstance.getLastEventIdForSentGuildAction()
@@ -20,7 +21,7 @@ export default {
         color: Color.Info,
         type: MinecraftReactiveEventType.GuildMuted,
         originEventId: originEventId,
-        message: `Account is guild muted for ${formattedDuration}`,
+        message: t('instance.reaction.guild-muted-status', { duration: formattedDuration }),
         rawMessage: context.rawMessage
       })
     }

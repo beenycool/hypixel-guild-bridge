@@ -280,5 +280,28 @@
   "commands.roulette.lose": "{{json}}",
   "commands.vengeance.win": "{{json}}",
   "commands.vengeance.draw": "{{json}}",
-  "commands.vengeance.lose": "{{json}}"
+  "commands.vengeance.lose": "{{json}}",
+
+  "instance.repeat.messages": [
+    "Can't repeat the same message...",
+    "I wish I had a way to repeat the same messages over and over again :(",
+    "Hypixel blocked this message for repeating... Again! D:",
+    "Hold your horses, can't say same message twice!",
+    "Twinkle twinkle little star, can't repeat message with big R",
+    "No, no, no, NO. no message repetition D:",
+    "RIP, can't say same thing twice",
+    "Wonder where the message has gone? Yeah... Can't repeat it :P",
+    "Message cannot be repeated!",
+    "The verdict has been given and will not be repeated!",
+    "Not saying it twice, bro!",
+    "Oh no, I tried to send same message but Hypixel is annoying and blocked me!",
+    "Onii-chan, you are big meanie. Don't block my message even if it's repeated!"
+  ],
+  "instance.reaction.block": "The message has been blocked by Hypixel for breaking its rules.",
+  "instance.reaction.advertise": "The message has been blocked by Hypixel for advertising.",
+  "instance.reaction.guild-kicked": "Account has been kicked from the guild.",
+  "instance.reaction.guild-muted": "Account has been guild muted for {{duration}} by {{responsible}}.",
+  "instance.reaction.guild-unmuted": "Account has been guild unmuted.",
+  "instance.reaction.muted": "Account has been muted. {{hypixelMessage}}",
+  "instance.reaction.guild-muted-status": "Account is guild muted for {{duration}}"
 }

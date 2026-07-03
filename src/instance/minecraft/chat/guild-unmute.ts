@@ -9,6 +9,7 @@ export default {
 
     const match = regex.exec(context.message)
     if (match != undefined) {
+      const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const username = context.clientInstance.username()
       const uuid = context.clientInstance.uuid()
       assert.ok(username !== undefined)
@@ -23,7 +24,7 @@ export default {
 
         type: GuildPlayerEventType.Unmuted,
         user: botUser,
-        message: `Account has been guild unmuted.`,
+        message: t('instance.reaction.guild-unmuted'),
         rawMessage: context.rawMessage
       })
     }

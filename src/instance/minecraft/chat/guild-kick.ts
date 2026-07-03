@@ -9,6 +9,7 @@ export default {
 
     const match = regex.exec(context.message)
     if (match != undefined) {
+      const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const name = context.clientInstance.username()
       const uuid = context.clientInstance.uuid()
       assert.ok(name !== undefined)
@@ -23,7 +24,7 @@ export default {
 
         type: GuildPlayerEventType.Kicked,
         user: botUser,
-        message: `Account has been kicked from the guild.`,
+        message: t('instance.reaction.guild-kicked'),
         rawMessage: context.rawMessage
       })
 

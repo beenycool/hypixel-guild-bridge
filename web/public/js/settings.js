@@ -612,9 +612,82 @@
         },
         {
           t: 'section',
-          title: 'Game Messages (coming soon)',
+          title: 'Game Messages',
           collapsible: true,
-          children: []
+          children: [
+            {
+              id: 'instance.reaction.join',
+              t: 'msglist',
+              label: 'Join Reactions',
+              hint: 'Random messages when someone joins the guild.'
+            },
+            {
+              id: 'instance.reaction.leave',
+              t: 'msglist',
+              label: 'Leave Reactions',
+              hint: 'Random messages when someone leaves the guild.'
+            },
+            {
+              id: 'instance.reaction.kick',
+              t: 'msglist',
+              label: 'Kick Reactions',
+              hint: 'Random messages when someone is kicked from the guild.'
+            },
+            {
+              id: 'instance.player.announceMuted',
+              t: 'text',
+              label: 'Muted Player Announcement',
+              hint: 'Said when a muted player tries to chat.'
+            },
+            {
+              id: 'instance.repeat.messages',
+              t: 'msglist',
+              label: 'Repeat Block Messages',
+              hint: 'Random messages when Hypixel blocks a repeated message.'
+            },
+            {
+              id: 'instance.reaction.block',
+              t: 'text',
+              label: 'Blocked Message Notice',
+              hint: 'Said when Hypixel blocks a message.'
+            },
+            {
+              id: 'instance.reaction.advertise',
+              t: 'text',
+              label: 'Advertising Notice',
+              hint: 'Said when Hypixel blocks an ad.'
+            },
+            {
+              id: 'instance.reaction.guild-kicked',
+              t: 'text',
+              label: 'Guild Kicked Notice',
+              hint: 'Said when the bot is kicked from the guild.'
+            },
+            {
+              id: 'instance.reaction.guild-muted',
+              t: 'textarea',
+              label: 'Guild Muted Template',
+              hint: 'Variables: {{duration}}, {{responsible}}'
+            },
+            {
+              id: 'instance.reaction.guild-unmuted',
+              t: 'text',
+              label: 'Guild Unmuted Notice',
+              hint: 'Said when the bot is unmuted.'
+            },
+            {
+              id: 'instance.reaction.muted',
+              t: 'textarea',
+              label: 'Mute Warning Template',
+              hint: 'Said when bot tries to chat while muted. Variable: {{hypixelMessage}}'
+            },
+            {
+              id: 'instance.reaction.guild-muted-status',
+              t: 'textarea',
+              label: 'Guild Muted Status Template',
+              hint: 'Said when bot checks mute status. Variable: {{duration}}'
+            }
+          ]
         }
       ]
     },
@@ -879,6 +952,21 @@
 
   // ---- Sidebar --------------------------------------------------------------
 
+  function closeSidebar() {
+    const sidebar = document.querySelector('#settings-sidebar')
+    const overlay = document.querySelector('#settings-sidebar-overlay')
+    if (sidebar) sidebar.classList.remove('open')
+    if (overlay) overlay.classList.remove('open')
+  }
+
+  function toggleSidebar() {
+    const sidebar = document.querySelector('#settings-sidebar')
+    const overlay = document.querySelector('#settings-sidebar-overlay')
+    if (!sidebar) return
+    const isOpen = sidebar.classList.toggle('open')
+    if (overlay) overlay.classList.toggle('open', isOpen)
+  }
+
   function renderSidebar() {
     const host = document.querySelector('#settings-nav')
     if (!host) return
@@ -889,7 +977,10 @@
         'settings-nav-item' + (cat.danger ? ' danger' : '') + (currentCategory === cat.key ? ' active' : '')
       li.dataset.cat = cat.key
       li.innerHTML = `<span class="settings-nav-icon">${esc(cat.icon)}</span><span>${esc(cat.name)}</span>`
-      li.addEventListener('click', () => selectCategory(cat.key))
+      li.addEventListener('click', () => {
+        selectCategory(cat.key)
+        closeSidebar()
+      })
       host.append(li)
     }
   }
@@ -2001,6 +2092,14 @@
         )
       }
     }
+
+    // Sidebar toggle
+    const toggleBtn = document.querySelector('#settings-sidebar-toggle')
+    const closeBtn = document.querySelector('#settings-sidebar-close')
+    const overlay = document.querySelector('#settings-sidebar-overlay')
+    if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar)
+    if (closeBtn) closeBtn.addEventListener('click', closeSidebar)
+    if (overlay) overlay.addEventListener('click', closeSidebar)
 
     // Create Bridge button
     const createBtn = document.querySelector('#create-bridge-btn')

@@ -9,6 +9,7 @@ export default {
 
     const match = regex.exec(context.message)
     if (match != undefined && lastWarning + 300_000 < Date.now()) {
+      const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const originEventId = context.clientInstance.getLastEventIdForSentChatMessage()
       if (originEventId === undefined) {
         context.logger.warn('No originEventId detected. Dropping the event')
@@ -20,7 +21,7 @@ export default {
         color: Color.Bad,
         type: MinecraftReactiveEventType.Muted,
         originEventId: originEventId,
-        message: `Account has been muted. ${context.message}`,
+        message: t('instance.reaction.muted', { hypixelMessage: context.message }),
         rawMessage: context.rawMessage
       })
       lastWarning = Date.now()

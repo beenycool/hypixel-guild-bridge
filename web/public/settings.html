@@ -26,9 +26,19 @@
       </div>
 
       <div class="settings-layout">
-        <aside class="settings-sidebar">
+        <aside class="settings-sidebar" id="settings-sidebar">
+          <div class="settings-sidebar-head">
+            <span class="settings-sidebar-title">Categories</span>
+            <button class="settings-sidebar-close" id="settings-sidebar-close" aria-label="Close settings navigation">
+              &times;
+            </button>
+          </div>
           <ul class="settings-nav-list" id="settings-nav"></ul>
         </aside>
+        <div class="settings-sidebar-overlay" id="settings-sidebar-overlay"></div>
+        <button class="settings-sidebar-toggle" id="settings-sidebar-toggle" aria-label="Open settings navigation">
+          ☰
+        </button>
         <section class="settings-panel" id="settings-panel">
           <div class="loading"><div class="loading-spinner"></div></div>
         </section>

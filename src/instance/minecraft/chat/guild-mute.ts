@@ -11,6 +11,7 @@ export default {
     const match = regex.exec(context.message)
     if (match != undefined) {
       assert.ok(match.groups)
+      const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const formattedDuration = match.groups.duration.toLowerCase()
       const rank = (match.groups.rank as string | undefined)?.trim()
       const responsible = match.groups.responsible
@@ -37,7 +38,7 @@ export default {
         type: GuildPlayerEventType.Muted,
         user: botUser,
         responsible: responsibleUser,
-        message: `Account has been guild muted for ${formattedDuration} by ${formattedResponsible}.`,
+        message: t('instance.reaction.guild-muted', { duration: formattedDuration, responsible: formattedResponsible }),
         rawMessage: context.rawMessage
       })
     }
