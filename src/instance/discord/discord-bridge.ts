@@ -376,10 +376,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       }
     }
 
-    if (
-      (event.type === GuildPlayerEventType.Promote || event.type === GuildPlayerEventType.Demote) &&
-      event.bridgeId !== undefined
-    ) {
+    if (event.type === GuildPlayerEventType.Promote && event.bridgeId !== undefined) {
       const promoteChannelIds = this.application.core.bridgeConfigurations.getPromoteChannelIds(event.bridgeId)
       if (promoteChannelIds.length > 0) {
         const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(event.rawMessage)).replaceAll(
