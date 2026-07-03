@@ -1,25 +1,28 @@
-import { type Guild, type Message, type MessageReaction, type TextChannel, type User } from 'discord.js'
+import {
+  type Guild,
+  type GuildMember,
+  type Message,
+  type MessageReaction,
+  type TextChannel,
+  type User
+} from 'discord.js'
 import type { Logger } from 'log4js'
 
-const QotdUsers = ['fluffydeadmuffin', 'spleeney_', 'flqw3d'] as const
+const QotdUserIds = ['878335694295171094', '1173245594752536726', '623714295838015509'] as const
 
 export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = false, logger?: Logger): Promise<void> {
-  logger?.debug(`[qotd] guild members cache size before fetch: ${guild.members.cache.size}`)
-  await guild.members.fetch({ limit: 1000 }).catch((error) => {
-    logger?.warn('[qotd] failed to fetch guild members', error)
-  })
-  logger?.debug(`[qotd] guild members cache size after fetch: ${guild.members.cache.size}`)
-
-  const members = QotdUsers.map((name) => guild.members.cache.find((member) => member.user.username === name)).filter(
-    (member): member is NonNullable<typeof member> => member !== undefined
-  )
+  const members: GuildMember[] = []
+  for (const id of QotdUserIds) {
+    try {
+      const member = await guild.members.fetch(id)
+      members.push(member)
+      logger?.info(`[qotd] user id ${id} found as ${member.user.username}`)
+    } catch {
+      logger?.warn(`[qotd] user id ${id} NOT found in guild`)
+    }
+  }
 
   logger?.info(`[qotd] flow started, dryRun=${dryRun}, members found=${members.length}`)
-
-  for (const name of QotdUsers) {
-    const found = members.some((m) => m.user.username === name)
-    logger?.debug(`[qotd] user "${name}" ${found ? 'found' : 'NOT found'} in guild`)
-  }
 
   if (members.length === 0) {
     logger?.warn('[qotd] no QOTD members found in guild')
