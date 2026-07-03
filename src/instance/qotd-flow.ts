@@ -5,7 +5,7 @@ const QotdUsers = ['fluffydeadmuffin', 'spleeney_', 'flqw3d'] as const
 
 export async function runQotdFlow(channel: TextChannel, guild: Guild, dryRun = false, logger?: Logger): Promise<void> {
   logger?.debug(`[qotd] guild members cache size before fetch: ${guild.members.cache.size}`)
-  await guild.members.fetch().catch((error) => {
+  await guild.members.fetch({ limit: 1000 }).catch((error) => {
     logger?.warn('[qotd] failed to fetch guild members', error)
   })
   logger?.debug(`[qotd] guild members cache size after fetch: ${guild.members.cache.size}`)
