@@ -122,8 +122,8 @@ export class DiscordConfigurations {
   }
 
   public getQotdChannelId(): string | undefined {
-    const val = this.configuration.getString('qotdChannelId', '')
-    return val === '' ? undefined : val
+    const value = this.configuration.getString('qotdChannelId', '')
+    return value === '' ? undefined : value
   }
 
   public setQotdChannelId(channelId: string | undefined): void {

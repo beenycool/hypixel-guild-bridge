@@ -71,8 +71,8 @@ export class Configuration {
     const cached = this.setCache.get(name)
     if (cached !== undefined) return cached
 
-    const arr = this.getStringArray(name, defaultValue)
-    const result = new Set(arr)
+    const array = this.getStringArray(name, defaultValue)
+    const result = new Set(array)
     this.setCache.set(name, result)
     return result
   }

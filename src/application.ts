@@ -31,6 +31,7 @@ import type { MojangApi } from './core/users/mojang'
 import ApplicationIntegrity from './instance/application-integrity.js'
 import AutoLinker from './instance/auto-linker.js'
 import AutoRestart from './instance/auto-restart.js'
+import { ChatSummaryScheduler } from './instance/chat-summary-scheduler'
 import { CommandsInstance } from './instance/commands/commands-instance.js'
 import DiscordInstance from './instance/discord/discord-instance.js'
 import { PluginsManager } from './instance/features/plugins-manager.js'
@@ -39,7 +40,6 @@ import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
 import { QotdScheduler } from './instance/qotd-scheduler'
-import { ChatSummaryScheduler } from './instance/chat-summary-scheduler'
 import { RandomChatter } from './instance/random-chatter'
 import { SpontaneousEvents } from './instance/spontaneous-events'
 import StatMonitor from './instance/stat-monitor'
@@ -265,7 +265,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       return (this.i18n.t as unknown as TranslatorFunction)(keyOrSelector, {
         ...options,
         ...(chosenLang ? { lng: chosenLang } : {})
-      }) as string
+      })
     }
     return translate as TranslatorFunction
   }

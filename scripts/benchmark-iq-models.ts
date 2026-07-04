@@ -1,6 +1,5 @@
-import { OpenRouterClient } from '../src/utility/openrouter-client.js'
-
 import { IQ_DEFAULT_MODEL, IQ_SYSTEM_PROMPT } from '../src/instance/commands/triggers/iq-constants.js'
+import { OpenRouterClient } from '../src/utility/openrouter-client.js'
 
 const SAMPLE_MESSAGES = [
   'guys wat is the best sword for dungeons',

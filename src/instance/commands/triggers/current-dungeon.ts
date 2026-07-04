@@ -4,8 +4,8 @@ import type { SkyblockV2Dungeons, SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import type { MojangApi } from '../../../core/users/mojang'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 import { relativeTime } from '../../../utility/shared-utility'
+import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
 import {
   getDungeonLevelWithOverflow,
   getUuidIfExists,

@@ -86,7 +86,7 @@ export class BridgeEvaluator {
 
       const memberLastSeen = lastSeenByUuid.get(member.uuid)
       const daysSinceLastSeen =
-        memberLastSeen !== undefined ? (Date.now() - memberLastSeen) / (1000 * 60 * 60 * 24) : undefined
+        memberLastSeen === undefined ? undefined : (Date.now() - memberLastSeen) / (1000 * 60 * 60 * 24)
 
       const stats = {
         uuid: member.uuid,

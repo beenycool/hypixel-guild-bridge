@@ -103,13 +103,13 @@
     document.querySelector('#stat-bridges').textContent = totalBridges
     document.querySelector('#stat-pending').textContent = totalPending
     document.querySelector('#stat-last-check').textContent = latest ? App.formatRelativeTime(latest.toISOString()) : '—'
-    const statusEl = document.querySelector('#stat-status')
+    const statusElement = document.querySelector('#stat-status')
     if (hasEnabled) {
-      statusEl.textContent = 'Live'
-      statusEl.className = 'stat-value text-success'
+      statusElement.textContent = 'Live'
+      statusElement.className = 'stat-value text-success'
     } else {
-      statusEl.textContent = 'Idle'
-      statusEl.className = 'stat-value'
+      statusElement.textContent = 'Idle'
+      statusElement.className = 'stat-value'
     }
   }
 
@@ -302,10 +302,10 @@
 
     // Check Player
     const checkInput = document.querySelector('#check-player-input')
-    const checkBtn = document.querySelector('#check-player-btn')
+    const checkButton = document.querySelector('#check-player-btn')
     const checkResult = document.querySelector('#check-player-result')
 
-    if (checkBtn && checkInput && checkResult) {
+    if (checkButton && checkInput && checkResult) {
       const doCheck = async () => {
         const username = checkInput.value.trim()
         if (!username) {
@@ -349,7 +349,7 @@
         }
       }
 
-      checkBtn.addEventListener('click', doCheck)
+      checkButton.addEventListener('click', doCheck)
       checkInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') doCheck()
       })

@@ -5,8 +5,8 @@ import type { Logger } from 'log4js'
 import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 const QotdPrefix = '/api/qotd'
 
@@ -32,7 +32,7 @@ export class QotdApiHandler {
     if (!rawUrl) return false
 
     const [pathPart] = rawUrl.split('?')
-    if (!pathPart || !pathPart.startsWith(QotdPrefix)) return false
+    if (!pathPart?.startsWith(QotdPrefix)) return false
 
     const method = request.method ?? 'GET'
 

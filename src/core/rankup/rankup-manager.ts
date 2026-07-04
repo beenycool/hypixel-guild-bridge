@@ -91,17 +91,16 @@ export class RankupManager {
     }
 
     let decision: RankupDecision & { kind: 'promote' | 'demote' | 'kick' }
-    if (review.action === 'kick') {
-      decision = { kind: 'kick', uuid: review.uuid, currentRank: review.currentRank, reason: review.reason }
-    } else {
-      decision = {
-        kind: review.action as 'promote' | 'demote',
-        uuid: review.uuid,
-        currentRank: review.currentRank,
-        targetRank: review.proposedRank,
-        reason: review.reason
-      }
-    }
+    decision =
+      review.action === 'kick'
+        ? { kind: 'kick', uuid: review.uuid, currentRank: review.currentRank, reason: review.reason }
+        : {
+            kind: review.action,
+            uuid: review.uuid,
+            currentRank: review.currentRank,
+            targetRank: review.proposedRank,
+            reason: review.reason
+          }
 
     await this.actionDispatcher.dispatch(bridgeId, instanceNames[0], decision, review.currentRank)
     this.pendingManager.removeReview(id)

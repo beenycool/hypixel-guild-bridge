@@ -1,7 +1,7 @@
 import type { Logger } from 'log4js'
-import { SerialExecutor } from '../utility/serial-executor.js'
 
 import type Application from '../application.js'
+import { SerialExecutor } from '../utility/serial-executor.js'
 
 import type {
   BroadcastEvent,
@@ -47,7 +47,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling command event'))
     }
     this.application.on('command', onCommand)
-    this.cleanups.push(() => this.application.off('command', onCommand))
+    this.cleanups.push(() => {
+      this.application.off('command', onCommand)
+    })
 
     const onCommandFeedback = async (event: CommandFeedbackEvent) => {
       await this.queue
@@ -55,7 +57,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling command feedback'))
     }
     this.application.on('commandFeedback', onCommandFeedback)
-    this.cleanups.push(() => this.application.off('commandFeedback', onCommandFeedback))
+    this.cleanups.push(() => {
+      this.application.off('commandFeedback', onCommandFeedback)
+    })
 
     const onChat = async (event: ChatEvent) => {
       await this.queue
@@ -63,7 +67,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling chat event'))
     }
     this.application.on('chat', onChat)
-    this.cleanups.push(() => this.application.off('chat', onChat))
+    this.cleanups.push(() => {
+      this.application.off('chat', onChat)
+    })
 
     const onGuildPlayer = async (event: GuildPlayerEvent) => {
       await this.queue
@@ -71,7 +77,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling guildPlayer event'))
     }
     this.application.on('guildPlayer', onGuildPlayer)
-    this.cleanups.push(() => this.application.off('guildPlayer', onGuildPlayer))
+    this.cleanups.push(() => {
+      this.application.off('guildPlayer', onGuildPlayer)
+    })
 
     const onGuildGeneral = async (event: GuildGeneralEvent) => {
       await this.queue
@@ -79,7 +87,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling guildGeneral event'))
     }
     this.application.on('guildGeneral', onGuildGeneral)
-    this.cleanups.push(() => this.application.off('guildGeneral', onGuildGeneral))
+    this.cleanups.push(() => {
+      this.application.off('guildGeneral', onGuildGeneral)
+    })
 
     const onMinecraftChatEvent = async (event: MinecraftReactiveEvent) => {
       await this.queue
@@ -87,7 +97,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling minecraftChat event'))
     }
     this.application.on('minecraftChatEvent', onMinecraftChatEvent)
-    this.cleanups.push(() => this.application.off('minecraftChatEvent', onMinecraftChatEvent))
+    this.cleanups.push(() => {
+      this.application.off('minecraftChatEvent', onMinecraftChatEvent)
+    })
 
     const onInstanceStatus = async (event: InstanceStatus) => {
       await this.queue
@@ -95,7 +107,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling instance event'))
     }
     this.application.on('instanceStatus', onInstanceStatus)
-    this.cleanups.push(() => this.application.off('instanceStatus', onInstanceStatus))
+    this.cleanups.push(() => {
+      this.application.off('instanceStatus', onInstanceStatus)
+    })
 
     const onBroadcast = async (event: BroadcastEvent) => {
       await this.queue
@@ -103,7 +117,9 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
         .catch(this.errorHandler.promiseCatch('handling broadcast event'))
     }
     this.application.on('broadcast', onBroadcast)
-    this.cleanups.push(() => this.application.off('broadcast', onBroadcast))
+    this.cleanups.push(() => {
+      this.application.off('broadcast', onBroadcast)
+    })
   }
 
   public dispose(): void {

@@ -3,40 +3,42 @@
   const TOKEN_KEY = 'rankup_token'
 
   ;(function () {
-    const params = new URLSearchParams(globalThis.location.search)
-    const urlToken = params.get('token')
+    const parameters = new URLSearchParams(globalThis.location.search)
+    const urlToken = parameters.get('token')
     if (urlToken) {
       try {
         localStorage.setItem(TOKEN_KEY, urlToken)
-        params.delete('token')
+        parameters.delete('token')
         const cleanUrl =
-          globalThis.location.pathname + (params.toString() ? '?' + params.toString() : '') + globalThis.location.hash
+          globalThis.location.pathname +
+          (parameters.toString() ? '?' + parameters.toString() : '') +
+          globalThis.location.hash
         globalThis.history.replaceState({}, '', cleanUrl)
-        if (window.AppAuth) window.AppAuth.fetchPermission()
+        if (globalThis.AppAuth) globalThis.AppAuth.fetchPermission()
       } catch {}
     }
   })()
   ;(function () {
-    if (window.AppAuth && window.AppAuth.getToken()) {
-      window.AppAuth.fetchPermission()
+    if (globalThis.AppAuth && globalThis.AppAuth.getToken()) {
+      globalThis.AppAuth.fetchPermission()
     }
   })()
 
   globalThis.App = Object.assign(
     {},
-    window.AppAuth || {},
-    window.AppApi || {},
-    window.AppWs || {},
-    window.AppUi || {},
+    globalThis.AppAuth || {},
+    globalThis.AppApi || {},
+    globalThis.AppWs || {},
+    globalThis.AppUi || {},
     {
       PAGES: ['overview', 'rules', 'pending', 'history', 'settings'],
       WS_RECONNECT_DELAY: 3000
     }
   )
 
-  if (window.AppUi && window.AppUi.injectNav) {
-    const origInjectNav = window.AppUi.injectNav
-    window.AppUi.injectNav = function (activePage) {
+  if (globalThis.AppUi?.injectNav) {
+    const origInjectNav = globalThis.AppUi.injectNav
+    globalThis.AppUi.injectNav = function (activePage) {
       origInjectNav(activePage)
       updateStatusIndicator('connecting')
       fetchBotStatus()
@@ -45,31 +47,32 @@
 
   async function fetchBotStatus() {
     try {
-      const status = await window.AppApi.apiGet('/api/status')
+      const status = await globalThis.AppApi.apiGet('/api/status')
       const mcConnected = status.minecraft
-        ? status.minecraft.some(function (i) {
-            return i.connected
+        ? status.minecraft.some(function (index) {
+            return index.connected
           })
         : false
       const dcConnected = status.discord ? status.discord.connected : false
-      const el = document.getElementById('bot-status')
-      if (!el) return
+      const element = document.querySelector('#bot-status')
+      if (!element) return
       if (mcConnected && dcConnected) {
-        el.className = 'status-indicator status-online'
-        el.title = 'All connected'
+        element.className = 'status-indicator status-online'
+        element.title = 'All connected'
       } else {
-        el.className = 'status-indicator status-connecting'
-        el.title = 'MC: ' + (mcConnected ? '\u2713' : '\u2717') + ' Discord: ' + (dcConnected ? '\u2713' : '\u2717')
+        element.className = 'status-indicator status-connecting'
+        element.title =
+          'MC: ' + (mcConnected ? '\u2713' : '\u2717') + ' Discord: ' + (dcConnected ? '\u2713' : '\u2717')
       }
     } catch {}
   }
 
   function updateStatusIndicator(state) {
-    const el = document.getElementById('bot-status')
-    if (!el) return
-    el.className = 'status-indicator status-' + state
-    el.title = state === 'online' ? 'Connected' : state === 'connecting' ? 'Connecting...' : 'Disconnected'
+    const element = document.querySelector('#bot-status')
+    if (!element) return
+    element.className = 'status-indicator status-' + state
+    element.title = state === 'online' ? 'Connected' : state === 'connecting' ? 'Connecting...' : 'Disconnected'
   }
 
-  setInterval(fetchBotStatus, 30000)
+  setInterval(fetchBotStatus, 30_000)
 })()

@@ -1,9 +1,8 @@
 import { isAxiosError } from 'axios'
 
-import { httpClient } from '../../../common/http.js'
-
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { httpClient } from '../../../common/http.js'
 import { getUuidIfExists, usernameNotExists } from '../common/utility.js'
 
 interface UrchinTag {

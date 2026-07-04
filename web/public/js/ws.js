@@ -1,5 +1,5 @@
 'use strict'
-window.AppWs = (function () {
+globalThis.AppWs = (function () {
   let wsReconnectTimer = null
 
   function connectWS(subscribeType, eventPrefix, onEvent) {
@@ -15,7 +15,7 @@ window.AppWs = (function () {
     const connect = () => {
       ws = new WebSocket(url)
       ws.addEventListener('open', () => {
-        const token = window.AppAuth ? window.AppAuth.getToken() : null
+        const token = globalThis.AppAuth ? globalThis.AppAuth.getToken() : null
         try {
           ws.send(JSON.stringify({ type: subscribeType, token }))
         } catch {

@@ -28,7 +28,7 @@ export default class PlayerMuted extends SubInstance<MinecraftInstance, Instance
       if (!event.rawMessage.includes('§eHey!')) return
 
       const t = this.application.getTranslatorForBridge(bridgeId)
-      let message = t('instance.player.announceMuted', { username: event.user.displayName() })
+      const message = t('instance.player.announceMuted', { username: event.user.displayName() })
 
       await this.application.emit('broadcast', {
         ...this.eventHelper.fillBaseEvent(),

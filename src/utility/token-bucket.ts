@@ -1,6 +1,6 @@
 export class TokenBucket {
   private tokens: number
-  private queue: Array<{ resolve: () => void; timer: NodeJS.Timeout }> = []
+  private queue: { resolve: () => void; timer: NodeJS.Timeout }[] = []
   private lastRefill = Date.now()
   private static readonly MaxQueueSize = 1000
   private static readonly AcquireTimeoutMs = 30_000
@@ -25,8 +25,8 @@ export class TokenBucket {
     }
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
-        const idx = this.queue.findIndex((e) => e.resolve === resolve)
-        if (idx !== -1) this.queue.splice(idx, 1)
+        const index = this.queue.findIndex((e) => e.resolve === resolve)
+        if (index !== -1) this.queue.splice(index, 1)
         reject(new Error('TokenBucket acquire timeout'))
       }, TokenBucket.AcquireTimeoutMs)
       timer.unref()

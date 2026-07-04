@@ -2,22 +2,21 @@ import type http from 'node:http'
 
 import type { Logger } from 'log4js'
 
+import EnglishTranslations from '../../../resources/locales/en.json'
 import type Application from '../../application.js'
+import { Permission } from '../../common/application-event.js'
 import { ApplicationLanguages } from '../../core/language-configurations.js'
 import Duration from '../../utility/duration.js'
 
-import EnglishTranslations from '../../../resources/locales/en.json'
-
-import { Permission } from '../../common/application-event.js'
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 type Primitive = boolean | number | string
 type SettingObject = Record<string, Primitive | Primitive[] | Record<string, Primitive> | undefined>
 
 const PREFIX = '/api/bridges'
 
-function str(s: unknown, d = ''): string {
+function string_(s: unknown, d = ''): string {
   if (typeof s === 'string') return s
   if (s === undefined || s === null) return d
   return String(s)
@@ -34,7 +33,7 @@ function boolOrUndefined(s: unknown): boolean | undefined {
   return true
 }
 
-function num(s: unknown, d = 0): number {
+function number_(s: unknown, d = 0): number {
   if (typeof s === 'number' && Number.isFinite(s)) return s
   if (typeof s === 'string') {
     const n = Number(s)
@@ -43,7 +42,7 @@ function num(s: unknown, d = 0): number {
   return d
 }
 
-function arr(s: unknown): string[] {
+function array(s: unknown): string[] {
   if (Array.isArray(s)) return s.map(String)
   if (typeof s === 'string') {
     try {
@@ -67,7 +66,7 @@ export class SettingsApiHandler {
     if (!rawUrl) return false
 
     const [pathPart] = rawUrl.split('?')
-    if (!pathPart || !pathPart.startsWith(PREFIX)) return false
+    if (!pathPart?.startsWith(PREFIX)) return false
 
     const method = (request.method ?? 'GET').toUpperCase()
     const segments = pathPart
@@ -144,7 +143,7 @@ export class SettingsApiHandler {
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
     const webConfig = this.application.config.web
-    if (!webConfig || !webConfig.signingSecret) return null
+    if (!webConfig?.signingSecret) return null
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)
@@ -164,8 +163,8 @@ export class SettingsApiHandler {
         })
       )
       sendSuccess(response, bridges)
-    } catch (e: unknown) {
-      sendError(response, 'INTERNAL_ERROR', e instanceof Error ? e.message : 'Failed to list bridges', 500)
+    } catch (error: unknown) {
+      sendError(response, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to list bridges', 500)
     }
   }
 
@@ -190,18 +189,18 @@ export class SettingsApiHandler {
 
     // Collect channel IDs for name resolution
     const channelIds = new Set<string>()
-    for (const id of arr((categories.channels as SettingObject)?.publicChannelIds)) channelIds.add(id)
-    for (const id of arr((categories.channels as SettingObject)?.officerChannelIds)) channelIds.add(id)
-    for (const id of arr((categories.channels as SettingObject)?.loggerChannelIds)) channelIds.add(id)
-    for (const id of arr((categories.channels as SettingObject)?.promoteChannelIds)) channelIds.add(id)
-    for (const id of arr((categories.channels as SettingObject)?.chatSummaryChannelIds)) channelIds.add(id)
-    for (const id of arr((categories.rankup as SettingObject)?.notificationChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject)?.publicChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject)?.officerChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject)?.loggerChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject)?.promoteChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject)?.chatSummaryChannelIds)) channelIds.add(id)
+    for (const id of array((categories.rankup as SettingObject)?.notificationChannelIds)) channelIds.add(id)
 
     // Collect role IDs for name resolution
     const roleIds = new Set<string>()
-    for (const id of arr((categories.staffRoles as SettingObject)?.helperRoleIds)) roleIds.add(id)
+    for (const id of array((categories.staffRoles as SettingObject)?.helperRoleIds)) roleIds.add(id)
 
-    for (const id of arr((categories.staffRoles as SettingObject)?.ownerRoleIds)) roleIds.add(id)
+    for (const id of array((categories.staffRoles as SettingObject)?.ownerRoleIds)) roleIds.add(id)
 
     const resolvedChannels: { id: string; name: string | null }[] = []
     const client = this.application.discordInstance?.getClient?.()
@@ -308,76 +307,84 @@ export class SettingsApiHandler {
 
     try {
       switch (category) {
-        case 'channels':
-          cfg.setPublicChannelIds(bridgeId, arr(body.publicChannelIds))
-          cfg.setOfficerChannelIds(bridgeId, arr(body.officerChannelIds))
-          cfg.setLoggerChannelIds(bridgeId, arr(body.loggerChannelIds))
-          cfg.setPromoteChannelIds(bridgeId, arr(body.promoteChannelIds))
-          cfg.setChatSummaryChannelIds(bridgeId, arr(body.chatSummaryChannelIds))
+        case 'channels': {
+          cfg.setPublicChannelIds(bridgeId, array(body.publicChannelIds))
+          cfg.setOfficerChannelIds(bridgeId, array(body.officerChannelIds))
+          cfg.setLoggerChannelIds(bridgeId, array(body.loggerChannelIds))
+          cfg.setPromoteChannelIds(bridgeId, array(body.promoteChannelIds))
+          cfg.setChatSummaryChannelIds(bridgeId, array(body.chatSummaryChannelIds))
           cfg.setChatSummaryEnabled(bridgeId, bool(body.chatSummaryEnabled))
           break
-        case 'instances':
-          cfg.setMinecraftInstances(bridgeId, arr(body.minecraftInstances))
+        }
+        case 'instances': {
+          cfg.setMinecraftInstances(bridgeId, array(body.minecraftInstances))
           break
-        case 'staffRoles':
-          cfg.setHelperRoleIds(bridgeId, arr(body.helperRoleIds))
-          cfg.setOwnerRoleIds(bridgeId, arr(body.ownerRoleIds))
+        }
+        case 'staffRoles': {
+          cfg.setHelperRoleIds(bridgeId, array(body.helperRoleIds))
+          cfg.setOwnerRoleIds(bridgeId, array(body.ownerRoleIds))
           break
-        case 'discordSettings':
+        }
+        case 'discordSettings': {
           cfg.setAlwaysReplyReaction(bridgeId, bool(body.alwaysReply))
           cfg.setEnforceVerification(bridgeId, bool(body.enforceVerification))
           cfg.setTextToImage(bridgeId, bool(body.minecraftTextImages))
-          void cfg.setLanguage(bridgeId, str(body.language) || undefined)
+          cfg.setLanguage(bridgeId, string_(body.language) || undefined)
           break
+        }
         case 'minecraftEvents': {
           cfg.setGuildOnline(bridgeId, bool(body.memberOnline))
           cfg.setGuildOffline(bridgeId, bool(body.memberOffline))
           cfg.setPersistGuildOnlineOffline(bridgeId, bool(body.persistOnlineOffline))
-          const deleteAfter = num(body.deleteAfterSeconds, 300)
+          const deleteAfter = number_(body.deleteAfterSeconds, 300)
           cfg.setDurationTemporarilyInteractions(bridgeId, Duration.seconds(deleteAfter))
-          cfg.setMaxTemporarilyInteractions(bridgeId, num(body.maxEvents, 10))
+          cfg.setMaxTemporarilyInteractions(bridgeId, number_(body.maxEvents, 10))
           cfg.setRandomChatterEnabled(bridgeId, bool(body.chatterEnabled))
-          cfg.setRandomChatterIntervalMinutes(bridgeId, num(body.chatterIntervalMinutes, 15))
-          cfg.setRandomChatterMinimumOnlinePlayers(bridgeId, num(body.chatterMinOnlinePlayers, 1))
+          cfg.setRandomChatterIntervalMinutes(bridgeId, number_(body.chatterIntervalMinutes, 15))
+          cfg.setRandomChatterMinimumOnlinePlayers(bridgeId, number_(body.chatterMinOnlinePlayers, 1))
           cfg.setRandomChatterIncludePlayerName(bridgeId, bool(body.chatterUseBotName))
-          cfg.setRandomChatterMessages(bridgeId, arr(body.chatterMessages))
-          cfg.setRandomChatterAntiRepeatLength(bridgeId, num(body.chatterAntiRepeatLength, 5))
-          cfg.setRandomChatterQuietWindowMinutes(bridgeId, num(body.chatterQuietWindowMinutes, 2))
+          cfg.setRandomChatterMessages(bridgeId, array(body.chatterMessages))
+          cfg.setRandomChatterAntiRepeatLength(bridgeId, number_(body.chatterAntiRepeatLength, 5))
+          cfg.setRandomChatterQuietWindowMinutes(bridgeId, number_(body.chatterQuietWindowMinutes, 2))
           break
         }
-        case 'qualityOfLife':
+        case 'qualityOfLife': {
           cfg.setJoinGuildReaction(bridgeId, bool(body.guildJoinReaction))
           cfg.setLeaveGuildReaction(bridgeId, bool(body.guildLeaveReaction))
           cfg.setKickGuildReaction(bridgeId, bool(body.guildKickReaction))
-          cfg.setJoinReactionEmojiType(bridgeId, str(body.joinDiscordReaction, 'none'))
-          cfg.setLeaveReactionEmojiType(bridgeId, str(body.leaveDiscordReaction, 'none'))
+          cfg.setJoinReactionEmojiType(bridgeId, string_(body.joinDiscordReaction, 'none'))
+          cfg.setLeaveReactionEmojiType(bridgeId, string_(body.leaveDiscordReaction, 'none'))
           cfg.setAnnounceMutedPlayer(bridgeId, bool(body.announcePlayerMuted))
           break
-        case 'moderation':
+        }
+        case 'moderation': {
           cfg.setHeatPunishmentEnabled(bridgeId, boolOrUndefined(body.heatPunishmentsEnabled))
-          cfg.setKicksPerDay(bridgeId, body.heatKicksPerDay != null ? num(body.heatKicksPerDay) : undefined)
-          cfg.setMutesPerDay(bridgeId, body.heatMutesPerDay != null ? num(body.heatMutesPerDay) : undefined)
-          cfg.setImmuneDiscordUsers(bridgeId, arr(body.immuneDiscordUserIds))
-          cfg.setImmuneMojangPlayers(bridgeId, arr(body.immuneMojangPlayers))
+          cfg.setKicksPerDay(bridgeId, body.heatKicksPerDay == undefined ? undefined : number_(body.heatKicksPerDay))
+          cfg.setMutesPerDay(bridgeId, body.heatMutesPerDay == undefined ? undefined : number_(body.heatMutesPerDay))
+          cfg.setImmuneDiscordUsers(bridgeId, array(body.immuneDiscordUserIds))
+          cfg.setImmuneMojangPlayers(bridgeId, array(body.immuneMojangPlayers))
           cfg.setProfanityEnabled(bridgeId, boolOrUndefined(body.profanityFilterEnabled))
           break
-        case 'chatCommands':
+        }
+        case 'chatCommands': {
           cfg.setCommandsEnabled(bridgeId, boolOrUndefined(body.commandsEnabled))
-          cfg.setCommandPrefix(bridgeId, str(body.chatCommandPrefix) || undefined)
-          cfg.setPassthroughPrefix(bridgeId, str(body.passthroughPrefix) || undefined)
-          cfg.setPassthroughCommands(bridgeId, arr(body.passthroughCommands))
-          cfg.setInsultMode(bridgeId, str(body.insultMode) || undefined)
+          cfg.setCommandPrefix(bridgeId, string_(body.chatCommandPrefix) || undefined)
+          cfg.setPassthroughPrefix(bridgeId, string_(body.passthroughPrefix) || undefined)
+          cfg.setPassthroughCommands(bridgeId, array(body.passthroughCommands))
+          cfg.setInsultMode(bridgeId, string_(body.insultMode) || undefined)
           break
-        case 'rankup':
+        }
+        case 'rankup': {
           cfg.setRankupEnabled(bridgeId, bool(body.enabled))
           cfg.setRankupManualReview(bridgeId, bool(body.manualReview))
-          cfg.setRankupNotificationCooldown(bridgeId, num(body.notificationCooldown))
-          cfg.setRankupNotificationChannelIds(bridgeId, arr(body.notificationChannelIds))
+          cfg.setRankupNotificationCooldown(bridgeId, number_(body.notificationCooldown))
+          cfg.setRankupNotificationChannelIds(bridgeId, array(body.notificationChannelIds))
           cfg.setRankupRules(bridgeId, body.promotionRules as never)
           cfg.setRankupDemotionRules(bridgeId, body.demotionRules as never)
-          cfg.setRankupExcludedRanks(bridgeId, arr(body.excludedRanks))
-          cfg.setRankupExcludedPlayers(bridgeId, arr(body.excludedPlayers))
+          cfg.setRankupExcludedRanks(bridgeId, array(body.excludedRanks))
+          cfg.setRankupExcludedPlayers(bridgeId, array(body.excludedPlayers))
           break
+        }
         case 'translations': {
           const overrides = body.overrides as Record<string, string> | undefined
           if (overrides !== undefined) {
@@ -385,9 +392,10 @@ export class SettingsApiHandler {
           }
           break
         }
-        default:
+        default: {
           sendError(response, 'NOT_FOUND', `Unknown category: ${category}`, 404)
           return
+        }
       }
 
       sendSuccess(response, { success: true })

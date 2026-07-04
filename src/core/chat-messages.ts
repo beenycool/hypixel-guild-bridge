@@ -32,14 +32,7 @@ export class ChatMessagesService {
       this.databaseManager.enqueueWrite(`storing chat message for ${userId}`, async (database) => {
         await database.query(
           `INSERT INTO "ChatMessages" ("userId", "message", "createdAt", "bridgeId", "username", "discordId") VALUES ($1, $2, $3, $4, $5, $6)`,
-          [
-            userId,
-            event.message,
-            Math.floor(Date.now() / 1000),
-            bridgeId,
-            username,
-            discordId
-          ]
+          [userId, event.message, Math.floor(Date.now() / 1000), bridgeId, username, discordId]
         )
       })
     })

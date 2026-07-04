@@ -1,7 +1,6 @@
 import assert from 'node:assert'
-import log4js from 'log4js'
 
-import { SerialExecutor } from '../../utility/serial-executor.js'
+import log4js from 'log4js'
 
 import type Application from '../../application'
 import { ChannelType, InstanceType } from '../../common/application-event'
@@ -10,6 +9,7 @@ import type { DatabaseManager } from '../../common/database-manager'
 import SubInstance from '../../common/sub-instance'
 import Duration from '../../utility/duration'
 import { setIntervalAsync } from '../../utility/scheduling'
+import { SerialExecutor } from '../../utility/serial-executor.js'
 import type { Core } from '../core'
 
 export default class ScoresManager extends SubInstance<Core, InstanceType.Core, void> {
@@ -525,7 +525,7 @@ class ScoreDatabase {
           const uuid = operation.inserted.uuid
           const fromTimestamp = operation.inserted.fromTimestamp
           const toTimestamp = operation.inserted.toTimestamp
-          let result = await database
+          const result = await database
             .query<TimeframeRecord>(
               `INSERT INTO "${tableName}" ("uuid", "fromTimestamp", "toTimestamp")
              VALUES ($1, $2, $3)

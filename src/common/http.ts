@@ -1,6 +1,7 @@
-import axios from 'axios'
 import http from 'node:http'
 import https from 'node:https'
+
+import axios from 'axios'
 
 export const httpClient = axios.create({
   timeout: 15_000,

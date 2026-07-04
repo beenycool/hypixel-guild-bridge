@@ -1,5 +1,5 @@
 'use strict'
-window.AppUi = (function () {
+globalThis.AppUi = (function () {
   const BRIDGE_KEY = 'rankup_selectedBridge'
 
   function escapeHtml(string_) {
@@ -115,7 +115,7 @@ window.AppUi = (function () {
   function injectNav(activePage) {
     const navHost = document.querySelector('#app-nav')
     if (!navHost) return
-    const permission = window.AppAuth ? window.AppAuth.getPermission() : null
+    const permission = globalThis.AppAuth ? globalThis.AppAuth.getPermission() : null
     const brand = 'Rankup'
 
     const navSections = [
@@ -156,7 +156,7 @@ window.AppUi = (function () {
     }
     navHTML += `</div>`
     navHTML += `<div class="nav-right">`
-    navHTML += `<span id="bot-status" class="status-indicator status-unknown" title="Connecting...">\u25cf</span>`
+    navHTML += `<span id="bot-status" class="status-indicator status-unknown" title="Connecting...">\u25CF</span>`
     navHTML += `<button class="btn btn-secondary btn-sm" id="app-nav-disconnect">Disconnect</button>`
     navHTML += `</div>`
     navHTML += `</nav>`
@@ -165,7 +165,7 @@ window.AppUi = (function () {
     const button = navHost.querySelector('#app-nav-disconnect')
     if (button) {
       button.addEventListener('click', () => {
-        if (window.AppAuth) window.AppAuth.disconnect()
+        if (globalThis.AppAuth) globalThis.AppAuth.disconnect()
       })
     }
 
@@ -185,7 +185,7 @@ window.AppUi = (function () {
     if (!selectElement) return
     let bridges = []
     try {
-      const res = await window.AppApi.apiGet('/api/rankup/bridges')
+      const res = await globalThis.AppApi.apiGet('/api/rankup/bridges')
       bridges = res && Array.isArray(res.bridges) ? res.bridges : []
     } catch (error) {
       selectElement.innerHTML = '<option value="">(failed to load)</option>'

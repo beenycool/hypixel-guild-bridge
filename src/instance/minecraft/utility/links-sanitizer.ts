@@ -1,5 +1,4 @@
 import { httpClient } from '../../../common/http.js'
-
 import type { MinecraftConfigurations } from '../../../core/minecraft/minecraft-configurations'
 import { stufEncode } from '../common/url-encoder.js'
 
@@ -40,14 +39,14 @@ export class LinksSanitizer {
     const indexes: number[] = []
     const promises: Promise<string>[] = []
 
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
+    for (let index = 0; index < parts.length; index++) {
+      const part = parts[index]
       if (!part.startsWith('https:') && !part.startsWith('http')) {
-        parts[i] = part
+        parts[index] = part
         continue
       }
 
-      indexes.push(i)
+      indexes.push(index)
       promises.push(
         httpClient
           .head(part, { timeout: 5000 })
@@ -57,7 +56,7 @@ export class LinksSanitizer {
 
             const type = contentType.split('/')[0]
             if (type === 'image' || type === 'video') {
-              return await this.describeMedia(part, type as 'image' | 'video')
+              return await this.describeMedia(part, type)
             } else if (contentType.includes('application/pdf')) {
               return '(pdf)'
             }
@@ -68,8 +67,8 @@ export class LinksSanitizer {
     }
 
     const results = await Promise.all(promises)
-    for (let j = 0; j < indexes.length; j++) {
-      parts[indexes[j]] = results[j]
+    for (const [index_, index] of indexes.entries()) {
+      parts[index] = results[index_]
     }
 
     return parts.join(' ')

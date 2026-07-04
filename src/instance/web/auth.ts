@@ -1,4 +1,5 @@
-import { Permission } from '../../common/application-event.js'
+import type { Permission } from '../../common/application-event.js'
+
 import { verifySignedToken } from './signed-token.js'
 
 export type AuthResult =

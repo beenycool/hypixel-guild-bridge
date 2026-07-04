@@ -156,9 +156,9 @@ function extractDuelSubmodes(stats: Record<string, unknown>): { name: string; wi
     const deathsKey = `${mode}_duel_deaths`
     const losses =
       typeof stats[lossesKey] === 'number'
-        ? (stats[lossesKey] as number)
+        ? stats[lossesKey]
         : typeof stats[deathsKey] === 'number'
-          ? (stats[deathsKey] as number)
+          ? stats[deathsKey]
           : 0
     submodes.push({ name: mode, wins, losses })
   }
@@ -380,14 +380,25 @@ class SessionCommand extends ChatCommandHandler {
           })
         }
 
-        if (gameFilter === 'Bedwars') {
-          summary = formatBedwars(gameStats)
-        } else if (gameFilter === 'SkyWars') {
-          summary = formatSkywars(gameStats)
-        } else if (gameFilter === 'Duels') {
-          summary = formatDuels(gameStats)
-        } else {
-          summary = formatSingleGame(gameFilter, gameStats)
+        switch (gameFilter) {
+          case 'Bedwars': {
+            summary = formatBedwars(gameStats)
+
+            break
+          }
+          case 'SkyWars': {
+            summary = formatSkywars(gameStats)
+
+            break
+          }
+          case 'Duels': {
+            summary = formatDuels(gameStats)
+
+            break
+          }
+          default: {
+            summary = formatSingleGame(gameFilter, gameStats)
+          }
         }
       } else {
         summary = formatAllGames(delta)

@@ -1,12 +1,12 @@
-import type { Configuration, ConfigurationsManager } from './configurations'
-
 import { DefaultMuteMessages } from '../common/constants/mute-defaults.js'
-import { DefaultRouletteWinMessages, DefaultRouletteLoseMessages } from '../common/constants/roulette-defaults.js'
+import { DefaultRouletteLoseMessages, DefaultRouletteWinMessages } from '../common/constants/roulette-defaults.js'
 import {
-  DefaultVengeanceWinMessages,
   DefaultVengeanceDrawMessages,
-  DefaultVengeanceLoseMessages
+  DefaultVengeanceLoseMessages,
+  DefaultVengeanceWinMessages
 } from '../common/constants/vengeance-defaults.js'
+
+import type { Configuration, ConfigurationsManager } from './configurations'
 
 export enum ApplicationLanguages {
   English = 'en',

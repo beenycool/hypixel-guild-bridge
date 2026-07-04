@@ -20,6 +20,7 @@ import type {
 import { User } from '../common/user'
 
 import { ApplicationConfigurations } from './application-configurations'
+import { ChatMessagesService } from './chat-messages'
 import { CommandsConfigurations } from './commands/commands-configurations'
 import { ConfigurationsManager } from './configurations'
 import { BridgeConfigurations } from './discord/bridge-configurations'
@@ -44,7 +45,7 @@ import PunishmentsEnforcer from './moderation/punishments-enforcer'
 import { PendingReviewManager } from './rankup/pending-review-manager'
 import { RankupManager } from './rankup/rankup-manager'
 import { SpontaneousEventsConfigurations } from './spontaneous-events-configurations'
-import { ChatMessagesService } from './chat-messages'
+import { TournamentManager } from './tournament/tournament-manager.js'
 import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
 import { Inactivity } from './users/inactivity'
@@ -86,6 +87,7 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly statusHistory: StatusHistory
   public readonly pendingReviewManager: PendingReviewManager
   public readonly rankupManager: RankupManager
+  public readonly tournamentManager: TournamentManager
 
   // misc
   public readonly applicationConfigurations: ApplicationConfigurations
@@ -127,15 +129,18 @@ export class Core extends Instance<InstanceType.Core> {
     this.statusHistory = new StatusHistory(this.databaseManager, this.logger)
     this.pendingReviewManager = new PendingReviewManager(this.databaseManager, (type, data) => {
       switch (type) {
-        case 'reviewAdded':
-          void application.emit('pendingReviewAdded', data as any)
+        case 'reviewAdded': {
+          void application.emit('pendingReviewAdded', data)
           break
-        case 'reviewRemoved':
-          void application.emit('pendingReviewRemoved', data as any)
+        }
+        case 'reviewRemoved': {
+          void application.emit('pendingReviewRemoved', data)
           break
-        case 'historyAppended':
-          void application.emit('pendingHistoryAppended', data as any)
+        }
+        case 'historyAppended': {
+          void application.emit('pendingHistoryAppended', data)
           break
+        }
       }
     })
 
@@ -172,6 +177,11 @@ export class Core extends Instance<InstanceType.Core> {
     this.verification = new Verification(this.databaseManager)
     this.inactivity = new Inactivity(this.databaseManager)
     this.scoresManager = new ScoresManager(this, this.databaseManager)
+
+    this.tournamentManager = new TournamentManager(this.databaseManager, application)
+    application.addShutdownListener(async () => {
+      this.tournamentManager.stopScheduler()
+    })
 
     this.ready = this.initialize()
   }
@@ -283,6 +293,8 @@ export class Core extends Instance<InstanceType.Core> {
     await this.punishments.initialize()
     await this.scoresManager.load()
     await this.autoComplete.load()
+    await this.tournamentManager.load()
+    this.tournamentManager.startScheduler()
   }
 
   /**

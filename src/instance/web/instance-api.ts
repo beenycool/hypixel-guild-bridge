@@ -5,8 +5,8 @@ import type { Logger } from 'log4js'
 import type Application from '../../application.js'
 import { InstanceSignalType, MinecraftSendChatPriority, Permission } from '../../common/application-event.js'
 
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 const InstancePrefix = '/api/instance'
 

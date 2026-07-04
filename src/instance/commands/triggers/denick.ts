@@ -1,7 +1,6 @@
-import { httpClient } from '../../../common/http.js'
-
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { httpClient } from '../../../common/http.js'
 
 export default class Denick extends ChatCommandHandler {
   private static readonly BaseUrl = 'https://bordic.xyz/api/v2/resources/lookup/'

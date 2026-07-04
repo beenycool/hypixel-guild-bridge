@@ -33,7 +33,9 @@ export class PendingReviewManager {
     private readonly databaseManager: DatabaseManager,
     private readonly onEvent?: (type: string, data: any) => void
   ) {
-    this.databaseManager.registerCleaner(() => this.pruneHistory())
+    this.databaseManager.registerCleaner(() => {
+      this.pruneHistory()
+    })
   }
 
   public async load(): Promise<void> {

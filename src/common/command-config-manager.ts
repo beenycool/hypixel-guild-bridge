@@ -3,7 +3,7 @@ import Logger4Js from 'log4js'
 
 import type Application from '../application.js'
 
-import { Permission } from './application-event.js'
+import type { Permission } from './application-event.js'
 import { ConfigManager } from './config-manager.js'
 
 /**

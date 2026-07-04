@@ -1,28 +1,28 @@
 'use strict'
-window.AppApi = (function () {
+globalThis.AppApi = (function () {
   async function apiFetch(path, options = {}) {
-    const token = window.AppAuth ? window.AppAuth.getToken() : localStorage.getItem('rankup_token')
+    const token = globalThis.AppAuth ? globalThis.AppAuth.getToken() : localStorage.getItem('rankup_token')
     const headers = Object.assign({}, options.headers || {})
-    if (token) headers['Authorization'] = `Bearer ${token}`
+    if (token) headers.Authorization = `Bearer ${token}`
     if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json'
       options = Object.assign({}, options, { body: JSON.stringify(options.body) })
     }
     const res = await fetch(path, Object.assign({}, options, { headers }))
     if (res.status === 401) {
-      if (window.AppAuth) {
-        window.AppAuth.clearToken()
-        window.AppAuth.showAuthOverlay()
+      if (globalThis.AppAuth) {
+        globalThis.AppAuth.clearToken()
+        globalThis.AppAuth.showAuthOverlay()
       }
       throw new Error('Unauthorized')
     }
     const json = await res.json()
-    if (json && json.success === false) {
-      const err = new Error(json.error && json.error.message ? json.error.message : 'Request failed')
-      err.code = json.error && json.error.code ? json.error.code : 'UNKNOWN'
-      throw err
+    if (json?.success === false) {
+      const error = new Error(json.error?.message ? json.error.message : 'Request failed')
+      error.code = json.error?.code ? json.error.code : 'UNKNOWN'
+      throw error
     }
-    return json && json.success === true ? json.data : json
+    return json?.success === true ? json.data : json
   }
 
   async function apiGet(path) {

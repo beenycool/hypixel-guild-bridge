@@ -9,14 +9,14 @@ export class CircuitBreaker {
     private readonly resetMs = 30_000
   ) {}
 
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
+  async execute<T>(function_: () => Promise<T>): Promise<T> {
     if (this.state === 'open') {
       if (Date.now() - this.lastFailure >= this.resetMs) {
-        if (!this.halfOpenLock) {
+        if (this.halfOpenLock) {
+          throw new Error('Circuit breaker is open')
+        } else {
           this.halfOpenLock = true
           this.state = 'half-open'
-        } else {
-          throw new Error('Circuit breaker is open')
         }
       } else {
         throw new Error('Circuit breaker is open')
@@ -24,7 +24,7 @@ export class CircuitBreaker {
     }
 
     try {
-      const result = await fn()
+      const result = await function_()
       this.onSuccess()
       return result
     } catch (error) {

@@ -19,7 +19,7 @@ const rateLimiter = new SlidingWindowRateLimiter([
 function parseIqScore(content: string): number {
   const parsed = Number.parseInt(content.trim(), 10)
   if (Number.isNaN(parsed)) {
-    throw new Error(`Invalid IQ value from API: "${content}"`)
+    throw new TypeError(`Invalid IQ value from API: "${content}"`)
   }
   return Math.max(IQ_MIN, Math.min(IQ_MAX, parsed))
 }
@@ -35,7 +35,8 @@ export default class Iq extends ChatCommandHandler {
 
   async handler(context: ChatCommandContext): Promise<string> {
     const givenUsername = context.args[0] ?? context.username
-    const isLookupSelf = context.args[0] === undefined || context.args[0].toLowerCase() === context.username.toLowerCase()
+    const isLookupSelf =
+      context.args[0] === undefined || context.args[0].toLowerCase() === context.username.toLowerCase()
 
     // Rate limit on the sender (not the target)
     const senderId =

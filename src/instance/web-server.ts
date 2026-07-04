@@ -13,8 +13,8 @@ import type { ChatEvent } from '../common/application-event.js'
 import { InstanceType, MinecraftSendChatPriority, Permission } from '../common/application-event.js'
 import { Instance } from '../common/instance.js'
 
+import { sendError, sendSuccess } from './web/api-utils.js'
 import { buildTokenSet, verifyToken } from './web/auth.js'
-import { sendSuccess, sendError } from './web/api-utils.js'
 import { GuildApiHandler } from './web/guild-api.js'
 import { InactivityApiHandler } from './web/inactivity-api.js'
 import { InstanceApiHandler } from './web/instance-api.js'
@@ -198,7 +198,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
       const healthToken = process.env.HEALTH_TOKEN
       if (healthToken) {
-        const provided = request.headers['authorization']?.replace('Bearer ', '') ?? ''
+        const provided = request.headers.authorization?.replace('Bearer ', '') ?? ''
         if (provided !== healthToken) {
           sendError(response, 'UNAUTHORIZED', 'Unauthorized', 401)
           return
@@ -217,7 +217,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
       const healthToken = process.env.HEALTH_TOKEN
       if (healthToken) {
-        const provided = request.headers['authorization']?.replace('Bearer ', '') ?? ''
+        const provided = request.headers.authorization?.replace('Bearer ', '') ?? ''
         if (provided !== healthToken) {
           sendError(response, 'UNAUTHORIZED', 'Unauthorized', 401)
           return
@@ -230,7 +230,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         status:
           this.application.minecraftManager
             .getAllInstances()
-            .find((i) => i.instanceName === name)
+            .find((index) => index.instanceName === name)
             ?.currentStatus() ?? 'unknown'
       }))
 

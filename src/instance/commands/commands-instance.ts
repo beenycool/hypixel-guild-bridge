@@ -22,6 +22,7 @@ import Bestiary from './triggers/bestiary'
 import Bits from './triggers/bits.js'
 import Boo from './triggers/boo.js'
 import Boop from './triggers/boop.js'
+import Bow from './triggers/bow.js'
 import Buildbattle from './triggers/buildbattle'
 import Calculate from './triggers/calculate.js'
 import Catacomb from './triggers/catacomb.js'
@@ -31,12 +32,11 @@ import Collection from './triggers/collection'
 import Crimson from './triggers/crimson.js'
 import CurrentDungeon from './triggers/current-dungeon.js'
 import DadJoke from './triggers/dadjoke.js'
-import Denick from './triggers/denick.js'
 import DarkAuction from './triggers/darkauction.js'
+import Denick from './triggers/denick.js'
 import DevelopmentExcuse from './triggers/devexcuse.js'
 import Discord from './triggers/discord'
 import Dojo from './triggers/dojo.js'
-import Bow from './triggers/bow.js'
 import DuelsBridge from './triggers/duels-bridge.js'
 import Duels from './triggers/duels.js'
 import Eggs from './triggers/eggs'
@@ -99,6 +99,8 @@ import StatusCommand from './triggers/status.js'
 import Timecharms from './triggers/timecharms.js'
 import Toggle from './triggers/toggle.js'
 import Toggled from './triggers/toggled.js'
+import Tournament from './triggers/tournament.js'
+import Translate from './triggers/translate.js'
 import TrophyFish from './triggers/trophyfish.js'
 import Unlink from './triggers/unlink.js'
 import Unscramble from './triggers/unscramble.js'
@@ -107,7 +109,6 @@ import Vengeance from './triggers/vengeance.js'
 import Warp from './triggers/warp.js'
 import Weight from './triggers/weight.js'
 import Woolwars from './triggers/woolwars.js'
-import Translate from './triggers/translate.js'
 
 export class CommandsInstance extends ConnectableInstance<InstanceType.Commands> {
   public readonly commands: ChatCommandHandler[]
@@ -206,6 +207,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new TrophyFish(),
       new Toggle(),
       new Toggled(),
+      new Tournament(),
       new Unscramble(),
       new Unlink(),
       new Urchin(),

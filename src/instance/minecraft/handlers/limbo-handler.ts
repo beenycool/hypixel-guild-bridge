@@ -1,8 +1,7 @@
-import { SerialExecutor } from '../../../utility/serial-executor.js'
-
 import type { InstanceType } from '../../../common/application-event.js'
 import { MinecraftSendChatPriority } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 import { Timeout } from '../../../utility/timeout.js'
 import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'

@@ -1,5 +1,6 @@
-import type { TextChannel } from 'discord.js'
 import axios from 'axios'
+import type { TextChannel } from 'discord.js'
+
 import type Application from '../application.js'
 import { InstanceType } from '../common/application-event.js'
 import { Instance } from '../common/instance.js'

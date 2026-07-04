@@ -1,4 +1,4 @@
-import http from 'node:http'
+import type http from 'node:http'
 
 export interface ApiSuccess<T = unknown> {
   success: true

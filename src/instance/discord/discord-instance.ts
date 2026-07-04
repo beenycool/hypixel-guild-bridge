@@ -64,7 +64,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
         GuildStickerManager: { maxSize: 0 },
         MessageManager: {
           maxSize: 5,
-          keepOverLimit: (msg: Message) => msg.author.id === msg.client.user.id
+          keepOverLimit: (message: Message) => message.author.id === message.client.user.id
         },
         PresenceManager: { maxSize: 0 },
         ReactionManager: { maxSize: 0 },

@@ -2,6 +2,7 @@ import assert from 'node:assert'
 
 import type { Client, SkyblockMember, SkyblockV2Member, SkyblockV2Profile } from 'hypixel-api-reborn'
 
+import { httpClient } from '../../../common/http.js'
 import type { MojangApi } from '../../../core/users/mojang'
 
 import type { ChatCommandContext } from 'src/common/commands'
@@ -151,8 +152,6 @@ export function formatStatNumber(value: number, decimals = 2): string {
   if (!Number.isFinite(value)) return '0'
   return value.toFixed(decimals)
 }
-
-import { httpClient } from '../../../common/http.js'
 
 export interface AuroraPingEntry {
   avg: number

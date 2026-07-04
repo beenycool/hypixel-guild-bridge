@@ -2,8 +2,8 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
 import { Permission } from '../src/common/application-event.js'
-import { signToken } from '../src/instance/web/signed-token.js'
 import { verifyToken } from '../src/instance/web/auth.js'
+import { signToken } from '../src/instance/web/signed-token.js'
 
 await describe('verifyToken', async () => {
   await it('returns Admin permission from valid signed token', () => {

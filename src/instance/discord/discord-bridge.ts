@@ -86,7 +86,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         .catch(this.errorHandler.promiseCatch('handling event instanceReactive'))
     }
     this.application.on('instanceReactive', onInstanceReactive)
-    this.localCleanups.push(() => this.application.off('instanceReactive', onInstanceReactive))
+    this.localCleanups.push(() => {
+      this.application.off('instanceReactive', onInstanceReactive)
+    })
   }
 
   override dispose(): void {
@@ -207,8 +209,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           username: event.user.displayName()
         })
         const sentMessages = await this.sendImageToChannels(event.eventId, [channelId], image)
-        for (const msg of sentMessages) {
-          this.messageAssociation.addUsernameForMessage(msg.id, username)
+        for (const message of sentMessages) {
+          this.messageAssociation.addUsernameForMessage(message.id, username)
         }
         if (mentions !== undefined && mentions.userIds.length > 0) {
           const channel = this.clientInstance.getClient().channels.cache.get(channelId)
@@ -395,7 +397,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           })
           const imageMessages = await this.sendImageToChannels(event.eventId, promoteChannelIds, image)
           for (const message of imageMessages) {
-            await message.react('🔥').catch((error) => this.logger.error(error, 'Failed to react to promotion message'))
+            await message.react('🔥').catch((error) => {
+              this.logger.error(error, 'Failed to react to promotion message')
+            })
           }
         } catch (error) {
           this.logger.error(error, 'Failed to generate Minecraft chat image for promotion')
@@ -713,8 +717,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       channels.map(async (channelId) => {
         try {
           const channel = await this.clientInstance.getClient().channels.fetch(channelId)
-          if (channel == undefined) return undefined
-          if (!channel.isSendable() || channel.type !== DiscordChannelType.GuildText) return undefined
+          if (channel == undefined) return
+          if (!channel.isSendable() || channel.type !== DiscordChannelType.GuildText) return
 
           const embed = preGeneratedEmbed ?? (await this.generateEmbed(event, channel.guildId))
           const message = await channel.send({ embeds: [embed], allowedMentions: { parse: [] } })
@@ -727,7 +731,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           return message
         } catch (error: unknown) {
           this.logger.error(`error sending to ${channelId}`, error)
-          return undefined
+          return
         }
       })
     )
@@ -740,8 +744,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       channels.map(async (channelId) => {
         try {
           const channel = await this.clientInstance.getClient().channels.fetch(channelId)
-          if (channel == undefined) return undefined
-          if (!channel.isSendable() || channel.type !== DiscordChannelType.GuildText) return undefined
+          if (channel == undefined) return
+          if (!channel.isSendable() || channel.type !== DiscordChannelType.GuildText) return
 
           const message = await channel.send({ files: [{ attachment: image, name: 'image.png' }] })
 
@@ -753,7 +757,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           return message
         } catch (error: unknown) {
           this.logger.error(`error sending to ${channelId}`, error)
-          return undefined
+          return
         }
       })
     )

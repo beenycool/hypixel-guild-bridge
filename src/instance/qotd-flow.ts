@@ -57,7 +57,9 @@ export async function runQotdFlow(
           time: 600_000,
           max: 1
         })
-        collector.on('end', (collected) => resolve(collected.first() ?? null))
+        collector.on('end', (collected) => {
+          resolve(collected.first() ?? null)
+        })
       })
 
       clearInterval(reminderInterval)

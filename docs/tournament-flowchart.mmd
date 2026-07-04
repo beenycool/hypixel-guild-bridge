@@ -1,0 +1,72 @@
+flowchart TD
+    %% -- Styling --
+    classDef admin fill:#f9d0c4,stroke:#e06666,stroke-width:2px;
+    classDef player fill:#cfe2f3,stroke:#6fa8dc,stroke-width:2px;
+    classDef system fill:#d9ead3,stroke:#93c47d,stroke-width:2px;
+    classDef status fill:#fff2cc,stroke:#ffd966,stroke-width:2px,stroke-dasharray: 5 5;
+
+    %% -- Phase 1: Setup & Signups --
+    subgraph Phase1 [Phase 1: Setup & Signups]
+        direction TB
+        A([Admin: /tournament create]):::admin --> B[Database: Status = SIGNUP]:::system
+        B --> C([Players: /tournament join/leave]):::player
+        C --> D([Admin: /tournament start]):::admin
+    end
+
+    %% -- Phase 2: Bracket Generation --
+    subgraph Phase2 [Phase 2: Bracket Generation & Setup]
+        direction TB
+        D --> E{Min 2 Players?}:::system
+        E -- No --> F([Error: Not enough players]):::system
+        E -- Yes --> G[Lock Signups]:::system
+        G --> H[Generate Single-Elim Bracket]:::system
+        H --> I[Pre-create all rounds & link 'next_match_id']:::system
+        I --> J[Create Read-Only Parent Discord Channel]:::system
+    end
+
+    %% -- Phase 3: Active Match Lifecycle --
+    subgraph Phase3 [Phase 3: Active Match Lifecycle]
+        direction TB
+        J --> K[Spawn Private Match Threads via batching]:::system
+        K --> L[Notify Players Discord Ping / MC Whisper]:::system
+        L --> M([Players Schedule & Play BoX]):::player
+        
+        M --> N1([Player 1: /tournament report]):::player
+        M --> N2([Player 2: /tournament report]):::player
+        
+        N1 --> O{Do Reports Match?}:::system
+        N2 --> O
+        
+        %% Dispute Path
+        O -- No --> P[Status = DISPUTED]:::status
+        P --> Q([Admin: /tournament confirm]):::admin
+        Q --> R[Admin forces winner]:::system
+        
+        %% Success Path
+        O -- Yes --> S[Status = BOTH_CONFIRMED]:::status
+        S --> T[Auto-Resolve Winner]:::system
+        R --> T
+        
+        %% Deadline / Edge Cases
+        M -.->|24h Warning| U[Ping players to play]:::system
+        M -.->|Deadline Expires| V{Reports exist?}:::system
+        V -. None .-> W[Higher Seed Advances]:::system
+        V -. One .-> X[Reporter Advances]:::system
+        W --> T
+        X --> T
+        
+        %% Post Match
+        T --> Y[Archive & Lock Private Thread]:::system
+        Y --> Z[Move Winner to next_match_id]:::system
+    end
+
+    %% -- Phase 4: Progression --
+    subgraph Phase4 [Phase 4: Progression]
+        direction TB
+        Z --> AA{Is Round Complete?}:::system
+        AA -- No --> AB[Wait for other matches]:::system
+        AA -- Yes --> AC{Is Tournament Complete?}:::system
+        AC -- No --> AD[Update live tracker & Start Next Round]:::system
+        AD --> K
+        AC -- Yes --> AE([Tournament Ends: Winner Crowned!]):::status
+    end

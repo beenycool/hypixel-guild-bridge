@@ -6,8 +6,8 @@ import type Application from '../../application.js'
 import type { Permission } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 const StatusPrefix = '/api/status'
 
@@ -35,7 +35,7 @@ export class StatusApiHandler {
     if (!rawUrl) return false
 
     const [pathPart] = rawUrl.split('?')
-    if (!pathPart || !pathPart.startsWith(StatusPrefix)) return false
+    if (!pathPart?.startsWith(StatusPrefix)) return false
 
     if (request.method !== 'GET') {
       this.sendMethodNotAllowed(response, ['GET'])

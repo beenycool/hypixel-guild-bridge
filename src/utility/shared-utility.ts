@@ -158,22 +158,22 @@ export function relativeTime(timestamp: number, includeSuffix = true): string {
   const diff = timestamp - Date.now()
   const absSeconds = Math.floor(Math.abs(diff) / 1000)
 
-  let str: string
-  if (absSeconds < 10) str = 'a few seconds'
-  else if (absSeconds < 45) str = `${absSeconds} seconds`
-  else if (absSeconds < 90) str = 'a minute'
-  else if (absSeconds < 45 * 60) str = `${Math.round(absSeconds / 60)} minutes`
-  else if (absSeconds < 90 * 60) str = 'an hour'
-  else if (absSeconds < 22 * 60 * 60) str = `${Math.round(absSeconds / 3600)} hours`
-  else if (absSeconds < 36 * 60 * 60) str = 'a day'
-  else if (absSeconds < 26 * 24 * 60 * 60) str = `${Math.round(absSeconds / 86400)} days`
-  else if (absSeconds < 45 * 24 * 60 * 60) str = 'a month'
-  else if (absSeconds < 345 * 24 * 60 * 60) str = `${Math.round(absSeconds / 2592000)} months`
-  else if (absSeconds < 545 * 24 * 60 * 60) str = 'a year'
-  else str = `${Math.round(absSeconds / 31536000)} years`
+  let string_: string
+  if (absSeconds < 10) string_ = 'a few seconds'
+  else if (absSeconds < 45) string_ = `${absSeconds} seconds`
+  else if (absSeconds < 90) string_ = 'a minute'
+  else if (absSeconds < 45 * 60) string_ = `${Math.round(absSeconds / 60)} minutes`
+  else if (absSeconds < 90 * 60) string_ = 'an hour'
+  else if (absSeconds < 22 * 60 * 60) string_ = `${Math.round(absSeconds / 3600)} hours`
+  else if (absSeconds < 36 * 60 * 60) string_ = 'a day'
+  else if (absSeconds < 26 * 24 * 60 * 60) string_ = `${Math.round(absSeconds / 86_400)} days`
+  else if (absSeconds < 45 * 24 * 60 * 60) string_ = 'a month'
+  else if (absSeconds < 345 * 24 * 60 * 60) string_ = `${Math.round(absSeconds / 2_592_000)} months`
+  else if (absSeconds < 545 * 24 * 60 * 60) string_ = 'a year'
+  else string_ = `${Math.round(absSeconds / 31_536_000)} years`
 
-  if (!includeSuffix) return str
-  return diff > 0 ? `in ${str}` : `${str} ago`
+  if (!includeSuffix) return string_
+  return diff > 0 ? `in ${string_}` : `${string_} ago`
 }
 
 export function search(query: string, collection: string[]): string[] {

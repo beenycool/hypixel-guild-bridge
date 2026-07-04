@@ -17,7 +17,9 @@ export class SlidingWindowRateLimiter {
     this.windows = windows
     this.maxWindowMs = Math.max(...windows.map((w) => w.windowMs))
 
-    this.cleanupInterval = setInterval(() => this.cleanup(), cleanupIntervalMs)
+    this.cleanupInterval = setInterval(() => {
+      this.cleanup()
+    }, cleanupIntervalMs)
     this.cleanupInterval.unref()
   }
 

@@ -79,7 +79,10 @@ export class User {
     return this.userDiscord
   }
 
-  /** Resolves the user's permission level, checking Discord roles and admin username */
+  /**
+   * Resolves the user's permission level, checking Discord roles and admin username
+   * @param bridgeId
+   */
   public async permission(bridgeId?: string): Promise<Permission> {
     let permission = Permission.Anyone
 
@@ -113,19 +116,20 @@ export class User {
     if ((await this.permission()) >= Permission.Admin) return true
 
     const discordProfile = this.discordProfile()
-    if (discordProfile !== undefined) {
-      if (this.context.moderation.getImmuneDiscordUsers().includes(discordProfile.id)) return true
-    }
+    if (discordProfile !== undefined && this.context.moderation.getImmuneDiscordUsers().includes(discordProfile.id))
+      return true
 
     const mojangProfile = this.mojangProfile()
-    if (mojangProfile !== undefined) {
-      if (this.context.moderation.getImmuneMojangPlayers().includes(mojangProfile.name)) return true
-    }
+    if (mojangProfile !== undefined && this.context.moderation.getImmuneMojangPlayers().includes(mojangProfile.name))
+      return true
 
     return false
   }
 
-  /** Checks if this user equals another by any shared identifier */
+  /**
+   * Checks if this user equals another by any shared identifier
+   * @param other
+   */
   public equalsUser(other: User): boolean {
     const discordProfile = this.discordProfile()
     if (discordProfile !== undefined && other.discordProfile()?.id === discordProfile.id) {
@@ -148,7 +152,10 @@ export class User {
     return false
   }
 
-  /** Checks if this user matches a specific identifier */
+  /**
+   * Checks if this user matches a specific identifier
+   * @param identifier
+   */
   public equalsIdentifier(identifier: UserIdentifier): boolean {
     return this.allIdentifiers().some(
       (entry) => entry.originInstance === identifier.originInstance && entry.userId === identifier.userId
@@ -199,7 +206,10 @@ export class User {
     return new PunishmentInstant(this, punishments)
   }
 
-  /** Removes all punishments for this user */
+  /**
+   * Removes all punishments for this user
+   * @param executor
+   */
   public async forgive(executor: InformEvent): Promise<SavedPunishment[]> {
     const savedPunishments = this.context.punishments.remove(this)
 
@@ -208,7 +218,13 @@ export class User {
     return savedPunishments
   }
 
-  /** Bans the user for a specified duration and reason */
+  /**
+   * Bans the user for a specified duration and reason
+   * @param executor
+   * @param purpose
+   * @param duration
+   * @param reason
+   */
   public async ban(
     executor: InformEvent,
     purpose: PunishmentPurpose,
@@ -218,7 +234,13 @@ export class User {
     return await this.punish(executor, PunishmentType.Ban, purpose, duration, reason)
   }
 
-  /** Mutes the user for a specified duration and reason */
+  /**
+   * Mutes the user for a specified duration and reason
+   * @param executor
+   * @param purpose
+   * @param duration
+   * @param reason
+   */
   public async mute(
     executor: InformEvent,
     purpose: PunishmentPurpose,
@@ -253,12 +275,18 @@ export class User {
     return savedPunishment
   }
 
-  /** Records a moderation heat action (with auto-escalation) */
+  /**
+   * Records a moderation heat action (with auto-escalation)
+   * @param type
+   */
   public async addModerationAction(type: HeatType): Promise<HeatResult> {
     return this.context.commandsHeat.add(this, type)
   }
 
-  /** Attempts to record a moderation heat action (no auto-escalation) */
+  /**
+   * Attempts to record a moderation heat action (no auto-escalation)
+   * @param type
+   */
   public async tryAddModerationAction(type: HeatType): Promise<HeatResult> {
     return this.context.commandsHeat.tryAdd(this, type)
   }
@@ -328,7 +356,10 @@ export class PunishmentInstant {
     return this.punishments
   }
 
-  /** Finds the longest punishment of a given type */
+  /**
+   * Finds the longest punishment of a given type
+   * @param type
+   */
   public longestPunishment(type: PunishmentType): SavedPunishment | undefined {
     const punishments = this.all()
 
@@ -344,7 +375,10 @@ export class PunishmentInstant {
     return longestPunishment
   }
 
-  /** Returns the expiration timestamp of the longest punishment of a given type */
+  /**
+   * Returns the expiration timestamp of the longest punishment of a given type
+   * @param type
+   */
   public punishedTill(type: PunishmentType): number | undefined {
     return this.longestPunishment(type)?.till
   }

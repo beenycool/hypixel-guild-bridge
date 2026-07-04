@@ -1,6 +1,7 @@
+import type { PendingReview, RankupHistoryEntry } from '../core/rankup/pending-review-manager.js'
+
 import type { Status } from './connectable-instance.js'
 import type { DiscordUser, MinecraftUser, User } from './user'
-import type { PendingReview, RankupHistoryEntry } from '../core/rankup/pending-review-manager.js'
 
 /*
  All events must be immutable.

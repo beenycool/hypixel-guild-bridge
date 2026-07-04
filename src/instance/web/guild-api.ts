@@ -3,13 +3,13 @@ import type http from 'node:http'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
-import { Status } from '../../common/connectable-instance.js'
 import { type InstanceType, MinecraftSendChatPriority, Permission } from '../../common/application-event.js'
+import { Status } from '../../common/connectable-instance.js'
 import type EventHelper from '../../common/event-helper.js'
 import { checkChatTriggers, InviteAcceptChat, RankChat } from '../../utility/chat-triggers.js'
 
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 const GuildPrefix = '/api/guild'
 

@@ -1,5 +1,5 @@
 'use strict'
-window.AppAuth = (function () {
+globalThis.AppAuth = (function () {
   const TOKEN_KEY = 'rankup_token'
   const BRIDGE_KEY = 'rankup_selectedBridge'
   const PERMISSION_KEY = 'rankup_permission'
@@ -32,8 +32,8 @@ window.AppAuth = (function () {
       return
     }
     try {
-      const data = await window.AppApi.apiFetch('/api/auth/check')
-      if (data && data.permission) {
+      const data = await globalThis.AppApi.apiFetch('/api/auth/check')
+      if (data?.permission) {
         setPermission(data.permission)
       } else {
         clearPermission()

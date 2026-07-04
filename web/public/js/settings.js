@@ -14,13 +14,13 @@
   const roleNameMap = new Map()
 
   const esc = (s) => App.escapeHtml(s)
-  const num = (n) => {
+  const number_ = (n) => {
     const v = Number(n)
     return isNaN(v) ? 0 : v
   }
-  const str = (s, d = '') => (s == null ? d : String(s))
-  const bool = (s, d = false) => (s == null ? d : !!s)
-  const arr = (a) => (Array.isArray(a) ? a.map(String) : [])
+  const string_ = (s, d = '') => (s == undefined ? d : String(s))
+  const bool = (s, d = false) => (s == undefined ? d : !!s)
+  const array = (a) => (Array.isArray(a) ? a.map(String) : [])
 
   // ---- Category schema -----------------------------------------------------
   // Each field has a `t` (type) and render/read behaviour.
@@ -256,7 +256,7 @@
               label: 'Delete After (seconds)',
               hint: '1–43200',
               min: 1,
-              max: 43200
+              max: 43_200
             },
             { id: 'maxEvents', t: 'number', label: 'Max Events', hint: '1–1000', min: 1, max: 1000 }
           ]
@@ -885,12 +885,12 @@
   // ---- Utilities -----------------------------------------------------------
 
   function setWSStatus(state, label) {
-    const el = document.querySelector('#ws-status')
-    if (!el) return
-    el.classList.remove('connecting', 'disconnected')
-    if (state === 'connecting') el.classList.add('connecting')
-    else if (state === 'disconnected') el.classList.add('disconnected')
-    const text = el.querySelector('.ws-status-text')
+    const element = document.querySelector('#ws-status')
+    if (!element) return
+    element.classList.remove('connecting', 'disconnected')
+    if (state === 'connecting') element.classList.add('connecting')
+    else if (state === 'disconnected') element.classList.add('disconnected')
+    const text = element.querySelector('.ws-status-text')
     if (text && label) text.textContent = label
   }
 
@@ -899,7 +899,7 @@
     const list = payload?.channels
     if (Array.isArray(list)) {
       for (const c of list) {
-        if (c && c.id != null && c.name) channelNameMap.set(String(c.id), c.name)
+        if (c?.id != undefined && c.name) channelNameMap.set(String(c.id), c.name)
       }
     } else if (list && typeof list === 'object') {
       for (const [id, name] of Object.entries(list)) {
@@ -913,13 +913,13 @@
     const list = payload?.roles
     if (Array.isArray(list)) {
       for (const r of list) {
-        if (r && r.id != null && r.name) roleNameMap.set(String(r.id), r.name)
+        if (r?.id != undefined && r.name) roleNameMap.set(String(r.id), r.name)
       }
     }
   }
 
   function categoryData(catKey) {
-    const cats = (rawData && rawData.categories) || {}
+    const cats = rawData?.categories || {}
     return cats[catKey] || {}
   }
 
@@ -927,11 +927,11 @@
     if (currentCategory === 'translations') {
       const override = rawData.translationOverrides ? rawData.translationOverrides[field.id] : undefined
       const raw =
-        override !== undefined
-          ? override
-          : rawData.translationDefaults
+        override === undefined
+          ? rawData.translationDefaults
             ? rawData.translationDefaults[field.id]
             : undefined
+          : override
       if (raw === undefined) return ''
       if (field.t === 'msglist') {
         try {
@@ -940,13 +940,13 @@
         return []
       }
       if (field.t === 'boolean') return raw === 'true' || raw === '1'
-      if (field.t === 'number') return num(raw)
+      if (field.t === 'number') return number_(raw)
       return raw
     }
-    if (field.t === 'tag' || field.t === 'msglist') return arr(data[field.id])
+    if (field.t === 'tag' || field.t === 'msglist') return array(data[field.id])
     if (field.t === 'boolean') return bool(data[field.id])
-    if (field.t === 'number') return num(data[field.id])
-    if (field.t === 'text' || field.t === 'preset') return str(data[field.id], field.allowEmpty ? '' : '')
+    if (field.t === 'number') return number_(data[field.id])
+    if (field.t === 'text' || field.t === 'preset') return string_(data[field.id], field.allowEmpty ? '' : '')
     return data[field.id]
   }
 
@@ -995,44 +995,53 @@
 
     let control = ''
     switch (field.t) {
-      case 'boolean':
+      case 'boolean': {
         control = `<label class="toggle"><input type="checkbox" data-field="${esc(id)}"${value ? ' checked' : ''} /><span class="toggle-slider"></span></label>`
         break
-      case 'number':
-        control = `<input type="number" class="input" data-field="${esc(id)}" value="${esc(value)}"${field.min != null ? ` min="${field.min}"` : ''}${field.max != null ? ` max="${field.max}"` : ''} />`
+      }
+      case 'number': {
+        control = `<input type="number" class="input" data-field="${esc(id)}" value="${esc(value)}"${field.min == undefined ? '' : ` min="${field.min}"`}${field.max == undefined ? '' : ` max="${field.max}"`} />`
         break
-      case 'text':
+      }
+      case 'text': {
         control = `<input type="text" class="input" data-field="${esc(id)}" value="${esc(value)}" placeholder="${esc(field.placeholder || '')}"${field.max ? ` maxlength="${field.max}"` : ''} />`
         break
+      }
       case 'preset': {
         const options = collectPresetOptions(field)
-        const optsHtml =
+        const optionsHtml =
           (field.allowEmpty ? '<option value="">(default)</option>' : '') +
           options
             .map(
               (o) => `<option value="${esc(o.value)}"${o.value === value ? ' selected' : ''}>${esc(o.label)}</option>`
             )
             .join('')
-        control = `<select class="select" data-field="${esc(id)}">${optsHtml}</select>`
+        control = `<select class="select" data-field="${esc(id)}">${optionsHtml}</select>`
         break
       }
-      case 'tag':
+      case 'tag': {
         control = `<div data-tag-host="${esc(id)}"></div>`
         break
-      case 'textarea':
+      }
+      case 'textarea': {
         control = `<textarea class="input textarea" data-field="${esc(id)}" rows="3">${esc(value)}</textarea>`
         break
-      case 'msglist':
+      }
+      case 'msglist': {
         control = `<div data-msglist-host="${esc(id)}"></div>`
         break
-      case 'link':
+      }
+      case 'link': {
         control = '' // rendered as full-width card by renderLinkCard
         break
-      case 'danger':
+      }
+      case 'danger': {
         control = `<button class="btn btn-danger btn-sm" data-danger="${esc(id)}">${esc(field.buttonText || 'Delete')}</button>`
         break
-      default:
+      }
+      default: {
         control = `<input type="text" class="input" data-field="${esc(id)}" value="${esc(value)}" />`
+      }
     }
 
     if (field.t === 'link' || field.t === 'danger') {
@@ -1155,10 +1164,10 @@
     if (value && value !== '' && !allRanks.includes(value)) allRanks.push(value)
     const id = `rank-sel-${++rankFieldIdCounter}`
     if (allRanks.length > 0) {
-      const opts = allRanks
+      const options = allRanks
         .map((rk) => `<option value="${esc(rk)}"${rk === value ? ' selected' : ''}>${esc(rk)}</option>`)
         .join('')
-      return `<select class="input rank-select" data-rank="${id}">${opts}</select>`
+      return `<select class="input rank-select" data-rank="${id}">${options}</select>`
     }
     return `<input class="input rank-input" data-rank="${id}" value="${esc(value || '')}" placeholder="Rank name" />`
   }
@@ -1167,9 +1176,9 @@
     const r = rule || {}
     return `<tr>
       <td>${rankSelectHTML(r.targetRank || '')}</td>
-      <td><input type="number" class="input" data-field="minWeeklyGexp" min="0" value="${num(r.minWeeklyGexp)}" /></td>
-      <td><input type="number" class="input" data-field="minDaysInGuild" min="0" value="${num(r.minDaysInGuild)}" /></td>
-      <td><input type="number" class="input" data-field="minOnlineHours" min="0" value="${num(r.minOnlineHours)}" /></td>
+      <td><input type="number" class="input" data-field="minWeeklyGexp" min="0" value="${number_(r.minWeeklyGexp)}" /></td>
+      <td><input type="number" class="input" data-field="minDaysInGuild" min="0" value="${number_(r.minDaysInGuild)}" /></td>
+      <td><input type="number" class="input" data-field="minOnlineHours" min="0" value="${number_(r.minOnlineHours)}" /></td>
       <td><button class="btn btn-danger btn-sm" data-action="delete" title="Remove">✕</button></td>
     </tr>`
   }
@@ -1177,22 +1186,22 @@
   function demotionRowHTML(rule) {
     const r = rule || {}
     const action = r.action || 'notify'
-    const opts = ['demote', 'kick', 'notify']
+    const options = ['demote', 'kick', 'notify']
       .map((a) => `<option value="${a}"${a === action ? ' selected' : ''}>${a}</option>`)
       .join('')
     return `<tr>
       <td>${rankSelectHTML(r.fromRank || '')}</td>
-      <td><select class="input" data-field="action">${opts}</select></td>
+      <td><select class="input" data-field="action">${options}</select></td>
       <td>${rankSelectHTML(r.targetRank || '')}</td>
-      <td><input type="number" class="input" data-field="maxWeeklyGexp" min="0" value="${num(r.maxWeeklyGexp)}" /></td>
-      <td><input type="number" class="input" data-field="gracePeriod" min="0" value="${num(r.gracePeriod)}" /></td>
-      <td><input type="number" class="input" data-field="maxDaysInactive" min="0" value="${num(r.maxDaysInactive)}" /></td>
+      <td><input type="number" class="input" data-field="maxWeeklyGexp" min="0" value="${number_(r.maxWeeklyGexp)}" /></td>
+      <td><input type="number" class="input" data-field="gracePeriod" min="0" value="${number_(r.gracePeriod)}" /></td>
+      <td><input type="number" class="input" data-field="maxDaysInactive" min="0" value="${number_(r.maxDaysInactive)}" /></td>
       <td><button class="btn btn-danger btn-sm" data-action="delete" title="Remove">✕</button></td>
     </tr>`
   }
 
-  function placeholderRow(cols, msg) {
-    return `<tr data-placeholder><td colspan="${cols}" class="text-center text-muted text-sm">${esc(msg)}</td></tr>`
+  function placeholderRow(cols, message) {
+    return `<tr data-placeholder><td colspan="${cols}" class="text-center text-muted text-sm">${esc(message)}</td></tr>`
   }
 
   function renderPromotionRulesTable(data) {
@@ -1233,16 +1242,16 @@
     const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
     return rows.map((tr) => {
       const get = (f) => {
-        const el = tr.querySelector(`[data-field="${f}"]`)
-        return el ? el.value : ''
+        const element = tr.querySelector(`[data-field="${f}"]`)
+        return element ? element.value : ''
       }
       const rankSel = tr.querySelector('[data-rank]')
       const targetRank = rankSel ? rankSel.value : ''
       return {
         targetRank,
-        minWeeklyGexp: num(get('minWeeklyGexp')),
-        minDaysInGuild: num(get('minDaysInGuild')),
-        minOnlineHours: num(get('minOnlineHours'))
+        minWeeklyGexp: number_(get('minWeeklyGexp')),
+        minDaysInGuild: number_(get('minDaysInGuild')),
+        minOnlineHours: number_(get('minOnlineHours'))
       }
     })
   }
@@ -1253,8 +1262,8 @@
     const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
     return rows.map((tr) => {
       const get = (f) => {
-        const el = tr.querySelector(`[data-field="${f}"]`)
-        return el ? el.value : ''
+        const element = tr.querySelector(`[data-field="${f}"]`)
+        return element ? element.value : ''
       }
       const rankSels = tr.querySelectorAll('[data-rank]')
       const fromRank = rankSels[0] ? rankSels[0].value : ''
@@ -1264,9 +1273,9 @@
         fromRank,
         action,
         targetRank: action === 'demote' ? targetRank : undefined,
-        maxWeeklyGexp: num(get('maxWeeklyGexp')),
-        gracePeriod: num(get('gracePeriod')),
-        maxDaysInactive: num(get('maxDaysInactive')) || undefined
+        maxWeeklyGexp: number_(get('maxWeeklyGexp')),
+        gracePeriod: number_(get('gracePeriod')),
+        maxDaysInactive: number_(get('maxDaysInactive')) || undefined
       }
       return rule
     })
@@ -1339,18 +1348,15 @@
     mountDynamicControls(cat, data)
     // Wire danger actions
     if (cat.key === 'dangerZone') {
-      const btn = panel.querySelector('[data-danger="deleteBridge"]')
-      if (btn) btn.addEventListener('click', onDeleteBridge)
+      const button = panel.querySelector('[data-danger="deleteBridge"]')
+      if (button) button.addEventListener('click', onDeleteBridge)
     }
     if (cat.key === 'rankup') {
       applyDemotionTargetStates()
     }
     // Reset dirty baseline for the active category
-    if (cat.key === 'translations') {
-      savedSnapshot = serializeCategory(cat, readCategoryState(cat))
-    } else {
-      savedSnapshot = serializeCategory(cat, data)
-    }
+    savedSnapshot =
+      cat.key === 'translations' ? serializeCategory(cat, readCategoryState(cat)) : serializeCategory(cat, data)
     isDirty = false
     updateDirtyUI()
   }
@@ -1376,15 +1382,15 @@
             labelFor = (id) => channelNameMap.get(String(id))
           }
           const suggestions = f.roleLabel
-            ? Array.from(roleNameMap.entries()).map(([id, name]) => ({ label: name, value: id }))
+            ? [...roleNameMap.entries()].map(([id, name]) => ({ label: name, value: id }))
             : undefined
-          const tag = createTagInput(arr(data[f.id]), f.placeholder || '…', markDirty, labelFor, f.max, suggestions)
+          const tag = createTagInput(array(data[f.id]), f.placeholder || '…', markDirty, labelFor, f.max, suggestions)
           host.append(tag.el)
           tagInputRegistry.set(f.id, tag)
         } else if (f.t === 'msglist') {
           const host = panel.querySelector(`[data-msglist-host="${cssEscape(f.id)}"]`)
           if (!host) continue
-          mountMessageList(host, f, arr(fieldValue(data, f)))
+          mountMessageList(host, f, array(fieldValue(data, f)))
         }
       }
     }
@@ -1392,7 +1398,7 @@
   }
 
   function cssEscape(value) {
-    return String(value).replace(/"/g, '\\"')
+    return String(value).replaceAll('"', String.raw`\"`)
   }
 
   // ---- Tag input -------------------------------------------------------------
@@ -1442,15 +1448,15 @@
         suggestBox.append(empty)
         return
       }
-      for (let i = 0; i < filtered.length; i++) {
+      for (const [index, element] of filtered.entries()) {
         const item = document.createElement('div')
         item.className = 'tag-input-suggest-item'
-        if (i === highlightedIndex) item.classList.add('highlighted')
-        item.textContent = filtered[i].label
-        item.dataset.value = filtered[i].value
+        if (index === highlightedIndex) item.classList.add('highlighted')
+        item.textContent = element.label
+        item.dataset.value = element.value
         item.addEventListener('mousedown', (e) => {
           e.preventDefault()
-          addTag(filtered[i].value)
+          addTag(element.value)
           field.value = ''
           closeSuggest()
           field.focus()
@@ -1465,27 +1471,27 @@
         const tag = document.createElement('span')
         tag.className = 'tag'
         tag.title = t
-        const labelEl = document.createElement('span')
-        labelEl.textContent = labelFor ? labelFor(t) || t : t
+        const labelElement = document.createElement('span')
+        labelElement.textContent = labelFor ? labelFor(t) || t : t
         const rm = document.createElement('span')
         rm.className = 'tag-remove'
         rm.textContent = '✕'
         rm.addEventListener('click', () => {
-          const i = tags.indexOf(t)
-          if (i !== -1) {
-            tags.splice(i, 1)
+          const index = tags.indexOf(t)
+          if (index !== -1) {
+            tags.splice(index, 1)
             render()
             if (onChange) onChange()
           }
         })
-        tag.append(labelEl)
+        tag.append(labelElement)
         tag.append(rm)
         field.before(tag)
       }
     }
 
     function addTag(value) {
-      const v = String(value == null ? '' : value).trim()
+      const v = String(value == undefined ? '' : value).trim()
       if (!v) return
       if (tags.includes(v)) return
       if (max && tags.length >= max) return
@@ -1508,19 +1514,31 @@
         tags.pop()
         render()
         if (onChange) onChange()
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        if (filtered.length === 0) return
-        highlightedIndex = Math.min(highlightedIndex + 1, filtered.length - 1)
-        renderSuggest()
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        if (filtered.length === 0) return
-        highlightedIndex = Math.max(highlightedIndex - 1, -1)
-        renderSuggest()
-      } else if (e.key === 'Escape') {
-        closeSuggest()
-      }
+      } else
+        switch (e.key) {
+          case 'ArrowDown': {
+            e.preventDefault()
+            if (filtered.length === 0) return
+            highlightedIndex = Math.min(highlightedIndex + 1, filtered.length - 1)
+            renderSuggest()
+
+            break
+          }
+          case 'ArrowUp': {
+            e.preventDefault()
+            if (filtered.length === 0) return
+            highlightedIndex = Math.max(highlightedIndex - 1, -1)
+            renderSuggest()
+
+            break
+          }
+          case 'Escape': {
+            closeSuggest()
+
+            break
+          }
+          // No default
+        }
     })
 
     field.addEventListener('input', () => {
@@ -1566,17 +1584,17 @@
 
     function render() {
       host.innerHTML = ''
-      list.forEach((msg, idx) => {
+      for (const [index, message] of list.entries()) {
         const row = document.createElement('div')
         row.className = 'settings-message-editor'
         row.innerHTML = `
           <div class="settings-message-row">
-            <input class="input" data-msgidx="${idx}" value="${esc(msg).replace(/"/g, '&quot;')}" />
-            <button class="btn btn-danger btn-sm" data-msgdel="${idx}" title="Remove">✕</button>
+            <input class="input" data-msgidx="${index}" value="${esc(message).replaceAll('"', '&quot;')}" />
+            <button class="btn btn-danger btn-sm" data-msgdel="${index}" title="Remove">✕</button>
           </div>
         `
         host.append(row)
-      })
+      }
       const addRow = document.createElement('div')
       addRow.className = 'settings-message-row'
       addRow.innerHTML = `
@@ -1588,7 +1606,7 @@
 
     host.addEventListener('input', (e) => {
       const t = e.target
-      if (t.dataset && t.dataset.msgidx != null) {
+      if (t.dataset?.msgidx != undefined) {
         list[Number(t.dataset.msgidx)] = t.value
         markDirty()
       }
@@ -1602,8 +1620,8 @@
         markDirty()
         return
       }
-      const addBtn = e.target.closest('[data-msgaddbtn]')
-      if (addBtn) {
+      const addButton = e.target.closest('[data-msgaddbtn]')
+      if (addButton) {
         const input = host.querySelector('[data-msgadd]')
         const v = (input?.value || '').trim()
         if (v && !list.includes(v) && list.length < 20) {
@@ -1634,12 +1652,12 @@
           if (f.t === 'link' || f.t === 'danger') continue
           if (f.t === 'msglist') {
             const host = panel.querySelector(`[data-msglist-host="${cssEscape(f.id)}"]`)
-            overrides[f.id] = JSON.stringify(host && host._getMessageList ? host._getMessageList() : [])
+            overrides[f.id] = JSON.stringify(host?._getMessageList ? host._getMessageList() : [])
             continue
           }
-          const el = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
-          if (!el) continue
-          overrides[f.id] = el.value
+          const element = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
+          if (!element) continue
+          overrides[f.id] = element.value
         }
       }
       walk(cat.fields)
@@ -1657,12 +1675,12 @@
         }
         if (f.t === 'tag') {
           const tag = tagInputRegistry.get(f.id)
-          target[f.id] = tag ? tag.getTags() : arr(target[f.id])
+          target[f.id] = tag ? tag.getTags() : array(target[f.id])
           continue
         }
         if (f.t === 'msglist') {
           const host = panel.querySelector(`[data-msglist-host="${cssEscape(f.id)}"]`)
-          target[f.id] = host && host._getMessageList ? host._getMessageList() : arr(target[f.id])
+          target[f.id] = host?._getMessageList ? host._getMessageList() : array(target[f.id])
           continue
         }
         if (f.t === 'promotionRules') {
@@ -1674,11 +1692,11 @@
           continue
         }
         if (f.t === 'link' || f.t === 'danger') continue
-        const el = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
-        if (!el) continue
-        if (f.t === 'boolean') target[f.id] = !!el.checked
-        else if (f.t === 'number') target[f.id] = num(el.value)
-        else target[f.id] = el.value
+        const element = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
+        if (!element) continue
+        if (f.t === 'boolean') target[f.id] = !!element.checked
+        else if (f.t === 'number') target[f.id] = number_(element.value)
+        else target[f.id] = element.value
       }
     }
 
@@ -1700,11 +1718,29 @@
         }
         if (f.t === 'link' || f.t === 'danger') continue
         const v = data[f.id]
-        if (f.t === 'tag' || f.t === 'msglist') subset[f.id] = JSON.stringify(arr(v))
-        else if (f.t === 'boolean') subset[f.id] = bool(v) ? '1' : '0'
-        else if (f.t === 'number') subset[f.id] = String(num(v))
-        else if (f.t === 'promotionRules' || f.t === 'demotionRules') subset[f.id] = JSON.stringify(v || [])
-        else subset[f.id] = str(v)
+        switch (f.t) {
+          case 'tag':
+          case 'msglist': {
+            subset[f.id] = JSON.stringify(array(v))
+            break
+          }
+          case 'boolean': {
+            subset[f.id] = bool(v) ? '1' : '0'
+            break
+          }
+          case 'number': {
+            subset[f.id] = String(number_(v))
+            break
+          }
+          case 'promotionRules':
+          case 'demotionRules': {
+            subset[f.id] = JSON.stringify(v || [])
+            break
+          }
+          default: {
+            subset[f.id] = string_(v)
+          }
+        }
       }
     }
     walk(cat.fields)
@@ -1731,25 +1767,25 @@
   }
 
   function updateDirtyUI() {
-    const saveBtn = document.querySelector('#save-btn')
-    const discardBtn = document.querySelector('#discard-btn')
+    const saveButton = document.querySelector('#save-btn')
+    const discardButton = document.querySelector('#discard-btn')
     const ind = document.querySelector('#dirty-indicator')
-    if (!saveBtn) return
+    if (!saveButton) return
     if (isSaving) {
-      saveBtn.disabled = true
-      saveBtn.textContent = 'Saving…'
-      if (discardBtn) discardBtn.disabled = true
+      saveButton.disabled = true
+      saveButton.textContent = 'Saving…'
+      if (discardButton) discardButton.disabled = true
       if (ind) ind.innerHTML = '<span class="badge badge-info">Saving…</span>'
       return
     }
     if (isDirty) {
-      saveBtn.disabled = false
-      if (discardBtn) discardBtn.disabled = false
+      saveButton.disabled = false
+      if (discardButton) discardButton.disabled = false
       if (ind) ind.innerHTML = '<span class="badge badge-warning">Unsaved changes</span>'
     } else {
-      saveBtn.disabled = true
-      saveBtn.textContent = 'Save Changes'
-      if (discardBtn) discardBtn.disabled = true
+      saveButton.disabled = true
+      saveButton.textContent = 'Save Changes'
+      if (discardButton) discardButton.disabled = true
       if (ind) ind.innerHTML = '<span class="badge badge-success">All changes saved</span>'
     }
   }
@@ -1800,10 +1836,10 @@
       )
     )
       return
-    const btn = document.querySelector('[data-danger="deleteBridge"]')
-    if (btn) {
-      btn.disabled = true
-      btn.textContent = 'Deleting…'
+    const button = document.querySelector('[data-danger="deleteBridge"]')
+    if (button) {
+      button.disabled = true
+      button.textContent = 'Deleting…'
     }
     try {
       await App.apiDelete(`/api/bridges/${encodeURIComponent(currentBridgeId)}`)
@@ -1813,9 +1849,9 @@
       await App.populateBridgeSelector(document.querySelector('#bridge-select'), onBridgeChange)
     } catch (error) {
       App.showToast(`Failed to delete bridge: ${error?.message || String(error)}`, 'error')
-      if (btn) {
-        btn.disabled = false
-        btn.textContent = 'Delete this Bridge'
+      if (button) {
+        button.disabled = false
+        button.textContent = 'Delete this Bridge'
       }
     }
   }
@@ -1828,10 +1864,13 @@
       showPanel('<div class="empty-state"><div class="empty-state-text">Select a bridge to begin.</div></div>')
       return
     }
-    if (isDirty && currentCategory && catKey !== currentCategory) {
-      if (!App.confirmAction('You have unsaved changes in the current category. Switch and discard them?')) {
-        return
-      }
+    if (
+      isDirty &&
+      currentCategory &&
+      catKey !== currentCategory &&
+      !App.confirmAction('You have unsaved changes in the current category. Switch and discard them?')
+    ) {
+      return
     }
     currentCategory = catKey
     renderSidebar()
@@ -1880,13 +1919,11 @@
         const cat = CATEGORIES.find((c) => c.key === currentCategory)
         if (cat) renderCategoryPanel(cat)
       } else {
-        const params = new URLSearchParams(globalThis.location.search)
-        const deepCat = params.get('cat')
-        if (deepCat && CATEGORIES.find((c) => c.key === deepCat)) {
-          await selectCategory(deepCat)
-        } else {
-          await selectCategory('channels')
-        }
+        const parameters = new URLSearchParams(globalThis.location.search)
+        const deepCat = parameters.get('cat')
+        await (deepCat && CATEGORIES.find((c) => c.key === deepCat)
+          ? selectCategory(deepCat)
+          : selectCategory('channels'))
       }
     } catch (error) {
       isLoading = false
@@ -1902,13 +1939,16 @@
       renderSidebar()
       return
     }
-    if (isDirty && currentBridgeId && bridgeId !== currentBridgeId) {
-      if (!App.confirmAction('You have unsaved changes. Switch bridge and discard them?')) {
-        const sel = document.querySelector('#bridge-select')
-        if (sel && currentBridgeId) sel.value = currentBridgeId
-        App.setSelectedBridge(currentBridgeId)
-        return
-      }
+    if (
+      isDirty &&
+      currentBridgeId &&
+      bridgeId !== currentBridgeId &&
+      !App.confirmAction('You have unsaved changes. Switch bridge and discard them?')
+    ) {
+      const sel = document.querySelector('#bridge-select')
+      if (sel && currentBridgeId) sel.value = currentBridgeId
+      App.setSelectedBridge(currentBridgeId)
+      return
     }
     currentBridgeId = bridgeId
     currentCategory = null
@@ -2001,7 +2041,9 @@
   function attachDelegatedListeners() {
     const panel = document.querySelector('#settings-panel')
 
-    panel.addEventListener('input', () => checkDirty())
+    panel.addEventListener('input', () => {
+      checkDirty()
+    })
     panel.addEventListener('change', (e) => {
       const t = e.target
       if (t?.dataset?.field === 'action' && currentCategory === 'rankup') {
@@ -2038,7 +2080,7 @@
       if (collapseToggle) {
         const body = collapseToggle.nextElementSibling
         const arrow = collapseToggle.querySelector('.settings-collapsible-arrow')
-        if (body && body.classList.contains('settings-collapsible-body')) {
+        if (body?.classList.contains('settings-collapsible-body')) {
           const isHidden = body.style.display === 'none'
           body.style.display = isHidden ? '' : 'none'
           if (arrow) arrow.classList.toggle('open', isHidden)
@@ -2049,15 +2091,18 @@
       const button = e.target.closest('[data-action]')
       if (!button) return
       switch (button.dataset.action) {
-        case 'add-promotion':
+        case 'add-promotion': {
           addPromotionRow()
           break
-        case 'add-demotion':
+        }
+        case 'add-demotion': {
           addDemotionRow()
           break
-        case 'delete':
+        }
+        case 'delete': {
           removeRow(button)
           break
+        }
       }
     })
 
@@ -2094,19 +2139,19 @@
     }
 
     // Sidebar toggle
-    const toggleBtn = document.querySelector('#settings-sidebar-toggle')
-    const closeBtn = document.querySelector('#settings-sidebar-close')
+    const toggleButton = document.querySelector('#settings-sidebar-toggle')
+    const closeButton = document.querySelector('#settings-sidebar-close')
     const overlay = document.querySelector('#settings-sidebar-overlay')
-    if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar)
-    if (closeBtn) closeBtn.addEventListener('click', closeSidebar)
+    if (toggleButton) toggleButton.addEventListener('click', toggleSidebar)
+    if (closeButton) closeButton.addEventListener('click', closeSidebar)
     if (overlay) overlay.addEventListener('click', closeSidebar)
 
     // Create Bridge button
-    const createBtn = document.querySelector('#create-bridge-btn')
-    if (createBtn) {
-      createBtn.addEventListener('click', async () => {
+    const createButton = document.querySelector('#create-bridge-btn')
+    if (createButton) {
+      createButton.addEventListener('click', async () => {
         const bridgeId = globalThis.prompt('Enter a unique bridge ID:')
-        if (!bridgeId || !bridgeId.trim()) return
+        if (!bridgeId?.trim()) return
         try {
           await App.apiPost('/api/bridges', { bridgeId: bridgeId.trim().toLowerCase() })
           App.showToast('Bridge created', 'success')

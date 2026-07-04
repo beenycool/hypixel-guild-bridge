@@ -1,6 +1,6 @@
 import process from 'node:process'
 
-import { type Canvas, type Image, createCanvas, loadImage, registerFont } from 'canvas'
+import { type Canvas, createCanvas, type Image, loadImage, registerFont } from 'canvas'
 import LRUCache from 'lru-cache'
 
 import type Application from '../../../application'

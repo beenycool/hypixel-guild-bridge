@@ -3,14 +3,13 @@
  * License: https://github.com/michelegera/devexcuses-api/blob/main/LICENSE.txt
  */
 
-import { SerialExecutor } from '../../../utility/serial-executor.js'
 import Yaml from 'yaml'
-
-import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { httpClient } from '../../../common/http.js'
 import Duration from '../../../utility/duration'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 
 export default class DevelopmentExcuse extends ChatCommandHandler {
   private static readonly MaxLife = Duration.hours(6)

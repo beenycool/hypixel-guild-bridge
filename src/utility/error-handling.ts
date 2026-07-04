@@ -1,4 +1,4 @@
-import { Logger } from 'log4js'
+import type { Logger } from 'log4js'
 
 export enum ErrorContext {
   EventHandler = 'event_handler',
@@ -8,19 +8,22 @@ export enum ErrorContext {
 
 export function handleError(context: ErrorContext, error: unknown, fallback?: () => unknown, logger?: Logger): void {
   switch (context) {
-    case ErrorContext.EventHandler:
+    case ErrorContext.EventHandler: {
       if (logger) {
         logger.error('Unhandled error in event handler:', error)
       } else {
         console.error('Unhandled error in event handler:', error)
       }
       break
-    case ErrorContext.OptionalFeature:
+    }
+    case ErrorContext.OptionalFeature: {
       if (fallback) {
         fallback()
       }
       break
-    case ErrorContext.CriticalPath:
+    }
+    case ErrorContext.CriticalPath: {
       throw error
+    }
   }
 }

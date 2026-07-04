@@ -1,7 +1,6 @@
 import assert from 'node:assert'
 
 import type { Client } from 'minecraft-protocol'
-import { SerialExecutor } from '../../../utility/serial-executor.js'
 
 import type { ChatEvent, InstanceType, MinecraftRawChatEvent } from '../../../common/application-event.js'
 import { ChannelType, Color, MinecraftSendChatPriority } from '../../../common/application-event.js'
@@ -9,6 +8,7 @@ import SubInstance from '../../../common/sub-instance'
 import type { GameToggleConfig } from '../../../core/minecraft/minecraft-accounts'
 import Duration from '../../../utility/duration'
 import { setIntervalAsync, setTimeoutAsync } from '../../../utility/scheduling'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 import { sleep } from '../../../utility/shared-utility'
 import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'

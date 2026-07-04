@@ -1,4 +1,5 @@
 import { httpClient } from '../common/http.js'
+
 import minecraftProtocol from 'minecraft-protocol'
 
 const { ping: MinecraftPing } = minecraftProtocol

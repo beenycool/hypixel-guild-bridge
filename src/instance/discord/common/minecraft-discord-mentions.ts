@@ -28,7 +28,7 @@ export async function resolveDiscordMentionsInMessage(message: string, guild: Gu
   const tokenToUserId = new Map<string, string>()
   const searchEntries = [...uniqueTokens.entries()].slice(0, MaxMemberSearchTokens)
 
-  const unrestoredEntries: Array<[string, string]> = []
+  const unrestoredEntries: [string, string][] = []
   for (const [lowered, token] of searchEntries) {
     const cached = ResolvedMentionsCache.get(lowered)
     if (cached && Date.now() - cached.timestamp < CacheTTL) {
@@ -38,7 +38,7 @@ export async function resolveDiscordMentionsInMessage(message: string, guild: Gu
     }
   }
 
-  const searchResults: Array<{ lowered: string; members: import('discord.js').GuildMember[] }> = []
+  const searchResults: { lowered: string; members: import('discord.js').GuildMember[] }[] = []
   for (const [lowered, token] of unrestoredEntries) {
     const results = await guild.members.search({ query: token, limit: 25 })
     searchResults.push({ lowered, members: [...results.values()] })

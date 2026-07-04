@@ -1,6 +1,4 @@
-import axios, { isAxiosError } from 'axios'
-
-export { isAxiosError }
+import axios from 'axios'
 
 export interface ChatCompletionOptions {
   model?: string
@@ -60,3 +58,5 @@ export class OpenRouterClient {
     return { content }
   }
 }
+
+export { isAxiosError } from 'axios'

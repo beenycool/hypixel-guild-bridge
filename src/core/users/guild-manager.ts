@@ -1,12 +1,11 @@
 import assert from 'node:assert'
 import { performance } from 'node:perf_hooks'
 
-import { SerialExecutor } from '../../utility/serial-executor.js'
-
 import type { InstanceType, MinecraftRawChatEvent } from '../../common/application-event'
 import { MinecraftSendChatPriority } from '../../common/application-event'
 import SubInstance from '../../common/sub-instance'
 import Duration from '../../utility/duration'
+import { SerialExecutor } from '../../utility/serial-executor.js'
 import { Timeout } from '../../utility/timeout'
 import type { Core } from '../core'
 

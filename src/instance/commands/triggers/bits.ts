@@ -5,10 +5,9 @@
 */
 import type { AxiosResponse } from 'axios'
 
-import { httpClient } from '../../../common/http.js'
-
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { httpClient } from '../../../common/http.js'
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const BitItem: Record<string, { bitValue: number; prettyName: string }> = {

@@ -42,11 +42,10 @@ export default {
           .getClient()
           .channels.fetch(channelId)
           .catch(() => undefined)
-        if (fetched && 'name' in fetched) {
-          channelLine = `QOTD channel: #${fetched.name} (<#${channelId}>)`
-        } else {
-          channelLine = `QOTD channel: <#${channelId}>`
-        }
+        channelLine =
+          fetched && 'name' in fetched
+            ? `QOTD channel: #${fetched.name} (<#${channelId}>)`
+            : `QOTD channel: <#${channelId}>`
       }
 
       const membersLine = `QOTD members: ${QotdMemberIds.map((id) => `<@${id}>`).join(', ')}`

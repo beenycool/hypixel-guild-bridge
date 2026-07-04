@@ -1,8 +1,7 @@
-import { SerialExecutor } from './serial-executor.js'
-
 import type { PromiseCatchHandler } from '../common/unexpected-error-handler'
 
 import type Duration from './duration'
+import { SerialExecutor } from './serial-executor.js'
 
 export interface ScheduleOptions {
   errorHandler: PromiseCatchHandler

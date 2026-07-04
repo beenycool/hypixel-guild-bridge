@@ -194,7 +194,9 @@ function handleShutdown(signal: string) {
   shutdownStarted = true
   Logger.info(`Process has caught ${signal} signal.`)
   HealthServer.close()
-  if (app !== undefined) {
+  if (app === undefined) {
+    gracefullyExitProcess(0)
+  } else {
     Logger.debug('Shutting down application')
     void app
       .shutdown()
@@ -202,8 +204,6 @@ function handleShutdown(signal: string) {
       .catch(() => {
         process.exit(1)
       })
-  } else {
-    gracefullyExitProcess(0)
   }
 }
 process.on('SIGINT', handleShutdown)

@@ -1,12 +1,12 @@
 import type { Client } from 'discord.js'
 import { DiscordAPIError, Routes } from 'discord.js'
-import { SerialExecutor } from '../../../utility/serial-executor.js'
 
 import type Application from '../../../application'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
 import type { DiscordMessage } from '../../../core/discord/discord-temporarily-interactions'
 import Duration from '../../../utility/duration'
 import { setIntervalAsync } from '../../../utility/scheduling'
+import { SerialExecutor } from '../../../utility/serial-executor.js'
 
 export default class MessageDeleter {
   private static readonly CheckEvery = Duration.seconds(30)

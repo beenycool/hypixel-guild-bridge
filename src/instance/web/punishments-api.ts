@@ -6,8 +6,8 @@ import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 import type { SavedPunishment } from '../../core/moderation/punishments.js'
 
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 const PunishmentIdPattern = /^\/api\/punishments\/([^/]+)\/forgive$/
 
@@ -41,7 +41,7 @@ export class PunishmentsApiHandler {
     if (!rawUrl) return false
 
     const [pathPart, queryPart] = rawUrl.split('?')
-    if (!pathPart || !pathPart.startsWith(PunishmentsPrefix)) return false
+    if (!pathPart?.startsWith(PunishmentsPrefix)) return false
 
     const permission = this.verifyAuth(request, response)
     if (permission === undefined) return true
@@ -58,7 +58,7 @@ export class PunishmentsApiHandler {
     }
 
     if (request.method === 'POST') {
-      const forgiveMatch = pathPart.match(PunishmentIdPattern)
+      const forgiveMatch = PunishmentIdPattern.exec(pathPart)
       if (forgiveMatch) {
         await this.handleForgive(forgiveMatch[1], response)
         return true
@@ -114,8 +114,8 @@ export class PunishmentsApiHandler {
     }
   }
 
-  private async handleForgive(idStr: string, response: http.ServerResponse): Promise<void> {
-    const id = parseInt(idStr, 10)
+  private async handleForgive(idString: string, response: http.ServerResponse): Promise<void> {
+    const id = Number.parseInt(idString, 10)
     if (!Number.isFinite(id)) {
       sendError(response, 'VALIDATION_ERROR', 'Invalid punishment id', 400)
       return

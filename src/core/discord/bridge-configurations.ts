@@ -136,6 +136,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_rankupExcludedRanks`)
     this.configuration.delete(`${bridgeId}_rankupExcludedPlayers`)
 
+    // Tournament settings
+    this.configuration.delete(`${bridgeId}_tournamentEnabled`)
+    this.configuration.delete(`${bridgeId}_tournamentNotificationChannelId`)
+    this.configuration.delete(`${bridgeId}_tournamentDefaultDeadlineHours`)
+    this.configuration.delete(`${bridgeId}_tournamentDefaultBestOf`)
+    this.configuration.delete(`${bridgeId}_tournamentAnnounceMc`)
+
     // Notify listeners that a bridge was removed so utilities can cleanup memory
     if (this.onChange) {
       try {
@@ -999,6 +1006,128 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     })
   }
 
+  // ========== Tournament Configurations ==========
+
+  /**
+   * Get whether tournament system is enabled for a bridge
+   */
+  public getTournamentEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_tournamentEnabled`, false)
+  }
+
+  /**
+   * Set whether tournament system is enabled for a bridge
+   */
+  public setTournamentEnabled(bridgeId: string, enabled: boolean): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentEnabled`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_tournamentEnabled`, enabled)
+    })
+  }
+
+  /**
+   * Get tournament notification channel ID for a bridge
+   */
+  public getTournamentNotificationChannelId(bridgeId: string): string {
+    return this.configuration.getString(`${bridgeId}_tournamentNotificationChannelId`, '')
+  }
+
+  /**
+   * Set tournament notification channel ID for a bridge
+   */
+  public setTournamentNotificationChannelId(bridgeId: string, channelId: string): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentNotificationChannelId`, channelId, () => {
+      this.configuration.setString(`${bridgeId}_tournamentNotificationChannelId`, channelId)
+    })
+  }
+
+  /**
+   * Get default deadline in hours for tournament rounds
+   */
+  public getTournamentDefaultDeadlineHours(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_tournamentDefaultDeadlineHours`, 48)
+  }
+
+  /**
+   * Set default deadline in hours for tournament rounds
+   */
+  public setTournamentDefaultDeadlineHours(bridgeId: string, hours: number): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentDefaultDeadlineHours`, hours, () => {
+      this.configuration.setNumber(`${bridgeId}_tournamentDefaultDeadlineHours`, hours)
+    })
+  }
+
+  /**
+   * Get default bestOf (series count) for a bridge
+   */
+  public getTournamentDefaultBestOf(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_tournamentDefaultBestOf`, 1)
+  }
+
+  /**
+   * Set default bestOf (series count) for a bridge
+   */
+  public setTournamentDefaultBestOf(bridgeId: string, bestOf: number): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentDefaultBestOf`, bestOf, () => {
+      this.configuration.setNumber(`${bridgeId}_tournamentDefaultBestOf`, bestOf)
+    })
+  }
+
+  /**
+   * Get whether to announce tournaments in MC whispers/chat
+   */
+  public getTournamentAnnounceMc(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_tournamentAnnounceMc`, true)
+  }
+
+  /**
+   * Set whether to announce tournaments in MC whispers/chat
+   */
+  public setTournamentAnnounceMc(bridgeId: string, enabled: boolean): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentAnnounceMc`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_tournamentAnnounceMc`, enabled)
+    })
+  }
+
+  public getTournamentCheckinWindowMinutes(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_tournamentCheckinWindowMinutes`, 60)
+  }
+
+  public setTournamentCheckinWindowMinutes(bridgeId: string, minutes: number): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentCheckinWindowMinutes`, minutes, () => {
+      this.configuration.setNumber(`${bridgeId}_tournamentCheckinWindowMinutes`, minutes)
+    })
+  }
+
+  public getTournamentMinParticipants(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_tournamentMinParticipants`, 4)
+  }
+
+  public setTournamentMinParticipants(bridgeId: string, count: number): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentMinParticipants`, count, () => {
+      this.configuration.setNumber(`${bridgeId}_tournamentMinParticipants`, count)
+    })
+  }
+
+  public getTournamentMaxExtensionHours(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_tournamentMaxExtensionHours`, 24)
+  }
+
+  public setTournamentMaxExtensionHours(bridgeId: string, hours: number): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentMaxExtensionHours`, hours, () => {
+      this.configuration.setNumber(`${bridgeId}_tournamentMaxExtensionHours`, hours)
+    })
+  }
+
+  public getTournamentAutoCheckin(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_tournamentAutoCheckin`, true)
+  }
+
+  public setTournamentAutoCheckin(bridgeId: string, enabled: boolean): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentAutoCheckin`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_tournamentAutoCheckin`, enabled)
+    })
+  }
+
   public getTranslationOverrides(bridgeId: string): Record<string, string> {
     const raw = this.configuration.getString(`${bridgeId}_translationOverrides`, '{}')
     try {
@@ -1090,6 +1219,17 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         demotionRules: this.getRankupDemotionRules(bridgeId),
         excludedRanks: this.getRankupExcludedRanks(bridgeId),
         excludedPlayers: this.getRankupExcludedPlayers(bridgeId)
+      },
+      tournament: {
+        enabled: this.getTournamentEnabled(bridgeId),
+        notificationChannelId: this.getTournamentNotificationChannelId(bridgeId),
+        defaultDeadlineHours: this.getTournamentDefaultDeadlineHours(bridgeId),
+        defaultBestOf: this.getTournamentDefaultBestOf(bridgeId),
+        announceMc: this.getTournamentAnnounceMc(bridgeId),
+        checkinWindowMinutes: this.getTournamentCheckinWindowMinutes(bridgeId),
+        minParticipants: this.getTournamentMinParticipants(bridgeId),
+        maxExtensionHours: this.getTournamentMaxExtensionHours(bridgeId),
+        autoCheckin: this.getTournamentAutoCheckin(bridgeId)
       }
     }
   }

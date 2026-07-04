@@ -2,11 +2,12 @@ import type http from 'node:http'
 
 import type { Logger } from 'log4js'
 
-import { Permission } from '../../common/application-event.js'
 import type Application from '../../application.js'
+import { Permission } from '../../common/application-event.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
+
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 interface BridgeListEntry {
   bridgeId: string
@@ -57,7 +58,7 @@ export class RankupApiHandler {
 
   private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
     const webConfig = this.application.config.web
-    if (!webConfig || !webConfig.signingSecret) return null
+    if (!webConfig?.signingSecret) return null
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)
@@ -556,10 +557,12 @@ export class RankupApiHandler {
     if (typeof r.gracePeriod !== 'number' || !Number.isFinite(r.gracePeriod)) {
       return 'gracePeriod must be a number'
     }
-    if (r.maxDaysInactive !== undefined && r.maxDaysInactive !== null) {
-      if (typeof r.maxDaysInactive !== 'number' || !Number.isFinite(r.maxDaysInactive)) {
-        return 'maxDaysInactive must be a number when present'
-      }
+    if (
+      r.maxDaysInactive !== undefined &&
+      r.maxDaysInactive !== null &&
+      (typeof r.maxDaysInactive !== 'number' || !Number.isFinite(r.maxDaysInactive))
+    ) {
+      return 'maxDaysInactive must be a number when present'
     }
     return null
   }

@@ -9,7 +9,9 @@ export class UserRateLimiter {
     private readonly maxRequests: number,
     private readonly windowMs: number
   ) {
-    this.cleanupInterval = setInterval(() => this.cleanup(), UserRateLimiter.StaleTimeoutMs)
+    this.cleanupInterval = setInterval(() => {
+      this.cleanup()
+    }, UserRateLimiter.StaleTimeoutMs)
     this.cleanupInterval.unref()
   }
 

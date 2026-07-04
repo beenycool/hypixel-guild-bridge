@@ -6,8 +6,8 @@ import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 import type { InactivityEntry } from '../../core/users/inactivity.js'
 
+import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
-import { sendSuccess, sendError } from './api-utils.js'
 
 const InactivityPrefix = '/api/inactivity'
 
@@ -36,7 +36,7 @@ export class InactivityApiHandler {
     if (!rawUrl) return false
 
     const [pathPart] = rawUrl.split('?')
-    if (!pathPart || !pathPart.startsWith(InactivityPrefix)) return false
+    if (!pathPart?.startsWith(InactivityPrefix)) return false
 
     const method = request.method ?? 'GET'
 
@@ -58,7 +58,7 @@ export class InactivityApiHandler {
     }
 
     if (method === 'POST') {
-      const approveMatch = pathPart.match(/^\/api\/inactivity\/([^/]+)\/approve$/)
+      const approveMatch = /^\/api\/inactivity\/([^/]+)\/approve$/.exec(pathPart)
       if (approveMatch) {
         if (auth.permission < Permission.Helper) {
           sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
@@ -68,7 +68,7 @@ export class InactivityApiHandler {
         return true
       }
 
-      const rejectMatch = pathPart.match(/^\/api\/inactivity\/([^/]+)\/reject$/)
+      const rejectMatch = /^\/api\/inactivity\/([^/]+)\/reject$/.exec(pathPart)
       if (rejectMatch) {
         if (auth.permission < Permission.Helper) {
           sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
@@ -105,7 +105,7 @@ export class InactivityApiHandler {
             status: 'pending',
             createdAt: entry.createdAt * 1000,
             expiresAt: entry.expiresAt * 1000,
-            durationDays: Math.round((entry.expiresAt - entry.createdAt) / 86400)
+            durationDays: Math.round((entry.expiresAt - entry.createdAt) / 86_400)
           }
         })
       )
@@ -153,7 +153,7 @@ export class InactivityApiHandler {
     }
 
     const discordId = userId ?? ''
-    const expiresAt = Math.floor(Date.now() / 1000) + durationDays * 86400
+    const expiresAt = Math.floor(Date.now() / 1000) + durationDays * 86_400
 
     try {
       this.application.core.inactivity.add({

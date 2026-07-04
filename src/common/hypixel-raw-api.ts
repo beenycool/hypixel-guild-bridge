@@ -1,5 +1,4 @@
 import { httpClient } from './http.js'
-
 import type { MojangProfile } from './user.js'
 
 interface HypixelProfilesResponse {

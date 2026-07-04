@@ -1,8 +1,7 @@
 import assert from 'node:assert'
 
-import { httpClient } from '../../../common/http.js'
-
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { httpClient } from '../../../common/http.js'
 
 export default class DadJoke extends ChatCommandHandler {
   constructor() {

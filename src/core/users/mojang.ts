@@ -2,12 +2,11 @@ import assert from 'node:assert'
 
 import { AxiosError, HttpStatusCode } from 'axios'
 
-import { httpClient } from '../../common/http.js'
-import { SerialExecutor } from '../../utility/serial-executor.js'
-
 import type { DatabaseManager } from '../../common/database-manager'
+import { httpClient } from '../../common/http.js'
 import type { MojangProfile } from '../../common/user'
 import RateLimiter from '../../utility/rate-limiter'
+import { SerialExecutor } from '../../utility/serial-executor.js'
 
 export class MojangApi {
   private static readonly RetryCount = 3
