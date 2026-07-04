@@ -76,8 +76,8 @@ export interface TournamentMatch {
   warningsSent: number
   completedAt: number | undefined
   deadlineExtensionMinutes: number
-  manuallyExtended: number
-  hadProofAttachment: number
+  manuallyExtended: boolean
+  hadProofAttachment: boolean
 }
 
 export interface TournamentReport {

@@ -24,8 +24,9 @@ export async function up(query: QueryInterface): Promise<void> {
 }
 
 export async function down(query: QueryInterface): Promise<void> {
-  // Rollback: drop all added columns.
-  // Note: this will cause data loss. For safety, comment out the DROPs and manually verify before running.
+  // Note: we keep these columns in place to avoid data loss. Roll-forward only migration.
+  // If a true rollback is required, drop the columns manually:
+  void query
   await query.execute(`ALTER TABLE "tournament_matches" DROP COLUMN IF EXISTS "hadProofAttachment"`)
   await query.execute(`ALTER TABLE "tournament_matches" DROP COLUMN IF EXISTS "manuallyExtended"`)
   await query.execute(`ALTER TABLE "tournament_matches" DROP COLUMN IF EXISTS "deadlineExtensionMinutes"`)

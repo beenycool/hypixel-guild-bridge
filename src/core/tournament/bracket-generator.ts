@@ -39,7 +39,7 @@ export class BracketGenerator {
     const totalRounds = Math.ceil(Math.log2(totalSlots))
 
     // Assign seeds to players (1-indexed based on their seed field)
-    const sortedPlayers = players.map((p) => ({ ...p })).sort((a, b) => a.seed - b.seed)
+    const sortedPlayers = players.toSorted((a, b) => a.seed - b.seed)
     for (const [index, element] of sortedPlayers.entries()) {
       if (element.seed === 0) {
         element.seed = index + 1

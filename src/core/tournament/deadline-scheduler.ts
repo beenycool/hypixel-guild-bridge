@@ -64,7 +64,7 @@ export class DeadlineScheduler {
         const names = await this.getPlayerNames(tournament.id)
 
         for (const match of matches) {
-          if (match.deadlineAt == null) continue
+          if (match.deadlineAt === undefined) continue
 
           // 1. Expired deadline
           if (now >= match.deadlineAt) {
@@ -124,11 +124,11 @@ export class DeadlineScheduler {
 
       for (const tournament of signupTournaments) {
         const thirtyMinBeforeClose = 30 * 60
-        if (tournament.checkinClosesAt != null && now >= tournament.checkinClosesAt) {
+        if (tournament.checkinClosesAt !== undefined && now >= tournament.checkinClosesAt) {
           continue
         }
 
-        if (tournament.checkinClosesAt != null && now >= tournament.checkinClosesAt - 3600) {
+        if (tournament.checkinClosesAt !== undefined && now >= tournament.checkinClosesAt - 3600) {
           const uncheckinPlayers = await this.databaseManager.queryRows<TournamentPlayer>(
             'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND ("checkedInAt" IS NULL OR "status" = $2)',
             [tournament.id, PlayerStatus.Registered]

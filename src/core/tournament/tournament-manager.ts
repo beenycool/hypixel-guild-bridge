@@ -158,7 +158,7 @@ export class TournamentManager {
     if (tournament.status !== TournamentStatus.Signup) {
       throw new Error('Tournament is not in signup phase.')
     }
-    if (tournament.checkinOpensAt != null) {
+    if (tournament.checkinOpensAt !== undefined) {
       throw new Error('Check-in has already been opened for this tournament.')
     }
 
@@ -194,7 +194,7 @@ export class TournamentManager {
     if (tournament.checkinOpensAt !== undefined && now < tournament.checkinOpensAt) {
       throw new Error('Check-in has not opened yet.')
     }
-    if (tournament.checkinClosesAt != null && now >= tournament.checkinClosesAt) {
+    if (tournament.checkinClosesAt !== undefined && now >= tournament.checkinClosesAt) {
       throw new Error('Check-in window has closed.')
     }
 
@@ -314,7 +314,7 @@ export class TournamentManager {
     )
 
     // Filter to checked-in players
-    const checkedIn = players.filter((p) => p.checkedInAt != null)
+    const checkedIn = players.filter((p) => p.checkedInAt !== undefined)
     const minParticipants = this.application.core.bridgeConfigurations.getTournamentMinParticipants(tournament.bridgeId)
     if (checkedIn.length < minParticipants) {
       throw new Error(`Not enough checked-in players. Minimum required: ${minParticipants}, got ${checkedIn.length}.`)
@@ -447,42 +447,33 @@ export class TournamentManager {
 
       // Spawn match threads for ACTIVE matches in round 1
       const activeRound1 = createdMatches.filter((m) => m.round === 1 && m.status === MatchStatus.Active)
-      const BATCH_SIZE = 5
-      const DELAY_MS = 1000
-      for (let batchStart = 0; batchStart < activeRound1.length; batchStart += BATCH_SIZE) {
-        const batch = activeRound1.slice(batchStart, batchStart + BATCH_SIZE)
-        await Promise.all(
-          batch.map(async (m) => {
-            const p1 = shuffled.find((p) => p.id === m.player1Id)
-            const p2 = shuffled.find((p) => p.id === m.player2Id)
+      for (const m of activeRound1) {
+        const p1 = shuffled.find((p) => p.id === m.player1Id)
+        const p2 = shuffled.find((p) => p.id === m.player2Id)
 
-            if (p1 !== undefined && p2 !== undefined) {
-              const p1Name = names.get(p1.id) ?? 'Player 1'
-              const p2Name = names.get(p2.id) ?? 'Player 2'
+        if (p1 !== undefined && p2 !== undefined) {
+          const p1Name = names.get(p1.id) ?? 'Player 1'
+          const p2Name = names.get(p2.id) ?? 'Player 2'
 
-              const threadId = await this.channelManager.createMatchThread(channel.id, m, p1, p2, p1Name, p2Name)
+          const threadId = await this.channelManager.createMatchThread(channel.id, m, p1, p2, p1Name, p2Name)
 
-              if (threadId !== undefined) {
-                await this.databaseManager.execute(
-                  'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
-                  [threadId, m.id]
-                )
-                m.discordThreadId = threadId
-              }
+          if (threadId !== undefined) {
+            await this.databaseManager.execute(
+              'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
+              [threadId, m.id]
+            )
+            m.discordThreadId = threadId
+          }
 
-              await this.notifications.notifyMatchStart(
-                tournament.bridgeId,
-                m,
-                p1.playerUuid,
-                p2.playerUuid,
-                p1Name,
-                p2Name
-              )
-            }
-          })
-        )
-        if (batchStart + BATCH_SIZE < activeRound1.length) {
-          await new Promise((resolve) => setTimeout(resolve, DELAY_MS))
+          // Notify in whispers
+          await this.notifications.notifyMatchStart(
+            tournament.bridgeId,
+            m,
+            p1.playerUuid,
+            p2.playerUuid,
+            p1Name,
+            p2Name
+          )
         }
       }
 
@@ -550,12 +541,10 @@ export class TournamentManager {
     )
 
     const map = new Map<number, string>()
-    await Promise.all(
-      players.map(async (p) => {
-        const profile = await this.application.mojangApi.profileByUuid(p.playerUuid).catch(() => undefined)
-        map.set(p.id, profile?.name ?? `Player #${p.id}`)
-      })
-    )
+    for (const p of players) {
+      const profile = await this.application.mojangApi.profileByUuid(p.playerUuid).catch(() => undefined)
+      map.set(p.id, profile?.name ?? `Player #${p.id}`)
+    }
 
     return map
   }

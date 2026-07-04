@@ -58,13 +58,12 @@ export class MatchManager {
     )
 
     // Proof attachment check
-    if (match.discordThreadId != null && this.checkProofAttachment !== undefined) {
+    if (match.discordThreadId !== undefined && this.checkProofAttachment !== undefined) {
       const hasProof = await this.checkProofAttachment(match.discordThreadId)
       if (hasProof) {
         await this.databaseManager.execute('UPDATE "tournament_matches" SET "hadProofAttachment" = 1 WHERE "id" = $1', [
           matchId
         ])
-        match.hadProofAttachment = 1
       }
     }
 
@@ -174,10 +173,7 @@ export class MatchManager {
       throw new Error('Forfeiting player is not a participant in this match.')
     }
 
-    const winnerId = match.player1Id === forfeitingPlayerId ? match.player2Id : match.player1Id
-    if (winnerId === undefined) {
-      throw new Error('Cannot forfeit: no opponent found.')
-    }
+    const winnerId = match.player1Id === forfeitingPlayerId ? match.player2Id! : match.player1Id!
     await this.resolveWinner(matchId, winnerId)
     return { status: MatchStatus.Completed, message: 'Forfeit accepted.' }
   }
@@ -292,7 +288,7 @@ export class MatchManager {
     }
 
     // 3. Close & Lock Discord Thread
-    if (match.discordThreadId != null) {
+    if (match.discordThreadId !== undefined) {
       const names = await this.getPlayerNames(match.tournamentId)
       const winnerName = names.get(winnerId) ?? 'Winner'
       const loserName = loserId === undefined ? 'BYE' : (names.get(loserId) ?? 'Loser')
@@ -303,7 +299,7 @@ export class MatchManager {
     }
 
     // 4. Advance winner to next match if exists
-    if (match.nextMatchId == null) {
+    if (match.nextMatchId === undefined) {
       // No next match -> Winner of Finals! Tournament complete!
       await this.databaseManager.execute(
         'UPDATE "tournaments" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
@@ -341,7 +337,7 @@ export class MatchManager {
           [match.nextMatchId]
         )
 
-        if (updatedNextMatch?.player1Id != null && updatedNextMatch.player2Id != null) {
+        if (updatedNextMatch?.player1Id !== undefined && updatedNextMatch.player2Id !== undefined) {
           // Both players present! Activate match
           const deadlineAt = now + tournament.roundDeadlineHours * 3600
           await this.databaseManager.execute(
@@ -423,13 +419,12 @@ export class MatchManager {
     )
 
     if (allRoundCompleted && tournament.status === TournamentStatus.Active) {
-      // Progress round (guard against concurrent advancement)
+      // Progress round
       const nextRound = tournament.currentRound + 1
-      const updated = await this.databaseManager.execute(
-        'UPDATE "tournaments" SET "currentRound" = $1 WHERE "id" = $2 AND "currentRound" = $3',
-        [nextRound, tournament.id, tournament.currentRound]
-      )
-      if (updated === 0) return
+      await this.databaseManager.execute('UPDATE "tournaments" SET "currentRound" = $1 WHERE "id" = $2', [
+        nextRound,
+        tournament.id
+      ])
       tournament.currentRound = nextRound
 
       await this.notifications.announceRoundComplete(tournament, nextRound - 1)

@@ -310,7 +310,7 @@ export default {
     if (subcommand === 'bracket') {
       await context.interaction.deferReply()
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
-      if (tournament?.discordChannelId == undefined) {
+      if (tournament?.discordChannelId === undefined) {
         await context.interaction.editReply('There is no bracket channel active for this bridge.')
         return
       }
@@ -390,7 +390,7 @@ export default {
           p2Wins
         )
         let replyMessage = result.message
-        if (match.discordThreadId != null && result.status !== MatchStatus.Completed) {
+        if (match.discordThreadId !== undefined && result.status !== MatchStatus.Completed) {
           const hasProof = await context.application.core.tournamentManager.channelManager.checkProofAttachment(
             match.discordThreadId
           )
@@ -431,14 +431,14 @@ export default {
 
       // Find player by username
       const p1Profile =
-        match.player1Id == undefined
+        match.player1Id === undefined
           ? undefined
           : await context.application.core.databaseManager.queryOne<TournamentPlayer>(
               'SELECT * FROM "tournament_players" WHERE "id" = $1',
               [match.player1Id]
             )
       const p2Profile =
-        match.player2Id == undefined
+        match.player2Id === undefined
           ? undefined
           : await context.application.core.databaseManager.queryOne<TournamentPlayer>(
               'SELECT * FROM "tournament_players" WHERE "id" = $1',

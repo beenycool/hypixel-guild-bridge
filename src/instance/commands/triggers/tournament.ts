@@ -49,8 +49,7 @@ export default class Tournament extends ChatCommandHandler {
           return 'Tournament is not in signup phase.'
         }
         try {
-          const playerLink = context.app.core.verification.findByIngame(playerUuid)
-          await tournamentManager.checkinPlayer(tournament.id, playerUuid, playerLink?.discordId ?? '')
+          await tournamentManager.checkinPlayer(tournament.id, playerUuid, playerUuid)
           return 'You have checked in!'
         } catch (error) {
           return error instanceof Error ? error.message : String(error)
@@ -125,8 +124,8 @@ export default class Tournament extends ChatCommandHandler {
           `SELECT * FROM "tournament_matches"
            WHERE "tournamentId" = $1
              AND ("player1Id" = $2 OR "player2Id" = $2)
-             AND "status" = $3`,
-          [tournament.id, fPlayer.id, MatchStatus.Active]
+             AND "status" IN ($3, $4, $5)`,
+          [tournament.id, fPlayer.id, MatchStatus.Active, MatchStatus.Reported, MatchStatus.Disputed]
         )
         if (fMatch === undefined) return 'You have no active match to forfeit.'
 
