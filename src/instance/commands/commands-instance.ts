@@ -48,6 +48,7 @@ import Fetchur from './triggers/fetchur.js'
 import Forge from './triggers/forge.js'
 import Garden from './triggers/garden.js'
 import Gay from './triggers/gay.js'
+import Lesbian from './triggers/lesbian.js'
 import Guild from './triggers/guild.js'
 import GuildExperience from './triggers/guildexp.js'
 import Help from './triggers/help.js'
@@ -155,6 +156,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Forge(),
       new Garden(),
       new Gay(),
+      new Lesbian(),
       new Guild(),
       new GuildExperience(),
       new Help(),

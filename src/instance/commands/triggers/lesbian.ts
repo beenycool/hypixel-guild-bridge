@@ -5,12 +5,12 @@ function percentage(): number {
   return Math.floor(Math.random() * 200) + 1
 }
 
-export default class Gay extends ChatCommandHandler {
+export default class Lesbian extends ChatCommandHandler {
   constructor() {
     super({
-      triggers: ['gay', 'gayness'],
-      description: 'Check how gay a player is',
-      example: 'gay %s'
+      triggers: ['lesbian', 'lesbianism'],
+      description: 'Check how lesbian a player is',
+      example: 'lesbian %s'
     })
   }
 
@@ -18,8 +18,8 @@ export default class Gay extends ChatCommandHandler {
     const user1 = context.args[0] ?? context.username
     if (context.args[1]) {
       const user2 = context.args[1]
-      return `${user1} and ${user2} are ${percentage()}% gay couple.`
+      return `${user1} and ${user2} are ${percentage()}% lesbian couple.`
     }
-    return `${user1} is ${percentage()}% gay.`
+    return `${user1} is ${percentage()}% lesbian.`
   }
 }
