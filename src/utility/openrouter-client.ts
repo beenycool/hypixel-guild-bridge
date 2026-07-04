@@ -16,11 +16,13 @@ export class OpenRouterClient {
   private readonly apiKey: string
   private readonly defaultModel: string | undefined
   private readonly timeoutMs: number
+  private readonly baseUrl: string
 
-  constructor(apiKey: string, options?: { defaultModel?: string; timeoutMs?: number }) {
+  constructor(apiKey: string, options?: { defaultModel?: string; timeoutMs?: number; baseUrl?: string }) {
     this.apiKey = apiKey
     this.defaultModel = options?.defaultModel
     this.timeoutMs = options?.timeoutMs ?? 30_000
+    this.baseUrl = options?.baseUrl ?? 'https://openrouter.ai/api/v1/chat/completions'
   }
 
   async chatCompletion(options: ChatCompletionOptions): Promise<ChatCompletionResult> {
@@ -42,7 +44,7 @@ export class OpenRouterClient {
       body.reasoning = { effort: options.reasoningEffort }
     }
 
-    const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', body, {
+    const response = await axios.post(this.baseUrl, body, {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'

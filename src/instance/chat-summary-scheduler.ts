@@ -11,6 +11,9 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
   private started = false
   private intervalHandle: NodeJS.Timeout | undefined
   private lastTriggeredDay = -1
+  private needsRetry = false
+  private lastRetryTimestamp = 0
+  private readonly retryIntervalMs = Duration.minutes(15).toMilliseconds()
 
   constructor(application: Application) {
     super(application, 'chat-summary-scheduler', InstanceType.Utility)
@@ -58,21 +61,48 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
   }
 
   private async checkAndTrigger(): Promise<void> {
-    const apiKey = this.application.openrouterApiKey
+    const apiKey = process.env.HACKCLUB_API_KEY ?? this.application.openrouterApiKey
     if (!apiKey) {
       return
     }
 
     const { hour, minute, day } = this.getUkParts()
+    const now = Date.now()
 
-    // Trigger at midnight (00:00) Europe/London time
-    if (hour !== 0 || minute !== 0) return
+    // Reset retry state on new day
+    if (this.lastTriggeredDay !== day) {
+      this.needsRetry = false
+    }
 
-    if (this.lastTriggeredDay === day) return
-    this.lastTriggeredDay = day
+    // Trigger at midnight (00:00) Europe/London time if not yet done
+    if (hour === 0 && minute === 0 && this.lastTriggeredDay !== day) {
+      this.logger.info('Triggering daily chat summary generation...')
+      try {
+        await this.generateAndPostSummaries()
+        this.lastTriggeredDay = day
+        this.needsRetry = false
+        return
+      } catch (error: unknown) {
+        this.logger.error('Initial chat summary generation failed, will retry in 15m:', error)
+        this.needsRetry = true
+        this.lastRetryTimestamp = now
+        return
+      }
+    }
 
-    this.logger.info('Triggering daily chat summary generation...')
-    await this.generateAndPostSummaries()
+    // Retry every 15m if previous attempt failed
+    if (this.needsRetry && now - this.lastRetryTimestamp >= this.retryIntervalMs) {
+      this.logger.info('Retrying chat summary generation...')
+      try {
+        await this.generateAndPostSummaries()
+        this.lastTriggeredDay = day
+        this.needsRetry = false
+        this.logger.info('Chat summary generation succeeded on retry')
+      } catch (error: unknown) {
+        this.lastRetryTimestamp = now
+        this.logger.error('Chat summary generation retry failed, will retry again in 15m:', error)
+      }
+    }
   }
 
   public async generateAndPostSummaries(): Promise<void> {
@@ -143,43 +173,30 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
           }
         }
 
-        const apiKey = this.application.openrouterApiKey
+        const apiKey = process.env.HACKCLUB_API_KEY ?? this.application.openrouterApiKey
         if (!apiKey) continue
 
-        const model = this.application.openrouterModel ?? 'nvidia/nemotron-3-ultra-550b-a55b:free'
+        const model = 'anthropic/claude-sonnet-5'
 
-        const systemPrompt = `You are a gossipy, high-energy, exclamation-heavy, emoji-rich server chat 
-commentator. Your job is to read Minecraft guild chat logs and write a 
-dramatic, entertaining, gossipy summary of today's events.
+        const systemPrompt = `You are a hyper-dramatic, gossipy, high-school-style server chat commentator. Your job is to read Minecraft guild chat logs and write a highly entertaining, cohesive narrative summary of today's events.
 
-STRICT RULES:
+GUIDELINES:
 1. Start with the exact title "Server Talk 💬" followed by a newline.
-2. Pick the 5-6 MOST dramatic or entertaining storylines only. Do not 
-   attempt to include every message or minor detail — quality over quantity.
-3. Write in 3-4 short paragraphs (2-4 sentences each), not a bullet list. 
-   Each paragraph should flow like a gossip column, not a log recap.
-4. Tone: dramatic, sassy, slightly mean-but-fun (never genuinely cruel or 
-   insulting toward real people). Use phrases like "SO super dramatic!", 
-   "OMG!", "so uncool!", "exploded!", "pure fury", "sassy", "smug".
-5. Use emojis naturally throughout — not stacked at the end of every line.
-6. Refer to players by plain usernames as they appear in logs.
-7. Include exactly one line in this format, placed after the first 
-   paragraph: "<@discordId> was today's chattiest with X messages! 🏆" 
-   (use the Discord mention if available, otherwise plain username).
-8. Do not invent details, names, or events not present in the logs. If 
-   details are ambiguous, keep descriptions vague rather than fabricating 
-   specifics.
-9. BEFORE finalizing, silently count total characters. If over 1800, cut 
-   the least interesting storyline and re-check. Never exceed 1800 
-   characters in the final output.
-10. Do not censor language from the logs, but reframe it in a fun, 
-    story-like way rather than repeating slurs or harassment verbatim.`
+2. Organize the summary by major narrative threads and drama arcs rather than a strict minute-by-minute timeline, ensuring the transitions between topics feel natural and connected by cause-and-effect.
+3. Adopt an exaggerated, drama-obsessed tone. Use dramatic commentary (e.g., "SO super dramatic!", "swoops in like a super-villain!", "kinda sassy", "so intense!") and speculate playfully on users' motivations and feelings.
+4. Write in a few long, flowing narrative paragraphs. It must read like a single continuous gossip column, avoiding disjointed or repetitive sentences.
+5. Capture the authentic flavor of the community. Actively look for and preserve specific text emoticons (like ( ﾟ◡ﾟ)/), inside jokes, and exact slang used in the logs.
+6. Focus on the sassiest conflicts, pile-ons, and smug moments. Weave in short, direct quotes from users naturally within your sentences.
+7. Include exactly one line in this format, placed exactly after the first paragraph: "<@discordId> was today's chattiest with X messages! :first_place:"
+8. Do NOT censor language from the logs—no asterisks, no partial redaction. Reframe crude moments in a story-like way instead of blanking them out.
+9. Limit emoji use to 1-2 per paragraph maximum—the drama should come from your word choice and pacing, not emoji decoration.
+10. Do not include any reasoning, meta-commentary, or notes about your process—output only the final summary text.`
 
         const userContent = `Here are the chat logs from today:\n\n${logsText}\n\nImportant instructions:\n- Today's chattiest user is: ${chattiest ? (chattiest.discordId ? `<@${chattiest.discordId}>` : chattiest.username) : 'None'} with ${chattiest ? chattiest.count : 0} messages.\n- You MUST include a sentence in the exact format: '<@discordId> was today's chattiest with X messages! :first_place:' (using their Discord mention if available, otherwise their username).`
 
         this.logger.info(`Sending request to OpenRouter using model: ${model}`)
         const response = await axios.post(
-          'https://openrouter.ai/api/v1/chat/completions',
+          'https://ai.hackclub.com/proxy/v1/chat/completions',
           {
             model,
             messages: [
@@ -187,7 +204,7 @@ STRICT RULES:
               { role: 'user', content: userContent }
             ],
             temperature: 0.7,
-            ...(model.includes('nemotron') ? { reasoning: { effort: 'high' } } : {})
+            reasoning: { effort: 'high' }
           },
           {
             headers: {
