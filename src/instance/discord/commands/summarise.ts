@@ -9,7 +9,7 @@ export default {
   permission: Permission.Admin,
 
   handler: async function (context) {
-    await context.interaction.deferReply({ ephemeral: true })
+    await context.interaction.deferReply()
 
     try {
       await context.application.chatSummarySchedulerInstance.generateAndPostSummaries()
