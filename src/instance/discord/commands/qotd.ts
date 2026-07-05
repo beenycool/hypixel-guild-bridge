@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
+import { abortActiveQotdFlow } from '../../qotd-flow'
 
 const QotdMemberIds = ['878335694295171094', '1173245594752536726', '623714295838015509']
 
@@ -25,6 +26,7 @@ export default {
     }
 
     if (subcommand === 'disable') {
+      abortActiveQotdFlow()
       context.application.commandConfigManager.updateDiscordCommandConfig('qotd', { enabled: false }, 'discord')
       await context.interaction.reply('QOTD auto-scheduler disabled.')
       return

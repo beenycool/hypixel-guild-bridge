@@ -5,6 +5,10 @@ const QotdUserIds = ['878335694295171094', '1173245594752536726', '6237142958380
 
 let activeQotdController: AbortController | undefined
 
+export function abortActiveQotdFlow(): void {
+  activeQotdController?.abort()
+}
+
 export async function runQotdFlow(
   channel: TextChannel,
   _guild: unknown,
