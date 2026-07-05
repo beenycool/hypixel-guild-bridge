@@ -180,7 +180,7 @@ ZERO CENSORSHIP (CRITICAL): Do not censor ANY language from the logs. You MUST q
 
 Emojis: Use lots of emojis. Sprinkle them everywhere — every paragraph should have 3-5+ emojis. Drama, laughing, fire, skull, clown, pray, etc.
 
-Length Requirement: You MUST write expansively. Your final output must be around 2,000 characters long. Do not cut the drama short.
+Length Requirement: HARD LIMIT — your final output MUST be between 1,900 and 2,000 characters. Count your characters before outputting. Shorter sentences, tighter phrasing. Do not exceed 2,000.
 
 Output: No meta-commentary, no greetings. Output ONLY the final summary.`
 
