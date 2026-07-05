@@ -105,7 +105,7 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
     }
   }
 
-  public async generateAndPostSummaries(): Promise<void> {
+  public async generateAndPostSummaries(additionalChannelId?: string): Promise<void> {
     const bridgeConfigurations = this.application.core.bridgeConfigurations
     const bridgeIds = bridgeConfigurations.getAllBridgeIds()
 
@@ -119,10 +119,15 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
         }
 
         const channelIds = bridgeConfigurations.getChatSummaryChannelIds(bridgeId)
-        if (channelIds.length === 0) {
+        if (channelIds.length === 0 && !additionalChannelId) {
           this.logger.warn(`Chat summary is enabled for bridge ${bridgeId} but no summary channels are configured.`)
           continue
         }
+
+        const targetChannelIds =
+          additionalChannelId && !channelIds.includes(additionalChannelId)
+            ? [...channelIds, additionalChannelId]
+            : channelIds
 
         // Fetch messages for this bridge in the last 24 hours
         const rows = await this.application.core.databaseManager.queryRows<{
@@ -215,7 +220,7 @@ Output: No meta-commentary, no greetings. Output ONLY the final summary.`
         const client = this.application.discordInstance.getClient()
         const chunks = this.splitMessage(summaryText)
 
-        for (const channelId of channelIds) {
+        for (const channelId of targetChannelIds) {
           const channel = await client.channels.fetch(channelId).catch(() => undefined)
           if (channel && channel.isTextBased() && !channel.isDMBased()) {
             for (const chunk of chunks) {
