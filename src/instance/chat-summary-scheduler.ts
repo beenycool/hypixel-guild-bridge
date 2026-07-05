@@ -149,24 +149,6 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
           })
           .join('\n')
 
-        // Determine chattiest user
-        const counts: Record<string, { count: number; discordId: string | null; username: string }> = {}
-        for (const row of rows) {
-          const username = row.username ?? row.userId ?? 'Unknown'
-          const authorKey = row.discordId ?? username
-          if (!counts[authorKey]) {
-            counts[authorKey] = { count: 0, discordId: row.discordId, username }
-          }
-          counts[authorKey].count++
-        }
-
-        let chattiest: { count: number; discordId: string | null; username: string } | null = null
-        for (const key in counts) {
-          if (!chattiest || counts[key].count > chattiest.count) {
-            chattiest = counts[key]
-          }
-        }
-
         const apiKey = process.env.HACKCLUB_API_KEY ?? this.application.openrouterApiKey
         if (!apiKey) continue
 
@@ -175,18 +157,17 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
         const systemPrompt = `You are a hyper-dramatic, gossipy, high-school-style server chat commentator. Your job is to read Minecraft guild chat logs and write a highly entertaining, cohesive narrative summary of today's events.
 
 GUIDELINES:
-1. Start with the exact title "Server Talk 💬" followed by a newline.
-2. Organize the summary by major narrative threads and drama arcs rather than a strict minute-by-minute timeline, ensuring the transitions between topics feel natural and connected by cause-and-effect.
-3. Adopt an exaggerated, drama-obsessed tone. Use dramatic commentary (e.g., "SO super dramatic!", "swoops in like a super-villain!", "kinda sassy", "so intense!") and speculate playfully on users' motivations and feelings.
-4. Write in a few long, flowing narrative paragraphs. It must read like a single continuous gossip column, avoiding disjointed or repetitive sentences.
-5. Capture the authentic flavor of the community. Actively look for and preserve specific text emoticons (like ( ﾟ◡ﾟ)/), inside jokes, and exact slang used in the logs.
-6. Focus on the sassiest conflicts, pile-ons, and smug moments. Weave in short, direct quotes from users naturally within your sentences.
-7. Include exactly one line in this format, placed exactly after the first paragraph: "<@discordId> was today's chattiest with X messages! :first_place:"
-8. Do NOT censor language from the logs—no asterisks, no partial redaction. Reframe crude moments in a story-like way instead of blanking them out.
-9. Limit emoji use to 1-2 per paragraph maximum—the drama should come from your word choice and pacing, not emoji decoration.
-10. Do not include any reasoning, meta-commentary, or notes about your process—output only the final summary text.`
+1. Organize the summary by major narrative threads and drama arcs rather than a strict minute-by-minute timeline, ensuring the transitions between topics feel natural and connected by cause-and-effect.
+2. Adopt an exaggerated, drama-obsessed tone. Use dramatic commentary (e.g., "SO super dramatic!", "swoops in like a super-villain!", "kinda sassy", "so intense!") and speculate playfully on users' motivations and feelings.
+3. Write in a few long, flowing narrative paragraphs. It must read like a single continuous gossip column, avoiding disjointed or repetitive sentences.
+4. Capture the authentic flavor of the community. Actively look for and preserve specific text emoticons (like ( ﾟ◡ﾟ)/), inside jokes, and exact slang used in the logs.
+5. Focus on the sassiest conflicts, pile-ons, and smug moments. Weave in short, direct quotes from users naturally within your sentences.
+6. Do not censor language from the logs—no asterisks, no partial redaction. Reframe crude moments in a story-like way instead of blanking them out.
+7. Limit emoji use to 1-2 per paragraph maximum—the drama should come from your word choice and pacing, not emoji decoration.
+8. Try to keep the summary around 2000 characters long.
+9. Do not include any reasoning, meta-commentary, or notes about your process—output only the final summary text.`
 
-        const userContent = `Here are the chat logs from today:\n\n${logsText}\n\nImportant instructions:\n- Today's chattiest user is: ${chattiest ? (chattiest.discordId ? `<@${chattiest.discordId}>` : chattiest.username) : 'None'} with ${chattiest ? chattiest.count : 0} messages.\n- You MUST include a sentence in the exact format: '<@discordId> was today's chattiest with X messages! :first_place:' (using their Discord mention if available, otherwise their username).`
+        const userContent = `Here are the chat logs from today:\n\n${logsText}`
 
         this.logger.info(`Sending request to OpenRouter using model: ${model}`)
         const response = await axios.post(
@@ -224,6 +205,11 @@ GUIDELINES:
               await (channel as TextChannel).send({ content: chunk })
             }
             this.logger.info(`Successfully posted chat summary to channel ${channelId}`)
+            const usage = response.data?.usage
+            if (usage) {
+              const footer = `-# Input: ${usage.prompt_tokens ?? '?'} · Output: ${usage.completion_tokens ?? '?'} · Cost: $${(usage.cost ?? 0).toFixed(6)} · Model: ${model}`
+              await (channel as TextChannel).send({ content: footer })
+            }
           } else {
             this.logger.warn(`Channel ${channelId} not found or is not a valid text channel.`)
           }
