@@ -46,6 +46,7 @@ import { PendingReviewManager } from './rankup/pending-review-manager'
 import { RankupManager } from './rankup/rankup-manager'
 import { SpontaneousEventsConfigurations } from './spontaneous-events-configurations'
 import { TournamentManager } from './tournament/tournament-manager.js'
+import { TournamentTestPanels } from './tournament/tournament-test-panels.js'
 import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
 import { Inactivity } from './users/inactivity'
@@ -88,6 +89,7 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly pendingReviewManager: PendingReviewManager
   public readonly rankupManager: RankupManager
   public readonly tournamentManager: TournamentManager
+  public readonly tournamentTestPanels: TournamentTestPanels
 
   // misc
   public readonly applicationConfigurations: ApplicationConfigurations
@@ -179,6 +181,7 @@ export class Core extends Instance<InstanceType.Core> {
     this.scoresManager = new ScoresManager(this, this.databaseManager)
 
     this.tournamentManager = new TournamentManager(this.databaseManager, application)
+    this.tournamentTestPanels = new TournamentTestPanels(this.databaseManager)
     application.addShutdownListener(async () => {
       this.tournamentManager.stopScheduler()
     })
@@ -294,6 +297,7 @@ export class Core extends Instance<InstanceType.Core> {
     await this.scoresManager.load()
     await this.autoComplete.load()
     await this.tournamentManager.load()
+    await this.tournamentTestPanels.load()
     this.tournamentManager.startScheduler()
   }
 

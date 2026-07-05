@@ -29,8 +29,7 @@ export class TournamentChannelManager {
         permissionOverwrites: [
           {
             id: guild.roles.everyone.id,
-            allow: ['ViewChannel'],
-            deny: ['SendMessages']
+            deny: ['ViewChannel', 'SendMessages']
           }
         ],
         reason: `Tournament ${tournamentName} bracket channel`
@@ -71,8 +70,7 @@ export class TournamentChannelManager {
         permissionOverwrites: [
           {
             id: guild.roles.everyone.id,
-            allow: ['ViewChannel'],
-            deny: ['SendMessages']
+            deny: ['ViewChannel', 'SendMessages']
           }
         ],
         reason: `Tournament ${tournamentName} live updates`
