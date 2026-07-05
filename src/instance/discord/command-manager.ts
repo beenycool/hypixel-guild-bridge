@@ -30,6 +30,7 @@ import QotdCommand from './commands/qotd.js'
 import RankCommand from './commands/rank.js'
 import ReconnectCommand from './commands/reconnect.js'
 import RestartCommand from './commands/restart.js'
+import SummariseCommand from './commands/summarise.js'
 import TournamentCommand from './commands/tournament-command.js'
 import {
   getBridgeMinecraftInstanceNames,
@@ -103,6 +104,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       RankCommand,
       ReconnectCommand,
       RestartCommand,
+      SummariseCommand,
       TournamentCommand
     ]
 

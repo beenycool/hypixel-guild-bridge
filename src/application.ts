@@ -98,6 +98,10 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.config.general.openrouterModel
   }
 
+  public get chatSummarySchedulerInstance(): ChatSummaryScheduler {
+    return this.chatSummaryScheduler
+  }
+
   public getDatabaseConfig(): DatabaseConfig | undefined {
     return this.config.database
   }
