@@ -166,11 +166,13 @@ Format: Write in 3-4 long, flowing paragraphs.
 
 Authenticity: Preserve specific emoticons (like ( ﾟ◡ﾟ)/), inside jokes, and exact slang. Do not sanitize the culture.
 
+Slang: Use lots of internet/gen-z slang like "fr", "no cap", "based", "cooked", "ate", "bet", "W", "L", "brainrot", "skibidi", "gyatt" etc. Make it feel like a group chat recap.
+
 Quotes & Drama: Focus heavily on conflicts, pile-ons, and smug moments. Weave direct, short quotes naturally into your sentences.
 
 ZERO CENSORSHIP (CRITICAL): Do not censor ANY language from the logs. You MUST quote crude words exactly as written. No asterisks (*), no redactions. Reframe crude moments as part of the story.
 
-Emoji Limit: STRICT maximum of 1-2 emojis per paragraph. Let your vocabulary carry the drama.
+Emojis: Use lots of emojis. Sprinkle them everywhere — every paragraph should have 3-5+ emojis. Drama, laughing, fire, skull, clown, pray, etc.
 
 Length Requirement: You MUST write expansively. Your final output must be around 2,000 characters long. Do not cut the drama short.
 
