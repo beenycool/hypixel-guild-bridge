@@ -66,42 +66,36 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
       return
     }
 
-    const { hour, minute, day } = this.getUkParts()
+    const { day } = this.getUkParts()
     const now = Date.now()
 
-    // Reset retry state on new day
-    if (this.lastTriggeredDay !== day) {
+    // If already triggered for today, only retry if needed
+    if (this.lastTriggeredDay === day) {
+      if (this.needsRetry && now - this.lastRetryTimestamp >= this.retryIntervalMs) {
+        this.logger.info('Retrying chat summary generation...')
+        try {
+          await this.generateAndPostSummaries()
+          this.needsRetry = false
+          this.logger.info('Chat summary generation succeeded on retry')
+        } catch (error: unknown) {
+          this.lastRetryTimestamp = now
+          this.logger.error('Chat summary generation retry failed, will retry again in 15m:', error)
+        }
+      }
+      return
+    }
+
+    // Day changed — trigger generation (catches up if midnight was missed)
+    this.logger.info('Triggering daily chat summary generation...')
+    try {
+      await this.generateAndPostSummaries()
+      this.lastTriggeredDay = day
       this.needsRetry = false
-    }
-
-    // Trigger at midnight (00:00) Europe/London time if not yet done
-    if (hour === 0 && minute === 0 && this.lastTriggeredDay !== day) {
-      this.logger.info('Triggering daily chat summary generation...')
-      try {
-        await this.generateAndPostSummaries()
-        this.lastTriggeredDay = day
-        this.needsRetry = false
-        return
-      } catch (error: unknown) {
-        this.logger.error('Initial chat summary generation failed, will retry in 15m:', error)
-        this.needsRetry = true
-        this.lastRetryTimestamp = now
-        return
-      }
-    }
-
-    // Retry every 15m if previous attempt failed
-    if (this.needsRetry && now - this.lastRetryTimestamp >= this.retryIntervalMs) {
-      this.logger.info('Retrying chat summary generation...')
-      try {
-        await this.generateAndPostSummaries()
-        this.lastTriggeredDay = day
-        this.needsRetry = false
-        this.logger.info('Chat summary generation succeeded on retry')
-      } catch (error: unknown) {
-        this.lastRetryTimestamp = now
-        this.logger.error('Chat summary generation retry failed, will retry again in 15m:', error)
-      }
+      this.logger.info('Chat summary generation succeeded')
+    } catch (error: unknown) {
+      this.logger.error('Chat summary generation failed, will retry in 15m:', error)
+      this.needsRetry = true
+      this.lastRetryTimestamp = now
     }
   }
 
