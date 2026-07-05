@@ -69,6 +69,12 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
     const { day } = this.getUkParts()
     const now = Date.now()
 
+    // First run after restart — sync day without triggering
+    if (this.lastTriggeredDay === -1) {
+      this.lastTriggeredDay = day
+      return
+    }
+
     // If already triggered for today, only retry if needed
     if (this.lastTriggeredDay === day) {
       if (this.needsRetry && now - this.lastRetryTimestamp >= this.retryIntervalMs) {
