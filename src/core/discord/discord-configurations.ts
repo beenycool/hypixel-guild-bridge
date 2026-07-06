@@ -120,13 +120,4 @@ export class DiscordConfigurations {
   public setMinecraftToDiscordFormat(format: string): void {
     this.configuration.setString('minecraftToDiscordFormat', format)
   }
-
-  public getQotdChannelId(): string | undefined {
-    const value = this.configuration.getString('qotdChannelId', '')
-    return value === '' ? undefined : value
-  }
-
-  public setQotdChannelId(channelId: string | undefined): void {
-    this.configuration.setString('qotdChannelId', channelId ?? '')
-  }
 }

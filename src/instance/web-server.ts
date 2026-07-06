@@ -20,7 +20,6 @@ import { InactivityApiHandler } from './web/inactivity-api.js'
 import { InstanceApiHandler } from './web/instance-api.js'
 import { PlayerApiHandler } from './web/player-api.js'
 import { PunishmentsApiHandler } from './web/punishments-api.js'
-import { QotdApiHandler } from './web/qotd-api.js'
 import { RankupApiHandler } from './web/rankup-api.js'
 import { RankupWsEvents } from './web/rankup-ws-events.js'
 import { SettingsApiHandler } from './web/settings-api.js'
@@ -106,7 +105,6 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly instanceApi: InstanceApiHandler
   private readonly playerApi: PlayerApiHandler
   private readonly punishmentsApi: PunishmentsApiHandler
-  private readonly qotdApi: QotdApiHandler
   private readonly rankupApi: RankupApiHandler
   private readonly rankupWs: RankupWsEvents
   private readonly settingsApi: SettingsApiHandler
@@ -160,7 +158,6 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     this.instanceApi = new InstanceApiHandler(application, this.logger)
     this.playerApi = new PlayerApiHandler(application, this.logger)
     this.punishmentsApi = new PunishmentsApiHandler(application, this.logger)
-    this.qotdApi = new QotdApiHandler(application, this.logger)
     this.rankupApi = new RankupApiHandler(application, this.logger)
     this.rankupWs = new RankupWsEvents(application, this.logger)
     this.settingsApi = new SettingsApiHandler(application, this.logger)
@@ -284,11 +281,6 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     if (route.startsWith('/api/inactivity')) {
       await this.inactivityApi.handle(request, response)
-      return
-    }
-
-    if (route.startsWith('/api/qotd')) {
-      await this.qotdApi.handle(request, response)
       return
     }
 

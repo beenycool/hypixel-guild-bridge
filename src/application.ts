@@ -39,7 +39,6 @@ import HypixelUpdates from './instance/hypixel-updates.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
-import { QotdScheduler } from './instance/qotd-scheduler'
 import { RandomChatter } from './instance/random-chatter'
 import { SpontaneousEvents } from './instance/spontaneous-events'
 import StatMonitor from './instance/stat-monitor'
@@ -63,7 +62,6 @@ export type AllInstances =
   | MinecraftManager
   | PluginsManager
   | RandomChatter
-  | QotdScheduler
   | ChatSummaryScheduler
 
 export default class Application extends Emittery<ApplicationEvents> implements InstanceIdentifier {
@@ -124,7 +122,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly prometheusInstance: PrometheusInstance | undefined
   private readonly webServer: WebServer | undefined
 
-  private readonly qotdScheduler: QotdScheduler
   private readonly chatSummaryScheduler: ChatSummaryScheduler
   private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
@@ -179,7 +176,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.webServer = this.config.web?.enabled ? new WebServer(this, this.config.web) : undefined
     this.commandsInstance = new CommandsInstance(this)
 
-    this.qotdScheduler = new QotdScheduler(this)
     this.chatSummaryScheduler = new ChatSummaryScheduler(this)
     this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
@@ -300,11 +296,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.randomChatter.start()
     } catch (error: unknown) {
       this.errorHandler.promiseCatch('starting random chatter')(error)
-    }
-    try {
-      this.qotdScheduler.start()
-    } catch (error: unknown) {
-      this.errorHandler.promiseCatch('starting qotd scheduler')(error)
     }
     try {
       this.chatSummaryScheduler.start()
@@ -486,7 +477,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.webServer,
       this.commandsInstance,
       ...this.minecraftManager.getAllInstances(),
-      this.qotdScheduler,
       this.chatSummaryScheduler,
       this.hypixelUpdates,
       this.spontaneousEvents,

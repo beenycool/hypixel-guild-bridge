@@ -127,7 +127,6 @@
                 'View guild activity logs — /log',
                 'Invite / join guild — /invite, /join',
                 'Punishments — mute, check, list',
-                'QOTD management — /qotd',
                 'GEXP threshold checking — /gexp-check',
                 'Connect / disconnect Minecraft — /disconnect, /reconnect',
                 'Toggle chat commands — !toggle',
