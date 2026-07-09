@@ -25,6 +25,8 @@ import { RankupWsEvents } from './web/rankup-ws-events.js'
 import { SettingsApiHandler } from './web/settings-api.js'
 import { SettingsWsEvents } from './web/settings-ws.js'
 import { StatusApiHandler } from './web/status-api.js'
+import { TournamentApiHandler } from './web/tournament-api.js'
+import { TournamentWsEvents } from './web/tournament-ws-events.js'
 
 interface WebMessagePayload {
   type?: string
@@ -110,6 +112,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly settingsApi: SettingsApiHandler
   private readonly settingsWs: SettingsWsEvents
   private readonly statusApi: StatusApiHandler
+  private readonly tournamentApi: TournamentApiHandler
+  private readonly tournamentWs: TournamentWsEvents
   private readonly staticRoot: string
   private knownPublicUrl: string | undefined
 
@@ -163,10 +167,13 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     this.settingsApi = new SettingsApiHandler(application, this.logger)
     this.settingsWs = new SettingsWsEvents(application, this.logger)
     this.statusApi = new StatusApiHandler(application, this.logger)
+    this.tournamentApi = new TournamentApiHandler(application, this.logger)
+    this.tournamentWs = new TournamentWsEvents(application, this.logger)
     this.staticRoot = path.resolve(process.cwd(), 'web/public')
 
     this.rankupWs.start()
     this.settingsWs.start()
+    this.tournamentWs.start()
 
     this.application.addShutdownListener(() => {
       this.shutdown()
@@ -291,6 +298,11 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     if (route.startsWith('/api/rankup')) {
       await this.rankupApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/tournament')) {
+      await this.tournamentApi.handle(request, response)
       return
     }
 
@@ -512,6 +524,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       this.connections.delete(socket)
       this.rankupWs.unsubscribe(socket)
       this.settingsWs.unsubscribe(socket)
+      this.tournamentWs.unsubscribe(socket)
     })
 
     socket.on('error', (error) => {
@@ -519,6 +532,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       this.connections.delete(socket)
       this.rankupWs.unsubscribe(socket)
       this.settingsWs.unsubscribe(socket)
+      this.tournamentWs.unsubscribe(socket)
     })
 
     socket.on('message', (data) => {
@@ -562,6 +576,17 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
       this.settingsWs.subscribe(socket)
+      this.sendWebSocket(socket, { type: 'ack', success: true })
+      return
+    }
+
+    if (payload.type === 'subscribeTournament') {
+      const auth = verifyToken(buildTokenSet(this.config), undefined, payload.token)
+      if (!auth.ok || auth.permission < Permission.Helper) {
+        this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
+        return
+      }
+      this.tournamentWs.subscribe(socket)
       this.sendWebSocket(socket, { type: 'ack', success: true })
       return
     }
@@ -679,6 +704,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     this.connections.clear()
     this.rankupWs.stop()
     this.settingsWs.stop()
+    this.tournamentWs.stop()
     this.wsServer.close()
     this.httpServer.close()
   }

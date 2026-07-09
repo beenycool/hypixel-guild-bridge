@@ -1,13 +1,47 @@
 import { EmbedBuilder } from 'discord.js'
 
 import type Application from '../../application.js'
-import { MinecraftSendChatPriority } from '../../common/application-event.js'
+import { Color, ChannelType, MinecraftSendChatPriority } from '../../common/application-event.js'
+import type { BroadcastEvent } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 
 import type { Tournament, TournamentMatch } from './types.js'
 
 export class TournamentNotifications {
   constructor(private readonly application: Application) {}
+
+  /**
+   * Translate a key using the bridge-specific translator.
+   */
+  private t(bridgeId: string, key: string, params?: Record<string, any>): string {
+    try {
+      const translator = this.application.getTranslatorForBridge(bridgeId)
+      return translator(key, params)
+    } catch {
+      return key // fallback
+    }
+  }
+
+  /**
+   * Broadcast a tournament milestone event to all relevant channels.
+   */
+  broadcastMilestone(tournament: any, message: string): void {
+    try {
+      const event: BroadcastEvent = {
+        eventId: `tournament:${tournament.name}:${Date.now()}`,
+        createdAt: Date.now(),
+        instanceName: this.application.instanceName,
+        instanceType: this.application.instanceType,
+        message,
+        color: Color.Good,
+        user: undefined,
+        channels: [ChannelType.Public, ChannelType.Officer]
+      }
+      this.application.emit('broadcast', event)
+    } catch (error) {
+      this.application.logger.error('Failed to broadcast tournament milestone', error)
+    }
+  }
 
   /**
    * Helper to get a connected Minecraft instance for the bridge.
@@ -92,10 +126,18 @@ export class TournamentNotifications {
     p1Name: string,
     p2Name: string
   ): Promise<void> {
-    const mcMessage = `🏆 Tournament: Your Round ${match.round} match against ${p2Name} is active! Check Discord for details.`
+    const mcMessage = this.t(bridgeId, 'tournament.match.whisper', {
+      round: match.round,
+      p1: p1Name,
+      p2: p2Name
+    })
     await this.sendWhisper(bridgeId, p1Uuid, mcMessage)
 
-    const mcMessage2 = `🏆 Tournament: Your Round ${match.round} match against ${p1Name} is active! Check Discord for details.`
+    const mcMessage2 = this.t(bridgeId, 'tournament.match.whisper', {
+      round: match.round,
+      p1: p2Name,
+      p2: p1Name
+    })
     await this.sendWhisper(bridgeId, p2Uuid, mcMessage2)
   }
 
@@ -111,10 +153,10 @@ export class TournamentNotifications {
     p2Name: string
   ): Promise<void> {
     // 1. MC Whispers
-    const mcMessage = `⚠️ Tournament: Your match against ${p2Name} is due in 24 hours! Please complete and report it.`
+    const mcMessage = this.t(bridgeId, 'tournament.deadline.warning', { opponent: p2Name })
     await this.sendWhisper(bridgeId, p1Uuid, mcMessage)
 
-    const mcMessage2 = `⚠️ Tournament: Your match against ${p1Name} is due in 24 hours! Please complete and report it.`
+    const mcMessage2 = this.t(bridgeId, 'tournament.deadline.warning', { opponent: p1Name })
     await this.sendWhisper(bridgeId, p2Uuid, mcMessage2)
 
     // 2. Discord Thread Announcement
@@ -194,6 +236,7 @@ export class TournamentNotifications {
       tournament.bridgeId,
       `🏆 Round ${round} of tournament ${tournament.name} is complete! Starting next round...`
     )
+    this.broadcastMilestone(tournament, `Round ${round} of ${tournament.name} is complete!`)
   }
 
   /**
@@ -211,6 +254,7 @@ export class TournamentNotifications {
       tournament.bridgeId,
       `🏆 Congratulations to ${winnerName} for winning the ${tournament.name} tournament! 🎉`
     )
+    this.broadcastMilestone(tournament, `${winnerName} wins ${tournament.name}!`)
   }
 
   public async announceLiveUpdate(
@@ -261,5 +305,31 @@ export class TournamentNotifications {
       tournament.bridgeId,
       `🏆 Tournament ${tournament.name} cancelled: only ${checkedInCount}/${minRequired} checked in.`
     )
+  }
+
+  async announceStream(
+    bridgeId: string,
+    tournamentName: string,
+    playerName: string,
+    streamUrl: string,
+    channelId: string
+  ): Promise<void> {
+    try {
+      const message = `🔴 ${playerName} is now live: ${streamUrl}`
+
+      const embed = new EmbedBuilder()
+        .setTitle(`${playerName} is now live!`)
+        .setURL(streamUrl)
+        .setDescription(`${playerName} is streaming their ${tournamentName} match!`)
+        .setColor(0x9146ff) // Twitch purple
+        .setTimestamp()
+
+      await this.announceToDiscord(bridgeId, embed)
+
+      // Also whisper to all tournament participants
+      // (This would need access to tournament players — can be added later)
+    } catch (error) {
+      this.application.logger.error('Failed to announce stream', error)
+    }
   }
 }

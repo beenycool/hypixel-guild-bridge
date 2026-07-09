@@ -1,9 +1,12 @@
+import type { Logger } from 'log4js'
+
 import type { DatabaseManager } from '../../common/database-manager.js'
 
 import type { TournamentChannelManager } from './tournament-channel-manager.js'
 import type { TournamentNotifications } from './tournament-notifications.js'
 import type { Tournament, TournamentMatch, TournamentPlayer, TournamentReport } from './types.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from './types.js'
+import { validateSeriesScore } from './score-validator.js'
 
 export class MatchManager {
   constructor(
@@ -12,7 +15,8 @@ export class MatchManager {
     private readonly notifications: TournamentNotifications,
     private readonly getTournament: (id: number) => Promise<Tournament | undefined>,
     private readonly getPlayerNames: (tournamentId: number) => Promise<Map<number, string>>,
-    private readonly checkProofAttachment?: (threadId: string) => Promise<boolean>
+    private readonly checkProofAttachment?: (threadId: string) => Promise<boolean>,
+    private readonly logger?: Logger
   ) {}
 
   /**
@@ -25,92 +29,106 @@ export class MatchManager {
     p1Wins: number,
     p2Wins: number
   ): Promise<{ status: MatchStatus; message: string }> {
-    // 1. Fetch match and players
-    const match = await this.databaseManager.queryOne<TournamentMatch>(
+    // Proof attachment check - perform before entering transaction to avoid holding DB locks
+    let hasProof = false
+    const preMatch = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
       [matchId]
     )
-    if (match === undefined) {
-      throw new Error('Match not found.')
-    }
-    if (match.status === MatchStatus.Completed || match.status === MatchStatus.Bye) {
-      return { status: match.status, message: 'This match is already completed.' }
+    if (preMatch?.discordThreadId !== undefined && this.checkProofAttachment !== undefined) {
+      hasProof = await this.checkProofAttachment(preMatch.discordThreadId)
     }
 
-    if (match.player1Id !== reporterPlayerId && match.player2Id !== reporterPlayerId) {
-      throw new Error('You are not a participant in this match.')
-    }
-
-    const tournament = await this.getTournament(match.tournamentId)
-    if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
-      throw new Error('Tournament is not active.')
-    }
-
-    // 2. Insert report
-    await this.databaseManager.execute(
-      `INSERT INTO "tournament_reports" ("matchId", "reporterId", "claimedWinnerId", "player1Wins", "player2Wins")
-       VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT ("matchId", "reporterId") DO UPDATE SET
-         "claimedWinnerId" = EXCLUDED."claimedWinnerId",
-         "player1Wins" = EXCLUDED."player1Wins",
-         "player2Wins" = EXCLUDED."player2Wins"`,
-      [matchId, reporterPlayerId, claimedWinnerId, p1Wins, p2Wins]
-    )
-
-    // Proof attachment check
-    if (match.discordThreadId !== undefined && this.checkProofAttachment !== undefined) {
-      const hasProof = await this.checkProofAttachment(match.discordThreadId)
-      if (hasProof) {
-        await this.databaseManager.execute('UPDATE "tournament_matches" SET "hadProofAttachment" = 1 WHERE "id" = $1', [
-          matchId
-        ])
+    return await this.databaseManager.transaction(async (txClient) => {
+      // 1. Lock and fetch match
+      const matchResult = await txClient.query<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 FOR UPDATE',
+        [matchId]
+      )
+      const match = matchResult.rows[0]
+      if (match === undefined) {
+        throw new Error('Match not found.')
       }
-    }
+      if (match.status === MatchStatus.Completed || match.status === MatchStatus.Bye) {
+        return { status: match.status, message: 'This match is already completed.' }
+      }
+      if (match.status === MatchStatus.Disputed) {
+        return { status: MatchStatus.Disputed, message: 'This match is under dispute. Please wait for an admin.' }
+      }
 
-    // 3. Check reports
-    const reports = await this.databaseManager.queryRows<TournamentReport>(
-      'SELECT * FROM "tournament_reports" WHERE "matchId" = $1',
-      [matchId]
-    )
+      if (match.player1Id !== reporterPlayerId && match.player2Id !== reporterPlayerId) {
+        throw new Error('You are not a participant in this match.')
+      }
 
-    const expectedReportCount = (match.player1Id === undefined ? 0 : 1) + (match.player2Id === undefined ? 0 : 1)
-    let newStatus = MatchStatus.Reported
+      const tournament = await this.getTournament(match.tournamentId)
+      if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
+        throw new Error('Tournament is not active.')
+      }
 
-    if (reports.length >= expectedReportCount) {
-      const firstReport = reports[0]
-      const secondReport = reports[1]
+      // Validate score
+      const scoreCheck = validateSeriesScore(tournament.bestOf, p1Wins, p2Wins)
+      if (!scoreCheck.valid) {
+        return { status: match.status, message: scoreCheck.message }
+      }
 
-      newStatus =
-        reports.length < 2 || firstReport.claimedWinnerId === secondReport.claimedWinnerId
-          ? MatchStatus.BothConfirmed
-          : MatchStatus.Disputed
-    }
+      // 2. Insert report
+      await txClient.query(
+        `INSERT INTO "tournament_reports" ("matchId", "reporterId", "claimedWinnerId", "player1Wins", "player2Wins")
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT ("matchId", "reporterId") DO UPDATE SET
+           "claimedWinnerId" = EXCLUDED."claimedWinnerId",
+           "player1Wins" = EXCLUDED."player1Wins",
+           "player2Wins" = EXCLUDED."player2Wins"`,
+        [matchId, reporterPlayerId, claimedWinnerId, p1Wins, p2Wins]
+      )
 
-    // 4. Update match status
-    await this.databaseManager.execute('UPDATE "tournament_matches" SET "status" = $1 WHERE "id" = $2', [
-      newStatus,
-      matchId
-    ])
-    match.status = newStatus
+      // Set proof flag using pre-fetched result
+      if (hasProof) {
+        await txClient.query('UPDATE "tournament_matches" SET "hadProofAttachment" = 1 WHERE "id" = $1', [matchId])
+      }
 
-    // 5. Take action based on status
-    if (newStatus === MatchStatus.BothConfirmed) {
-      await this.resolveWinner(matchId, claimedWinnerId)
-      return { status: MatchStatus.Completed, message: 'Match successfully resolved!' }
-    } else if (newStatus === MatchStatus.Disputed) {
-      // Get player names
-      const names = await this.getPlayerNames(match.tournamentId)
-      const p1Name = match.player1Id === undefined ? 'Player 1' : (names.get(match.player1Id) ?? 'Player 1')
-      const p2Name = match.player2Id === undefined ? 'Player 2' : (names.get(match.player2Id) ?? 'Player 2')
+      // 3. Check reports
+      const reportsResult = await txClient.query<TournamentReport>(
+        'SELECT * FROM "tournament_reports" WHERE "matchId" = $1',
+        [matchId]
+      )
+      const reports = reportsResult.rows
 
-      const r1Claimed = names.get(reports[0].claimedWinnerId) ?? 'Unknown'
-      const r2Claimed = names.get(reports[1].claimedWinnerId) ?? 'Unknown'
+      const expectedReportCount = (match.player1Id === undefined ? 0 : 1) + (match.player2Id === undefined ? 0 : 1)
+      let newStatus = MatchStatus.Reported
 
-      await this.notifications.notifyDispute(tournament.bridgeId, match, p1Name, p2Name, r1Claimed, r2Claimed)
-      return { status: MatchStatus.Disputed, message: 'Reports conflict! Match is now disputed.' }
-    }
+      if (reports.length === expectedReportCount) {
+        const firstReport = reports[0]
+        const secondReport = reports[1]
 
-    return { status: MatchStatus.Reported, message: 'Report submitted. Waiting for opponent to report.' }
+        newStatus =
+          reports.length < 2 || firstReport.claimedWinnerId === secondReport.claimedWinnerId
+            ? MatchStatus.BothConfirmed
+            : MatchStatus.Disputed
+      }
+
+      // 4. Update match status
+      await txClient.query('UPDATE "tournament_matches" SET "status" = $1 WHERE "id" = $2', [newStatus, matchId])
+      match.status = newStatus
+
+      // 5. Take action based on status
+      if (newStatus === MatchStatus.BothConfirmed) {
+        await this.resolveWinner(matchId, claimedWinnerId)
+        return { status: MatchStatus.Completed, message: 'Match successfully resolved!' }
+      } else if (newStatus === MatchStatus.Disputed) {
+        const names = await this.getPlayerNames(match.tournamentId)
+        const p1Name = match.player1Id === undefined ? 'Player 1' : (names.get(match.player1Id) ?? 'Player 1')
+        const p2Name = match.player2Id === undefined ? 'Player 2' : (names.get(match.player2Id) ?? 'Player 2')
+
+        const r1Claimed = names.get(reports[0].claimedWinnerId) ?? 'Unknown'
+        const r2Claimed = names.get(reports[1].claimedWinnerId) ?? 'Unknown'
+
+        await this.notifications.notifyDispute(tournament.bridgeId, match, p1Name, p2Name, r1Claimed, r2Claimed)
+        return { status: MatchStatus.Disputed, message: 'Reports conflict! Match is now disputed.' }
+      }
+
+      return { status: MatchStatus.Reported, message: 'Report submitted. Waiting for opponent to report.' }
+    })
   }
 
   /**
@@ -194,6 +212,107 @@ export class MatchManager {
     }
 
     await this.resolveWinner(matchId, winnerId)
+  }
+
+  public async substitute(
+    matchId: number,
+    oldPlayerId: number,
+    newPlayerUuid: string,
+    newDiscordId: string
+  ): Promise<{ success: boolean; message: string }> {
+    return await this.databaseManager.transaction(async (txClient) => {
+      const matchResult = await txClient.query<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 FOR UPDATE',
+        [matchId]
+      )
+      const match = matchResult.rows[0]
+      if (!match) return { success: false, message: 'Match not found.' }
+
+      const isPlayer1 = match.player1Id === oldPlayerId
+      if (!isPlayer1 && match.player2Id !== oldPlayerId) {
+        return { success: false, message: 'Old player is not a participant in this match.' }
+      }
+      const slotColumn = isPlayer1 ? '"player1Id"' : '"player2Id"'
+
+      const tournament = await this.getTournament(match.tournamentId)
+      if (!tournament) return { success: false, message: 'Tournament not found.' }
+
+      // Look up or create new player record
+      const existingResult = await txClient.query<TournamentPlayer>(
+        'SELECT "id" FROM "tournament_players" WHERE "playerUuid" = $1 AND "tournamentId" = $2',
+        [newPlayerUuid, match.tournamentId]
+      )
+      let newPlayerId: number
+      if (existingResult.rows.length > 0) {
+        newPlayerId = existingResult.rows[0].id
+      } else {
+        const insertResult = await txClient.query<TournamentPlayer>(
+          `INSERT INTO "tournament_players" ("tournamentId", "playerUuid", "discordId", "seed", "status", "joinedAt")
+           VALUES ($1, $2, $3, 9999, $4, $5) RETURNING "id"`,
+          [match.tournamentId, newPlayerUuid, newDiscordId, PlayerStatus.Registered, Math.floor(Date.now() / 1000)]
+        )
+        newPlayerId = insertResult.rows[0].id
+      }
+
+      // Clear existing reports
+      await txClient.query('DELETE FROM "tournament_reports" WHERE "matchId" = $1', [matchId])
+
+      // Reset match status if not already completed
+      if (match.status !== MatchStatus.Completed && match.status !== MatchStatus.Bye) {
+        await txClient.query(
+          `UPDATE "tournament_matches" SET ${slotColumn} = $1, "status" = $2, "player1Wins" = NULL, "player2Wins" = NULL, "winnerId" = NULL WHERE "id" = $3`,
+          [newPlayerId, MatchStatus.Pending, matchId]
+        )
+      }
+
+      // Archive old thread
+      if (match.discordThreadId !== undefined) {
+        await this.channelManager.archiveMatchThread(match.discordThreadId, 'Player substituted')
+      }
+
+      // Create new match thread
+      if (tournament.discordChannelId !== undefined) {
+        const otherPlayerId = isPlayer1 ? match.player2Id! : match.player1Id!
+        const otherResult = await txClient.query<TournamentPlayer>(
+          'SELECT * FROM "tournament_players" WHERE "id" = $1',
+          [otherPlayerId]
+        )
+        const newPlayerResult = await txClient.query<TournamentPlayer>(
+          'SELECT * FROM "tournament_players" WHERE "id" = $1',
+          [newPlayerId]
+        )
+        const otherPlayer = otherResult.rows[0]
+        const newPlayer = newPlayerResult.rows[0]
+
+        if (otherPlayer !== undefined && newPlayer !== undefined) {
+          const names = await this.getPlayerNames(tournament.id)
+          const p1 = isPlayer1 ? newPlayer : otherPlayer
+          const p2 = isPlayer1 ? otherPlayer : newPlayer
+          const p1Name = names.get(p1.id) ?? 'Player 1'
+          const p2Name = names.get(p2.id) ?? 'Player 2'
+
+          const threadId = await this.channelManager.createMatchThread(
+            tournament.discordChannelId,
+            match,
+            p1,
+            p2,
+            p1Name,
+            p2Name
+          )
+
+          if (threadId !== undefined) {
+            await txClient.query('UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2', [
+              threadId,
+              matchId
+            ])
+          }
+        }
+      }
+
+      this.logger?.info(`Substitution: player ${oldPlayerId} replaced by ${newPlayerUuid} in match ${matchId}`)
+
+      return { success: true, message: 'Player substituted successfully.' }
+    })
   }
 
   /**
@@ -300,19 +419,28 @@ export class MatchManager {
 
     // 4. Advance winner to next match if exists
     if (match.nextMatchId === undefined) {
-      // No next match -> Winner of Finals! Tournament complete!
-      await this.databaseManager.execute(
-        'UPDATE "tournaments" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
-        [TournamentStatus.Completed, winnerId, now, tournament.id]
+      // No next match -> check whether ALL matches are complete (for round-robin and other non-elimination formats)
+      const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
+        [tournament.id]
       )
-      await this.databaseManager.execute('UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2', [
-        PlayerStatus.Winner,
-        winnerId
-      ])
+      const allComplete = allMatches.every((m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye)
 
-      const names = await this.getPlayerNames(tournament.id)
-      const winnerName = names.get(winnerId) ?? 'Winner'
-      await this.notifications.announceWinner(tournament, winnerName)
+      if (allComplete) {
+        // All matches finished -> Tournament complete!
+        await this.databaseManager.execute(
+          'UPDATE "tournaments" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
+          [TournamentStatus.Completed, winnerId, now, tournament.id]
+        )
+        await this.databaseManager.execute('UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2', [
+          PlayerStatus.Winner,
+          winnerId
+        ])
+
+        const names = await this.getPlayerNames(tournament.id)
+        const winnerName = names.get(winnerId) ?? 'Winner'
+        await this.notifications.announceWinner(tournament, winnerName)
+      }
     } else {
       const nextMatch = await this.databaseManager.queryOne<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "id" = $1',

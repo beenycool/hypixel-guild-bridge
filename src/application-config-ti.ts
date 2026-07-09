@@ -126,6 +126,15 @@ export const BridgeConfig = t.iface([], {
   }),
 });
 
+export const TournamentConfig = t.iface([], {
+  "categoryId": "string",
+  "roundDeadlineDays": "number",
+  "defaultGameMode": t.union(t.lit("bridge"), t.lit("bedwars")),
+  "bestOf": "number",
+  "staffRoleIds": t.opt(t.array("string")),
+  "reminderHours": t.opt(t.array("number")),
+});
+
 export const ApplicationConfig = t.iface([], {
   "version": t.lit(2),
   "general": "GeneralConfig",
@@ -140,6 +149,7 @@ export const ApplicationConfig = t.iface([], {
   "skyblockEvents": t.opt("SkyblockEventsConfig"),
   "hypixelUpdates": t.opt("HypixelUpdatesConfig"),
   "bridges": t.opt(t.array("BridgeConfig")),
+  "tournament": t.opt("TournamentConfig"),
 });
 
 const exportedTypeSuite: t.ITypeSuite = {
@@ -159,6 +169,7 @@ const exportedTypeSuite: t.ITypeSuite = {
   SkyblockEventsConfig,
   HypixelUpdatesConfig,
   BridgeConfig,
+  TournamentConfig,
   ApplicationConfig,
 };
 export default exportedTypeSuite;

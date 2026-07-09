@@ -11,6 +11,8 @@ import { TournamentChannelManager } from './tournament-channel-manager.js'
 import { TournamentNotifications } from './tournament-notifications.js'
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from './types.js'
+import { AuditLogger } from './audit-logger.js'
+import { AntiAbuse } from './anti-abuse.js'
 
 export class TournamentManager {
   public readonly bracketGenerator: BracketGenerator
@@ -18,6 +20,8 @@ export class TournamentManager {
   public readonly notifications: TournamentNotifications
   public readonly matchManager: MatchManager
   public readonly deadlineScheduler: DeadlineScheduler
+  public readonly auditLogger: AuditLogger
+  public readonly antiAbuse: AntiAbuse
 
   private readonly logger: Logger
   private readonly activeTournaments = new Map<number, Tournament>()
@@ -30,6 +34,8 @@ export class TournamentManager {
     this.bracketGenerator = new BracketGenerator()
     this.channelManager = new TournamentChannelManager(application)
     this.notifications = new TournamentNotifications(application)
+    this.auditLogger = new AuditLogger(this.databaseManager, this.logger)
+    this.antiAbuse = new AntiAbuse(this.databaseManager)
 
     // Bind helpers to match manager
     this.matchManager = new MatchManager(
@@ -38,7 +44,8 @@ export class TournamentManager {
       this.notifications,
       async (id) => await this.getTournament(id),
       async (id) => await this.getPlayerNames(id),
-      async (threadId) => await this.channelManager.checkProofAttachment(threadId)
+      async (threadId) => await this.channelManager.checkProofAttachment(threadId),
+      this.logger
     )
 
     this.deadlineScheduler = new DeadlineScheduler(
@@ -64,6 +71,100 @@ export class TournamentManager {
       this.activeTournaments.set(t.id, t)
     }
     this.logger.info(`Loaded ${this.activeTournaments.size} active tournaments from database.`)
+  }
+
+  async rehydrate(): Promise<void> {
+    this.logger?.info('Rehydrating tournament state from database...')
+
+    for (const [id, tournament] of this.activeTournaments) {
+      if (tournament.status !== TournamentStatus.Active && tournament.status !== TournamentStatus.Signup) continue
+
+      const matches = await this.databaseManager.queryRows<any>(
+        'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 ORDER BY "round", "matchIndex"',
+        [id]
+      )
+
+      for (const match of matches) {
+        if (match.status === MatchStatus.Active || match.status === MatchStatus.Reported) {
+          if (match.discordThreadId) {
+            try {
+              const client = this.application.discordInstance.getClient()
+              const thread = await client.channels.fetch(match.discordThreadId).catch(() => undefined)
+              if (!thread) {
+                this.logger?.warn(`Thread ${match.discordThreadId} for match ${match.id} not found, recreating...`)
+              }
+            } catch {
+              this.logger?.warn(`Failed to fetch thread ${match.discordThreadId} for match ${match.id}`)
+            }
+          }
+
+          if (match.status === MatchStatus.Reported) {
+            const reports = await this.databaseManager.queryRows<any>(
+              'SELECT * FROM "tournament_reports" WHERE "matchId" = $1',
+              [match.id]
+            )
+            if (reports.length === 1) {
+              const nonReporterId = reports[0].reporterId === match.player1Id ? match.player2Id : match.player1Id
+              if (nonReporterId) {
+                const players = await this.databaseManager.queryRows<any>(
+                  'SELECT "playerUuid" FROM "tournament_players" WHERE "id" = $1',
+                  [nonReporterId]
+                )
+                if (players.length > 0) {
+                  const uuid = players[0].playerUuid
+                  this.notifications
+                    .sendWhisper(
+                      tournament.bridgeId,
+                      uuid,
+                      'Your opponent has reported. Please report your score or it may be auto-resolved!'
+                    )
+                    .catch(() => {})
+                }
+              }
+            }
+          }
+        }
+
+        if (match.status === MatchStatus.Disputed && match.deadlineAt) {
+          const now = Math.floor(Date.now() / 1000)
+          if (now > match.deadlineAt) {
+            const names = await this.getPlayerNames(tournament.id)
+            const p1Name = match.player1Id === undefined ? 'Player 1' : (names.get(match.player1Id) ?? 'Player 1')
+            const p2Name = match.player2Id === undefined ? 'Player 2' : (names.get(match.player2Id) ?? 'Player 2')
+
+            const reports = await this.databaseManager.queryRows<any>(
+              'SELECT * FROM "tournament_reports" WHERE "matchId" = $1',
+              [match.id]
+            )
+            const r1Claimed = reports[0] ? (names.get(reports[0].claimedWinnerId) ?? 'Unknown') : 'Unknown'
+            const r2Claimed = reports[1] ? (names.get(reports[1].claimedWinnerId) ?? 'Unknown') : 'Unknown'
+
+            this.notifications
+              .notifyDispute(tournament.bridgeId, match, p1Name, p2Name, r1Claimed, r2Claimed)
+              .catch(() => {})
+          }
+        }
+      }
+
+      if (tournament.bracketMessageId && tournament.discordChannelId) {
+        try {
+          const client = this.application.discordInstance.getClient()
+          const channel = await client.channels.fetch(tournament.discordChannelId).catch(() => null)
+          if (channel?.isTextBased()) {
+            const message = await channel.messages.fetch(tournament.bracketMessageId).catch(() => null)
+            if (!message) {
+              this.logger?.warn(
+                `Bracket message ${tournament.bracketMessageId} not found, will be re-created on next update`
+              )
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    this.logger?.info('Tournament rehydration complete')
   }
 
   /**
@@ -529,6 +630,84 @@ export class TournamentManager {
     if (tournament.categoryChannelId !== undefined) {
       await this.channelManager.archiveTournamentCategory(tournament)
     }
+  }
+
+  async recordResults(tournamentId: number): Promise<void> {
+    const tournament = await this.getTournament(tournamentId)
+    if (!tournament) return
+
+    const players = await this.databaseManager.queryRows<any>(
+      'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
+      [tournamentId]
+    )
+
+    const matches = await this.databaseManager.queryRows<any>(
+      'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
+      [tournamentId]
+    )
+
+    await this.databaseManager.transaction(async (txClient) => {
+      for (const player of players) {
+        const playerMatches = matches.filter((m: any) => m.player1Id === player.id || m.player2Id === player.id)
+        const wins = playerMatches.filter((m: any) => m.winnerId === player.id).length
+        const losses = playerMatches.filter(
+          (m: any) =>
+            m.winnerId !== null && m.winnerId !== player.id && (m.player1Id === player.id || m.player2Id === player.id)
+        ).length
+
+        const isWinner = tournament.winnerId === player.id
+        const roundsReached = isWinner
+          ? (tournament.totalRounds ?? 1)
+          : Math.max(...playerMatches.filter((m: any) => m.winnerId !== player.id).map((m: any) => m.round), 1)
+
+        await txClient.query(
+          `INSERT INTO "tournament_results" ("playerUuid", "discordId", "tournamentId", "placement", "roundsReached", "wins", "losses", "champion")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            player.playerUuid,
+            player.discordId,
+            tournamentId,
+            isWinner ? 1 : (tournament.totalRounds ?? 1) - roundsReached + 2,
+            roundsReached,
+            wins,
+            losses,
+            isWinner
+          ]
+        )
+      }
+    })
+  }
+
+  private updateMetrics(): void {
+    const metrics = this.application.metrics
+    if (!metrics) return
+
+    let active = 0
+    let signup = 0
+
+    for (const [, t] of this.activeTournaments) {
+      if (t.status === TournamentStatus.Active) active++
+      if (t.status === TournamentStatus.Signup) signup++
+    }
+
+    metrics.onTournamentActiveChange(active + signup)
+  }
+
+  async getAllTournaments(): Promise<any[]> {
+    return await this.databaseManager.queryRows<any>('SELECT * FROM "tournaments" ORDER BY "createdAt" DESC')
+  }
+
+  async getMatches(tournamentId: number): Promise<any[]> {
+    return await this.databaseManager.queryRows<any>(
+      'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 ORDER BY "round", "matchIndex"',
+      [tournamentId]
+    )
+  }
+
+  async getPlayers(tournamentId: number): Promise<any[]> {
+    return await this.databaseManager.queryRows<any>('SELECT * FROM "tournament_players" WHERE "tournamentId" = $1', [
+      tournamentId
+    ])
   }
 
   /**

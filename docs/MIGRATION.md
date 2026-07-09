@@ -43,3 +43,25 @@ Runtime-managed configuration is stored in the application database. The `./conf
 There is a directory called `./plugins` at the root of the project. Move all plugins to this directory.
 Application will auto-detect and load them.  
 Only applications ending with `.ts` file extension and at the top of the directory will be loaded.
+
+## v5.x — Tournament Feature Setup
+
+The tournament feature requires an optional `tournament:` block in your `application-config.yml`:
+
+```yaml
+tournament:
+  categoryId: '123456789012345678' # Discord category ID for tournament channels
+  roundDeadlineDays: 3 # Default deadline per round (≥ 1)
+  defaultGameMode: 'bridge' # "bridge" or "bedwars"
+  bestOf: 3 # Must be odd, ≥ 1
+  staffRoleIds: # Optional: override staff roles
+    - '987654321098765432'
+  reminderHours: # Optional: override reminder schedule
+    - 48
+    - 24
+    - 6
+```
+
+To get the Discord category ID, right-click the category → Copy ID (Developer Mode must be enabled).
+
+The tournament feature must also be enabled per-bridge via `/settings tournamentEnabled true`.

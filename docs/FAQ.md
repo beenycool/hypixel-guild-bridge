@@ -202,3 +202,21 @@ If `lose` fails, it will give a `neutral` response not muting anyone.
 After `12` consecutive failures to `win`, be it by reaching `lose` or `neutral` outcome,
 the pity will start kicking in gradually upping the chances till `24th` try which is guaranteed to succeed.
 The pity is counted globally across all users.
+
+## Tournament
+
+### How do I report a score?
+
+Use `/tournament report winner:me my_wins:2 their_wins:1` in Discord or `!tournament report me 2 1` in Minecraft. The winner field accepts `me` or `opponent`.
+
+### What if my opponent doesn't show up?
+
+If your opponent doesn't report before the deadline, you advance automatically (as long as you submitted your score). If neither player reports, the higher seed advances.
+
+### Can I play in a tournament on my alt account?
+
+No. The system detects alt accounts via shared IP addresses and blocks them from the same tournament.
+
+### What bracket format is supported?
+
+Single-elimination only. Players are seeded based on join order (1 = first to join). Byes are auto-generated for non-power-of-2 player counts.

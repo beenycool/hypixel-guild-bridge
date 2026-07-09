@@ -135,6 +135,15 @@ export interface BridgeConfig {
   }
 }
 
+export interface TournamentConfig {
+  categoryId: string
+  roundDeadlineDays: number
+  defaultGameMode: 'bridge' | 'bedwars'
+  bestOf: number
+  staffRoleIds?: string[]
+  reminderHours?: number[]
+}
+
 export interface ApplicationConfig {
   version: typeof ApplicationConfigVersion
   general: GeneralConfig
@@ -153,4 +162,5 @@ export interface ApplicationConfig {
    * If not defined, the legacy global channel configuration is used.
    */
   bridges?: BridgeConfig[]
+  tournament?: TournamentConfig
 }

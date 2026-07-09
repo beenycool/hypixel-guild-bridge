@@ -11,6 +11,11 @@ await describe('Application.start', async () => {
       core: {
         awaitReady: () => {
           calls.push('core.awaitReady')
+        },
+        tournamentManager: {
+          rehydrate: async () => {
+            calls.push('core.tournamentManager.rehydrate')
+          }
         }
       },
       bridgeResolver: {
@@ -55,6 +60,7 @@ await describe('Application.start', async () => {
 
     assert.deepStrictEqual(calls, [
       'core.awaitReady',
+      'core.tournamentManager.rehydrate',
       'bridgeResolver.rebuildLookupMaps',
       'applyStoredLanguage',
       'minecraftManager.loadInstances',

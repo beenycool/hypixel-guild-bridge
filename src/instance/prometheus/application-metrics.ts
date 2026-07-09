@@ -1,5 +1,5 @@
 import type { Registry } from 'prom-client'
-import { Counter } from 'prom-client'
+import { Counter, Gauge } from 'prom-client'
 
 import type {
   BaseInGameEvent,
@@ -13,6 +13,10 @@ export default class ApplicationMetrics {
   private readonly chatMetrics
   private readonly commandMetrics
   private readonly eventMetrics
+  private readonly tournamentsActive
+  private readonly tournamentParticipants
+  private readonly tournamentMatches
+  private readonly tournamentDisputesTotal
 
   constructor(register: Registry, prefix: string) {
     this.chatMetrics = new Counter({
@@ -35,6 +39,32 @@ export default class ApplicationMetrics {
       labelNames: ['location', 'instance', 'event']
     })
     register.registerMetric(this.eventMetrics)
+
+    this.tournamentsActive = new Gauge({
+      name: prefix + 'tournaments_active',
+      help: 'Number of active tournaments'
+    })
+    register.registerMetric(this.tournamentsActive)
+
+    this.tournamentParticipants = new Gauge({
+      name: prefix + 'tournament_participants',
+      help: 'Tournament participants by tournament and status',
+      labelNames: ['tournament_id', 'status'] as const
+    })
+    register.registerMetric(this.tournamentParticipants)
+
+    this.tournamentMatches = new Gauge({
+      name: prefix + 'tournament_matches',
+      help: 'Tournament matches by tournament and status',
+      labelNames: ['tournament_id', 'status'] as const
+    })
+    register.registerMetric(this.tournamentMatches)
+
+    this.tournamentDisputesTotal = new Counter({
+      name: prefix + 'tournament_disputes_total',
+      help: 'Total number of tournament disputes'
+    })
+    register.registerMetric(this.tournamentDisputesTotal)
   }
 
   onChatEvent(event: ChatEvent): void {
@@ -59,5 +89,21 @@ export default class ApplicationMetrics {
       instance: event.instanceName,
       event: event.type
     })
+  }
+
+  onTournamentActiveChange(count: number): void {
+    this.tournamentsActive.set(count)
+  }
+
+  onTournamentParticipants(tournamentId: number, status: string, count: number): void {
+    this.tournamentParticipants.set({ tournament_id: String(tournamentId), status }, count)
+  }
+
+  onTournamentMatches(tournamentId: number, status: string, count: number): void {
+    this.tournamentMatches.set({ tournament_id: String(tournamentId), status }, count)
+  }
+
+  onTournamentDispute(): void {
+    this.tournamentDisputesTotal.inc()
   }
 }

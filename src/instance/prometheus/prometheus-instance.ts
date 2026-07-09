@@ -18,7 +18,7 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
   private readonly httpServer
   private readonly register
 
-  private readonly applicationMetrics: ApplicationMetrics
+  readonly applicationMetrics: ApplicationMetrics
   private readonly guildOnlineMetrics: GuildOnlineMetrics
 
   private readonly config: PrometheusConfig

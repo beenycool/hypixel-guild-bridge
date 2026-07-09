@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto'
 
 import * as chrono from 'chrono-node'
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
+import { EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
@@ -137,12 +137,27 @@ export default {
       .addSubcommand((sub) =>
         sub
           .setName('schedule')
-          .setDescription('Post your availability in your current match thread')
+          .setDescription('Set your availability for upcoming matches')
           .addStringOption((opt) =>
-            opt
-              .setName('time')
-              .setDescription('Your available time (e.g., "Saturday 14:00-18:00 GMT")')
-              .setRequired(true)
+            opt.setName('time').setDescription('Time range (e.g., "Saturday 14:00-18:00 GMT")').setRequired(true)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('audit')
+          .setDescription('View tournament audit log (Admin)')
+          .addIntegerOption((opt) => opt.setName('tournament_id').setDescription('Tournament ID').setRequired(true))
+          .addIntegerOption((opt) =>
+            opt.setName('limit').setDescription('Number of entries (default 50)').setRequired(false)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('proof')
+          .setDescription('Add a proof/replay URL to your match')
+          .addIntegerOption((opt) => opt.setName('match_id').setDescription('Match ID').setRequired(true))
+          .addStringOption((opt) =>
+            opt.setName('url').setDescription('URL to proof (YouTube, Imgur, Twitch VOD, etc.)').setRequired(true)
           )
       ),
 
@@ -173,7 +188,7 @@ export default {
 
     // 1. Create Tournament
     if (subcommand === 'create') {
-      if (!isOfficer) {
+      if (context.permission < Permission.Admin) {
         await context.interaction.reply({
           content: 'You do not have permission to create tournaments.',
           ephemeral: true
@@ -218,6 +233,26 @@ export default {
           .setTimestamp()
 
         await context.interaction.editReply({ embeds: [embed] })
+
+        // Try to post signup embed in notification channel
+        const notificationChannelId =
+          await context.application.core.bridgeConfigurations.getTournamentNotificationChannelId(bridgeId)
+        if (notificationChannelId) {
+          const channel = await context.interaction.guild?.channels.fetch(notificationChannelId).catch(() => null)
+          if (channel?.isTextBased()) {
+            const signupEmbed = new EmbedBuilder()
+              .setTitle(`Sign up for ${name}`)
+              .setDescription(
+                `React with ✅ to join or ❌ to leave.\n\n**Game:** ${gameType}\n**Best of:** ${bestOf}\n**Format:** single-elim`
+              )
+              .setColor(0x3498db)
+              .setFooter({ text: `React to join! Tournament ID: ${tournament.id}` })
+
+            const signupMessage = await channel.send({ embeds: [signupEmbed] })
+            await signupMessage.react('✅')
+            await signupMessage.react('❌')
+          }
+        }
       } catch (error: unknown) {
         await context.interaction.editReply(error instanceof Error ? error.message : String(error))
       }
@@ -287,7 +322,7 @@ export default {
 
     // 4. Start Tournament
     if (subcommand === 'start') {
-      if (!isOfficer) {
+      if (context.permission < Permission.Admin) {
         await context.interaction.reply({
           content: 'You do not have permission to start tournaments.',
           ephemeral: true
@@ -322,7 +357,7 @@ export default {
 
     // 5. Cancel Tournament
     if (subcommand === 'cancel') {
-      if (!isOfficer) {
+      if (context.permission < Permission.Admin) {
         await context.interaction.reply({
           content: 'You do not have permission to cancel tournaments.',
           ephemeral: true
@@ -550,7 +585,7 @@ export default {
 
     // 10. Open Check-in
     if (subcommand === 'open-checkin') {
-      if (!isOfficer) {
+      if (context.permission < Permission.Admin) {
         await context.interaction.reply({
           content: 'You do not have permission to open check-in.',
           ephemeral: true
@@ -684,10 +719,10 @@ export default {
 
     // 14. Test Tournament
     if (subcommand === 'test') {
-      if (!isOfficer) {
+      if (context.permission < Permission.Admin) {
         await context.interaction.reply({
-          content: 'You do not have permission to create test tournaments.',
-          ephemeral: true
+          content: 'This command is restricted to administrators.',
+          flags: MessageFlags.Ephemeral
         })
         return
       }
@@ -931,17 +966,22 @@ export default {
 
     // 15. Schedule Availability
     if (subcommand === 'schedule') {
-      await context.interaction.deferReply()
-
+      const timeStr = context.interaction.options.getString('time', true)
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
-      if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
-        await context.interaction.editReply('There is no active tournament currently.')
+      if (!tournament || tournament.status !== TournamentStatus.Active) {
+        await context.interaction.reply({
+          content: 'No active tournament on this bridge.',
+          flags: MessageFlags.Ephemeral
+        })
         return
       }
 
       const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
       if (link === undefined) {
-        await context.interaction.editReply('You must be verified to use scheduling.')
+        await context.interaction.reply({
+          content: 'You must be verified and registered to schedule.',
+          flags: MessageFlags.Ephemeral
+        })
         return
       }
 
@@ -950,7 +990,10 @@ export default {
         [tournament.id, link.uuid]
       )
       if (player === undefined || player.status === PlayerStatus.Eliminated) {
-        await context.interaction.editReply('You are not active in this tournament.')
+        await context.interaction.reply({
+          content: 'You are not active in this tournament.',
+          flags: MessageFlags.Ephemeral
+        })
         return
       }
 
@@ -958,49 +1001,124 @@ export default {
         `SELECT * FROM "tournament_matches"
          WHERE "tournamentId" = $1
            AND ("player1Id" = $2 OR "player2Id" = $2)
-           AND "status" IN ($3, $4, $5)`,
-        [tournament.id, player.id, MatchStatus.Active, MatchStatus.Reported, MatchStatus.Disputed]
+           AND "status" IN ($3, $4)`,
+        [tournament.id, player.id, MatchStatus.Active, MatchStatus.Reported]
       )
 
-      if (match === undefined) {
-        await context.interaction.editReply('You do not have an active match to schedule.')
-        return
-      }
-
-      const timeString = context.interaction.options.getString('time', true)
-      const parsed = chrono.parseDate(timeString)
-      if (parsed === null) {
-        await context.interaction.editReply(
-          'Could not parse the time. Try something like "Saturday 14:00-18:00 GMT" or "tomorrow after 5pm".'
-        )
-        return
-      }
-
-      const unix = Math.floor(parsed.getTime() / 1000)
-
-      // Post scheduling embed in the match thread
-      if (match.discordThreadId !== undefined) {
-        try {
-          const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
-          if (thread !== null && 'send' in thread) {
-            const profile = await context.application.mojangApi.profileByUuid(link.uuid)
-            const scheduleEmbed = new EmbedBuilder()
-              .setTitle('📅 Scheduling')
-              .setColor('#00BFFF')
-              .setDescription(
-                `**${profile.name}** is available: <t:${unix}:F> (<t:${unix}:R>)\n\n` +
-                  `_Post your own availability with /tournament schedule_`
-              )
-              .setTimestamp()
-
-            await thread.send({ embeds: [scheduleEmbed] })
-          }
-        } catch {
-          // Thread may not exist
+      try {
+        const parsed = chrono.parse(timeStr)
+        if (parsed.length === 0) {
+          await context.interaction.reply({
+            content: 'Could not parse that time. Try: "Saturday 14:00-18:00 GMT"',
+            flags: MessageFlags.Ephemeral
+          })
+          return
         }
+
+        const startDate = parsed[0].start?.date()
+        const endDate = parsed[0].end?.date()
+
+        let response = `**Your availability has been recorded for:**\n`
+        if (startDate) response += `<t:${Math.floor(startDate.getTime() / 1000)}:F>\n`
+        if (endDate) response += `to <t:${Math.floor(endDate.getTime() / 1000)}:F>`
+
+        // Post availability to match thread for opponent visibility
+        if (match !== undefined && match.discordThreadId !== undefined) {
+          try {
+            const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
+            if (thread !== null && 'send' in thread) {
+              const names = await context.application.core.tournamentManager.getPlayerNames(tournament.id)
+              const pName = names.get(player.id) ?? 'A player'
+              await thread.send({
+                content: `📅 **${pName}** is available:\n${response}`
+              })
+            }
+          } catch {
+            // Thread may not exist - still send user reply
+          }
+        }
+
+        await context.interaction.reply({ content: response, flags: MessageFlags.Ephemeral })
+      } catch {
+        await context.interaction.reply({
+          content: 'Could not parse that time. Try a simpler format.',
+          flags: MessageFlags.Ephemeral
+        })
+      }
+      return
+    }
+
+    // 16. Audit Log
+    if (subcommand === 'audit') {
+      if (context.permission < Permission.Admin) {
+        await context.interaction.reply({
+          content: 'This command is restricted to administrators.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
       }
 
-      await context.interaction.editReply(`✅ Posted your availability (<t:${unix}:F>) in your match thread.`)
+      const tournamentId = context.interaction.options.getInteger('tournament_id', true)
+      const limit = context.interaction.options.getInteger('limit') ?? 50
+
+      try {
+        const logs = await context.application.core.tournamentManager.auditLogger.getLogs(tournamentId, limit)
+        if (logs.length === 0) {
+          await context.interaction.reply({
+            content: 'No audit entries found for this tournament.',
+            flags: MessageFlags.Ephemeral
+          })
+          return
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle(`Tournament Audit Log (#${tournamentId})`)
+          .setColor(0x2ecc71)
+          .setDescription(
+            logs
+              .slice(0, 10)
+              .map(
+                (log: any) =>
+                  `**${log.action}** — <@${log.actor_discord_id}> — ${new Date(log.created_at).toLocaleString()}`
+              )
+              .join('\n')
+          )
+          .setFooter({ text: `Showing ${Math.min(logs.length, 10)} of ${logs.length} entries` })
+
+        await context.interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral })
+      } catch (error) {
+        await context.interaction.reply({
+          content: `Error loading audit log: ${error instanceof Error ? error.message : String(error)}`,
+          flags: MessageFlags.Ephemeral
+        })
+      }
+      return
+    }
+
+    // 17. Proof Attachment
+    if (subcommand === 'proof') {
+      const matchId = context.interaction.options.getInteger('match_id', true)
+      const url = context.interaction.options.getString('url', true)
+
+      try {
+        new URL(url)
+      } catch {
+        await context.interaction.reply({ content: 'Invalid URL format.', flags: MessageFlags.Ephemeral })
+        return
+      }
+
+      try {
+        await context.application.core.databaseManager.execute(
+          `UPDATE "tournament_matches" SET "hadProofAttachment" = TRUE WHERE "id" = $1`,
+          [matchId]
+        )
+        await context.interaction.reply({
+          content: `✅ Proof URL recorded for match #${matchId}: ${url}`,
+          flags: MessageFlags.Ephemeral
+        })
+      } catch (error) {
+        await context.interaction.reply({ content: `Error recording proof: ${error}`, flags: MessageFlags.Ephemeral })
+      }
       return
     }
   },

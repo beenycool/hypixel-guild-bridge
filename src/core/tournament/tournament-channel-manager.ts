@@ -1,11 +1,16 @@
-import { ChannelType, EmbedBuilder, type TextChannel, type ThreadChannel } from 'discord.js'
+import { ChannelType, EmbedBuilder, type AnyThreadChannel, type TextChannel, type ThreadChannel } from 'discord.js'
 
 import type Application from '../../application.js'
+import { CircuitBreaker } from '../../utility/circuit-breaker.js'
+import RateLimiter from '../../utility/rate-limiter.js'
 
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 import { MatchStatus, TournamentStatus } from './types.js'
 
 export class TournamentChannelManager {
+  private readonly threadCreationLimiter = new RateLimiter(5, 10_000)
+  private readonly circuitBreaker = new CircuitBreaker(3, 15_000)
+
   constructor(private readonly application: Application) {}
 
   /**
@@ -100,6 +105,13 @@ export class TournamentChannelManager {
     }
   }
 
+  private async addMemberWithRetry(thread: AnyThreadChannel, userId: string): Promise<void> {
+    await this.threadCreationLimiter.wait()
+    await this.circuitBreaker.execute(async () => {
+      await thread.members.add(userId)
+    })
+  }
+
   /**
    * Spawns a private match thread for a given match.
    */
@@ -132,10 +144,10 @@ export class TournamentChannelManager {
 
     // Add players to thread if their discord ID is linked
     if (player1.discordId !== undefined) {
-      await thread.members.add(player1.discordId).catch(() => undefined)
+      await this.addMemberWithRetry(thread, player1.discordId)
     }
     if (player2.discordId !== undefined) {
-      await thread.members.add(player2.discordId).catch(() => undefined)
+      await this.addMemberWithRetry(thread, player2.discordId)
     }
 
     // Send initial instructional message in the thread
@@ -165,25 +177,113 @@ export class TournamentChannelManager {
     return thread.id
   }
 
+  private buildMatchEmbed(
+    p1: string,
+    p2: string,
+    round: number,
+    bestOf: number,
+    gameMode: string,
+    deadline: string,
+    mcAccount1?: string,
+    mcAccount2?: string
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setTitle(`⚔️ Round ${round} — ${p1} vs ${p2}`)
+      .setColor('#FFA500')
+      .setDescription(
+        `Welcome to your tournament match! Please schedule and play your Best-of-${bestOf} series.\n\n` +
+          `**Match Details:**\n` +
+          `• **Round:** ${round}\n` +
+          `• **Opponents:** ${p1} vs ${p2}\n` +
+          `• **Game Mode:** ${gameMode}\n` +
+          `• **Deadline:** ${deadline}\n`
+      )
+      .setTimestamp()
+
+    if (mcAccount1 !== undefined) {
+      embed.addFields({ name: `${p1}'s MC Account`, value: mcAccount1, inline: true })
+    }
+    if (mcAccount2 !== undefined) {
+      embed.addFields({ name: `${p2}'s MC Account`, value: mcAccount2, inline: true })
+    }
+
+    return embed
+  }
+
+  /**
+   * Create a forum post for a match within a forum channel.
+   * Discord Forum channels (type 15) support nested threads.
+   */
+  async createMatchForumPost(
+    forumChannelId: string,
+    match: TournamentMatch,
+    p1: string,
+    p2: string,
+    round: number,
+    bestOf: number,
+    gameMode: string,
+    deadline: string,
+    discordId1?: string,
+    discordId2?: string,
+    mcAccount1?: string,
+    mcAccount2?: string
+  ): Promise<string | undefined> {
+    try {
+      const client = this.application.discordInstance.getClient()
+      const guild = client.guilds.cache.first()
+      if (guild === undefined) return undefined
+
+      const forum = guild.channels.cache.get(forumChannelId)
+      if (forum?.isThreadOnly() !== true) return undefined
+
+      const title = `Round ${round} — ${p1} vs ${p2}`
+      const embed = this.buildMatchEmbed(p1, p2, round, bestOf, gameMode, deadline, mcAccount1, mcAccount2)
+
+      const thread = await forum.threads.create({
+        name: title,
+        message: { embeds: [embed] },
+        reason: `Tournament match thread for ${p1} vs ${p2}`
+      })
+
+      if (discordId1 !== undefined) {
+        await this.addMemberWithRetry(thread, discordId1)
+      }
+      if (discordId2 !== undefined) {
+        await this.addMemberWithRetry(thread, discordId2)
+      }
+
+      return thread.id
+    } catch (error) {
+      this.application.logger.error('Failed to create forum post', error)
+      return undefined
+    }
+  }
+
+  private async archiveThreadWithRetry(threadId: string, resultMessage?: string): Promise<void> {
+    await this.circuitBreaker.execute(async () => {
+      const client = this.application.discordInstance.getClient()
+      const thread = await client.channels.fetch(threadId).catch(() => undefined)
+      if (!thread || (thread.type !== ChannelType.PrivateThread && thread.type !== ChannelType.PublicThread)) return
+
+      const threadChannel = thread as ThreadChannel
+      const embed = new EmbedBuilder()
+        .setTitle('🏁 Match Completed')
+        .setColor('#00FF00')
+        .setDescription(resultMessage ?? '')
+        .setTimestamp()
+
+      await threadChannel.send({ embeds: [embed] }).catch(() => undefined)
+      await threadChannel.setLocked(true).catch(() => undefined)
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await threadChannel.setArchived(true).catch(() => undefined)
+    })
+  }
+
   /**
    * Archives and locks a match thread when completed.
    */
   public async archiveMatchThread(threadId: string, resultMessage: string): Promise<void> {
-    const client = this.application.discordInstance.getClient()
-    const thread = await client.channels.fetch(threadId).catch(() => undefined)
-    if (!thread || thread.type !== ChannelType.PrivateThread) return
-
-    const threadChannel = thread as ThreadChannel
-    const embed = new EmbedBuilder()
-      .setTitle('🏁 Match Completed')
-      .setColor('#00FF00')
-      .setDescription(resultMessage)
-      .setTimestamp()
-
-    await threadChannel.send({ embeds: [embed] }).catch(() => undefined)
-    await threadChannel.setLocked(true).catch(() => undefined)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    await threadChannel.setArchived(true).catch(() => undefined)
+    await this.archiveThreadWithRetry(threadId, resultMessage)
   }
 
   public async checkProofAttachment(threadId: string): Promise<boolean> {

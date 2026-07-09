@@ -94,8 +94,11 @@
 | `speeduhc`       | Returns a player's Speed UHC stats                                                 |
 | `starfall`       | When is the next Skyblock Starfall event                                           |
 | `status`         | Show a player's Hypixel status and current location                                |
+| `t`              | Shortcut for 'tournament' (join, checkin, report, forfeit, bracket, status)        |
 | `timecharm`      | Returns a player's rift obtained time charms                                       |
 | `tntgames`       | Returns a player's TNT Games stats                                                 |
+| `tour`           | Shortcut for 'tournament'                                                          |
+| `tournament`     | Tournament commands — join, checkin, report, forfeit, bracket, status              |
 | `toggle`         | Enable/disable commands                                                            |
 | `toggled`        | Show disabled commands                                                             |
 | `trophyfish`     | Returns a player's trophy fishing stats                                            |
@@ -149,6 +152,7 @@
 | `/settings`           | Control application settings.                                    |
 | `/skyblock`           | Manage Skyblock event notifications                              |
 | `/stats`              | View a player's game stats                                       |
+| `/tournament`         | Manage or participate in single-elimination guild tournaments    |
 | `/unlink`             | unlink your Discord account from your Minecraft account          |
 | `/uptime`             | Shows how long the bot has been online                           |
 | `/verification`       | Manage users links                                               |

@@ -38,6 +38,7 @@ import { PluginsManager } from './instance/features/plugins-manager.js'
 import HypixelUpdates from './instance/hypixel-updates.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
+import ApplicationMetrics from './instance/prometheus/application-metrics.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
 import { RandomChatter } from './instance/random-chatter'
 import { SpontaneousEvents } from './instance/spontaneous-events'
@@ -129,6 +130,10 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly statMonitor: StatMonitor
   private readonly autoLinker: AutoLinker
   private readonly autoRestart: AutoRestart
+
+  public get metrics(): ApplicationMetrics | undefined {
+    return this.prometheusInstance?.applicationMetrics
+  }
 
   public constructor(
     config: ApplicationConfig,
@@ -272,6 +277,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   public async start(): Promise<void> {
     await this.core.awaitReady()
+    await this.core.tournamentManager.rehydrate()
     this.bridgeResolver.rebuildLookupMaps()
     this.applyStoredLanguage()
     this.minecraftManager.loadInstances()
