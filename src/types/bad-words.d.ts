@@ -11,6 +11,7 @@ declare module 'bad-words' {
   export class BadWords {
     addWords: (...words: string[]) => void
     clean: (text: string) => string
+    isProfane: (text: string) => boolean
     removeWords: (...arguments_: string[]) => void
   }
 
