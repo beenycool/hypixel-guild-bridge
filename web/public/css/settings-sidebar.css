@@ -135,7 +135,7 @@
 .settings-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   padding: 10px 0;
   border-bottom: 1px solid var(--border-subtle);
@@ -164,9 +164,8 @@
 }
 
 .settings-row-control {
-  flex-shrink: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
