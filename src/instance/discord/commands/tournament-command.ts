@@ -186,7 +186,7 @@ export default {
     const subcommand = context.interaction.options.getSubcommand()
     let bridgeId = context.bridgeId
 
-    if ((subcommand === 'test' || subcommand === 'set-category') && bridgeId === undefined) {
+    if ((subcommand === 'test' || subcommand === 'set-category' || subcommand === 'cancel') && bridgeId === undefined) {
       if (context.application.bridgeResolver.isMultiBridgeEnabled()) {
         const bridges = context.application.bridgeResolver.getAllBridges()
         bridgeId = bridges.length > 0 ? bridges[0].id : 'default'
