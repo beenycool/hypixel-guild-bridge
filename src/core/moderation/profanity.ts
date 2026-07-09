@@ -23,27 +23,29 @@ export class Profanity {
     this.profanityFilter = this.createFilter()
   }
 
+  private censorWord(word: string): string {
+    return word.replace(/[aeiou]/gi, '*')
+  }
+
   public filterProfanity(message: string): { filteredMessage: string; changed: boolean } {
     if (!this.config.getProfanityEnabled())
-      return {
-        filteredMessage: message,
-        changed: false
-      }
+      return { filteredMessage: message, changed: false }
     assert.ok(this.profanityFilter)
 
+    let changed = false
     let filtered: string
     try {
-      filtered = this.profanityFilter.clean(message)
+      filtered = message.replace(/\w+/g, (word) => {
+        if (this.profanityFilter.isProfane(word)) {
+          changed = true
+          return this.censorWord(word)
+        }
+        return word
+      })
     } catch {
-      /*
-          profanity package has bug.
-          will throw error if given one special character.
-          example: clean("?")
-          message is clear if thrown
-        */
       filtered = message
     }
 
-    return { filteredMessage: filtered, changed: message !== filtered }
+    return { filteredMessage: filtered, changed }
   }
 }

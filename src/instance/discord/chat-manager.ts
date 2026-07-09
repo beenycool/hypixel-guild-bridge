@@ -1,7 +1,6 @@
 import assert from 'node:assert'
 
 import type { Client, Message } from 'discord.js'
-import { escapeMarkdown } from 'discord.js'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -159,11 +158,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
       const emoji = this.clientInstance.emojiHandler.emojiByName.get(FilteredReaction.name)
       if (emoji !== undefined) await event.react(emoji)
-      if (emoji === undefined || config.getAlwaysReplyReaction()) {
-        await event.reply({
-          content: '**Profanity warning, Your message has been edited:**\n' + escapeMarkdown(filteredMessage)
-        })
-      }
     }
 
     await this.application.emit('chat', {
