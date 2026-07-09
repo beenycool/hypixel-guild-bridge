@@ -36,6 +36,8 @@ export class DatabaseManager {
   private writeQueue: Promise<void> = Promise.resolve()
   private closed = false
   private healthy = true
+  private consecutiveFailures = 0
+  private consecutiveSuccesses = 0
 
   public constructor(
     private readonly application: Application,
@@ -285,14 +287,20 @@ export class DatabaseManager {
     const pool = this.getPool()
     try {
       const result = await pool.query<T>(text, values)
-      if (!this.healthy) {
+      this.consecutiveFailures = 0
+      this.consecutiveSuccesses++
+      if (!this.healthy && this.consecutiveSuccesses >= 3) {
         this.healthy = true
+        this.consecutiveSuccesses = 0
         this.logger.info('Database health restored')
       }
       return result
     } catch (error) {
-      if (this.healthy) {
+      this.consecutiveSuccesses = 0
+      this.consecutiveFailures++
+      if (this.healthy && this.consecutiveFailures >= 3) {
         this.healthy = false
+        this.consecutiveFailures = 0
         this.logger.error('Database health check failed, marking unhealthy')
       }
       throw error
