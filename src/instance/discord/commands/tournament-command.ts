@@ -184,7 +184,16 @@ export default {
 
   handler: async function (context) {
     const subcommand = context.interaction.options.getSubcommand()
-    const bridgeId = context.bridgeId
+    let bridgeId = context.bridgeId
+
+    if ((subcommand === 'test' || subcommand === 'set-category') && bridgeId === undefined) {
+      if (context.application.bridgeResolver.isMultiBridgeEnabled()) {
+        const bridges = context.application.bridgeResolver.getAllBridges()
+        bridgeId = bridges.length > 0 ? bridges[0].id : 'default'
+      } else {
+        bridgeId = 'default'
+      }
+    }
 
     if (bridgeId === undefined) {
       await context.interaction.reply({
@@ -194,13 +203,15 @@ export default {
       return
     }
 
-    const tournamentEnabled = context.application.core.bridgeConfigurations.getTournamentEnabled(bridgeId)
-    if (!tournamentEnabled) {
-      await context.interaction.reply({
-        content: 'Tournaments are not enabled on this bridge.',
-        ephemeral: true
-      })
-      return
+    if (subcommand !== 'test' && subcommand !== 'set-category') {
+      const tournamentEnabled = context.application.core.bridgeConfigurations.getTournamentEnabled(bridgeId)
+      if (!tournamentEnabled) {
+        await context.interaction.reply({
+          content: 'Tournaments are not enabled on this bridge.',
+          ephemeral: true
+        })
+        return
+      }
     }
 
     const isOfficer = context.permission >= Permission.Officer
