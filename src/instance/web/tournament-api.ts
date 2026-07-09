@@ -212,7 +212,7 @@ export class TournamentApiHandler {
         matchId,
         oldPlayerId,
         newPlayerUuid,
-        newDiscordId as string | undefined
+        newDiscordId as string
       )
       sendSuccess(response, result)
     } catch (error: unknown) {
