@@ -6,7 +6,7 @@
   "main": "index.ts",
   "engines": {
     "node": ">=22.16",
-    "npm": ">=10.0.0"
+    "npm": ">=10.0.0 <12.0.0"
   },
   "scripts": {
     "start": "node --import tsx/esm index.ts",
