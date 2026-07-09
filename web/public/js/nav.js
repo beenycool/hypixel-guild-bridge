@@ -14,7 +14,6 @@ const NAV_ITEMS = [
     label: 'Guild',
     items: [
       { name: 'Guild', href: 'guild.html', key: 'guild' },
-      { name: 'Player', href: 'player.html', key: 'player' },
       { name: 'Punishments', href: 'punishments.html', key: 'punishments' },
       { name: 'Inactivity', href: 'inactivity.html', key: 'inactivity' }
     ]

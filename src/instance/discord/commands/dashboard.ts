@@ -35,7 +35,6 @@ export default {
           .setRequired(false)
           .addChoices(
             { name: 'Overview', value: 'home' },
-            { name: 'Player Lookup', value: 'player' },
             { name: 'Guild Overview', value: 'guild' },
             { name: 'Leaderboard', value: 'leaderboard' },
             { name: 'Pending Reviews', value: 'rankup-pending' },

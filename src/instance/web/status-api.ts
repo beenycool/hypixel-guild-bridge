@@ -86,7 +86,11 @@ export class StatusApiHandler {
     const instances = mcInstances.map((inst) => ({
       name: inst.instanceName,
       connected: inst.currentStatus() === Status.Connected,
-      type: 'minecraft'
+      status: inst.currentStatus(),
+      type: 'minecraft',
+      disconnectMessage: inst.lastDisconnectMessage,
+      disconnectTime: inst.lastDisconnectTime,
+      reconnectAttempts: inst.reconnectAttempts
     }))
 
     sendSuccess(response, {

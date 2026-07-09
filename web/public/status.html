@@ -33,22 +33,82 @@
       const contentEl = document.querySelector('#status-content')
       const refreshBtn = document.querySelector('#refresh-status-btn')
 
+      function fmtDuration(ms) {
+        if (ms == null) return '\u2014'
+        const s = Math.floor(ms / 1000)
+        const m = Math.floor(s / 60)
+        const h = Math.floor(m / 60)
+        const d = Math.floor(h / 24)
+        const parts = []
+        if (d > 0) parts.push(d + 'd')
+        if (h % 24 > 0) parts.push((h % 24) + 'h')
+        if (m % 60 > 0) parts.push((m % 60) + 'm')
+        if (s % 60 > 0 || parts.length === 0) parts.push((s % 60) + 's')
+        return parts.join(' ')
+      }
+
+      function fmtTimeAgo(ts) {
+        if (ts == null) return '\u2014'
+        const diff = Date.now() - ts
+        if (diff < 1000) return 'just now'
+        return fmtDuration(diff) + ' ago'
+      }
+
+      function fmtTime(ts) {
+        if (ts == null) return '\u2014'
+        return new Date(ts).toLocaleTimeString()
+      }
+
+      function disconnectReasonText(msg) {
+        if (!msg) return null
+        const map = {
+          minecraftKicked: 'Kicked from server',
+          minecraftInternetProblems: 'Internet problems',
+          minecraftXboxDown: 'Xbox servers down',
+          minecraftXboxThrottled: 'Xbox throttling requests',
+          minecraftNoAccount: 'Account does not own Minecraft',
+          minecraftProxyBroken: 'Proxy issue',
+          minecraftIncompatible: 'Version incompatibility',
+          minecraftBanned: 'Account banned',
+          minecraftAuthExpired: 'Authentication expired',
+          minecraftKickedLoggedFromAnotherLocation: 'Logged in from another location',
+          minecraftEnded: 'Connection ended',
+          minecraftFailedTooManyTimes: 'Too many connection failures'
+        }
+        return map[msg.type] || msg.type
+      }
+
+      function statusBadge(status) {
+        const map = {
+          connected: '<span class="badge badge-success">Connected</span>',
+          disconnected: '<span class="badge badge-warning">Disconnected</span>',
+          connecting: '<span class="badge badge-info">Connecting</span>',
+          failed: '<span class="badge badge-danger">Failed</span>',
+          ended: '<span class="badge badge-muted">Ended</span>',
+          fresh: '<span class="badge badge-muted">Fresh</span>'
+        }
+        return map[status] || '<span class="badge badge-muted">' + Ui.escapeHtml(status) + '</span>'
+      }
+
       function renderStatus(data) {
         var status = data || {}
 
-        var uptimeStr = status.uptime != null ? Ui.formatDuration(status.uptime) : '\u2014'
+        var uptimeStr = status.uptime != null ? fmtDuration(status.uptime) : '\u2014'
         var discordLatency = status.discordLatency != null ? status.discordLatency + 'ms' : '\u2014'
-        var mcStatus = status.minecraftConnected
+        var discordBadge = status.discordConnected
           ? '<span class="badge badge-success">Connected</span>'
           : '<span class="badge badge-danger">Disconnected</span>'
-        var discordStatusBadge = status.discordConnected
+        var mcBadge = status.minecraftConnected
           ? '<span class="badge badge-success">Connected</span>'
-          : '<span class="badge badge-danger">Disconnected</span>'
+          : '<span class="badge badge-warning">Disconnected</span>'
+        var bridgeCount = Array.isArray(status.bridges) ? status.bridges.length : '\u2014'
+        var instances = Array.isArray(status.instances) ? status.instances : []
 
         var html = ''
 
+        // Summary cards row
         html +=
-          '<div class="grid grid-cols-4 mb-md">' +
+          '<div class="grid grid-cols-5 mb-md">' +
           '<div class="card stat-card"><div class="stat-value">' +
           uptimeStr +
           '</div><div class="stat-label">Bot Uptime</div></div>' +
@@ -56,17 +116,105 @@
           discordLatency +
           '</div><div class="stat-label">Discord Latency</div></div>' +
           '<div class="card stat-card"><div class="stat-value">' +
-          discordStatusBadge +
+          discordBadge +
           '</div><div class="stat-label">Discord</div></div>' +
           '<div class="card stat-card"><div class="stat-value">' +
-          mcStatus +
+          mcBadge +
           '</div><div class="stat-label">Minecraft</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          bridgeCount +
+          '</div><div class="stat-label">Bridges</div></div>' +
           '</div>'
 
-        html += '<div class="grid grid-cols-2 gap-md mb-md">'
+        // Instance cards
+        html += '<div class="card mb-md"><div class="card-header"><h2>Instances</h2></div><div class="card-body">'
+        if (instances.length === 0) {
+          html += '<div class="text-sm text-muted">No instances connected.</div>'
+        } else {
+          html += '<div class="flex-column gap-sm">'
+          for (var i = 0; i < instances.length; i++) {
+            var inst = instances[i]
+            var hasDisconnect = inst.disconnectMessage && inst.status !== 'connected'
+            var detailRows = ''
 
+            detailRows +=
+              '<div class="flex-between"><span class="stat-label">Status</span>' + statusBadge(inst.status) + '</div>'
+
+            if (inst.status === 'connected') {
+              detailRows +=
+                '<div class="flex-between"><span class="stat-label">Ping</span><span class="text-sm text-mono">N/A</span></div>'
+            }
+
+            if (hasDisconnect) {
+              var reason = disconnectReasonText(inst.disconnectMessage)
+              var reasonDetail = inst.disconnectMessage.value
+                ? '<span class="text-xs text-muted block" style="margin-top:2px">' +
+                  Ui.escapeHtml(inst.disconnectMessage.value) +
+                  '</span>'
+                : ''
+              detailRows +=
+                '<div class="flex-between"><span class="stat-label">Reason</span><span class="text-sm text-danger">' +
+                Ui.escapeHtml(reason) +
+                reasonDetail +
+                '</span></div>'
+              detailRows +=
+                '<div class="flex-between"><span class="stat-label">Disconnected</span><span class="text-sm text-mono">' +
+                fmtTimeAgo(inst.disconnectTime) +
+                ' (' +
+                fmtTime(inst.disconnectTime) +
+                ')</span></div>'
+              detailRows +=
+                '<div class="flex-between"><span class="stat-label">Reconnect #</span><span class="text-sm text-mono">' +
+                (inst.reconnectAttempts || 0) +
+                '</span></div>'
+            }
+
+            html +=
+              '<div class="card"><div class="card-body">' +
+              '<div class="flex-between mb-xs">' +
+              '<div class="flex gap-sm" style="align-items: center">' +
+              '<span class="text-mono text-sm fw-600">' +
+              Ui.escapeHtml(inst.name) +
+              '</span>' +
+              '<span class="badge badge-info">' +
+              Ui.escapeHtml(inst.type || 'minecraft') +
+              '</span>' +
+              '</div>' +
+              '<div class="flex gap-sm">' +
+              (inst.status === 'connected'
+                ? '<span class="badge badge-success">Connected</span>'
+                : '<span class="badge badge-warning">' + Ui.escapeHtml(inst.status) + '</span>') +
+              '</div>' +
+              '</div>' +
+              '<div class="flex-column gap-xs" style="padding-left: 0">' +
+              detailRows +
+              '</div>' +
+              '</div></div>'
+          }
+          html += '</div>'
+        }
+        html += '</div></div>'
+
+        // Guild info
+        if (status.guild) {
+          var g = status.guild
+          html +=
+            '<div class="card mb-md"><div class="card-header"><h2>Guild</h2></div><div class="card-body">' +
+            '<div class="flex-between"><span class="stat-label">Name</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(g.name || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">Members</span><span class="text-sm text-mono">' +
+            (g.memberCount || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">Weekly GEXP</span><span class="text-sm text-mono">' +
+            (g.weeklyGexp != null ? Number(g.weeklyGexp).toLocaleString() : '\u2014') +
+            '</span></div>' +
+            '</div></div>'
+        }
+
+        // Version info
         html +=
-          '<div class="card"><div class="card-header"><h2>Version</h2></div><div class="card-body">' +
+          '<div class="card mb-md"><div class="card-header"><h2>Version</h2></div><div class="card-body">' +
           '<div class="flex-column gap-xs">' +
           '<div class="flex-between"><span class="stat-label">Version</span><span class="text-sm text-mono">' +
           Ui.escapeHtml(status.version || '\u2014') +
@@ -79,35 +227,7 @@
           '</span></div>' +
           '</div></div></div>'
 
-        var instances = Array.isArray(status.instances) ? status.instances : []
-        html += '<div class="card"><div class="card-header"><h2>Connected Instances</h2></div><div class="card-body">'
-        if (instances.length === 0) {
-          html += '<div class="text-sm text-muted">No instances connected.</div>'
-        } else {
-          html += '<div class="flex-column gap-xs">'
-          for (var i = 0; i < instances.length; i++) {
-            var inst = instances[i]
-            var connectedBadge = inst.connected
-              ? '<span class="badge badge-success">Connected</span>'
-              : '<span class="badge badge-muted">Disconnected</span>'
-            var typeLabel = inst.type || 'minecraft'
-            html +=
-              '<div class="flex-between">' +
-              '<span class="text-mono text-sm">' +
-              Ui.escapeHtml(inst.name || '\u2014') +
-              '</span>' +
-              '<div class="flex gap-sm">' +
-              '<span class="badge badge-info">' +
-              Ui.escapeHtml(typeLabel) +
-              '</span>' +
-              connectedBadge +
-              '</div></div>'
-          }
-          html += '</div>'
-        }
-        html += '</div></div>'
-        html += '</div>'
-
+        // Memory
         if (status.memory) {
           var mem = status.memory
           html +=

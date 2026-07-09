@@ -125,6 +125,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     this.logger.info('Minecraft client ready, logged in')
 
     this.loginAttempts = 0
+    this.clientInstance.reconnectAttempts = 0
     this.clientInstance.currentHostIndex = 0
     await this.clientInstance.setAndBroadcastNewStatus(Status.Connected)
     this.logger.info('Minecraft instance has connected')
@@ -155,6 +156,9 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     }
 
     this.logger.debug(`Client quit with the reason: ${reason}`)
+    this.clientInstance.lastDisconnectMessage = { type: InstanceMessageType.MinecraftEnded, value: reason }
+    this.clientInstance.lastDisconnectTime = Date.now()
+    this.clientInstance.reconnectAttempts++
     await this.tryRestarting()
   }
 
@@ -163,63 +167,80 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     this.logger.error(`Minecraft bot was kicked from the server for: ${reason}`)
 
     this.loginAttempts++
+    this.clientInstance.reconnectAttempts++
+    let messageType: InstanceMessageType
     if (reason.includes('You logged in from another location')) {
+      messageType = InstanceMessageType.MinecraftKickedLoggedFromAnotherLocation
       this.logger.fatal('Instance will shut off since someone logged in from another place')
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: InstanceMessageType.MinecraftKickedLoggedFromAnotherLocation,
+        type: messageType,
         value: undefined
       })
     } else if (reason.includes('You are permanently banned') || reason.includes('You are temporarily banned')) {
+      messageType = InstanceMessageType.MinecraftBanned
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: InstanceMessageType.MinecraftBanned,
+        type: messageType,
         value: reason
       })
     } else if (
       reason.includes('Your account has been blocked') ||
       reason.includes('Your account is temporarily blocked')
     ) {
+      messageType = InstanceMessageType.MinecraftBanned
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: InstanceMessageType.MinecraftBanned,
+        type: messageType,
         value: reason
       })
       // "Your version (1.17.1) of Minecraft is disabled on Hypixel due to compatibility issues."
     } else if (reason.includes('of Minecraft is disabled on Hypixel due to compatibility issues')) {
+      messageType = InstanceMessageType.MinecraftIncompatible
       // possible kick messages that are accounted for
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: InstanceMessageType.MinecraftIncompatible,
+        type: messageType,
         value: reason
       })
     } else {
+      messageType = InstanceMessageType.MinecraftKicked
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: InstanceMessageType.MinecraftKicked,
+        type: messageType,
         value: reason
       })
     }
+    this.clientInstance.lastDisconnectMessage = { type: messageType, value: reason }
+    this.clientInstance.lastDisconnectTime = Date.now()
   }
 
   private async onError(error: Error & { code?: string }): Promise<void> {
     this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'error', error.message)
     this.logger.error('Minecraft Bot Error: ', error)
     this.loginAttempts++
+    this.clientInstance.reconnectAttempts++
 
     if (error.code === 'EAI_AGAIN') {
       this.logger.error('Minecraft bot disconnected due to internet problems. Restarting client in 30 seconds...')
       await this.tryRestarting()
-    } else if (error.message.includes('socket disconnected before secure TLS connection')) {
+      return
+    }
+
+    let messageType: InstanceMessageType
+    if (error.message.includes('socket disconnected before secure TLS connection')) {
+      messageType = InstanceMessageType.MinecraftInternetProblems
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: InstanceMessageType.MinecraftInternetProblems,
+        type: messageType,
         value: error.message
       })
       await this.tryRestarting()
     } else if (error.message.includes('503 Service Unavailable')) {
+      messageType = InstanceMessageType.MinecraftXboxDown
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: InstanceMessageType.MinecraftXboxDown,
+        type: messageType,
         value: undefined
       })
       await this.tryRestarting()
     } else if (error.message.includes('Too Many Requests')) {
+      messageType = InstanceMessageType.MinecraftXboxThrottled
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: InstanceMessageType.MinecraftXboxThrottled,
+        type: messageType,
         value: undefined
       })
       await this.tryRestarting()
@@ -227,16 +248,18 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       error.message.includes('does the account own minecraft') ||
       error.message.includes('Profile not found')
     ) {
+      messageType = InstanceMessageType.MinecraftNoAccount
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: InstanceMessageType.MinecraftNoAccount,
+        type: messageType,
         value: undefined
       })
 
       this.application.core.minecraftSessions.clearCachedSessions(this.clientInstance.instanceName)
       await this.tryRestarting()
     } else if (error.message.includes(QuitProxyError)) {
+      messageType = InstanceMessageType.MinecraftProxyBroken
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: InstanceMessageType.MinecraftProxyBroken,
+        type: messageType,
         value: error.toString() // TODO: give a proper proxy error instead of this
       })
       await this.tryRestarting()
@@ -248,14 +271,22 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       error.message.includes('Minecraft login failed') ||
       error.message.includes('Minecraft profile fetch failed')
     ) {
+      messageType = InstanceMessageType.MinecraftAuthExpired
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: InstanceMessageType.MinecraftAuthExpired,
+        type: messageType,
         value: error.message
       })
 
       this.application.core.minecraftSessions.deleteSingleCache(this.clientInstance.instanceName, 'iasRefreshToken')
       await this.tryRestarting()
+    } else {
+      messageType = InstanceMessageType.MinecraftEnded
+      this.clientInstance.lastDisconnectMessage = { type: messageType, value: error.message }
+      this.clientInstance.lastDisconnectTime = Date.now()
+      return
     }
+    this.clientInstance.lastDisconnectMessage = { type: messageType, value: error.message }
+    this.clientInstance.lastDisconnectTime = Date.now()
   }
 
   public override dispose(): void {

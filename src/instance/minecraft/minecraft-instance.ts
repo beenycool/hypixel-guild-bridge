@@ -57,6 +57,10 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   /** Latest tab-list ping (ms) from Hypixel `player_info` for this bot; reset on reconnect. */
   private latestTabPingMs: number | undefined
 
+  public lastDisconnectMessage: { type: string; value?: string } | undefined
+  public lastDisconnectTime: number | undefined
+  public reconnectAttempts = 0
+
   private cachedUuid?: string
 
   constructor(app: Application, instanceName: string, config: MinecraftInstanceConfig) {
@@ -271,7 +275,12 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
    * @param priority when to handle the command
    * @param originEventId {@link BaseEvent#eventId} that resulted in this send. <code>undefined</code> if none.
    */
-  async send(message: string, priority: MinecraftSendChatPriority, originEventId: string | undefined, maxRetries = 5): Promise<void> {
+  async send(
+    message: string,
+    priority: MinecraftSendChatPriority,
+    originEventId: string | undefined,
+    maxRetries = 5
+  ): Promise<void> {
     message = message
       .split('\n')
       .map((chunk) => chunk.trim())
@@ -326,18 +335,21 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
           }
         }
 
-        this.sendQueue.queue(msg, priority, originEventId).then(() => {
-          client.on('systemChat', listener)
-          client.on('playerChat', listener)
+        this.sendQueue
+          .queue(msg, priority, originEventId)
+          .then(() => {
+            client.on('systemChat', listener)
+            client.on('playerChat', listener)
 
-          timeoutId = setTimeout(() => {
-            client.removeListener('systemChat', listener)
-            client.removeListener('playerChat', listener)
-            resolve()
-          }, 500)
-        }).catch((err) => {
-          reject(err)
-        })
+            timeoutId = setTimeout(() => {
+              client.removeListener('systemChat', listener)
+              client.removeListener('playerChat', listener)
+              resolve()
+            }, 500)
+          })
+          .catch((err) => {
+            reject(err)
+          })
       })
     }
 
