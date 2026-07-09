@@ -142,6 +142,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_tournamentDefaultDeadlineHours`)
     this.configuration.delete(`${bridgeId}_tournamentDefaultBestOf`)
     this.configuration.delete(`${bridgeId}_tournamentAnnounceMc`)
+    this.configuration.delete(`${bridgeId}_tournamentDefaultBracketFormat`)
+    this.configuration.delete(`${bridgeId}_tournamentValidGameTypes`)
 
     // Notify listeners that a bridge was removed so utilities can cleanup memory
     if (this.onChange) {
@@ -1143,6 +1145,26 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     })
   }
 
+  public getTournamentDefaultBracketFormat(bridgeId: string): string {
+    return this.configuration.getString(`${bridgeId}_tournamentDefaultBracketFormat`, 'single-elim')
+  }
+
+  public setTournamentDefaultBracketFormat(bridgeId: string, format: string): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentDefaultBracketFormat`, format, () => {
+      this.configuration.setString(`${bridgeId}_tournamentDefaultBracketFormat`, format)
+    })
+  }
+
+  public getTournamentValidGameTypes(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_tournamentValidGameTypes`, [])
+  }
+
+  public setTournamentValidGameTypes(bridgeId: string, types: string[]): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentValidGameTypes`, types, () => {
+      this.configuration.setStringArray(`${bridgeId}_tournamentValidGameTypes`, types)
+    })
+  }
+
   public getTranslationOverrides(bridgeId: string): Record<string, string> {
     const raw = this.configuration.getString(`${bridgeId}_translationOverrides`, '{}')
     try {
@@ -1245,7 +1267,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         minParticipants: this.getTournamentMinParticipants(bridgeId),
         maxExtensionHours: this.getTournamentMaxExtensionHours(bridgeId),
         autoCheckin: this.getTournamentAutoCheckin(bridgeId),
-        categoryId: this.getTournamentCategoryId(bridgeId)
+        categoryId: this.getTournamentCategoryId(bridgeId),
+        bracketFormat: this.getTournamentDefaultBracketFormat(bridgeId),
+        validGameTypes: this.getTournamentValidGameTypes(bridgeId)
       }
     }
   }

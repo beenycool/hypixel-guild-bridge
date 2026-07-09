@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Status — Rankup</title>
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
   </head>
   <body>
     <div id="app-nav"></div>
@@ -17,156 +20,147 @@
         <div class="loading"><div class="loading-spinner"></div></div>
       </div>
     </div>
-    <script src="js/auth.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/ws.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/common.js"></script>
-    <script>
-      'use strict'
-      ;(function () {
-        const contentEl = document.querySelector('#status-content')
-        const refreshBtn = document.querySelector('#refresh-status-btn')
+    <script type="module">
+      import { Auth } from './js/auth.js'
+      import { Api } from './js/api.js'
+      import { Ui } from './js/ui.js'
+      import { initNav } from './js/nav.js'
+      import { initStatusPolling } from './js/status.js'
 
-        function renderStatus(data) {
-          var status = data || {}
+      initNav()
+      initStatusPolling()
 
-          var uptimeStr = status.uptime != null ? App.formatDuration(status.uptime) : '—'
-          var discordLatency = status.discordLatency != null ? status.discordLatency + 'ms' : '—'
-          var mcStatus = status.minecraftConnected
-            ? '<span class="badge badge-success">Connected</span>'
-            : '<span class="badge badge-danger">Disconnected</span>'
+      const contentEl = document.querySelector('#status-content')
+      const refreshBtn = document.querySelector('#refresh-status-btn')
 
-          var discordStatusBadge = status.discordConnected
-            ? '<span class="badge badge-success">Connected</span>'
-            : '<span class="badge badge-danger">Disconnected</span>'
+      function renderStatus(data) {
+        var status = data || {}
 
-          var html = ''
+        var uptimeStr = status.uptime != null ? Ui.formatDuration(status.uptime) : '\u2014'
+        var discordLatency = status.discordLatency != null ? status.discordLatency + 'ms' : '\u2014'
+        var mcStatus = status.minecraftConnected
+          ? '<span class="badge badge-success">Connected</span>'
+          : '<span class="badge badge-danger">Disconnected</span>'
+        var discordStatusBadge = status.discordConnected
+          ? '<span class="badge badge-success">Connected</span>'
+          : '<span class="badge badge-danger">Disconnected</span>'
 
-          // Summary stats
-          html +=
-            '<div class="grid grid-cols-4 mb-md">' +
-            '<div class="card stat-card"><div class="stat-value">' +
-            uptimeStr +
-            '</div><div class="stat-label">Bot Uptime</div></div>' +
-            '<div class="card stat-card"><div class="stat-value">' +
-            discordLatency +
-            '</div><div class="stat-label">Discord Latency</div></div>' +
-            '<div class="card stat-card"><div class="stat-value">' +
-            discordStatusBadge +
-            '</div><div class="stat-label">Discord</div></div>' +
-            '<div class="card stat-card"><div class="stat-value">' +
-            mcStatus +
-            '</div><div class="stat-label">Minecraft</div></div>' +
-            '</div>'
+        var html = ''
 
-          // Version info
-          html += '<div class="grid grid-cols-2 gap-md mb-md">'
+        html +=
+          '<div class="grid grid-cols-4 mb-md">' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          uptimeStr +
+          '</div><div class="stat-label">Bot Uptime</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          discordLatency +
+          '</div><div class="stat-label">Discord Latency</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          discordStatusBadge +
+          '</div><div class="stat-label">Discord</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          mcStatus +
+          '</div><div class="stat-label">Minecraft</div></div>' +
+          '</div>'
 
-          html +=
-            '<div class="card"><div class="card-header"><h2>Version</h2></div><div class="card-body">' +
-            '<div class="flex-column gap-xs">' +
-            '<div class="flex-between"><span class="stat-label">Version</span><span class="text-sm text-mono">' +
-            App.escapeHtml(status.version || '—') +
-            '</span></div>' +
-            '<div class="flex-between"><span class="stat-label">Node</span><span class="text-sm text-mono">' +
-            App.escapeHtml(status.nodeVersion || '—') +
-            '</span></div>' +
-            '<div class="flex-between"><span class="stat-label">Platform</span><span class="text-sm text-mono">' +
-            App.escapeHtml(status.platform || '—') +
-            '</span></div>' +
-            '</div>' +
-            '</div></div>'
+        html += '<div class="grid grid-cols-2 gap-md mb-md">'
 
-          // Connected instances
-          var instances = Array.isArray(status.instances) ? status.instances : []
-          html += '<div class="card"><div class="card-header"><h2>Connected Instances</h2></div><div class="card-body">'
-          if (instances.length === 0) {
-            html += '<div class="text-sm text-muted">No instances connected.</div>'
-          } else {
-            html += '<div class="flex-column gap-xs">'
-            for (var i = 0; i < instances.length; i++) {
-              var inst = instances[i]
-              var connectedBadge = inst.connected
-                ? '<span class="badge badge-success">Connected</span>'
-                : '<span class="badge badge-muted">Disconnected</span>'
-              var typeLabel = inst.type || 'minecraft'
-              html +=
-                '<div class="flex-between">' +
-                '<span class="text-mono text-sm">' +
-                App.escapeHtml(inst.name || '—') +
-                '</span>' +
-                '<div class="flex gap-sm">' +
-                '<span class="badge badge-info">' +
-                App.escapeHtml(typeLabel) +
-                '</span>' +
-                connectedBadge +
-                '</div>' +
-                '</div>'
-            }
-            html += '</div>'
-          }
-          html += '</div></div>'
+        html +=
+          '<div class="card"><div class="card-header"><h2>Version</h2></div><div class="card-body">' +
+          '<div class="flex-column gap-xs">' +
+          '<div class="flex-between"><span class="stat-label">Version</span><span class="text-sm text-mono">' +
+          Ui.escapeHtml(status.version || '\u2014') +
+          '</span></div>' +
+          '<div class="flex-between"><span class="stat-label">Node</span><span class="text-sm text-mono">' +
+          Ui.escapeHtml(status.nodeVersion || '\u2014') +
+          '</span></div>' +
+          '<div class="flex-between"><span class="stat-label">Platform</span><span class="text-sm text-mono">' +
+          Ui.escapeHtml(status.platform || '\u2014') +
+          '</span></div>' +
+          '</div></div></div>'
 
-          html += '</div>' // end grid
-
-          // Memory / resource info
-          if (status.memory) {
-            var mem = status.memory
+        var instances = Array.isArray(status.instances) ? status.instances : []
+        html += '<div class="card"><div class="card-header"><h2>Connected Instances</h2></div><div class="card-body">'
+        if (instances.length === 0) {
+          html += '<div class="text-sm text-muted">No instances connected.</div>'
+        } else {
+          html += '<div class="flex-column gap-xs">'
+          for (var i = 0; i < instances.length; i++) {
+            var inst = instances[i]
+            var connectedBadge = inst.connected
+              ? '<span class="badge badge-success">Connected</span>'
+              : '<span class="badge badge-muted">Disconnected</span>'
+            var typeLabel = inst.type || 'minecraft'
             html +=
-              '<div class="card"><div class="card-header"><h2>Memory</h2></div><div class="card-body">' +
-              '<div class="flex-between"><span class="stat-label">Heap Used</span><span class="text-sm text-mono">' +
-              App.escapeHtml(mem.heapUsed || '—') +
-              '</span></div>' +
-              '<div class="flex-between"><span class="stat-label">Heap Total</span><span class="text-sm text-mono">' +
-              App.escapeHtml(mem.heapTotal || '—') +
-              '</span></div>' +
-              '<div class="flex-between"><span class="stat-label">RSS</span><span class="text-sm text-mono">' +
-              App.escapeHtml(mem.rss || '—') +
-              '</span></div>' +
+              '<div class="flex-between">' +
+              '<span class="text-mono text-sm">' +
+              Ui.escapeHtml(inst.name || '\u2014') +
+              '</span>' +
+              '<div class="flex gap-sm">' +
+              '<span class="badge badge-info">' +
+              Ui.escapeHtml(typeLabel) +
+              '</span>' +
+              connectedBadge +
               '</div></div>'
           }
+          html += '</div>'
+        }
+        html += '</div></div>'
+        html += '</div>'
 
-          contentEl.innerHTML = html
+        if (status.memory) {
+          var mem = status.memory
+          html +=
+            '<div class="card"><div class="card-header"><h2>Memory</h2></div><div class="card-body">' +
+            '<div class="flex-between"><span class="stat-label">Heap Used</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(mem.heapUsed || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">Heap Total</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(mem.heapTotal || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">RSS</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(mem.rss || '\u2014') +
+            '</span></div>' +
+            '</div></div>'
         }
 
-        async function loadStatus() {
-          contentEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+        contentEl.innerHTML = html
+      }
+
+      async function loadStatus() {
+        contentEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+        try {
+          var data = await Api.apiGet('/api/status')
+          renderStatus(data)
+        } catch (error) {
           try {
-            var data = await App.apiGet('/api/status')
-            renderStatus(data)
-          } catch (error) {
-            // Fallback: try /health endpoint
-            try {
-              var healthRes = await App.apiGet('/health')
-              var uptimeRes = await App.apiGet('/uptime')
-              renderStatus({
-                uptime: uptimeRes && uptimeRes.uptime ? uptimeRes.uptime : null,
-                version: healthRes && healthRes.version ? healthRes.version : '—',
-                discordConnected: null,
-                minecraftConnected: null,
-                discordLatency: null,
-                instances: []
-              })
-            } catch (fallbackError) {
-              contentEl.innerHTML =
-                '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-text text-danger">Failed to load system status: ' +
-                App.escapeHtml(error.message) +
-                '</div></div>'
-            }
+            var healthRes = await Api.apiGet('/health')
+            var uptimeRes = await Api.apiGet('/uptime')
+            renderStatus({
+              uptime: uptimeRes && uptimeRes.uptime ? uptimeRes.uptime : null,
+              version: healthRes && healthRes.version ? healthRes.version : '\u2014',
+              discordConnected: null,
+              minecraftConnected: null,
+              discordLatency: null,
+              instances: []
+            })
+          } catch (fallbackError) {
+            contentEl.innerHTML =
+              '<div class="empty-state"><div class="empty-state-icon">\u26A0</div><div class="empty-state-text text-danger">Failed to load system status: ' +
+              Ui.escapeHtml(error.message) +
+              '</div></div>'
           }
         }
+      }
 
-        function init() {
-          App.injectNav('status')
-          refreshBtn.addEventListener('click', loadStatus)
-          loadStatus()
-        }
+      function init() {
+        refreshBtn.addEventListener('click', loadStatus)
+        loadStatus()
+      }
 
-        const token = App.requireAuth()
-        if (token) init()
-        else globalThis.addEventListener('authsuccess', init, { once: true })
-      })()
+      const token = Auth.requireAuth()
+      if (token) init()
+      else globalThis.addEventListener('authsuccess', init, { once: true })
     </script>
   </body>
 </html>

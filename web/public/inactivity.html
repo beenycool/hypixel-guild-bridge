@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Inactivity — Rankup</title>
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
   </head>
   <body>
     <div id="app-nav"></div>
@@ -52,184 +55,175 @@
         </div>
       </div>
     </div>
-    <script src="js/auth.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/ws.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/common.js"></script>
-    <script>
-      'use strict'
-      ;(function () {
-        const usernameInput = document.querySelector('#inact-username')
-        const reasonInput = document.querySelector('#inact-reason')
-        const durationSelect = document.querySelector('#inact-duration')
-        const customGroup = document.querySelector('#custom-duration-group')
-        const customDays = document.querySelector('#inact-custom-days')
-        const submitBtn = document.querySelector('#submit-inactivity-btn')
-        const submitResult = document.querySelector('#inact-submit-result')
-        const pendingEl = document.querySelector('#pending-requests')
+    <script type="module">
+      import { Auth } from './js/auth.js'
+      import { Api } from './js/api.js'
+      import { Ui } from './js/ui.js'
+      import { initNav } from './js/nav.js'
+      import { initStatusPolling } from './js/status.js'
 
-        function getDurationDays() {
-          var val = durationSelect.value
-          if (val === 'custom') return parseInt(customDays.value) || 1
-          return parseInt(val) || 7
+      initNav()
+      initStatusPolling()
+
+      const usernameInput = document.querySelector('#inact-username')
+      const reasonInput = document.querySelector('#inact-reason')
+      const durationSelect = document.querySelector('#inact-duration')
+      const customGroup = document.querySelector('#custom-duration-group')
+      const customDays = document.querySelector('#inact-custom-days')
+      const submitBtn = document.querySelector('#submit-inactivity-btn')
+      const submitResult = document.querySelector('#inact-submit-result')
+      const pendingEl = document.querySelector('#pending-requests')
+
+      function getDurationDays() {
+        var val = durationSelect.value
+        if (val === 'custom') return parseInt(customDays.value) || 1
+        return parseInt(val) || 7
+      }
+
+      function getDurationLabel(days) {
+        if (days >= 30) return Math.floor(days / 30) + 'mo'
+        return days + 'd'
+      }
+
+      function renderPending(requests) {
+        if (!requests || requests.length === 0) {
+          pendingEl.innerHTML =
+            '<div class="empty-state"><div class="empty-state-text">No pending inactivity requests.</div></div>'
+          return
         }
-
-        function getDurationLabel(days) {
-          if (days >= 30) return Math.floor(days / 30) + 'mo'
-          return days + 'd'
+        var html = ''
+        for (var i = 0; i < requests.length; i++) {
+          var r = requests[i]
+          var statusBadge =
+            r.status === 'approved'
+              ? '<span class="badge badge-success">Approved</span>'
+              : r.status === 'rejected'
+                ? '<span class="badge badge-danger">Rejected</span>'
+                : '<span class="badge badge-warning">Pending</span>'
+          var approveBtn =
+            r.status === 'pending'
+              ? '<button class="btn btn-success btn-sm" data-approve="' + i + '">Approve</button>'
+              : ''
+          var rejectBtn =
+            r.status === 'pending'
+              ? '<button class="btn btn-danger btn-sm" data-reject="' + i + '">Reject</button>'
+              : ''
+          html +=
+            '<div class="card mb-sm">' +
+            '<div class="card-header">' +
+            '<span class="text-mono">' +
+            Ui.escapeHtml(r.username || '\u2014') +
+            '</span>' +
+            statusBadge +
+            '</div>' +
+            '<div class="card-body">' +
+            '<div class="flex-column gap-xs">' +
+            '<div class="text-sm text-secondary">' +
+            Ui.escapeHtml(r.reason || 'No reason') +
+            '</div>' +
+            '<div class="flex-between">' +
+            '<span class="text-xs text-muted">Duration: ' +
+            getDurationLabel(r.durationDays || 0) +
+            '</span>' +
+            '<span class="text-xs text-muted">' +
+            (r.createdAt ? Ui.formatDate(r.createdAt) : '') +
+            '</span>' +
+            '</div></div></div>' +
+            '<div class="card-footer">' +
+            approveBtn +
+            rejectBtn +
+            '</div>' +
+            '</div>'
         }
+        pendingEl.innerHTML = html
 
-        function renderPending(requests) {
-          if (!requests || requests.length === 0) {
-            pendingEl.innerHTML =
-              '<div class="empty-state"><div class="empty-state-text">No pending inactivity requests.</div></div>'
-            return
-          }
-          var html = ''
-          for (var i = 0; i < requests.length; i++) {
-            var r = requests[i]
-            var statusBadge =
-              r.status === 'approved'
-                ? '<span class="badge badge-success">Approved</span>'
-                : r.status === 'rejected'
-                  ? '<span class="badge badge-danger">Rejected</span>'
-                  : '<span class="badge badge-warning">Pending</span>'
-            var approveBtn =
-              r.status === 'pending'
-                ? '<button class="btn btn-success btn-sm" data-approve="' + i + '">Approve</button>'
-                : ''
-            var rejectBtn =
-              r.status === 'pending'
-                ? '<button class="btn btn-danger btn-sm" data-reject="' + i + '">Reject</button>'
-                : ''
-            html +=
-              '<div class="card mb-sm">' +
-              '<div class="card-header">' +
-              '<span class="text-mono">' +
-              App.escapeHtml(r.username || '—') +
-              '</span>' +
-              statusBadge +
-              '</div>' +
-              '<div class="card-body">' +
-              '<div class="flex-column gap-xs">' +
-              '<div class="text-sm text-secondary">' +
-              App.escapeHtml(r.reason || 'No reason') +
-              '</div>' +
-              '<div class="flex-between">' +
-              '<span class="text-xs text-muted">Duration: ' +
-              getDurationLabel(r.durationDays || 0) +
-              '</span>' +
-              '<span class="text-xs text-muted">' +
-              (r.createdAt ? App.formatDate(r.createdAt) : '') +
-              '</span>' +
-              '</div>' +
-              '</div>' +
-              '</div>' +
-              '<div class="card-footer">' +
-              approveBtn +
-              rejectBtn +
-              '</div>' +
-              '</div>'
-          }
-          pendingEl.innerHTML = html
-
-          pendingEl.querySelectorAll('[data-approve]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-              handleRequest(parseInt(btn.dataset.approve), 'approve')
-            })
+        pendingEl.querySelectorAll('[data-approve]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            handleRequest(parseInt(btn.dataset.approve), 'approve')
           })
-          pendingEl.querySelectorAll('[data-reject]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-              handleRequest(parseInt(btn.dataset.reject), 'reject')
-            })
+        })
+        pendingEl.querySelectorAll('[data-reject]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            handleRequest(parseInt(btn.dataset.reject), 'reject')
           })
-        }
+        })
+      }
 
-        async function handleRequest(idx, action) {
-          var requests = await getPendingRequests()
-          var r = requests[idx]
-          if (!r || !r.id) return
-          try {
-            await App.apiPost('/api/inactivity/' + r.id + '/' + action)
-            App.showToast('Request ' + action + 'd', 'success')
-            loadPending()
-          } catch (error) {
-            App.showToast('Failed: ' + error.message, 'error')
-          }
-        }
-
-        async function getPendingRequests() {
-          try {
-            var res = await App.apiGet('/api/inactivity')
-            return res && Array.isArray(res.requests) ? res.requests : []
-          } catch {
-            return []
-          }
-        }
-
-        async function loadPending() {
-          pendingEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
-          try {
-            var res = await App.apiGet('/api/inactivity')
-            var requests = res && Array.isArray(res.requests) ? res.requests : []
-            renderPending(requests)
-          } catch (error) {
-            pendingEl.innerHTML =
-              '<div class="empty-state"><div class="empty-state-text text-danger">Failed to load: ' +
-              App.escapeHtml(error.message) +
-              '</div></div>'
-          }
-        }
-
-        async function onSubmit() {
-          var username = usernameInput.value.trim()
-          var reason = reasonInput.value.trim()
-          if (!username) {
-            submitResult.innerHTML = '<div class="text-sm text-danger">Username is required.</div>'
-            return
-          }
-          if (!reason) {
-            submitResult.innerHTML = '<div class="text-sm text-danger">Reason is required.</div>'
-            return
-          }
-          submitResult.innerHTML = ''
-          submitBtn.disabled = true
-          submitBtn.textContent = 'Submitting...'
-          try {
-            await App.apiPost('/api/inactivity', {
-              username: username,
-              reason: reason,
-              durationDays: getDurationDays()
-            })
-            App.showToast('Inactivity request submitted', 'success')
-            usernameInput.value = ''
-            reasonInput.value = ''
-            loadPending()
-          } catch (error) {
-            submitResult.innerHTML = '<div class="text-sm text-danger">' + App.escapeHtml(error.message) + '</div>'
-          } finally {
-            submitBtn.disabled = false
-            submitBtn.textContent = 'Submit Request'
-          }
-        }
-
-        function init() {
-          App.injectNav('inactivity')
-
-          durationSelect.addEventListener('change', function () {
-            customGroup.classList.toggle('hidden', this.value !== 'custom')
-          })
-
-          submitBtn.addEventListener('click', onSubmit)
-
+      async function handleRequest(idx, action) {
+        var requests = await getPendingRequests()
+        var r = requests[idx]
+        if (!r || !r.id) return
+        try {
+          await Api.apiPost('/api/inactivity/' + r.id + '/' + action)
+          Ui.showToast('Request ' + action + 'd', 'success')
           loadPending()
+        } catch (error) {
+          Ui.showToast('Failed: ' + error.message, 'error')
         }
+      }
 
-        const token = App.requireAuth()
-        if (token) init()
-        else globalThis.addEventListener('authsuccess', init, { once: true })
-      })()
+      async function getPendingRequests() {
+        try {
+          var res = await Api.apiGet('/api/inactivity')
+          return res && Array.isArray(res.requests) ? res.requests : []
+        } catch {
+          return []
+        }
+      }
+
+      async function loadPending() {
+        pendingEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+        try {
+          var res = await Api.apiGet('/api/inactivity')
+          var requests = res && Array.isArray(res.requests) ? res.requests : []
+          renderPending(requests)
+        } catch (error) {
+          pendingEl.innerHTML =
+            '<div class="empty-state"><div class="empty-state-text text-danger">Failed to load: ' +
+            Ui.escapeHtml(error.message) +
+            '</div></div>'
+        }
+      }
+
+      async function onSubmit() {
+        var username = usernameInput.value.trim()
+        var reason = reasonInput.value.trim()
+        if (!username) {
+          submitResult.innerHTML = '<div class="text-sm text-danger">Username is required.</div>'
+          return
+        }
+        if (!reason) {
+          submitResult.innerHTML = '<div class="text-sm text-danger">Reason is required.</div>'
+          return
+        }
+        submitResult.innerHTML = ''
+        submitBtn.disabled = true
+        submitBtn.textContent = 'Submitting...'
+        try {
+          await Api.apiPost('/api/inactivity', { username: username, reason: reason, durationDays: getDurationDays() })
+          Ui.showToast('Inactivity request submitted', 'success')
+          usernameInput.value = ''
+          reasonInput.value = ''
+          loadPending()
+        } catch (error) {
+          submitResult.innerHTML = '<div class="text-sm text-danger">' + Ui.escapeHtml(error.message) + '</div>'
+        } finally {
+          submitBtn.disabled = false
+          submitBtn.textContent = 'Submit Request'
+        }
+      }
+
+      function init() {
+        durationSelect.addEventListener('change', function () {
+          customGroup.classList.toggle('hidden', this.value !== 'custom')
+        })
+        submitBtn.addEventListener('click', onSubmit)
+        loadPending()
+      }
+
+      const token = Auth.requireAuth()
+      if (token) init()
+      else globalThis.addEventListener('authsuccess', init, { once: true })
     </script>
   </body>
 </html>

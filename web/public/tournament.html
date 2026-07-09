@@ -4,74 +4,234 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tournaments — Hypixel Bridge</title>
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
     <style>
       .tournament-card {
-        background: #1a1a2e;
-        border: 1px solid #333;
-        border-radius: 8px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-md);
         padding: 16px;
         margin-bottom: 16px;
+        transition: border-color var(--transition);
+      }
+      .tournament-card:hover {
+        border-color: var(--accent-gold);
       }
       .tournament-card h3 {
         margin: 0 0 8px;
-        color: #e0e0e0;
+        color: var(--text-primary);
+        font-family: var(--font-display);
       }
-      .status-badge {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-      }
-      .match-row {
+      .tournament-meta {
         display: flex;
         align-items: center;
-        padding: 8px;
-        border-bottom: 1px solid #333;
+        gap: 12px;
+        margin: 4px 0 12px;
+        flex-wrap: wrap;
       }
-      .match-row:last-child {
-        border-bottom: none;
+      .meta-item {
+        color: var(--text-secondary);
+        font-size: 13px;
       }
-      .player-name {
-        flex: 1;
+      .meta-item strong {
+        color: var(--text-primary);
+        font-weight: 600;
       }
-      .score {
-        margin: 0 16px;
-        font-weight: bold;
-      }
-      .completed {
-        color: #2ecc71;
-      }
-      .pending {
-        color: #888;
-      }
-      .disputed {
-        color: #e74c3c;
+      .tournament-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
       }
       .bracket-view {
         overflow-x: auto;
         white-space: nowrap;
-        padding: 8px 0;
+        padding: 16px 0;
       }
       .round-column {
         display: inline-block;
         vertical-align: top;
         margin-right: 24px;
-        min-width: 200px;
+        min-width: 220px;
       }
       .round-column h4 {
         margin: 0 0 8px;
-        color: #aaa;
-        font-size: 14px;
+        color: var(--accent-gold);
+        font-family: var(--font-display);
+        font-size: 13px;
         text-transform: uppercase;
         letter-spacing: 1px;
       }
-      .empty-state {
-        text-align: center;
-        padding: 40px;
-        color: #666;
+      .match-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        white-space: normal;
+        transition: border-color var(--transition);
+      }
+      .match-card.is-completed {
+        border-color: rgba(67, 181, 129, 0.4);
+      }
+      .match-card.is-disputed {
+        border-color: rgba(240, 71, 71, 0.6);
+      }
+      .match-card.is-active {
+        border-color: rgba(251, 191, 36, 0.5);
+      }
+      .match-players {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .match-player {
+        flex: 1;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        word-break: break-all;
+      }
+      .match-player.is-winner {
+        color: var(--color-good);
+        font-weight: 600;
+      }
+      .match-score {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        color: var(--text-primary);
+        padding: 0 6px;
+      }
+      .match-status-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 6px;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .match-status-text {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .match-admin-actions {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .match-admin-actions .btn {
+        padding: 2px 8px;
+        font-size: 11px;
+      }
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        z-index: 1000;
+        padding: 40px 16px;
+        overflow-y: auto;
+      }
+      .modal-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        width: 100%;
+        max-width: 540px;
+        box-shadow: var(--shadow-md);
+      }
+      .modal-card h2 {
+        font-family: var(--font-display);
+        margin-bottom: 4px;
+      }
+      .modal-card .modal-sub {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+      .form-row {
+        margin-bottom: 16px;
+      }
+      .form-label {
+        display: block;
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+      .form-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .form-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+      .audit-entry {
+        display: flex;
+        gap: 10px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 12px;
+      }
+      .audit-entry:last-child {
+        border-bottom: none;
+      }
+      .audit-action {
+        font-family: var(--font-mono);
+        color: var(--accent-cyan);
+        flex-shrink: 0;
+        min-width: 110px;
+      }
+      .audit-meta {
+        color: var(--text-secondary);
+        word-break: break-word;
+      }
+      .audit-time {
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+      .panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        margin-top: 16px;
+      }
+      .panel h3 {
+        font-family: var(--font-display);
+        margin-bottom: 12px;
+        font-size: 16px;
+      }
+      .detail-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .detail-header h2 {
+        margin: 0;
+        font-family: var(--font-display);
+      }
+      .detail-stats {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .detail-stats span strong {
+        color: var(--text-primary);
       }
     </style>
   </head>
@@ -80,172 +240,628 @@
     <div class="app-container">
       <div class="page-header">
         <h1 class="page-title">Tournaments</h1>
-        <button class="btn btn-secondary btn-sm" id="refresh-btn">Refresh</button>
+        <div class="flex gap-sm">
+          <button class="btn btn-secondary btn-sm" id="refresh-btn">Refresh</button>
+          <button class="btn btn-primary btn-sm" id="create-btn" style="display: none">+ Create</button>
+        </div>
       </div>
+
       <div id="loading" class="loading"><div class="loading-spinner"></div></div>
       <div id="error" class="empty-state" style="display: none"></div>
-      <div id="tournament-list"></div>
+
+      <div id="list-view">
+        <div id="tournament-list"></div>
+      </div>
+
+      <div id="detail-view" style="display: none">
+        <a href="#" id="back-to-list" class="btn btn-secondary btn-sm" style="margin-bottom: 16px"
+          >&larr; Back to list</a
+        >
+        <div id="detail-content"></div>
+      </div>
+
+      <div id="create-modal" class="modal-overlay" style="display: none">
+        <div class="modal-card">
+          <h2>Create Tournament</h2>
+          <div class="modal-sub">Spin up a new bracket. Defaults are pulled from bridge settings.</div>
+          <form id="create-form">
+            <div class="form-row">
+              <label class="form-label">Bridge</label>
+              <select class="select" id="cf-bridge" required></select>
+              <div class="form-hint">Which bridge this tournament belongs to.</div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Name</label>
+              <input
+                type="text"
+                class="input"
+                id="cf-name"
+                maxlength="80"
+                placeholder="Weekly Bedwars Cup #4"
+                required
+              />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Game Type</label>
+              <input type="text" class="input" id="cf-gametype" list="cf-gametypes" placeholder="Bedwars" required />
+              <datalist id="cf-gametypes"></datalist>
+              <div class="form-hint">Free text, or pick from the configured whitelist.</div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Bracket Format</label>
+              <select class="select" id="cf-format">
+                <option value="single-elim" selected>Single Elimination</option>
+                <option value="double-elim">Double Elimination</option>
+                <option value="round-robin">Round Robin</option>
+              </select>
+            </div>
+            <div class="flex gap-md">
+              <div class="form-row" style="flex: 1">
+                <label class="form-label">Best-of</label>
+                <input type="number" class="input" id="cf-bestof" min="1" max="9" value="3" required />
+              </div>
+              <div class="form-row" style="flex: 1">
+                <label class="form-label">Round Deadline (hours)</label>
+                <input type="number" class="input" id="cf-deadline" min="1" max="720" value="48" required />
+              </div>
+              <div class="form-row" style="flex: 1">
+                <label class="form-label">Check-in Window (min)</label>
+                <input type="number" class="input" id="cf-checkin" min="0" max="1440" value="60" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Scheduled Start (optional)</label>
+              <input type="datetime-local" class="input" id="cf-start" />
+              <div class="form-hint">
+                Leave blank for manual start. Sets check-in open/close windows relative to start.
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="cf-cancel">Cancel</button>
+              <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
-    <script src="js/auth.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/ws.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/common.js"></script>
-    <script>
-      'use strict'
-      ;(function () {
-        const listEl = document.querySelector('#tournament-list')
-        const loadingEl = document.querySelector('#loading')
-        const errorEl = document.querySelector('#error')
-        const refreshBtn = document.querySelector('#refresh-btn')
+    <script type="module">
+      import { Auth } from './js/auth.js'
+      import { Api } from './js/api.js'
+      import { Ui } from './js/ui.js'
+      import { initNav } from './js/nav.js'
+      import { initStatusPolling } from './js/status.js'
 
-        function showLoading(msg) {
-          loadingEl.style.display = 'block'
-          loadingEl.textContent = msg || 'Loading...'
-          errorEl.style.display = 'none'
+      initNav()
+      initStatusPolling()
+
+      const esc = Ui.escapeHtml
+      const fmtRel = Ui.formatRelativeTime
+      const fmtDate = Ui.formatDate
+
+      const listEl = document.querySelector('#tournament-list')
+      const loadingEl = document.querySelector('#loading')
+      const errorEl = document.querySelector('#error')
+      const refreshBtn = document.querySelector('#refresh-btn')
+      const createBtn = document.querySelector('#create-btn')
+      const listView = document.querySelector('#list-view')
+      const detailView = document.querySelector('#detail-view')
+      const detailContent = document.querySelector('#detail-content')
+      const backBtn = document.querySelector('#back-to-list')
+      const createModal = document.querySelector('#create-modal')
+      const createForm = document.querySelector('#create-form')
+      let createBridges = []
+      let currentId = null
+      let cachedDetail = null
+
+      function perm() {
+        return Auth.getPermission()
+      }
+      function canManage() {
+        const p = perm()
+        return p === 'owner' || p === 'admin'
+      }
+      function isAdmin() {
+        return perm() === 'admin'
+      }
+
+      function showLoading(msg) {
+        loadingEl.style.display = 'block'
+        loadingEl.textContent = msg || 'Loading...'
+        errorEl.style.display = 'none'
+      }
+      function hideLoading() {
+        loadingEl.style.display = 'none'
+      }
+      function showError(msg) {
+        hideLoading()
+        errorEl.style.display = 'block'
+        errorEl.textContent = msg || 'An error occurred.'
+      }
+
+      function statusBadge(status) {
+        const map = {
+          SIGNUP: 'badge badge-success',
+          ACTIVE: 'badge badge-warning',
+          COMPLETED: 'badge badge-info',
+          CANCELLED: 'badge badge-danger'
         }
+        return `<span class="${map[status] || 'badge badge-muted'}">${esc(status || '\u2014')}</span>`
+      }
 
-        function hideLoading() {
-          loadingEl.style.display = 'none'
-        }
+      function matchStatusClass(status) {
+        if (status === 'COMPLETED' || status === 'BYE' || status === 'BOTH_CONFIRMED') return 'is-completed'
+        if (status === 'DISPUTED') return 'is-disputed'
+        if (status === 'ACTIVE' || status === 'REPORTED') return 'is-active'
+        return ''
+      }
 
-        function showError(msg) {
+      async function loadTournaments() {
+        showLoading('Loading tournaments...')
+        try {
+          const data = await Api.apiGet('/api/tournament/list')
           hideLoading()
-          errorEl.style.display = 'block'
-          errorEl.textContent = msg || 'An error occurred.'
-        }
-
-        function statusClass(status) {
-          const map = {
-            SIGNUP: 'badge badge-success',
-            ACTIVE: 'badge badge-warning',
-            COMPLETED: 'badge badge-info',
-            CANCELLED: 'badge badge-danger'
+          listView.style.display = ''
+          detailView.style.display = 'none'
+          if (!Array.isArray(data) || data.length === 0) {
+            listEl.innerHTML =
+              '<div class="empty-state"><div class="empty-state-icon">🏆</div><div class="empty-state-text">No tournaments yet.' +
+              (isAdmin() ? ' Click "+ Create" to start one.' : '') +
+              '</div></div>'
+            return
           }
-          return map[status] || 'badge badge-muted'
-        }
-
-        async function loadTournaments() {
-          showLoading('Loading tournaments...')
-          try {
-            const data = await AppApi.apiGet('/api/tournament/list')
-            hideLoading()
-
-            if (!Array.isArray(data) || data.length === 0) {
-              listEl.innerHTML = '<div class="empty-state">No tournaments found.</div>'
-              return
+          let html = ''
+          for (const t of data) {
+            html += '<div class="tournament-card" data-id="' + t.id + '">'
+            html += '  <h3>' + esc(t.name || 'Unnamed') + '</h3>'
+            html += '  <div class="tournament-meta">'
+            html += '    ' + statusBadge(t.status)
+            html += '    <span class="meta-item"><strong>Game:</strong> ' + esc(t.gameType || '?') + '</span>'
+            html += '    <span class="meta-item"><strong>Bo' + esc(String(t.bestOf ?? 3)) + '</strong></span>'
+            if (t.totalRounds > 0) {
+              html +=
+                '    <span class="meta-item"><strong>Round:</strong> ' +
+                esc(String(t.currentRound || 0)) +
+                '/' +
+                esc(String(t.totalRounds)) +
+                '</span>'
             }
-
-            let html = ''
-            for (const t of data) {
-              html += '<div class="tournament-card">'
-              html += '<h3>' + AppUi.escapeHtml(t.name || 'Unnamed') + '</h3>'
-              html += '<div style="margin-bottom:8px">'
-              html += '  <span class="' + statusClass(t.status) + '">' + AppUi.escapeHtml(t.status) + '</span>'
-              html += '  <span style="margin-left:12px">Game: ' + AppUi.escapeHtml(t.gameType || '?') + '</span>'
-              html += '  <span style="margin-left:12px">Bo' + AppUi.escapeHtml(String(t.bestOf ?? 3)) + '</span>'
-              html += '</div>'
-              html += '<div style="margin-top:8px">'
-              html += '  <a href="#" class="view-bracket" data-id="' + t.id + '">View Bracket</a>'
-              html += '</div>'
-              html += '</div>'
-            }
-            listEl.innerHTML = html
-
-            for (const link of listEl.querySelectorAll('.view-bracket')) {
-              link.addEventListener('click', function (e) {
-                e.preventDefault()
-                showTournament(Number(this.dataset.id))
-              })
-            }
-          } catch (err) {
-            showError('Error: ' + AppUi.escapeHtml(err.message))
-          }
-        }
-
-        async function showTournament(id) {
-          showLoading('Loading bracket...')
-          try {
-            const data = await AppApi.apiGet('/api/tournament/' + id)
-            hideLoading()
-
-            const tournament = data.tournament
-            const matches = Array.isArray(data.matches) ? data.matches : []
-            const players = Array.isArray(data.players) ? data.players : []
-
-            const playerMap = {}
-            for (const p of players) {
-              playerMap[p.id] = p.playerUuid
-            }
-
-            const rounds = {}
-            for (const m of matches) {
-              if (!rounds[m.round]) rounds[m.round] = []
-              rounds[m.round].push(m)
-            }
-
-            let html = '<div class="tournament-card">'
-            html += '<h3>' + AppUi.escapeHtml(tournament.name || 'Tournament') + ' — Bracket</h3>'
-            html += '  <div style="margin-bottom:8px">'
-            html +=
-              '    <span class="' +
-              statusClass(tournament.status) +
-              '">' +
-              AppUi.escapeHtml(tournament.status) +
-              '</span>'
+            html += '    <span class="meta-item">' + fmtRel(t.createdAt) + '</span>'
             html += '  </div>'
-            html += '  <a href="#" id="back-to-list">&larr; Back to list</a>'
-            html += '</div>'
-
-            html += '<div class="bracket-view">'
-            const roundKeys = Object.keys(rounds).sort(function (a, b) {
-              return Number(a) - Number(b)
-            })
-            for (const round of roundKeys) {
-              html += '<div class="round-column">'
-              html += '  <h4>Round ' + AppUi.escapeHtml(round) + '</h4>'
-              for (const m of rounds[round]) {
-                const p1 = playerMap[m.player1Id] || 'TBD'
-                const p2 = playerMap[m.player2Id] || 'TBD'
-                let cls = 'pending'
-                if (m.status === 'COMPLETED' || m.status === 'BYE') cls = 'completed'
-                else if (m.status === 'DISPUTED') cls = 'disputed'
-
-                html += '<div class="match-row ' + cls + '">'
-                html += '  <span class="player-name">' + AppUi.escapeHtml(p1) + '</span>'
-                html += '  <span class="score">' + (m.player1Wins ?? '-') + ' : ' + (m.player2Wins ?? '-') + '</span>'
-                html += '  <span class="player-name">' + AppUi.escapeHtml(p2) + '</span>'
-                html += '  <span style="margin-left:8px;font-size:11px">' + AppUi.escapeHtml(m.status) + '</span>'
-                html += '</div>'
-              }
-              html += '</div>'
+            html += '  <div class="tournament-actions">'
+            html += '    <button class="btn btn-secondary btn-sm view-btn" data-id="' + t.id + '">View Bracket</button>'
+            if (isAdmin() && t.status === 'SIGNUP') {
+              html += '    <button class="btn btn-primary btn-sm start-btn" data-id="' + t.id + '">Start</button>'
+              html += '    <button class="btn btn-danger btn-sm cancel-btn" data-id="' + t.id + '">Cancel</button>'
             }
-            html += '</div>'
-
-            listEl.innerHTML = html
-
-            const backBtn = document.querySelector('#back-to-list')
-            if (backBtn) {
-              backBtn.addEventListener('click', function (e) {
-                e.preventDefault()
-                loadTournaments()
-              })
+            if (isAdmin() && t.status === 'ACTIVE') {
+              html += '    <button class="btn btn-danger btn-sm cancel-btn" data-id="' + t.id + '">Cancel</button>'
             }
+            html += '  </div>'
+            html += '</div>'
+          }
+          listEl.innerHTML = html
+
+          for (const btn of listEl.querySelectorAll('.view-btn'))
+            btn.addEventListener('click', () => showTournament(Number(btn.dataset.id)))
+          for (const btn of listEl.querySelectorAll('.start-btn'))
+            btn.addEventListener('click', () => startTournament(Number(btn.dataset.id)))
+          for (const btn of listEl.querySelectorAll('.cancel-btn'))
+            btn.addEventListener('click', () => cancelTournament(Number(btn.dataset.id)))
+        } catch (err) {
+          showError('Error: ' + esc(err.message || String(err)))
+        }
+      }
+
+      async function showTournament(id) {
+        currentId = id
+        listView.style.display = 'none'
+        detailView.style.display = ''
+        loadingEl.style.display = 'block'
+        errorEl.style.display = 'none'
+        loadingEl.textContent = 'Loading bracket...'
+        try {
+          await renderDetail(id)
+        } catch (err) {
+          loadingEl.style.display = 'none'
+          showError('Error: ' + esc(err.message || String(err)))
+        }
+      }
+
+      async function renderDetail(id) {
+        const data = await Api.apiGet('/api/tournament/' + id)
+        cachedDetail = data
+        loadingEl.style.display = 'none'
+
+        const tournament = data.tournament
+        const matches = Array.isArray(data.matches) ? data.matches : []
+        const players = Array.isArray(data.players) ? data.players : []
+        const playerMap = {}
+        for (const p of players) {
+          playerMap[p.id] = p
+        }
+
+        let html = '<div class="detail-header">'
+        html += '  <h2>' + esc(tournament.name || 'Tournament') + '</h2>'
+        html += '  ' + statusBadge(tournament.status)
+        html += '</div>'
+        html += '<div class="detail-stats">'
+        html += '  <span><strong>Game:</strong> ' + esc(tournament.gameType || '?') + '</span>'
+        html += '  <span><strong>Best-of:</strong> ' + esc(String(tournament.bestOf ?? 3)) + '</span>'
+        html += '  <span><strong>Deadline:</strong> ' + esc(String(tournament.roundDeadlineHours || 0)) + 'h</span>'
+        if (tournament.totalRounds > 0) {
+          html +=
+            '  <span><strong>Round:</strong> ' +
+            esc(String(tournament.currentRound || 0)) +
+            '/' +
+            esc(String(tournament.totalRounds)) +
+            '</span>'
+        }
+        if (tournament.startedAt)
+          html += '  <span><strong>Started:</strong> ' + fmtDate(tournament.startedAt) + '</span>'
+        if (tournament.winnerId) {
+          const w = playerMap[tournament.winnerId]
+          if (w) html += '  <span><strong>Winner:</strong> ' + esc(w.playerUuid) + '</span>'
+        }
+        html += '</div>'
+
+        if (isAdmin() && tournament.status === 'SIGNUP' && matches.length === 0) {
+          html += '<div class="tournament-actions" style="margin: 16px 0">'
+          html += '  <button class="btn btn-primary btn-sm" id="d-start">Start Tournament</button>'
+          html += '  <button class="btn btn-danger btn-sm" id="d-cancel">Cancel Tournament</button>'
+          html += '  <button class="btn btn-secondary btn-sm" id="d-checkin">Open Check-in</button>'
+          html += '</div>'
+        }
+
+        html += '<div class="bracket-view">'
+        const rounds = {}
+        for (const m of matches) {
+          if (!rounds[m.round]) rounds[m.round] = []
+          rounds[m.round].push(m)
+        }
+        const roundKeys = Object.keys(rounds)
+          .map(Number)
+          .sort((a, b) => a - b)
+        if (roundKeys.length === 0) {
+          html +=
+            '<div class="empty-state"><div class="empty-state-text">Bracket not generated yet. Start the tournament to seed matches.</div></div>'
+        }
+        for (const round of roundKeys) {
+          html += '<div class="round-column">'
+          html += '  <h4>Round ' + esc(String(round)) + '</h4>'
+          for (const m of rounds[round]) {
+            const p1 = playerMap[m.player1Id]
+            const p2 = playerMap[m.player2Id]
+            const p1Name = p1 ? p1.playerUuid : 'TBD'
+            const p2Name = p2 ? p2.playerUuid : 'TBD'
+            const p1Win = m.winnerId === m.player1Id
+            const p2Win = m.winnerId === m.player2Id
+            html += '<div class="match-card ' + matchStatusClass(m.status) + '">'
+            html += '  <div class="match-players">'
+            html += '    <span class="match-player ' + (p1Win ? 'is-winner' : '') + '">' + esc(p1Name) + '</span>'
+            html +=
+              '    <span class="match-score">' +
+              (m.status === 'BYE' ? 'BYE' : esc(String(m.player1Wins ?? 0)) + ' : ' + esc(String(m.player2Wins ?? 0))) +
+              '</span>'
+            html += '    <span class="match-player ' + (p2Win ? 'is-winner' : '') + '">' + esc(p2Name) + '</span>'
+            html += '  </div>'
+            html += '  <div class="match-status-line">'
+            html += '    <span class="match-status-text badge badge-muted">' + esc(m.status || '\u2014') + '</span>'
+            if (m.deadlineAt && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')) {
+              html += '    <span class="text-sm text-muted">due ' + fmtRel(m.deadlineAt) + '</span>'
+            }
+            html += '    <div class="match-admin-actions">'
+            if (canManage() && m.status === 'DISPUTED')
+              html +=
+                '      <button class="btn btn-secondary" data-act="confirm" data-mid="' + m.id + '">Confirm</button>'
+            if (canManage() && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')) {
+              html +=
+                '      <button class="btn btn-secondary" data-act="forfeit" data-mid="' + m.id + '">Forfeit</button>'
+              html +=
+                '      <button class="btn btn-secondary" data-act="extend" data-mid="' + m.id + '">Extend</button>'
+              html +=
+                '      <button class="btn btn-secondary" data-act="sub" data-mid="' + m.id + '">Substitute</button>'
+            }
+            html += '    </div>'
+            html += '  </div>'
+            html += '</div>'
+          }
+          html += '</div>'
+        }
+        html += '</div>'
+
+        if (canManage()) {
+          html += '<div class="panel">'
+          html += '  <h3>Audit Log</h3>'
+          html += '  <div id="audit-log" class="text-sm"><div class="text-muted">Loading audit log\u2026</div></div>'
+          html += '</div>'
+        }
+
+        detailContent.innerHTML = html
+
+        const startBtn = document.querySelector('#d-start')
+        if (startBtn) startBtn.addEventListener('click', () => startTournament(id))
+        const cancelBtn = document.querySelector('#d-cancel')
+        if (cancelBtn) cancelBtn.addEventListener('click', () => cancelTournament(id))
+        const checkinBtn = document.querySelector('#d-checkin')
+        if (checkinBtn) checkinBtn.addEventListener('click', () => openCheckin(id))
+
+        for (const btn of detailContent.querySelectorAll('[data-act]')) {
+          btn.addEventListener('click', () => handleMatchAction(btn.dataset.act, Number(btn.dataset.mid), id))
+        }
+
+        if (canManage()) loadAudit(id)
+      }
+
+      async function loadAudit(id) {
+        const host = document.querySelector('#audit-log')
+        if (!host) return
+        try {
+          const logs = await Api.apiGet('/api/tournament/' + id + '/audit')
+          if (!Array.isArray(logs) || logs.length === 0) {
+            host.innerHTML = '<div class="text-muted">No audit entries.</div>'
+            return
+          }
+          let html = ''
+          for (const e of logs) {
+            let meta = ''
+            if (e.metadata) {
+              try {
+                const md = typeof e.metadata === 'string' ? JSON.parse(e.metadata) : e.metadata
+                const parts = []
+                for (const [k, v] of Object.entries(md || {})) parts.push(esc(k) + '=' + esc(String(v)))
+                meta = parts.join(' ')
+              } catch {}
+            }
+            html += '<div class="audit-entry">'
+            html += '  <span class="audit-action">' + esc(e.action || '?') + '</span>'
+            html +=
+              '  <span class="audit-meta">' + esc(e.actorDiscordId || '') + (meta ? ' \u00b7 ' + meta : '') + '</span>'
+            html += '  <span class="audit-time">' + fmtRel(e.createdAt) + '</span>'
+            html += '</div>'
+          }
+          host.innerHTML = html
+        } catch (err) {
+          host.innerHTML =
+            '<div class="text-muted">Failed to load audit log: ' + esc(err.message || String(err)) + '</div>'
+        }
+      }
+
+      async function startTournament(id) {
+        if (!Ui.confirmAction('Start this tournament and seed the bracket? This cannot be undone.')) return
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/start', {})
+          Ui.showToast('Tournament started', 'success')
+          if (currentId === id) await renderDetail(id)
+          else await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to start: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function cancelTournament(id) {
+        if (!Ui.confirmAction('Cancel this tournament? Players will be removed from the active queue.')) return
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/cancel', {})
+          Ui.showToast('Tournament cancelled', 'info')
+          currentId = null
+          await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to cancel: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function openCheckin(id) {
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/open-checkin', {})
+          Ui.showToast('Check-in opened', 'success')
+          await renderDetail(id)
+        } catch (err) {
+          Ui.showToast('Failed to open check-in: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function handleMatchAction(act, matchId, tournamentId) {
+        if (act === 'confirm') {
+          const winner = globalThis.prompt('Enter winner player ID (number):')
+          if (!winner) return
+          const winnerId = Number(winner)
+          if (!Number.isInteger(winnerId)) return Ui.showToast('Invalid player ID', 'error')
+          try {
+            await Api.apiPost('/api/tournament/' + tournamentId + '/confirm', { matchId, winnerId })
+            Ui.showToast('Match confirmed', 'success')
+            await renderDetail(tournamentId)
           } catch (err) {
-            showError('Error: ' + AppUi.escapeHtml(err.message))
+            Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+          }
+          return
+        }
+        if (act === 'forfeit') {
+          const pid = globalThis.prompt('Enter the player ID who is forfeiting:')
+          if (!pid) return
+          const playerId = Number(pid)
+          if (!Number.isInteger(playerId)) return Ui.showToast('Invalid player ID', 'error')
+          try {
+            await Api.apiPost('/api/tournament/' + tournamentId + '/forfeit', { matchId, playerId })
+            Ui.showToast('Forfeit recorded', 'success')
+            await renderDetail(tournamentId)
+          } catch (err) {
+            Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+          }
+          return
+        }
+        if (act === 'extend') {
+          const hours = globalThis.prompt('Extend deadline by how many hours?')
+          if (!hours) return
+          const n = Number(hours)
+          if (!Number.isFinite(n) || n <= 0) return Ui.showToast('Invalid number', 'error')
+          const bridgeId = cachedDetail && cachedDetail.tournament ? cachedDetail.tournament.bridgeId : undefined
+          try {
+            await Api.apiPost('/api/tournament/' + tournamentId + '/extend', { matchId, hours: n, bridgeId })
+            Ui.showToast('Deadline extended', 'success')
+            await renderDetail(tournamentId)
+          } catch (err) {
+            Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+          }
+          return
+        }
+        if (act === 'sub') {
+          const oldId = globalThis.prompt('Enter the player ID to replace:')
+          if (!oldId) return
+          const oldPlayerId = Number(oldId)
+          if (!Number.isInteger(oldPlayerId)) return Ui.showToast('Invalid player ID', 'error')
+          const newUuid = globalThis.prompt('Enter the new player UUID:')
+          if (!newUuid) return
+          const newDiscordId = globalThis.prompt('Enter the new Discord ID (optional):') || ''
+          try {
+            await Api.apiPost('/api/tournament/' + tournamentId + '/substitute', {
+              matchId,
+              oldPlayerId,
+              newPlayerUuid: newUuid,
+              newDiscordId
+            })
+            Ui.showToast('Player substituted', 'success')
+            await renderDetail(tournamentId)
+          } catch (err) {
+            Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+          }
+          return
+        }
+      }
+
+      async function loadBridges() {
+        try {
+          const data = await Api.apiGet('/api/bridges')
+          createBridges = Array.isArray(data) ? data.map((b) => b.id || b.bridgeId) : []
+          const select = document.querySelector('#cf-bridge')
+          select.innerHTML = createBridges.length
+            ? createBridges.map((id) => '<option value="' + esc(id) + '">' + esc(id) + '</option>').join('')
+            : '<option value="">(no bridges)</option>'
+          return createBridges
+        } catch {
+          document.querySelector('#cf-bridge').innerHTML = '<option value="">(failed to load)</option>'
+          return []
+        }
+      }
+
+      async function loadSettingsForBridge(bridgeId) {
+        if (!bridgeId) {
+          document.querySelector('#cf-gametypes').innerHTML = ''
+          document.querySelector('#cf-bestof').value = 3
+          document.querySelector('#cf-deadline').value = 48
+          document.querySelector('#cf-checkin').value = 60
+          document.querySelector('#cf-format').value = 'single-elim'
+          return
+        }
+        try {
+          const res = await Api.apiGet('/api/bridges/' + encodeURIComponent(bridgeId) + '/settings')
+          const t = (res && res.categories && res.categories.tournament) || {}
+          if (Array.isArray(t.validGameTypes) && t.validGameTypes.length > 0) {
+            document.querySelector('#cf-gametypes').innerHTML = t.validGameTypes
+              .map((g) => '<option value="' + esc(g) + '">')
+              .join('')
+          } else {
+            document.querySelector('#cf-gametypes').innerHTML = ''
+          }
+          if (t.defaultBestOf) document.querySelector('#cf-bestof').value = t.defaultBestOf
+          if (t.defaultDeadlineHours) document.querySelector('#cf-deadline').value = t.defaultDeadlineHours
+          if (t.checkinWindowMinutes != null) document.querySelector('#cf-checkin').value = t.checkinWindowMinutes
+          if (t.bracketFormat) {
+            const sel = document.querySelector('#cf-format')
+            if (sel && [...sel.options].some((o) => o.value === t.bracketFormat)) sel.value = t.bracketFormat
+          }
+        } catch {}
+      }
+
+      function openCreateModal() {
+        createModal.style.display = ''
+        createForm.reset()
+        document.querySelector('#cf-bestof').value = 3
+        document.querySelector('#cf-deadline').value = 48
+        document.querySelector('#cf-checkin').value = 60
+        document.querySelector('#cf-format').value = 'single-elim'
+        document.querySelector('#cf-start').value = ''
+        void loadBridges().then(() => {
+          const select = document.querySelector('#cf-bridge')
+          if (select && select.value) void loadSettingsForBridge(select.value)
+        })
+        setTimeout(() => document.querySelector('#cf-name').focus(), 50)
+      }
+
+      function closeCreateModal() {
+        createModal.style.display = 'none'
+      }
+
+      async function submitCreate(e) {
+        e.preventDefault()
+        const bridgeId = document.querySelector('#cf-bridge').value
+        const name = document.querySelector('#cf-name').value.trim()
+        const gameType = document.querySelector('#cf-gametype').value.trim()
+        const bracketFormat = document.querySelector('#cf-format').value
+        const bestOf = Number(document.querySelector('#cf-bestof').value) || 1
+        const deadline = Number(document.querySelector('#cf-deadline').value) || 48
+        const checkin = Number(document.querySelector('#cf-checkin').value) || 0
+        const startRaw = document.querySelector('#cf-start').value
+        const startedAtUnix = startRaw ? Math.floor(new Date(startRaw).getTime() / 1000) : undefined
+        if (!bridgeId) return Ui.showToast('Select a bridge first', 'error')
+        if (!name) return Ui.showToast('Name is required', 'error')
+        if (!gameType) return Ui.showToast('Game type is required', 'error')
+        const submitBtn = document.querySelector('#cf-create-submit') || e.submitter
+        if (submitBtn) {
+          submitBtn.disabled = true
+          submitBtn.textContent = 'Creating\u2026'
+        }
+        try {
+          await Api.apiPost('/api/tournament', {
+            bridgeId,
+            name,
+            gameType,
+            bracketFormat,
+            bestOf,
+            roundDeadlineHours: deadline,
+            checkinWindowMinutes: checkin,
+            startedAtUnix
+          })
+          Ui.showToast('Tournament created', 'success')
+          closeCreateModal()
+          await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to create: ' + (err.message || String(err)), 'error')
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false
+            submitBtn.textContent = 'Create'
           }
         }
+      }
 
-        function init() {
-          AppUi.injectNav('overview')
-          refreshBtn.addEventListener('click', loadTournaments)
-          loadTournaments()
+      function init() {
+        if (isAdmin()) {
+          createBtn.style.display = ''
+          createBtn.addEventListener('click', openCreateModal)
         }
+        createModal.addEventListener('click', (e) => {
+          if (e.target === createModal) closeCreateModal()
+        })
+        document.querySelector('#cf-cancel').addEventListener('click', closeCreateModal)
+        createForm.addEventListener('submit', submitCreate)
+        document.querySelector('#cf-bridge').addEventListener('change', (e) => {
+          void loadSettingsForBridge(e.target.value)
+        })
+        refreshBtn.addEventListener('click', () => {
+          if (currentId != null) void renderDetail(currentId)
+          else void loadTournaments()
+        })
+        backBtn.addEventListener('click', (e) => {
+          e.preventDefault()
+          currentId = null
+          void loadTournaments()
+        })
+        void loadTournaments()
+      }
 
-        const token = App.requireAuth()
-        if (token) init()
-        else globalThis.addEventListener('authsuccess', init, { once: true })
-      })()
+      const token = Auth.requireAuth()
+      if (token) init()
+      else globalThis.addEventListener('authsuccess', init, { once: true })
     </script>
   </body>
 </html>

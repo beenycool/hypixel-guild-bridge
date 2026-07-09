@@ -392,6 +392,21 @@ export class SettingsApiHandler {
           }
           break
         }
+        case 'tournament': {
+          cfg.setTournamentEnabled(bridgeId, bool(body.enabled))
+          cfg.setTournamentNotificationChannelId(bridgeId, string_(body.notificationChannelId))
+          cfg.setTournamentDefaultDeadlineHours(bridgeId, number_(body.defaultDeadlineHours, 48))
+          cfg.setTournamentDefaultBestOf(bridgeId, number_(body.defaultBestOf, 1))
+          cfg.setTournamentAnnounceMc(bridgeId, bool(body.announceMc))
+          cfg.setTournamentCheckinWindowMinutes(bridgeId, number_(body.checkinWindowMinutes, 60))
+          cfg.setTournamentMinParticipants(bridgeId, number_(body.minParticipants, 4))
+          cfg.setTournamentMaxExtensionHours(bridgeId, number_(body.maxExtensionHours, 24))
+          cfg.setTournamentAutoCheckin(bridgeId, bool(body.autoCheckin))
+          cfg.setTournamentCategoryId(bridgeId, string_(body.categoryId) || undefined)
+          cfg.setTournamentDefaultBracketFormat(bridgeId, string_(body.bracketFormat, 'single-elim'))
+          cfg.setTournamentValidGameTypes(bridgeId, array(body.validGameTypes))
+          break
+        }
         default: {
           sendError(response, 'NOT_FOUND', `Unknown category: ${category}`, 404)
           return

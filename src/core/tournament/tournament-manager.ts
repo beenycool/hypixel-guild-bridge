@@ -209,7 +209,8 @@ export class TournamentManager {
     createdBy: string,
     roundDeadlineHours = 48,
     startedAtUnix?: number,
-    checkinWindowMinutes = 60
+    checkinWindowMinutes = 60,
+    bracketFormat = 'single-elim'
   ): Promise<Tournament> {
     const existing = this.getActiveTournament(bridgeId)
     if (existing !== undefined) {
@@ -222,8 +223,8 @@ export class TournamentManager {
     const checkinClosesAt = startedAtUnix !== undefined ? startedAtUnix : undefined
 
     const tournament = await this.databaseManager.queryOne<Tournament>(
-      `INSERT INTO "tournaments" ("bridgeId", "name", "gameType", "bestOf", "status", "roundDeadlineHours", "createdBy", "createdAt", "checkinOpensAt", "checkinClosesAt", "startedAtUnix")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO "tournaments" ("bridgeId", "name", "gameType", "bestOf", "status", "roundDeadlineHours", "createdBy", "createdAt", "checkinOpensAt", "checkinClosesAt", "startedAtUnix", "bracketFormat")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         bridgeId,
@@ -236,7 +237,8 @@ export class TournamentManager {
         now,
         checkinOpensAt ?? null,
         checkinClosesAt ?? null,
-        startedAtUnix ?? null
+        startedAtUnix ?? null,
+        bracketFormat
       ]
     )
 

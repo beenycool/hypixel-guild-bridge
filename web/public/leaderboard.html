@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Leaderboard — Rankup</title>
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
   </head>
   <body>
     <div id="app-nav"></div>
@@ -24,149 +27,146 @@
         <div class="loading"><div class="loading-spinner"></div></div>
       </div>
     </div>
-    <script src="js/auth.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/ws.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/common.js"></script>
-    <script>
-      'use strict'
-      ;(function () {
-        const contentEl = document.querySelector('#leaderboard-content')
-        const rangeSelect = document.querySelector('#range-select')
+    <script type="module">
+      import { Auth } from './js/auth.js'
+      import { Api } from './js/api.js'
+      import { Ui } from './js/ui.js'
+      import { initNav } from './js/nav.js'
+      import { initStatusPolling } from './js/status.js'
 
-        function renderLeaderboard(data) {
-          if (!data || (!data.gexp && !data.messages && !data.onlineTime)) {
-            contentEl.innerHTML =
-              '<div class="empty-state"><div class="empty-state-text">No leaderboard data available.</div></div>'
-            return
-          }
+      initNav()
+      initStatusPolling()
 
-          const gexp = Array.isArray(data.gexp) ? data.gexp : []
-          const messages = Array.isArray(data.messages) ? data.messages : []
-          const onlineTime = Array.isArray(data.onlineTime) ? data.onlineTime : []
+      const contentEl = document.querySelector('#leaderboard-content')
+      const rangeSelect = document.querySelector('#range-select')
 
-          let html = '<div class="grid grid-cols-3 gap-md">'
-
-          // GEXP
-          html += '<div class="card"><div class="card-header"><h2>GEXP</h2></div><div class="card-body">'
-          if (gexp.length === 0) {
-            html += '<div class="text-sm text-muted">No data</div>'
-          } else {
-            html +=
-              '<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Player</th><th>GEXP</th></tr></thead><tbody>'
-            for (var i = 0; i < gexp.length; i++) {
-              var e = gexp[i]
-              var medal =
-                i === 0
-                  ? '<span class="badge badge-gold">1</span>'
-                  : i === 1
-                    ? '<span class="badge badge-cyan">2</span>'
-                    : i === 2
-                      ? '<span class="badge badge-muted">3</span>'
-                      : '' + (i + 1)
-              html +=
-                '<tr><td class="text-mono">' +
-                medal +
-                '</td><td class="text-mono">' +
-                App.escapeHtml(e.name || e.username || '—') +
-                '</td><td class="text-mono">' +
-                (e.value != null ? Number(e.value).toLocaleString() : '—') +
-                '</td></tr>'
-            }
-            html += '</tbody></table></div>'
-          }
-          html += '</div></div>'
-
-          // Messages
-          html += '<div class="card"><div class="card-header"><h2>Messages</h2></div><div class="card-body">'
-          if (messages.length === 0) {
-            html += '<div class="text-sm text-muted">No data</div>'
-          } else {
-            html +=
-              '<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Player</th><th>Messages</th></tr></thead><tbody>'
-            for (var j = 0; j < messages.length; j++) {
-              var m = messages[j]
-              var medal2 =
-                j === 0
-                  ? '<span class="badge badge-gold">1</span>'
-                  : j === 1
-                    ? '<span class="badge badge-cyan">2</span>'
-                    : j === 2
-                      ? '<span class="badge badge-muted">3</span>'
-                      : '' + (j + 1)
-              html +=
-                '<tr><td class="text-mono">' +
-                medal2 +
-                '</td><td class="text-mono">' +
-                App.escapeHtml(m.name || m.username || '—') +
-                '</td><td class="text-mono">' +
-                (m.value != null ? Number(m.value).toLocaleString() : '—') +
-                '</td></tr>'
-            }
-            html += '</tbody></table></div>'
-          }
-          html += '</div></div>'
-
-          // Online Time
-          html += '<div class="card"><div class="card-header"><h2>Online Time</h2></div><div class="card-body">'
-          if (onlineTime.length === 0) {
-            html += '<div class="text-sm text-muted">No data</div>'
-          } else {
-            html +=
-              '<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Player</th><th>Time</th></tr></thead><tbody>'
-            for (var k = 0; k < onlineTime.length; k++) {
-              var o = onlineTime[k]
-              var medal3 =
-                k === 0
-                  ? '<span class="badge badge-gold">1</span>'
-                  : k === 1
-                    ? '<span class="badge badge-cyan">2</span>'
-                    : k === 2
-                      ? '<span class="badge badge-muted">3</span>'
-                      : '' + (k + 1)
-              var timeStr = o.value != null ? App.formatDuration(o.value * 1000) : '—'
-              html +=
-                '<tr><td class="text-mono">' +
-                medal3 +
-                '</td><td class="text-mono">' +
-                App.escapeHtml(o.name || o.username || '—') +
-                '</td><td class="text-mono">' +
-                timeStr +
-                '</td></tr>'
-            }
-            html += '</tbody></table></div>'
-          }
-          html += '</div></div>'
-
-          html += '</div>'
-          contentEl.innerHTML = html
+      function renderLeaderboard(data) {
+        if (!data || (!data.gexp && !data.messages && !data.onlineTime)) {
+          contentEl.innerHTML =
+            '<div class="empty-state"><div class="empty-state-text">No leaderboard data available.</div></div>'
+          return
         }
 
-        async function loadLeaderboard() {
-          contentEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
-          try {
-            var range = rangeSelect.value
-            var data = await App.apiGet('/api/guild/leaderboard?range=' + encodeURIComponent(range))
-            renderLeaderboard(data)
-          } catch (error) {
-            contentEl.innerHTML =
-              '<div class="empty-state"><div class="empty-state-text text-danger">Failed to load leaderboard: ' +
-              App.escapeHtml(error.message) +
-              '</div></div>'
+        const gexp = Array.isArray(data.gexp) ? data.gexp : []
+        const messages = Array.isArray(data.messages) ? data.messages : []
+        const onlineTime = Array.isArray(data.onlineTime) ? data.onlineTime : []
+
+        let html = '<div class="grid grid-cols-3 gap-md">'
+
+        html += '<div class="card"><div class="card-header"><h2>GEXP</h2></div><div class="card-body">'
+        if (gexp.length === 0) {
+          html += '<div class="text-sm text-muted">No data</div>'
+        } else {
+          html +=
+            '<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Player</th><th>GEXP</th></tr></thead><tbody>'
+          for (var i = 0; i < gexp.length; i++) {
+            var e = gexp[i]
+            var medal =
+              i === 0
+                ? '<span class="badge badge-gold">1</span>'
+                : i === 1
+                  ? '<span class="badge badge-cyan">2</span>'
+                  : i === 2
+                    ? '<span class="badge badge-muted">3</span>'
+                    : '' + (i + 1)
+            html +=
+              '<tr><td class="text-mono">' +
+              medal +
+              '</td><td class="text-mono">' +
+              Ui.escapeHtml(e.name || e.username || '\u2014') +
+              '</td><td class="text-mono">' +
+              (e.value != null ? Number(e.value).toLocaleString() : '\u2014') +
+              '</td></tr>'
           }
+          html += '</tbody></table></div>'
         }
+        html += '</div></div>'
 
-        function init() {
-          App.injectNav('leaderboard')
-          rangeSelect.addEventListener('change', loadLeaderboard)
-          loadLeaderboard()
+        html += '<div class="card"><div class="card-header"><h2>Messages</h2></div><div class="card-body">'
+        if (messages.length === 0) {
+          html += '<div class="text-sm text-muted">No data</div>'
+        } else {
+          html +=
+            '<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Player</th><th>Messages</th></tr></thead><tbody>'
+          for (var j = 0; j < messages.length; j++) {
+            var m = messages[j]
+            var medal2 =
+              j === 0
+                ? '<span class="badge badge-gold">1</span>'
+                : j === 1
+                  ? '<span class="badge badge-cyan">2</span>'
+                  : j === 2
+                    ? '<span class="badge badge-muted">3</span>'
+                    : '' + (j + 1)
+            html +=
+              '<tr><td class="text-mono">' +
+              medal2 +
+              '</td><td class="text-mono">' +
+              Ui.escapeHtml(m.name || m.username || '\u2014') +
+              '</td><td class="text-mono">' +
+              (m.value != null ? Number(m.value).toLocaleString() : '\u2014') +
+              '</td></tr>'
+          }
+          html += '</tbody></table></div>'
         }
+        html += '</div></div>'
 
-        const token = App.requireAuth()
-        if (token) init()
-        else globalThis.addEventListener('authsuccess', init, { once: true })
-      })()
+        html += '<div class="card"><div class="card-header"><h2>Online Time</h2></div><div class="card-body">'
+        if (onlineTime.length === 0) {
+          html += '<div class="text-sm text-muted">No data</div>'
+        } else {
+          html +=
+            '<div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Player</th><th>Time</th></tr></thead><tbody>'
+          for (var k = 0; k < onlineTime.length; k++) {
+            var o = onlineTime[k]
+            var medal3 =
+              k === 0
+                ? '<span class="badge badge-gold">1</span>'
+                : k === 1
+                  ? '<span class="badge badge-cyan">2</span>'
+                  : k === 2
+                    ? '<span class="badge badge-muted">3</span>'
+                    : '' + (k + 1)
+            var timeStr = o.value != null ? Ui.formatDuration(o.value * 1000) : '\u2014'
+            html +=
+              '<tr><td class="text-mono">' +
+              medal3 +
+              '</td><td class="text-mono">' +
+              Ui.escapeHtml(o.name || o.username || '\u2014') +
+              '</td><td class="text-mono">' +
+              timeStr +
+              '</td></tr>'
+          }
+          html += '</tbody></table></div>'
+        }
+        html += '</div></div>'
+
+        html += '</div>'
+        contentEl.innerHTML = html
+      }
+
+      async function loadLeaderboard() {
+        contentEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+        try {
+          var range = rangeSelect.value
+          var data = await Api.apiGet('/api/guild/leaderboard?range=' + encodeURIComponent(range))
+          renderLeaderboard(data)
+        } catch (error) {
+          contentEl.innerHTML =
+            '<div class="empty-state"><div class="empty-state-text text-danger">Failed to load leaderboard: ' +
+            Ui.escapeHtml(error.message) +
+            '</div></div>'
+        }
+      }
+
+      function init() {
+        rangeSelect.addEventListener('change', loadLeaderboard)
+        loadLeaderboard()
+      }
+
+      const token = Auth.requireAuth()
+      if (token) init()
+      else globalThis.addEventListener('authsuccess', init, { once: true })
     </script>
   </body>
 </html>

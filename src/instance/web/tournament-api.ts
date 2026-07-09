@@ -17,13 +17,16 @@ export class TournamentApiHandler {
     private readonly logger: Logger
   ) {}
 
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
+  private verifyAuth(
+    request: http.IncomingMessage,
+    response: http.ServerResponse
+  ): { permission: Permission; userId?: string } | undefined {
     const webConfig = this.application.config.web
     if (!webConfig?.signingSecret) return undefined
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)
-    if (result.ok) return result.permission
+    if (result.ok) return { permission: result.permission, userId: result.userId }
     sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
     return undefined
   }
@@ -37,8 +40,9 @@ export class TournamentApiHandler {
 
     const method = request.method ?? 'GET'
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuth(request, response)
+    if (auth === undefined) return true
+    const permission = auth.permission
 
     if (permission < Permission.Helper) {
       sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
@@ -51,6 +55,20 @@ export class TournamentApiHandler {
         return true
       }
       await this.handleList(response)
+      return true
+    }
+
+    // POST /api/tournament (create new tournament, no id in path)
+    if (pathPart === TournamentPrefix || pathPart === TournamentPrefix + '/') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleCreate(request, response, auth)
       return true
     }
 
@@ -115,6 +133,71 @@ export class TournamentApiHandler {
         return true
       }
       await this.handleAudit(response, tournamentId)
+      return true
+    }
+
+    if (subRoute === 'start') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleStart(request, response, tournamentId)
+      return true
+    }
+
+    if (subRoute === 'cancel') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleCancel(response, tournamentId)
+      return true
+    }
+
+    if (subRoute === 'forfeit') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Officer) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleForfeit(request, response)
+      return true
+    }
+
+    if (subRoute === 'extend') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Officer) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleExtend(request, response)
+      return true
+    }
+
+    if (subRoute === 'open-checkin') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleOpenCheckin(response, tournamentId)
       return true
     }
 
@@ -231,6 +314,158 @@ export class TournamentApiHandler {
     } catch (error: unknown) {
       this.logger.error('Failed to get audit log:', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to get audit log', 500)
+    }
+  }
+
+  private async handleCreate(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const bridgeId = body.bridgeId
+    const name = body.name
+    const gameType = body.gameType
+    const bestOf = body.bestOf
+    const bracketFormat = body.bracketFormat
+    const roundDeadlineHours = body.roundDeadlineHours
+    const checkinWindowMinutes = body.checkinWindowMinutes
+    const startedAtUnix = body.startedAtUnix
+
+    if (typeof bridgeId !== 'string' || typeof name !== 'string' || typeof gameType !== 'string') {
+      sendError(response, 'VALIDATION_ERROR', 'bridgeId, name, and gameType are required', 400)
+      return
+    }
+    if (typeof bestOf !== 'number' || bestOf < 1) {
+      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive number', 400)
+      return
+    }
+
+    const createdBy = auth.userId ?? 'web-ui'
+
+    try {
+      const tournament = await this.application.core.tournamentManager.createTournament(
+        bridgeId,
+        name,
+        gameType,
+        bestOf,
+        createdBy,
+        typeof roundDeadlineHours === 'number' ? roundDeadlineHours : 48,
+        typeof startedAtUnix === 'number' ? startedAtUnix : undefined,
+        typeof checkinWindowMinutes === 'number' ? checkinWindowMinutes : 60,
+        typeof bracketFormat === 'string' ? bracketFormat : 'single-elim'
+      )
+      sendSuccess(response, tournament)
+    } catch (error: unknown) {
+      this.logger.error('Failed to create tournament:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleStart(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const guildId = body.guildId
+    if (typeof guildId !== 'string') {
+      const client = this.application.discordInstance.getClient()
+      const guild = client.guilds.cache.first()
+      if (guild === undefined) {
+        sendError(response, 'VALIDATION_ERROR', 'guildId is required and no Discord guild available', 400)
+        return
+      }
+      try {
+        await this.application.core.tournamentManager.startTournament(tournamentId, guild.id)
+        sendSuccess(response, { success: true })
+        return
+      } catch (error: unknown) {
+        this.logger.error('Failed to start tournament:', error)
+        sendError(response, 'INTERNAL_ERROR', String(error), 500)
+        return
+      }
+    }
+
+    try {
+      await this.application.core.tournamentManager.startTournament(tournamentId, guildId)
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to start tournament:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleCancel(response: http.ServerResponse, tournamentId: number): Promise<void> {
+    try {
+      await this.application.core.tournamentManager.cancelTournament(tournamentId)
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to cancel tournament:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleForfeit(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const matchId = body.matchId
+    const playerId = body.playerId
+    if (typeof matchId !== 'number' || typeof playerId !== 'number') {
+      sendError(response, 'VALIDATION_ERROR', 'matchId and playerId are required', 400)
+      return
+    }
+
+    try {
+      const result = await this.application.core.tournamentManager.matchManager.forfeit(matchId, playerId)
+      sendSuccess(response, result)
+    } catch (error: unknown) {
+      this.logger.error('Failed to forfeit match:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleExtend(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const matchId = body.matchId
+    const hours = body.hours
+    if (typeof matchId !== 'number' || typeof hours !== 'number' || hours < 1) {
+      sendError(response, 'VALIDATION_ERROR', 'matchId and hours are required', 400)
+      return
+    }
+
+    try {
+      const bridgeId = body.bridgeId
+      const maxExtensionHours =
+        typeof bridgeId === 'string'
+          ? this.application.core.bridgeConfigurations.getTournamentMaxExtensionHours(bridgeId)
+          : 48
+      const result = await this.application.core.tournamentManager.matchManager.extendDeadline(
+        matchId,
+        hours,
+        maxExtensionHours
+      )
+      sendSuccess(response, result)
+    } catch (error: unknown) {
+      this.logger.error('Failed to extend deadline:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleOpenCheckin(response: http.ServerResponse, tournamentId: number): Promise<void> {
+    try {
+      await this.application.core.tournamentManager.openCheckinManually(tournamentId)
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to open check-in:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
     }
   }
 
