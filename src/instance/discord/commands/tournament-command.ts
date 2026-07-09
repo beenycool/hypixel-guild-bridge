@@ -203,7 +203,7 @@ export default {
       return
     }
 
-    if (subcommand !== 'test' && subcommand !== 'set-category') {
+    if (subcommand !== 'test' && subcommand !== 'set-category' && subcommand !== 'cancel') {
       const tournamentEnabled = context.application.core.bridgeConfigurations.getTournamentEnabled(bridgeId)
       if (!tournamentEnabled) {
         await context.interaction.reply({
