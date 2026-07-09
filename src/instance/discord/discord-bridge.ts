@@ -33,7 +33,7 @@ import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.j
 import type { User } from '../../common/user'
 import { beautifyInstanceName } from '../../utility/shared-utility'
 
-import { BlockReaction, GuildMutedReaction, RepeatReaction } from './common/discord-config.js'
+import { BlockReaction, GuildMutedReaction } from './common/discord-config.js'
 import { InstanceStatusManager } from './common/instance-status-manager'
 import type MessageAssociation from './common/message-association.js'
 import type { DiscordAssociatedMessage } from './common/message-association.js'
@@ -475,10 +475,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
           let emoji: ApplicationEmoji | undefined = undefined
           switch (event.type) {
-            case MinecraftReactiveEventType.Repeat: {
-              emoji = this.clientInstance.emojiHandler.emojiByName.get(RepeatReaction.name)
-              break
-            }
             case MinecraftReactiveEventType.Advertise:
             case MinecraftReactiveEventType.Block: {
               emoji = this.clientInstance.emojiHandler.emojiByName.get(BlockReaction.name)

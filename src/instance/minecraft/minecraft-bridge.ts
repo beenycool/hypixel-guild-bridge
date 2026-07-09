@@ -361,12 +361,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
       response
     )
 
-    // Add random suffix to guild chat messages to prevent Hypixel spam filter from blocking repeated messages
-    if (reply.channel === ChannelType.Public || reply.channel === ChannelType.Officer) {
-      const randomSuffix = (Math.random() + 1).toString(36).slice(7)
-      sanitizedResponse = `${sanitizedResponse} ${randomSuffix}`
-    }
-
     let prefix = ''
     switch (reply.channel) {
       case ChannelType.Public: {

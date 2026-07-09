@@ -1,6 +1,5 @@
 import type Application from '../../../application.js'
 
-import Antispam from './antispam.js'
 import ArabicFixer from './arabic-fixer.js'
 import EmojiSanitizer from './emoji-sanitizer.js'
 import EzSanitizer from './ez-sanitizer.js'
@@ -13,7 +12,6 @@ export class Sanitizer {
   private readonly emoji: EmojiSanitizer
   private readonly ez: EzSanitizer
   private readonly arabicFixer: ArabicFixer
-  private readonly antispam: Antispam
 
   constructor(application: Application) {
     this.line = new LineSanitizer()
@@ -21,7 +19,6 @@ export class Sanitizer {
     this.emoji = new EmojiSanitizer()
     this.ez = new EzSanitizer()
     this.arabicFixer = new ArabicFixer()
-    this.antispam = new Antispam(application.core.minecraftConfigurations)
   }
 
   public async sanitizeChatMessage(instanceName: string, message: string): Promise<string> {
@@ -30,7 +27,6 @@ export class Sanitizer {
     message = this.emoji.process(message)
     message = this.ez.process(message)
     message = this.arabicFixer.encode(message)
-    message = this.antispam.process(instanceName, message)
 
     return message
   }

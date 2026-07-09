@@ -252,15 +252,26 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return this.sendQueue.lastId.get(CommandType.GuildCommand)
   }
 
+  private static generateID(length: number): string {
+    let result = ''
+    const characters = 'abcde0123456789'
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length))
+    }
+    return result
+  }
+
   /**
    * Send a message/command via minecraft client.
    * The command will be queued to be sent in the future.
+   * If Hypixel responds with "You cannot say the same message twice!",
+   * a random suffix is appended and the message is resent (up to 5 retries).
    *
    * @param message the message/command to send
    * @param priority when to handle the command
    * @param originEventId {@link BaseEvent#eventId} that resulted in this send. <code>undefined</code> if none.
    */
-  async send(message: string, priority: MinecraftSendChatPriority, originEventId: string | undefined): Promise<void> {
+  async send(message: string, priority: MinecraftSendChatPriority, originEventId: string | undefined, maxRetries = 5): Promise<void> {
     message = message
       .split('\n')
       .map((chunk) => chunk.trim())
@@ -280,8 +291,76 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       }
     }
 
-    this.logger.debug(`Queuing message to send: ${message}`)
-    await this.sendQueue.queue(message, priority, originEventId)
+    const startTime = Date.now()
+    const maxExecutionTime = 10000
+
+    const sendWithRetry = async (msg: string, isRetry: boolean): Promise<void> => {
+      if (isRetry) await new Promise((resolve) => setTimeout(resolve, 100))
+
+      return new Promise((resolve, reject) => {
+        const client = this.clientSession?.client
+        if (client === undefined || client.state !== states.PLAY) {
+          resolve()
+          return
+        }
+
+        let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+        const listener = (data: { formattedMessage?: string } | { message?: string } | string) => {
+          let msgStr: string
+          if (typeof data === 'string') {
+            msgStr = data
+          } else if ('formattedMessage' in data && typeof data.formattedMessage === 'string') {
+            msgStr = this.clientSession?.prismChat.fromNotch(data.formattedMessage).toString() ?? ''
+          } else if ('message' in data && typeof data.message === 'string') {
+            msgStr = data.message
+          } else {
+            msgStr = ''
+          }
+
+          if (msgStr.includes('You cannot say the same message twice!')) {
+            client.removeListener('systemChat', listener)
+            client.removeListener('playerChat', listener)
+            if (timeoutId !== undefined) clearTimeout(timeoutId)
+            reject(new Error('duplicate-message'))
+          }
+        }
+
+        this.sendQueue.queue(msg, priority, originEventId).then(() => {
+          client.on('systemChat', listener)
+          client.on('playerChat', listener)
+
+          timeoutId = setTimeout(() => {
+            client.removeListener('systemChat', listener)
+            client.removeListener('playerChat', listener)
+            resolve()
+          }, 500)
+        }).catch((err) => {
+          reject(err)
+        })
+      })
+    }
+
+    let currentMessage = message
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (Date.now() - startTime > maxExecutionTime) {
+        this.logger.warn('Message sending timed out after 10 seconds')
+        return
+      }
+
+      try {
+        await sendWithRetry(currentMessage, attempt > 0)
+        return
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message === 'duplicate-message') {
+          const randomId = MinecraftInstance.generateID(24)
+          const maxLength = 256 - randomId.length - 3
+          currentMessage = `${currentMessage.substring(0, maxLength)} - ${randomId}`
+          continue
+        }
+        throw error
+      }
+    }
   }
 
   private sendNow(message: string) {

@@ -47,14 +47,6 @@ export class MinecraftConfigurations {
     this.configuration.setBoolean('leaveGuildReaction', value)
   }
 
-  public getAntispamEnabled(): boolean {
-    return this.configuration.getBoolean('antispamEnabled', true)
-  }
-
-  public setAntispamEnabled(value: boolean): void {
-    this.configuration.setBoolean('antispamEnabled', value)
-  }
-
   public getHideLinksViaStuf(): boolean {
     return this.configuration.getBoolean('hideLinksViaStuf', false)
   }
