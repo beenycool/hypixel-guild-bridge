@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto'
 
 import * as chrono from 'chrono-node'
-import { EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js'
+import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
@@ -132,6 +132,13 @@ export default {
           )
           .addIntegerOption((opt) =>
             opt.setName('players').setDescription('Number of fake players (default 8)').setRequired(false)
+          )
+          .addChannelOption((opt) =>
+            opt
+              .setName('category')
+              .setDescription('Discord category to place tournament channels in')
+              .addChannelTypes(ChannelType.GuildCategory)
+              .setRequired(false)
           )
       )
       .addSubcommand((sub) =>
@@ -774,8 +781,11 @@ export default {
           return
         }
 
+        const categoryChannel = context.interaction.options.getChannel('category')
+        const categoryId = categoryChannel?.id
+
         // Start the tournament
-        await context.application.core.tournamentManager.startTournament(tournament.id, guildId)
+        await context.application.core.tournamentManager.startTournament(tournament.id, guildId, categoryId)
 
         // Get updated tournament
         const startedTournament = await context.application.core.tournamentManager.getTournament(tournament.id)

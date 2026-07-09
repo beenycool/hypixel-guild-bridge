@@ -399,7 +399,7 @@ export class TournamentManager {
   /**
    * Start the tournament. Generates brackets, links matches, creates channels and threads.
    */
-  public async startTournament(tournamentId: number, guildId: string): Promise<void> {
+  public async startTournament(tournamentId: number, guildId: string, categoryId?: string): Promise<void> {
     const tournament = this.activeTournaments.get(tournamentId)
     if (tournament === undefined) {
       throw new Error('Tournament not found or not active.')
@@ -518,7 +518,7 @@ export class TournamentManager {
     })
 
     // Setup Discord channel for bracket
-    const channel = await this.channelManager.createBracketChannel(guildId, tournament.name)
+    const channel = await this.channelManager.createBracketChannel(guildId, tournament.name, categoryId)
     if (channel !== undefined) {
       await this.databaseManager.execute('UPDATE "tournaments" SET "discordChannelId" = $1 WHERE "id" = $2', [
         channel.id,
