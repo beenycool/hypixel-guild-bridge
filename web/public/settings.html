@@ -14,17 +14,12 @@
     <div id="app-nav"></div>
     <div class="app-container wide">
       <div class="page-header">
-        <div>
-          <h1 class="page-title">Settings</h1>
-          <div class="text-xs text-muted">Configure bridge behavior</div>
-        </div>
-        <div class="bridge-selector">
-          <label class="form-label">Bridge:</label>
+        <h1 class="page-title">Settings</h1>
+        <div class="flex gap-sm" style="align-items: center">
           <select class="select" id="bridge-select"></select>
-          <button class="btn btn-secondary btn-sm" id="create-bridge-btn">+ New Bridge</button>
+          <button class="btn btn-secondary btn-sm" id="create-bridge-btn" title="New Bridge">+</button>
           <span class="ws-status connecting" id="ws-status" title="WebSocket connection">
             <span class="ws-status-dot"></span>
-            <span class="ws-status-text">connecting…</span>
           </span>
         </div>
       </div>

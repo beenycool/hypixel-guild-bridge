@@ -682,11 +682,6 @@
 .ws-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  letter-spacing: 0.02em;
 }
 
 .ws-status-dot {

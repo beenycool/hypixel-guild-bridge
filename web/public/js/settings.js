@@ -995,14 +995,12 @@ const CATEGORIES = [
 
 // ---- Utilities -----------------------------------------------------------
 
-function setWSStatus(state, label) {
+function setWSStatus(state) {
   const element = document.querySelector('#ws-status')
   if (!element) return
   element.classList.remove('connecting', 'disconnected')
   if (state === 'connecting') element.classList.add('connecting')
   else if (state === 'disconnected') element.classList.add('disconnected')
-  const text = element.querySelector('.ws-status-text')
-  if (text && label) text.textContent = label
 }
 
 function rebuildChannelNameMap(payload) {
@@ -2001,11 +1999,11 @@ async function onBridgeChange(bridgeId) {
 
 function handleWSEvent(type, data) {
   if (type === 'error') {
-    setWSStatus('disconnected', 'ws error')
+    setWSStatus('disconnected')
     return
   }
   if (type === 'ack') {
-    setWSStatus('connected', 'live')
+    setWSStatus('connected')
     return
   }
   if (type === 'settings.configChanged') {
@@ -2160,7 +2158,7 @@ async function bootstrap() {
     } catch {}
     ws = null
   }
-  setWSStatus('connecting', 'connecting\u2026')
+  setWSStatus('connecting')
   ws = Ws.connectSettingsWS(handleWSEvent)
 
   if (currentBridgeId) {
