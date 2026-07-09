@@ -1128,6 +1128,21 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     })
   }
 
+  public getTournamentCategoryId(bridgeId: string): string | undefined {
+    const value = this.configuration.getString(`${bridgeId}_tournamentCategoryId`, '')
+    return value === '' ? undefined : value
+  }
+
+  public setTournamentCategoryId(bridgeId: string, categoryId: string | undefined): void {
+    this.setConfig(bridgeId, `${bridgeId}_tournamentCategoryId`, categoryId, () => {
+      if (categoryId === undefined) {
+        this.configuration.delete(`${bridgeId}_tournamentCategoryId`)
+      } else {
+        this.configuration.setString(`${bridgeId}_tournamentCategoryId`, categoryId)
+      }
+    })
+  }
+
   public getTranslationOverrides(bridgeId: string): Record<string, string> {
     const raw = this.configuration.getString(`${bridgeId}_translationOverrides`, '{}')
     try {
@@ -1229,7 +1244,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         checkinWindowMinutes: this.getTournamentCheckinWindowMinutes(bridgeId),
         minParticipants: this.getTournamentMinParticipants(bridgeId),
         maxExtensionHours: this.getTournamentMaxExtensionHours(bridgeId),
-        autoCheckin: this.getTournamentAutoCheckin(bridgeId)
+        autoCheckin: this.getTournamentAutoCheckin(bridgeId),
+        categoryId: this.getTournamentCategoryId(bridgeId)
       }
     }
   }

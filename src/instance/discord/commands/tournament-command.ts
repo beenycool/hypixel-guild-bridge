@@ -119,6 +119,18 @@ export default {
       .addSubcommand((sub) => sub.setName('forfeit').setDescription('Forfeit your current match'))
       .addSubcommand((sub) =>
         sub
+          .setName('set-category')
+          .setDescription('Set the Discord category for all tournament channels (Admin only)')
+          .addChannelOption((opt) =>
+            opt
+              .setName('category')
+              .setDescription('Discord category for tournament channels')
+              .addChannelTypes(ChannelType.GuildCategory)
+              .setRequired(true)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
           .setName('test')
           .setDescription('Create an interactive test tournament with fake players (Admin/Officer only)')
           .addStringOption((opt) =>
@@ -724,7 +736,42 @@ export default {
       return
     }
 
-    // 14. Test Tournament
+    // 14. Set Tournament Category
+    if (subcommand === 'set-category') {
+      if (context.permission < Permission.Admin) {
+        await context.interaction.reply({
+          content: 'You do not have permission to change tournament settings.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+
+      if (bridgeId === undefined) {
+        await context.interaction.reply({
+          content: 'This command can only be used in a bridge channel.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+
+      const category = context.interaction.options.getChannel('category')
+      if (category === null) {
+        await context.interaction.reply({
+          content: 'Please select a valid category channel.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+
+      context.application.core.bridgeConfigurations.setTournamentCategoryId(bridgeId, category.id)
+      await context.interaction.reply({
+        content: `Tournament category set to <#${category.id}>. All future tournaments will be placed inside this category.`,
+        flags: MessageFlags.Ephemeral
+      })
+      return
+    }
+
+    // 15. Test Tournament
     if (subcommand === 'test') {
       if (context.permission < Permission.Admin) {
         await context.interaction.reply({
@@ -974,7 +1021,7 @@ export default {
       return
     }
 
-    // 15. Schedule Availability
+    // 16. Schedule Availability
     if (subcommand === 'schedule') {
       const timeStr = context.interaction.options.getString('time', true)
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
@@ -1058,7 +1105,7 @@ export default {
       return
     }
 
-    // 16. Audit Log
+    // 17. Audit Log
     if (subcommand === 'audit') {
       if (context.permission < Permission.Admin) {
         await context.interaction.reply({
@@ -1105,7 +1152,7 @@ export default {
       return
     }
 
-    // 17. Proof Attachment
+    // 18. Proof Attachment
     if (subcommand === 'proof') {
       const matchId = context.interaction.options.getInteger('match_id', true)
       const url = context.interaction.options.getString('url', true)

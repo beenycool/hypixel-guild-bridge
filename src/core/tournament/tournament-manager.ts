@@ -518,7 +518,9 @@ export class TournamentManager {
     })
 
     // Setup Discord channel for bracket
-    const channel = await this.channelManager.createBracketChannel(guildId, tournament.name, categoryId)
+    const configCategoryId = this.application.core.bridgeConfigurations.getTournamentCategoryId(tournament.bridgeId)
+    const resolvedCategoryId = categoryId ?? configCategoryId
+    const channel = await this.channelManager.createBracketChannel(guildId, tournament.name, resolvedCategoryId)
     if (channel !== undefined) {
       await this.databaseManager.execute('UPDATE "tournaments" SET "discordChannelId" = $1 WHERE "id" = $2', [
         channel.id,
