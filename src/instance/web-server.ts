@@ -362,7 +362,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private async serveStatic(route: string, response: http.ServerResponse): Promise<boolean> {
-    const relativePath = route === '/' ? 'index.html' : route.replace(/^\/+/, '')
+    const relativePath =
+      route === '/' ? 'settings.html' : route === '/overview' ? 'index.html' : route.replace(/^\/+/, '')
     if (relativePath.includes('\0')) return false
 
     const filePath = path.normalize(path.join(this.staticRoot, relativePath))

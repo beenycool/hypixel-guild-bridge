@@ -98,21 +98,22 @@ export default {
 
     const showSettings = userPermission >= Permission.Owner
 
-    const fields = [
-      { name: 'Overview', value: `[Open](${base}/?token=${t})`, inline: true },
-      { name: 'Pending Reviews', value: `[Open](${base}/rankup-pending.html?token=${t})`, inline: true },
-      { name: 'History', value: `[Open](${base}/rankup-history.html?token=${t})`, inline: true }
-    ]
+    const fields = []
     if (showSettings) {
       fields.push(
         { name: 'Settings', value: `[Open](${base}/settings.html?token=${t})`, inline: true },
-        { name: 'Rankup Config', value: `[Open](${base}/settings.html?token=${t})`, inline: true }
+        { name: 'Rankup Config', value: `[Open](${base}/settings.html?cat=rankup&token=${t})`, inline: true }
       )
     }
+    fields.push(
+      { name: 'Overview', value: `[Open](${base}/?token=${t})`, inline: true },
+      { name: 'Pending Reviews', value: `[Open](${base}/rankup-pending.html?token=${t})`, inline: true },
+      { name: 'History', value: `[Open](${base}/rankup-history.html?token=${t})`, inline: true }
+    )
 
     const embed = new EmbedBuilder()
       .setTitle('Web Dashboard')
-      .setDescription('Manage your bridges, settings, and rankup rules via the web interface.')
+      .setDescription('Manage your bridges and settings via the web interface.')
       .addFields(fields)
       .setColor(0x00_aa_ff)
 

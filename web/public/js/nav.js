@@ -45,7 +45,7 @@ export function initNav() {
 
   const sections = NAV_ITEMS.map((s) => ({ ...s, items: [...s.items] }))
   if (permission === 'owner' || permission === 'admin') {
-    sections[2].items.push({ name: 'Settings', href: 'settings.html', key: 'settings' })
+    sections[0].items.unshift({ name: 'Settings', href: 'settings.html', key: 'settings' })
   }
 
   const nav = document.createElement('nav')
@@ -54,7 +54,7 @@ export function initNav() {
   const brand = document.createElement('a')
   brand.className = 'nav-brand'
   brand.href = 'index.html'
-  brand.textContent = 'Rankup'
+  brand.textContent = 'Dashboard'
   nav.append(brand)
 
   const toggle = document.createElement('button')

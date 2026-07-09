@@ -1063,21 +1063,6 @@ function fieldValue(data, field) {
 
 // ---- Sidebar --------------------------------------------------------------
 
-function closeSidebar() {
-  const sidebar = document.querySelector('#settings-sidebar')
-  const overlay = document.querySelector('#settings-sidebar-overlay')
-  if (sidebar) sidebar.classList.remove('open')
-  if (overlay) overlay.classList.remove('open')
-}
-
-function toggleSidebar() {
-  const sidebar = document.querySelector('#settings-sidebar')
-  const overlay = document.querySelector('#settings-sidebar-overlay')
-  if (!sidebar) return
-  const isOpen = sidebar.classList.toggle('open')
-  if (overlay) overlay.classList.toggle('open', isOpen)
-}
-
 function renderSidebar() {
   const host = document.querySelector('#settings-nav')
   if (!host) return
@@ -2189,13 +2174,6 @@ async function bootstrap() {
       )
     }
   }
-
-  const toggleButton = document.querySelector('#settings-sidebar-toggle')
-  const closeButton = document.querySelector('#settings-sidebar-close')
-  const overlay = document.querySelector('#settings-sidebar-overlay')
-  if (toggleButton) toggleButton.addEventListener('click', toggleSidebar)
-  if (closeButton) closeButton.addEventListener('click', closeSidebar)
-  if (overlay) overlay.addEventListener('click', closeSidebar)
 
   const createButton = document.querySelector('#create-bridge-btn')
   if (createButton) {
