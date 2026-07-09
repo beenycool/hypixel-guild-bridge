@@ -17,6 +17,7 @@ import GuildRequirements from './features/guild-requirements.js'
 import Leaderboard from './features/leaderboard.js'
 import LoggerManager from './features/logger-manager.js'
 import StatsChannels from './features/stats-channels.js'
+import TournamentTestPanel from './features/tournament-test-panel.js'
 import VerificationRoleManager from './features/verification-role-manager.js'
 import EmojiHandler from './handlers/emoji-handler.js'
 import StateHandler from './handlers/state-handler.js'
@@ -30,6 +31,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
   readonly leaderboard: Leaderboard
   readonly statsChannels: StatsChannels
   readonly verificationRoleManager: VerificationRoleManager
+  readonly tournamentTestPanel: TournamentTestPanel
 
   private readonly client: Client
 
@@ -109,6 +111,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.leaderboard = new Leaderboard(this)
     this.statsChannels = new StatsChannels(this)
     this.verificationRoleManager = new VerificationRoleManager(this)
+    this.tournamentTestPanel = new TournamentTestPanel(this)
 
     this.bridge = new DiscordBridge(
       this.application,

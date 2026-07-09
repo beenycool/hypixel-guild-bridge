@@ -1,10 +1,56 @@
+import { randomInt } from 'node:crypto'
+
+import * as chrono from 'chrono-node'
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
+import { validateSeriesScore } from '../../../core/tournament/score-validator.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from '../../../core/tournament/types.js'
 import type { TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
-import { validateSeriesScore } from '../../../core/tournament/score-validator.js'
+
+const TestChatMessages = [
+  'gg everyone lets play soon',
+  'what time works for you? im free after 5pm est',
+  'bridge or bedwars?',
+  'ill take the first game, you host',
+  'ready when you are',
+  'wanna go best of 3? i think thats default',
+  'good game, well played',
+  'rematch next round maybe',
+  'im down for bridge',
+  'anyone wanna warm up first?',
+  'what server are we playing on?',
+  'lets goooo',
+  'that was close last game',
+  'gl hf everyone',
+  'im in the tournament chat on disc',
+  'can someone invite me to the party?',
+  'what seed are you?',
+  'gg wp',
+  'see you next round',
+  'brb getting water',
+  'ok im back ready to play',
+  'lets go round 2',
+  'that was a good match',
+  'who won the other match?',
+  'bracket looks crazy',
+  'cant wait for finals',
+  'this tournament is fun',
+  'thanks for organizing this',
+  'everyone ready? lets start'
+]
+
+const SchedulingOptions = [
+  'Saturday 14:00-18:00 GMT',
+  'Sunday afternoon EST',
+  'tomorrow after 5pm',
+  'Saturday morning CET',
+  'weekdays after 6pm UTC',
+  'Sunday 10:00-14:00 GMT',
+  'this weekend anytime',
+  'Friday evening EST'
+]
 
 export default {
   getCommandBuilder: () =>
@@ -70,7 +116,35 @@ export default {
             opt.setName('hours').setDescription('Hours to extend the deadline by').setRequired(true)
           )
       )
-      .addSubcommand((sub) => sub.setName('forfeit').setDescription('Forfeit your current match')),
+      .addSubcommand((sub) => sub.setName('forfeit').setDescription('Forfeit your current match'))
+      .addSubcommand((sub) =>
+        sub
+          .setName('test')
+          .setDescription('Create an interactive test tournament with fake players (Admin/Officer only)')
+          .addStringOption((opt) =>
+            opt.setName('name').setDescription('Name of the test tournament').setRequired(false)
+          )
+          .addStringOption((opt) =>
+            opt.setName('game_type').setDescription('Hypixel duel type (e.g., BedWars Duels)').setRequired(false)
+          )
+          .addIntegerOption((opt) =>
+            opt.setName('best_of').setDescription('Best of X series (odd numbers)').setRequired(false)
+          )
+          .addIntegerOption((opt) =>
+            opt.setName('players').setDescription('Number of fake players (default 8)').setRequired(false)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName('schedule')
+          .setDescription('Post your availability in your current match thread')
+          .addStringOption((opt) =>
+            opt
+              .setName('time')
+              .setDescription('Your available time (e.g., "Saturday 14:00-18:00 GMT")')
+              .setRequired(true)
+          )
+      ),
 
   permission: Permission.Anyone, // Anyone can join/leave/report, subcommands validate administrative privileges
 
@@ -605,6 +679,328 @@ export default {
       } catch (error: unknown) {
         await context.interaction.editReply(error instanceof Error ? error.message : String(error))
       }
+      return
+    }
+
+    // 14. Test Tournament
+    if (subcommand === 'test') {
+      if (!isOfficer) {
+        await context.interaction.reply({
+          content: 'You do not have permission to create test tournaments.',
+          ephemeral: true
+        })
+        return
+      }
+
+      await context.interaction.deferReply()
+
+      try {
+        const name = context.interaction.options.getString('name') ?? 'Test Tournament'
+        const gameType = context.interaction.options.getString('game_type') ?? 'Bridge'
+        const bestOf = context.interaction.options.getInteger('best_of') ?? 1
+        const playerCount = context.interaction.options.getInteger('players') ?? 8
+
+        if (playerCount < 2 || playerCount > 32) {
+          await context.interaction.editReply('Player count must be between 2 and 32.')
+          return
+        }
+
+        // Create tournament
+        const tournament = await context.application.core.tournamentManager.createTournament(
+          bridgeId,
+          name,
+          gameType,
+          bestOf,
+          context.interaction.user.id
+        )
+
+        // Seed fake players
+        const fakePlayers: { id: number; playerUuid: string; seed: number }[] = []
+        for (let index = 0; index < playerCount; index++) {
+          const fakeUuid = `00000000-0000-0000-0000-${String(index + 1).padStart(12, '0')}`
+          const now = Math.floor(Date.now() / 1000)
+          const result = await context.application.core.databaseManager.queryOne<{
+            id: number
+            playerUuid: string
+          }>(
+            `INSERT INTO "tournament_players" ("tournamentId", "playerUuid", "discordId", "seed", "status", "checkedInAt")
+             VALUES ($1, $2, NULL, $3, $4, $5)
+             RETURNING "id", "playerUuid"`,
+            [tournament.id, fakeUuid, index + 1, PlayerStatus.CheckedIn, now]
+          )
+          if (result !== undefined) {
+            fakePlayers.push({ id: result.id, playerUuid: result.playerUuid, seed: index + 1 })
+          }
+        }
+
+        const guildId = context.interaction.guildId
+        if (guildId === null) {
+          await context.interaction.editReply('Cannot create test tournament outside of a Discord server.')
+          return
+        }
+
+        // Start the tournament
+        await context.application.core.tournamentManager.startTournament(tournament.id, guildId)
+
+        // Get updated tournament
+        const startedTournament = await context.application.core.tournamentManager.getTournament(tournament.id)
+        if (startedTournament === undefined) {
+          await context.interaction.editReply('Failed to start test tournament.')
+          return
+        }
+
+        // Post random messages + scheduling in match threads
+        const matches = await context.application.core.databaseManager.queryRows<TournamentMatch>(
+          'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND "round" = 1',
+          [tournament.id]
+        )
+
+        for (const match of matches) {
+          if (match.discordThreadId === undefined) continue
+          try {
+            const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
+            if (thread === null || !('send' in thread)) continue
+
+            const messageCount = randomInt(3, 6)
+            for (let m = 0; m < messageCount; m++) {
+              await new Promise((resolve) => setTimeout(resolve, 500))
+              const message = TestChatMessages[randomInt(0, TestChatMessages.length - 1)]
+              void thread.send({ content: message }).catch(() => undefined)
+            }
+
+            // Simulate a scheduling message
+            if (randomInt(0, 1) === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 500))
+              const scheduleTime = SchedulingOptions[randomInt(0, SchedulingOptions.length - 1)]
+              const parsed = chrono.parseDate(scheduleTime)
+              if (parsed !== null) {
+                const unix = Math.floor(parsed.getTime() / 1000)
+                void thread
+                  .send({
+                    content: `📅 **Scheduling** — available <t:${unix}:F> (<t:${unix}:R>)\nUse \`/tournament schedule\` to post your own availability!`
+                  })
+                  .catch(() => undefined)
+              }
+            }
+          } catch {
+            // Thread may not exist, ignore
+          }
+        }
+
+        // Store panel state
+        const startedMatches = await context.application.core.databaseManager.queryRows<TournamentMatch>(
+          'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
+          [tournament.id]
+        )
+
+        // Build the control panel embed
+        const names = await context.application.core.tournamentManager.getPlayerNames(tournament.id)
+
+        const panelEmbed = new EmbedBuilder()
+          .setTitle(`🏆 Test Tournament: ${tournament.name}`)
+          .setColor('#FFA500')
+          .setDescription(
+            `• **Game:** ${tournament.gameType}\n` +
+              `• **Best Of:** ${tournament.bestOf}\n` +
+              `• **Players:** ${playerCount} (fake)\n` +
+              `• **Status:** \`${startedTournament.status}\`\n` +
+              `• **Round:** ${startedTournament.currentRound} / ${startedTournament.totalRounds}`
+          )
+
+        for (let r = 1; r <= startedTournament.totalRounds; r++) {
+          const roundMatches = startedMatches
+            .filter((m) => m.round === r)
+            .toSorted((a, b) => a.matchIndex - b.matchIndex)
+          let roundContent = ''
+          for (const m of roundMatches) {
+            const p1Name = m.player1Id === undefined ? '⏳' : (names.get(m.player1Id) ?? `P#${m.player1Id}`)
+            const p2Name = m.player2Id === undefined ? '⏳' : (names.get(m.player2Id) ?? `P#${m.player2Id}`)
+            let emoji = '⏳'
+            switch (m.status) {
+              case MatchStatus.Completed: {
+                emoji = '✅'
+                break
+              }
+              case MatchStatus.Active: {
+                emoji = '🟢'
+                break
+              }
+              case MatchStatus.Disputed: {
+                emoji = '🔴'
+                break
+              }
+              case MatchStatus.Bye: {
+                {
+                  emoji = '💤'
+                  // No default
+                }
+                break
+              }
+            }
+            roundContent += `${emoji} ${p1Name} vs ${p2Name}\n`
+          }
+          if (roundContent) panelEmbed.addFields({ name: `Round ${r}`, value: roundContent })
+        }
+
+        // Store panel state
+        context.application.core.tournamentTestPanels.add({
+          messageId: '',
+          channelId: context.interaction.channelId,
+          guildId,
+          tournamentId: tournament.id,
+          bridgeId,
+          currentStep: 0,
+          historyJson: '[]',
+          createdAt: Date.now()
+        })
+
+        // Send the control panel and update the messageId
+        const panelMessage = await context.interaction.editReply({
+          embeds: [panelEmbed],
+          components: [
+            {
+              type: 1,
+              components: [
+                { type: 2, style: 3, customId: `tournament-test:resolve-round:`, label: '▶ Resolve Round' },
+                { type: 2, style: 1, customId: `tournament-test:resolve-match:`, label: '⏭ Resolve Match' },
+                { type: 2, style: 2, customId: `tournament-test:rewind-round:`, label: '⏮ Rewind Round' },
+                { type: 2, style: 2, customId: `tournament-test:rewind-all:`, label: '⏮ Rewind All' },
+                { type: 2, style: 4, customId: `tournament-test:cleanup:`, label: '🗑 Cleanup' }
+              ]
+            }
+          ]
+        })
+
+        // Update panel with message ID
+        const panelEntries = context.application.core.tournamentTestPanels.getAll()
+        const latestPanel = panelEntries.find((p) => p.tournamentId === tournament.id && p.messageId === '')
+        if (latestPanel !== undefined) {
+          context.application.core.tournamentTestPanels.remove('')
+          context.application.core.tournamentTestPanels.add({
+            ...latestPanel,
+            messageId: panelMessage.id
+          })
+
+          // Update button customIds with the real messageId
+          const components = [
+            {
+              type: 1 as const,
+              components: [
+                {
+                  type: 2 as const,
+                  style: 3,
+                  customId: `tournament-test:resolve-round:${panelMessage.id}`,
+                  label: '▶ Resolve Round'
+                },
+                {
+                  type: 2 as const,
+                  style: 1,
+                  customId: `tournament-test:resolve-match:${panelMessage.id}`,
+                  label: '⏭ Resolve Match'
+                },
+                {
+                  type: 2 as const,
+                  style: 2,
+                  customId: `tournament-test:rewind-round:${panelMessage.id}`,
+                  label: '⏮ Rewind Round'
+                },
+                {
+                  type: 2 as const,
+                  style: 2,
+                  customId: `tournament-test:rewind-all:${panelMessage.id}`,
+                  label: '⏮ Rewind All'
+                },
+                {
+                  type: 2 as const,
+                  style: 4,
+                  customId: `tournament-test:cleanup:${panelMessage.id}`,
+                  label: '🗑 Cleanup'
+                }
+              ]
+            }
+          ]
+          await context.interaction.editReply({ components })
+        }
+
+        context.application.core.tournamentTestPanels.updateStep(panelMessage.id, 0, '[]')
+      } catch (error: unknown) {
+        await context.interaction.editReply(error instanceof Error ? error.message : String(error))
+      }
+      return
+    }
+
+    // 15. Schedule Availability
+    if (subcommand === 'schedule') {
+      await context.interaction.deferReply()
+
+      const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
+      if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
+        await context.interaction.editReply('There is no active tournament currently.')
+        return
+      }
+
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      if (link === undefined) {
+        await context.interaction.editReply('You must be verified to use scheduling.')
+        return
+      }
+
+      const player = await context.application.core.databaseManager.queryOne<TournamentPlayer>(
+        'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND "playerUuid" = $2',
+        [tournament.id, link.uuid]
+      )
+      if (player === undefined || player.status === PlayerStatus.Eliminated) {
+        await context.interaction.editReply('You are not active in this tournament.')
+        return
+      }
+
+      const match = await context.application.core.databaseManager.queryOne<TournamentMatch>(
+        `SELECT * FROM "tournament_matches"
+         WHERE "tournamentId" = $1
+           AND ("player1Id" = $2 OR "player2Id" = $2)
+           AND "status" IN ($3, $4, $5)`,
+        [tournament.id, player.id, MatchStatus.Active, MatchStatus.Reported, MatchStatus.Disputed]
+      )
+
+      if (match === undefined) {
+        await context.interaction.editReply('You do not have an active match to schedule.')
+        return
+      }
+
+      const timeString = context.interaction.options.getString('time', true)
+      const parsed = chrono.parseDate(timeString)
+      if (parsed === null) {
+        await context.interaction.editReply(
+          'Could not parse the time. Try something like "Saturday 14:00-18:00 GMT" or "tomorrow after 5pm".'
+        )
+        return
+      }
+
+      const unix = Math.floor(parsed.getTime() / 1000)
+
+      // Post scheduling embed in the match thread
+      if (match.discordThreadId !== undefined) {
+        try {
+          const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
+          if (thread !== null && 'send' in thread) {
+            const profile = await context.application.mojangApi.profileByUuid(link.uuid)
+            const scheduleEmbed = new EmbedBuilder()
+              .setTitle('📅 Scheduling')
+              .setColor('#00BFFF')
+              .setDescription(
+                `**${profile.name}** is available: <t:${unix}:F> (<t:${unix}:R>)\n\n` +
+                  `_Post your own availability with /tournament schedule_`
+              )
+              .setTimestamp()
+
+            await thread.send({ embeds: [scheduleEmbed] })
+          }
+        } catch {
+          // Thread may not exist
+        }
+      }
+
+      await context.interaction.editReply(`✅ Posted your availability (<t:${unix}:F>) in your match thread.`)
       return
     }
   },

@@ -69,6 +69,12 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
     const { day } = this.getUkParts()
     const now = Date.now()
 
+    // First run after restart — sync day without triggering
+    if (this.lastTriggeredDay === -1) {
+      this.lastTriggeredDay = day
+      return
+    }
+
     // If already triggered for today, only retry if needed
     if (this.lastTriggeredDay === day) {
       if (this.needsRetry && now - this.lastRetryTimestamp >= this.retryIntervalMs) {
@@ -99,7 +105,7 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
     }
   }
 
-  public async generateAndPostSummaries(): Promise<void> {
+  public async generateAndPostSummaries(additionalChannelId?: string): Promise<void> {
     const bridgeConfigurations = this.application.core.bridgeConfigurations
     const bridgeIds = bridgeConfigurations.getAllBridgeIds()
 
@@ -113,10 +119,15 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
         }
 
         const channelIds = bridgeConfigurations.getChatSummaryChannelIds(bridgeId)
-        if (channelIds.length === 0) {
+        if (channelIds.length === 0 && !additionalChannelId) {
           this.logger.warn(`Chat summary is enabled for bridge ${bridgeId} but no summary channels are configured.`)
           continue
         }
+
+        const targetChannelIds =
+          additionalChannelId && !channelIds.includes(additionalChannelId)
+            ? [...channelIds, additionalChannelId]
+            : channelIds
 
         // Fetch messages for this bridge in the last 24 hours
         const rows = await this.application.core.databaseManager.queryRows<{
@@ -154,18 +165,29 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
 
         const model = 'anthropic/claude-sonnet-5'
 
-        const systemPrompt = `You are a hyper-dramatic, gossipy, high-school-style server chat commentator. Your job is to read Minecraft guild chat logs and write a highly entertaining, cohesive narrative summary of today's events.
+        const systemPrompt = `You are the ultimate, hyper-dramatic "Gossip Girl" of a chaotic Minecraft Discord server. Your job is to read today's raw chat logs and write a highly entertaining, juicy, cohesive narrative summary of the drama.
 
-GUIDELINES:
-1. Organize the summary by major narrative threads and drama arcs rather than a strict minute-by-minute timeline, ensuring the transitions between topics feel natural and connected by cause-and-effect.
-2. Adopt an exaggerated, drama-obsessed tone. Use dramatic commentary (e.g., "SO super dramatic!", "swoops in like a super-villain!", "kinda sassy", "so intense!") and speculate playfully on users' motivations and feelings.
-3. Write in a few long, flowing narrative paragraphs. It must read like a single continuous gossip column, avoiding disjointed or repetitive sentences.
-4. Capture the authentic flavor of the community. Actively look for and preserve specific text emoticons (like ( ﾟ◡ﾟ)/), inside jokes, and exact slang used in the logs.
-5. Focus on the sassiest conflicts, pile-ons, and smug moments. Weave in short, direct quotes from users naturally within your sentences.
-6. Do not censor language from the logs—no asterisks, no partial redaction. Reframe crude moments in a story-like way instead of blanking them out.
-7. Limit emoji use to 1-2 per paragraph maximum—the drama should come from your word choice and pacing, not emoji decoration.
-8. Try to keep the summary around 2000 characters long.
-9. Do not include any reasoning, meta-commentary, or notes about your process—output only the final summary text.`
+STRICT GUIDELINES:
+
+Narrative Flow: Write a continuous gossip column. Do NOT give a timeline or bullet points. Connect topics via natural, cause-and-effect transitions (e.g., A-plot, B-plot, C-plot).
+
+Tone: Exaggerated, drama-obsessed, and slightly sassy. Speculate wildly on the users' motivations. Use phrases like "swoops in like a super-villain," "so intense," etc.
+
+Format: Write in 3-4 long, flowing paragraphs.
+
+Authenticity: Preserve specific emoticons (like ( ﾟ◡ﾟ)/), inside jokes, and exact slang. Do not sanitize the culture.
+
+Slang: Use lots of internet/gen-z slang like "fr", "no cap", "based", "cooked", "ate", "bet", "W", "L", "brainrot", "skibidi", "gyatt" etc. Make it feel like a group chat recap.
+
+Quotes & Drama: Focus heavily on conflicts, pile-ons, and smug moments. Weave direct, short quotes naturally into your sentences.
+
+ZERO CENSORSHIP (CRITICAL): Do not censor ANY language from the logs. You MUST quote crude words exactly as written. No asterisks (*), no redactions. Reframe crude moments as part of the story.
+
+Emojis: Use lots of emojis. Sprinkle them everywhere — every paragraph should have 3-5+ emojis. Drama, laughing, fire, skull, clown, pray, etc.
+
+Length Requirement: HARD LIMIT — your final output MUST be between 1,900 and 2,000 characters. Count your characters before outputting. Shorter sentences, tighter phrasing. Do not exceed 2,000.
+
+Output: No meta-commentary, no greetings. Output ONLY the final summary.`
 
         const userContent = `Here are the chat logs from today:\n\n${logsText}`
 
@@ -198,7 +220,7 @@ GUIDELINES:
         const client = this.application.discordInstance.getClient()
         const chunks = this.splitMessage(summaryText)
 
-        for (const channelId of channelIds) {
+        for (const channelId of targetChannelIds) {
           const channel = await client.channels.fetch(channelId).catch(() => undefined)
           if (channel && channel.isTextBased() && !channel.isDMBased()) {
             for (const chunk of chunks) {

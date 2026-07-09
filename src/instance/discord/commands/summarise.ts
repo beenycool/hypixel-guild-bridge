@@ -12,7 +12,7 @@ export default {
     await context.interaction.deferReply()
 
     try {
-      await context.application.chatSummarySchedulerInstance.generateAndPostSummaries()
+      await context.application.chatSummarySchedulerInstance.generateAndPostSummaries(context.interaction.channelId)
       await context.interaction.editReply({ content: 'Chat summary generation triggered successfully!' })
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error)
