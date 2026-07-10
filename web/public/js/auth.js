@@ -47,21 +47,32 @@ function hideAuthOverlay() {
   if (overlay) overlay.remove()
 }
 
-function requireAuth() {
+function requireAuth(title) {
+  const params = new URLSearchParams(globalThis.location.search)
+  const urlToken = params.get('token')
+  if (urlToken) {
+    setToken(urlToken)
+    params.delete('token')
+    const newSearch = params.toString()
+    const newUrl = globalThis.location.pathname + (newSearch ? '?' + newSearch : '') + globalThis.location.hash
+    globalThis.history.replaceState(null, '', newUrl)
+  }
   const token = getToken()
   if (token) return token
-  showAuthOverlay()
+  showAuthOverlay(title)
   return null
 }
 
-function showAuthOverlay() {
+function showAuthOverlay(title) {
   hideAuthOverlay()
   const overlay = document.createElement('div')
   overlay.id = 'app-auth-overlay'
   overlay.className = 'auth-overlay'
   overlay.innerHTML =
     '<div class="auth-card">' +
-    '<h2>Rankup</h2>' +
+    '<h2>' +
+    (title || 'Authentication') +
+    '</h2>' +
     '<p>Enter your access token to continue</p>' +
     '<div class="auth-error" id="app-auth-error"></div>' +
     '<input type="password" class="input auth-input" id="app-auth-input" placeholder="access token" autocomplete="off" />' +

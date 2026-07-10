@@ -230,7 +230,7 @@ function onWSEvent(type, data) {
   }
 }
 
-const token = Auth.requireAuth()
+const token = Auth.requireAuth('Rankup History')
 if (token) {
   init()
 } else {

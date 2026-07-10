@@ -366,7 +366,7 @@ const init = async () => {
 }
 
 const start = () => {
-  const token = Auth.requireAuth()
+  const token = Auth.requireAuth('Dashboard')
   if (token) {
     init()
   } else {

@@ -2197,7 +2197,7 @@ async function bootstrap() {
 }
 
 function init() {
-  const token = Auth.requireAuth()
+  const token = Auth.requireAuth('Settings')
   if (token) bootstrap()
 }
 

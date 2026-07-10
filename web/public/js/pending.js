@@ -215,7 +215,7 @@ function prependCard(review) {
   grid.insertBefore(buildCard(review), grid.firstChild)
 }
 
-const token = Auth.requireAuth()
+const token = Auth.requireAuth('Pending Reviews')
 if (token) {
   init()
 } else {
