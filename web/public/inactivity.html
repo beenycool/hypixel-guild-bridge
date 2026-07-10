@@ -16,6 +16,28 @@
         <h1 class="page-title">Inactivity</h1>
       </div>
 
+      <div class="card mb-md hidden" id="inact-config-section">
+        <div class="card-header"><h2>Discord Notifications</h2></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Enabled</label>
+            <label class="toggle">
+              <input type="checkbox" id="inact-config-enabled" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Channel IDs</label>
+            <div id="inact-config-channels"></div>
+            <p class="text-xs text-muted mt-xs">Discord channels where inactivity notifications are sent.</p>
+          </div>
+          <div class="flex gap-sm mt-sm" style="align-items: center">
+            <button class="btn btn-primary" id="inact-config-save">Save</button>
+            <span id="inact-config-result" class="text-sm"></span>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-2 gap-md mb-md">
         <div class="card">
           <div class="card-header"><h2>Submit Notice</h2></div>
@@ -73,6 +95,14 @@
       const submitBtn = document.querySelector('#submit-inactivity-btn')
       const submitResult = document.querySelector('#inact-submit-result')
       const pendingEl = document.querySelector('#pending-requests')
+
+      const configSection = document.querySelector('#inact-config-section')
+      const configEnabled = document.querySelector('#inact-config-enabled')
+      const configChannelsEl = document.querySelector('#inact-config-channels')
+      const configSaveBtn = document.querySelector('#inact-config-save')
+      const configResult = document.querySelector('#inact-config-result')
+
+      const HELPER_LEVELS = ['helper', 'officer', 'owner', 'admin']
 
       function getDurationDays() {
         var val = durationSelect.value
@@ -213,12 +243,106 @@
         }
       }
 
+      function renderChannelTags(channelIds) {
+        var html = '<div class="tag-list" id="inact-channel-tags">'
+        if (channelIds && channelIds.length > 0) {
+          for (var i = 0; i < channelIds.length; i++) {
+            html +=
+              '<span class="tag">' +
+              Ui.escapeHtml(channelIds[i]) +
+              '<span class="tag-remove" data-index="' +
+              i +
+              '">&times;</span></span>'
+          }
+        }
+        html += '</div>'
+        html +=
+          '<div class="flex gap-sm mt-xs"><input type="text" class="input" id="inact-channel-input" placeholder="Channel ID..." style="flex:1" /><button class="btn btn-sm btn-secondary" id="inact-channel-add">Add</button></div>'
+        configChannelsEl.innerHTML = html
+
+        var addBtn = configChannelsEl.querySelector('#inact-channel-add')
+        var input = configChannelsEl.querySelector('#inact-channel-input')
+        addBtn.addEventListener('click', function () {
+          var val = input.value.trim()
+          if (!val) return
+          var ids = getChannelIds()
+          if (ids.includes(val)) {
+            input.value = ''
+            return
+          }
+          ids.push(val)
+          renderChannelTags(ids)
+        })
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') addBtn.click()
+        })
+        configChannelsEl.querySelectorAll('.tag-remove').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var ids = getChannelIds()
+            ids.splice(parseInt(btn.dataset.index), 1)
+            renderChannelTags(ids)
+          })
+        })
+      }
+
+      function getChannelIds() {
+        var tags = configChannelsEl.querySelectorAll('.tag')
+        var ids = []
+        for (var i = 0; i < tags.length; i++) {
+          var text = tags[i].textContent.replace('\u00D7', '').trim()
+          if (text) ids.push(text)
+        }
+        return ids
+      }
+
+      async function loadConfig() {
+        try {
+          var config = await Api.apiGet('/api/inactivity/config')
+          configEnabled.checked = config.enabled !== false
+          renderChannelTags(config.channelIds || [])
+        } catch {
+          configEnabled.checked = true
+          renderChannelTags([])
+        }
+      }
+
+      async function saveConfig() {
+        configResult.textContent = ''
+        configSaveBtn.disabled = true
+        configSaveBtn.textContent = 'Saving...'
+        try {
+          var body = {
+            enabled: configEnabled.checked,
+            channelIds: getChannelIds()
+          }
+          await Api.apiPut('/api/inactivity/config', body)
+          Ui.showToast('Inactivity config saved', 'success')
+          configResult.textContent = 'Saved.'
+          configResult.style.color = 'var(--color-success)'
+        } catch (error) {
+          configResult.textContent = 'Failed: ' + error.message
+          configResult.style.color = 'var(--color-danger)'
+        } finally {
+          configSaveBtn.disabled = false
+          configSaveBtn.textContent = 'Save'
+        }
+      }
+
       function init() {
         durationSelect.addEventListener('change', function () {
           customGroup.classList.toggle('hidden', this.value !== 'custom')
         })
         submitBtn.addEventListener('click', onSubmit)
         loadPending()
+
+        var perm = Auth.getPermission()
+        if (perm && HELPER_LEVELS.indexOf(perm) !== -1) {
+          configSection.classList.remove('hidden')
+          loadConfig()
+          configSaveBtn.addEventListener('click', saveConfig)
+        }
+
+        Ui.initTagInput && Ui.initTagInput()
       }
 
       const token = Auth.requireAuth()
