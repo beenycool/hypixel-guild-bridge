@@ -36,7 +36,6 @@ export default {
           .addChoices(
             { name: 'Overview', value: 'home' },
             { name: 'Guild Overview', value: 'guild' },
-            { name: 'Leaderboard', value: 'leaderboard' },
             { name: 'Pending Reviews', value: 'rankup-pending' },
             { name: 'History', value: 'rankup-history' },
             { name: 'Settings', value: 'settings' },

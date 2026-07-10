@@ -114,48 +114,45 @@
 
 ## Discord Commands
 
-| Command               | Description                                                      |
-| --------------------- | ---------------------------------------------------------------- |
-| `/about`              | Display basic info about the client.                             |
-| `/accept`             | accept a player to the guild if they have a join request in-game |
-| `/blacklist`          | Add or remove a player from the ignore list                      |
-| `/commands`           | Browse all available Discord and Minecraft commands              |
-| `/connectivity`       | Check connectivity to Minecraft instances                        |
-| `/create-leaderboard` | Create a leaderboard message in this channel                     |
-| `/demote`             | demote guild member in-game                                      |
-| `/disconnect`         | disconnect minecraft clients                                     |
-| `/execute`            | execute command in-game via Minecraft client                     |
-| `/gexp-check`         | Show guild members under a weekly GEXP requirement               |
-| `/guild`              | View guild information                                           |
-| `/guildtop`           | Show the top guild members by guild experience                   |
-| `/help`               | Show available commands.                                         |
-| `/inactivity`         | Request inactivity notice for guild staff                        |
-| `/invite`             | invite player to the guild in-game                               |
-| `/join`               | Instruct the Minecraft account to join a guild.                  |
-| `/leaderboard`        | display a leaderboard message in this channel                    |
-| `/link`               | Link your Discord account with your Minecraft account            |
-| `/list-leaderboard`   | List all existing leaderboards                                   |
-| `/list`               | List players in your guild(s)                                    |
-| `/log`                | View guild activity logs                                         |
-| `/ping`               | Discord and Hypixel status (server list) ping                    |
-| `/player`             | View a player's Hypixel profile                                  |
-| `/profanity`          | Manage application profanity filter                              |
-| `/promote`            | promote guild member in-game                                     |
-| `/punishments`        | Manage active punishments                                        |
-| `/rankup-check`       | Check rankup status for a player (Dry Run)                       |
-| `/rankup-history`     | View rankup history                                              |
-| `/rankup-pending`     | View and manage pending rankup reviews                           |
-| `/reconnect`          | reconnect minecraft clients                                      |
-| `/requirements`       | Check if a player meets guild requirements                       |
-| `/restart`            | Send signal to restart the bridge                                |
-| `/setrank`            | setrank guild member in-game                                     |
-| `/settings`           | Control application settings.                                    |
-| `/skyblock`           | Manage Skyblock event notifications                              |
-| `/stats`              | View a player's game stats                                       |
-| `/tournament`         | Manage or participate in single-elimination guild tournaments    |
-| `/unlink`             | unlink your Discord account from your Minecraft account          |
-| `/uptime`             | Shows how long the bot has been online                           |
-| `/verification`       | Manage users links                                               |
+| Command           | Description                                                      |
+| ----------------- | ---------------------------------------------------------------- |
+| `/about`          | Display basic info about the client.                             |
+| `/accept`         | accept a player to the guild if they have a join request in-game |
+| `/blacklist`      | Add or remove a player from the ignore list                      |
+| `/commands`       | Browse all available Discord and Minecraft commands              |
+| `/connectivity`   | Check connectivity to Minecraft instances                        |
+| `/demote`         | demote guild member in-game                                      |
+| `/disconnect`     | disconnect minecraft clients                                     |
+| `/execute`        | execute command in-game via Minecraft client                     |
+| `/gexp-check`     | Show guild members under a weekly GEXP requirement               |
+| `/guild`          | View guild information                                           |
+| `/guildtop`       | Show the top guild members by guild experience                   |
+| `/help`           | Show available commands.                                         |
+| `/inactivity`     | Request inactivity notice for guild staff                        |
+| `/invite`         | invite player to the guild in-game                               |
+| `/join`           | Instruct the Minecraft account to join a guild.                  |
+| `/link`           | Link your Discord account with your Minecraft account            |
+| `/list`           | List players in your guild(s)                                    |
+| `/log`            | View guild activity logs                                         |
+| `/ping`           | Discord and Hypixel status (server list) ping                    |
+| `/player`         | View a player's Hypixel profile                                  |
+| `/profanity`      | Manage application profanity filter                              |
+| `/promote`        | promote guild member in-game                                     |
+| `/punishments`    | Manage active punishments                                        |
+| `/rankup-check`   | Check rankup status for a player (Dry Run)                       |
+| `/rankup-history` | View rankup history                                              |
+| `/rankup-pending` | View and manage pending rankup reviews                           |
+| `/reconnect`      | reconnect minecraft clients                                      |
+| `/requirements`   | Check if a player meets guild requirements                       |
+| `/restart`        | Send signal to restart the bridge                                |
+| `/setrank`        | setrank guild member in-game                                     |
+| `/settings`       | Control application settings.                                    |
+| `/skyblock`       | Manage Skyblock event notifications                              |
+| `/stats`          | View a player's game stats                                       |
+| `/tournament`     | Manage or participate in single-elimination guild tournaments    |
+| `/unlink`         | unlink your Discord account from your Minecraft account          |
+| `/uptime`         | Shows how long the bot has been online                           |
+| `/verification`   | Manage users links                                               |
 
 ---
 

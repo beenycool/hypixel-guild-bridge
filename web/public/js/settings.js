@@ -126,8 +126,7 @@ const CATEGORIES = [
               'Connect / disconnect Minecraft \u2014 /disconnect, /reconnect',
               'Toggle chat commands \u2014 !toggle',
               'Web dashboard & profanity mgmt \u2014 /dashboard, /profanity',
-              'Cross-bridge chat moderation \u2014 !qmute, !qunmute, !qmuted',
-              'Persistent leaderboard \u2014 /create-leaderboard'
+              'Cross-bridge chat moderation \u2014 !qmute, !qunmute, !qmuted'
             ],
             missing: [
               'Destructive punishments (Owner) \u2014 ban, kick, forgive',

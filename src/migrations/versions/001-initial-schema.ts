@@ -236,16 +236,6 @@ export async function up(query: QueryInterface): Promise<void> {
   )
 
   await query.execute(
-    `CREATE TABLE IF NOT EXISTS "discordLeaderboards" (
-      "messageId" TEXT PRIMARY KEY,
-      "type" TEXT NOT NULL,
-      "channelId" TEXT NOT NULL,
-      "guildId" TEXT,
-      "updatedAt" INTEGER NOT NULL DEFAULT CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER),
-      "createdAt" INTEGER NOT NULL DEFAULT CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER)
-    )`
-  )
-  await query.execute(
     `CREATE TABLE IF NOT EXISTS "discordTempInteractions" (
       "messageId" TEXT PRIMARY KEY,
       "channelId" TEXT NOT NULL,

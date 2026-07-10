@@ -6,8 +6,7 @@ const NAV_ITEMS = [
     items: [
       { name: 'Overview', href: 'index.html', key: 'overview' },
       { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
-      { name: 'History', href: 'rankup-history.html', key: 'history' },
-      { name: 'Leaderboard', href: 'leaderboard.html', key: 'leaderboard' }
+      { name: 'History', href: 'rankup-history.html', key: 'history' }
     ]
   },
   {

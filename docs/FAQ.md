@@ -133,7 +133,7 @@ Some of them include:
 
 - checking who is the owner of the message and whether they are punished (muted or banned for example).
 - sanitizing the message from any profanity for example
-- adding the user to the application database for leaderboard and other statistical purposes
+- adding the user to the application database for statistical purposes
 - logging the message for record purposes
 
 There is also a messaging queue:

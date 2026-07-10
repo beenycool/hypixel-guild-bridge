@@ -37,7 +37,7 @@ This project is made to be fully flexible and customisable, offering a high qual
   online/offline/join/leave/mute notification/etc
 - Support many commands from fun ones to management ones
 - Logs all chats/events/etc as records for staff to view
-- Provides detailed metrics per user and per guild (by Prometheus or by leaderboard)
+- Provides detailed metrics per user and per guild (by Prometheus)
 - Supports custom plugins with fully fleshed out public API
 - Supports proxies for Minecraft instances
 

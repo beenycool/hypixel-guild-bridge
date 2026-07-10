@@ -14,7 +14,6 @@ import { CommandManager } from './command-manager.js'
 import MessageAssociation from './common/message-association.js'
 import DiscordBridge from './discord-bridge.js'
 import GuildRequirements from './features/guild-requirements.js'
-import Leaderboard from './features/leaderboard.js'
 import LoggerManager from './features/logger-manager.js'
 import StatsChannels from './features/stats-channels.js'
 import TournamentTestPanel from './features/tournament-test-panel.js'
@@ -28,7 +27,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
 
   readonly commandsManager: CommandManager
   readonly guildRequirements: GuildRequirements
-  readonly leaderboard: Leaderboard
   readonly statsChannels: StatsChannels
   readonly verificationRoleManager: VerificationRoleManager
   readonly tournamentTestPanel: TournamentTestPanel
@@ -108,7 +106,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.commandsManager = new CommandManager(this)
     this.loggerManager = new LoggerManager(this)
     this.guildRequirements = new GuildRequirements(this)
-    this.leaderboard = new Leaderboard(this)
     this.statsChannels = new StatsChannels(this)
     this.verificationRoleManager = new VerificationRoleManager(this)
     this.tournamentTestPanel = new TournamentTestPanel(this)
@@ -258,7 +255,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.emojiHandler.registerEvents(this.client)
     this.chatManager.registerEvents(this.client)
     this.commandsManager.registerEvents(this.client)
-    this.leaderboard.registerEvents(this.client)
     this.loggerManager.registerEvents(this.client)
     this.guildRequirements.registerEvents(this.client)
     this.statsChannels.registerEvents(this.client)

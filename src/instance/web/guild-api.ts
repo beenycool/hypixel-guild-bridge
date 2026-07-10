@@ -142,17 +142,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // GET /api/guild/leaderboard
-    if (pathPart === `${GuildPrefix}/leaderboard`) {
-      if (method !== 'GET') {
-        this.sendMethodNotAllowed(response, ['GET'])
-        return true
-      }
-      const query = Object.fromEntries(new URLSearchParams(rawUrl.split('?')[1] ?? ''))
-      await this.handleLeaderboard(response, query as { range?: string })
-      return true
-    }
-
     // POST /api/guild/blacklist
     if (pathPart === `${GuildPrefix}/blacklist`) {
       if (method !== 'POST') {
@@ -269,52 +258,6 @@ export class GuildApiHandler {
     } catch (error: unknown) {
       this.logger.error('Failed to fetch guild log', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to fetch guild log', 502)
-    }
-  }
-
-  private async handleLeaderboard(response: http.ServerResponse, query: { range?: string }): Promise<void> {
-    try {
-      const instance = this.getInstanceName()
-      const scoresManager = this.application.core.scoresManager
-
-      let gexp: { name: string; value: number }[] = []
-      if (instance) {
-        try {
-          const guild = await this.application.hypixelApi.getGuild('player', instance, {})
-          gexp = guild.members
-            .map((m) => ({ uuid: m.uuid, value: m.weeklyExperience }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 100)
-            .map((m) => ({ name: m.uuid, value: m.value }))
-          gexp = await Promise.all(
-            gexp.map(async (entry) => {
-              try {
-                const profile = await this.application.mojangApi.profileByUuid(entry.name)
-                return { ...entry, name: profile.name }
-              } catch {
-                return entry
-              }
-            })
-          )
-        } catch {
-          // guild fetch failed, return empty
-        }
-      }
-
-      const messages = (scoresManager?.getMessages30Days() ?? [])
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 100)
-        .map((m) => ({ name: m.uuid, value: m.count }))
-
-      const onlineTime = (scoresManager?.getOnline30Days() ?? [])
-        .sort((a, b) => b.totalTime - a.totalTime)
-        .slice(0, 100)
-        .map((m) => ({ name: m.uuid, value: m.totalTime }))
-
-      sendSuccess(response, { gexp, messages, onlineTime })
-    } catch (error: unknown) {
-      this.logger.error('Failed to fetch leaderboard', error)
-      sendError(response, 'INTERNAL_ERROR', 'Failed to fetch leaderboard', 500)
     }
   }
 

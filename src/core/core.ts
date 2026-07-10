@@ -26,7 +26,6 @@ import { ConfigurationsManager } from './configurations'
 import { BridgeConfigurations } from './discord/bridge-configurations'
 import { DiscordConfigurations } from './discord/discord-configurations'
 import { DiscordEmojis } from './discord/discord-emojis'
-import { DiscordLeaderboards } from './discord/discord-leaderboards'
 import { DiscordTemporarilyInteractions } from './discord/discord-temporarily-interactions'
 import { InstanceHistoryButton } from './discord/instance-history-button'
 import { initializeCoreDatabase } from './initialize-database'
@@ -72,7 +71,6 @@ export class Core extends Instance<InstanceType.Core> {
   // discord
   public readonly bridgeConfigurations: BridgeConfigurations
   public readonly discordConfigurations: DiscordConfigurations
-  public readonly discordLeaderboards: DiscordLeaderboards
   public readonly discordTemporarilyInteractions: DiscordTemporarilyInteractions
   public readonly discordInstanceHistoryButton: InstanceHistoryButton
   public readonly discordEmojis: DiscordEmojis
@@ -119,7 +117,6 @@ export class Core extends Instance<InstanceType.Core> {
       })
     })
     this.discordConfigurations = new DiscordConfigurations(this.configurationsManager)
-    this.discordLeaderboards = new DiscordLeaderboards(this.databaseManager)
     this.discordTemporarilyInteractions = new DiscordTemporarilyInteractions(
       this.databaseManager,
       this.discordConfigurations
@@ -286,7 +283,6 @@ export class Core extends Instance<InstanceType.Core> {
     await this.mojangApi.load()
     await this.minecraftAccounts.load()
     await this.minecraftSessions.load()
-    await this.discordLeaderboards.load()
     await this.discordTemporarilyInteractions.load()
     await this.discordEmojis.load()
     await this.statusHistory.load()
@@ -375,7 +371,6 @@ export class Core extends Instance<InstanceType.Core> {
   }
 
   public discordMessagesDeleted(messagesIds: string[]): void {
-    this.discordLeaderboards.remove(messagesIds)
     this.discordTemporarilyInteractions.remove(messagesIds)
     this.discordInstanceHistoryButton.remove(messagesIds)
   }
