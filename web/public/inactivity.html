@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Inactivity — Rankup</title>
+    <title>Inactivity — Config</title>
     <link rel="stylesheet" href="css/tokens.css" />
     <link rel="stylesheet" href="css/nav.css" />
     <link rel="stylesheet" href="css/utilities.css" />
@@ -11,12 +11,12 @@
   </head>
   <body>
     <div id="app-nav"></div>
-    <div class="app-container">
+    <div class="app-container" id="app-content">
       <div class="page-header">
         <h1 class="page-title">Inactivity</h1>
       </div>
 
-      <div class="card mb-md hidden" id="inact-config-section">
+      <div class="card mb-md" id="inact-config-section">
         <div class="card-header"><h2>Discord Notifications</h2></div>
         <div class="card-body">
           <div class="form-group">
@@ -37,45 +37,6 @@
           </div>
         </div>
       </div>
-
-      <div class="grid grid-cols-2 gap-md mb-md">
-        <div class="card">
-          <div class="card-header"><h2>Submit Notice</h2></div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Minecraft Username</label>
-              <input type="text" class="input" id="inact-username" placeholder="Player name..." autocomplete="off" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Reason</label>
-              <textarea class="textarea" id="inact-reason" placeholder="Why will you be inactive?"></textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Duration</label>
-              <select class="select" id="inact-duration">
-                <option value="3d">3 days</option>
-                <option value="7d" selected>7 days</option>
-                <option value="14d">14 days</option>
-                <option value="30d">30 days</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-            <div class="form-group hidden" id="custom-duration-group">
-              <label class="form-label">Custom Duration (days)</label>
-              <input type="number" class="input" id="inact-custom-days" min="1" value="7" />
-            </div>
-            <button class="btn btn-primary full-width" id="submit-inactivity-btn">Submit Request</button>
-            <div id="inact-submit-result" class="mt-sm"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><h2>Pending Requests</h2></div>
-          <div class="card-body" id="pending-requests">
-            <div class="loading"><div class="loading-spinner"></div></div>
-          </div>
-        </div>
-      </div>
     </div>
     <script type="module">
       import { Auth } from './js/auth.js'
@@ -87,267 +48,98 @@
       initNav()
       initStatusPolling()
 
-      const usernameInput = document.querySelector('#inact-username')
-      const reasonInput = document.querySelector('#inact-reason')
-      const durationSelect = document.querySelector('#inact-duration')
-      const customGroup = document.querySelector('#custom-duration-group')
-      const customDays = document.querySelector('#inact-custom-days')
-      const submitBtn = document.querySelector('#submit-inactivity-btn')
-      const submitResult = document.querySelector('#inact-submit-result')
-      const pendingEl = document.querySelector('#pending-requests')
-
-      const configSection = document.querySelector('#inact-config-section')
-      const configEnabled = document.querySelector('#inact-config-enabled')
-      const configChannelsEl = document.querySelector('#inact-config-channels')
-      const configSaveBtn = document.querySelector('#inact-config-save')
-      const configResult = document.querySelector('#inact-config-result')
-
       const HELPER_LEVELS = ['helper', 'officer', 'owner', 'admin']
+      const perm = Auth.getPermission()
+      if (!perm || HELPER_LEVELS.indexOf(perm) === -1) {
+        document.querySelector('#app-content').innerHTML =
+          '<div class="empty-state" style="margin-top:2rem"><div class="empty-state-text">Access denied. Helper+ only.</div></div>'
+      } else {
+        const configEnabled = document.querySelector('#inact-config-enabled')
+        const configChannelsEl = document.querySelector('#inact-config-channels')
+        const configSaveBtn = document.querySelector('#inact-config-save')
+        const configResult = document.querySelector('#inact-config-result')
 
-      function getDurationDays() {
-        var val = durationSelect.value
-        if (val === 'custom') return parseInt(customDays.value) || 1
-        return parseInt(val) || 7
-      }
-
-      function getDurationLabel(days) {
-        if (days >= 30) return Math.floor(days / 30) + 'mo'
-        return days + 'd'
-      }
-
-      function renderPending(requests) {
-        if (!requests || requests.length === 0) {
-          pendingEl.innerHTML =
-            '<div class="empty-state"><div class="empty-state-text">No pending inactivity requests.</div></div>'
-          return
-        }
-        var html = ''
-        for (var i = 0; i < requests.length; i++) {
-          var r = requests[i]
-          var statusBadge =
-            r.status === 'approved'
-              ? '<span class="badge badge-success">Approved</span>'
-              : r.status === 'rejected'
-                ? '<span class="badge badge-danger">Rejected</span>'
-                : '<span class="badge badge-warning">Pending</span>'
-          var approveBtn =
-            r.status === 'pending'
-              ? '<button class="btn btn-success btn-sm" data-approve="' + i + '">Approve</button>'
-              : ''
-          var rejectBtn =
-            r.status === 'pending'
-              ? '<button class="btn btn-danger btn-sm" data-reject="' + i + '">Reject</button>'
-              : ''
+        function renderChannelTags(channelIds) {
+          var html = '<div class="tag-list" id="inact-channel-tags">'
+          if (channelIds && channelIds.length > 0) {
+            for (var i = 0; i < channelIds.length; i++) {
+              html +=
+                '<span class="tag">' +
+                Ui.escapeHtml(channelIds[i]) +
+                '<span class="tag-remove" data-index="' +
+                i +
+                '">&times;</span></span>'
+            }
+          }
+          html += '</div>'
           html +=
-            '<div class="card mb-sm">' +
-            '<div class="card-header">' +
-            '<span class="text-mono">' +
-            Ui.escapeHtml(r.username || '\u2014') +
-            '</span>' +
-            statusBadge +
-            '</div>' +
-            '<div class="card-body">' +
-            '<div class="flex-column gap-xs">' +
-            '<div class="text-sm text-secondary">' +
-            Ui.escapeHtml(r.reason || 'No reason') +
-            '</div>' +
-            '<div class="flex-between">' +
-            '<span class="text-xs text-muted">Duration: ' +
-            getDurationLabel(r.durationDays || 0) +
-            '</span>' +
-            '<span class="text-xs text-muted">' +
-            (r.createdAt ? Ui.formatDate(r.createdAt) : '') +
-            '</span>' +
-            '</div></div></div>' +
-            '<div class="card-footer">' +
-            approveBtn +
-            rejectBtn +
-            '</div>' +
-            '</div>'
-        }
-        pendingEl.innerHTML = html
+            '<div class="flex gap-sm mt-xs"><input type="text" class="input" id="inact-channel-input" placeholder="Channel ID..." style="flex:1" /><button class="btn btn-sm btn-secondary" id="inact-channel-add">Add</button></div>'
+          configChannelsEl.innerHTML = html
 
-        pendingEl.querySelectorAll('[data-approve]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            handleRequest(parseInt(btn.dataset.approve), 'approve')
-          })
-        })
-        pendingEl.querySelectorAll('[data-reject]').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            handleRequest(parseInt(btn.dataset.reject), 'reject')
-          })
-        })
-      }
-
-      async function handleRequest(idx, action) {
-        var requests = await getPendingRequests()
-        var r = requests[idx]
-        if (!r || !r.id) return
-        try {
-          await Api.apiPost('/api/inactivity/' + r.id + '/' + action)
-          Ui.showToast('Request ' + action + 'd', 'success')
-          loadPending()
-        } catch (error) {
-          Ui.showToast('Failed: ' + error.message, 'error')
-        }
-      }
-
-      async function getPendingRequests() {
-        try {
-          var res = await Api.apiGet('/api/inactivity')
-          return res && Array.isArray(res.requests) ? res.requests : []
-        } catch {
-          return []
-        }
-      }
-
-      async function loadPending() {
-        pendingEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
-        try {
-          var res = await Api.apiGet('/api/inactivity')
-          var requests = res && Array.isArray(res.requests) ? res.requests : []
-          renderPending(requests)
-        } catch (error) {
-          pendingEl.innerHTML =
-            '<div class="empty-state"><div class="empty-state-text text-danger">Failed to load: ' +
-            Ui.escapeHtml(error.message) +
-            '</div></div>'
-        }
-      }
-
-      async function onSubmit() {
-        var username = usernameInput.value.trim()
-        var reason = reasonInput.value.trim()
-        if (!username) {
-          submitResult.innerHTML = '<div class="text-sm text-danger">Username is required.</div>'
-          return
-        }
-        if (!reason) {
-          submitResult.innerHTML = '<div class="text-sm text-danger">Reason is required.</div>'
-          return
-        }
-        submitResult.innerHTML = ''
-        submitBtn.disabled = true
-        submitBtn.textContent = 'Submitting...'
-        try {
-          await Api.apiPost('/api/inactivity', { username: username, reason: reason, durationDays: getDurationDays() })
-          Ui.showToast('Inactivity request submitted', 'success')
-          usernameInput.value = ''
-          reasonInput.value = ''
-          loadPending()
-        } catch (error) {
-          submitResult.innerHTML = '<div class="text-sm text-danger">' + Ui.escapeHtml(error.message) + '</div>'
-        } finally {
-          submitBtn.disabled = false
-          submitBtn.textContent = 'Submit Request'
-        }
-      }
-
-      function renderChannelTags(channelIds) {
-        var html = '<div class="tag-list" id="inact-channel-tags">'
-        if (channelIds && channelIds.length > 0) {
-          for (var i = 0; i < channelIds.length; i++) {
-            html +=
-              '<span class="tag">' +
-              Ui.escapeHtml(channelIds[i]) +
-              '<span class="tag-remove" data-index="' +
-              i +
-              '">&times;</span></span>'
-          }
-        }
-        html += '</div>'
-        html +=
-          '<div class="flex gap-sm mt-xs"><input type="text" class="input" id="inact-channel-input" placeholder="Channel ID..." style="flex:1" /><button class="btn btn-sm btn-secondary" id="inact-channel-add">Add</button></div>'
-        configChannelsEl.innerHTML = html
-
-        var addBtn = configChannelsEl.querySelector('#inact-channel-add')
-        var input = configChannelsEl.querySelector('#inact-channel-input')
-        addBtn.addEventListener('click', function () {
-          var val = input.value.trim()
-          if (!val) return
-          var ids = getChannelIds()
-          if (ids.includes(val)) {
-            input.value = ''
-            return
-          }
-          ids.push(val)
-          renderChannelTags(ids)
-        })
-        input.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter') addBtn.click()
-        })
-        configChannelsEl.querySelectorAll('.tag-remove').forEach(function (btn) {
-          btn.addEventListener('click', function () {
+          configChannelsEl.querySelector('#inact-channel-add').addEventListener('click', function () {
+            var val = configChannelsEl.querySelector('#inact-channel-input').value.trim()
+            if (!val) return
             var ids = getChannelIds()
-            ids.splice(parseInt(btn.dataset.index), 1)
+            if (ids.includes(val)) return
+            ids.push(val)
             renderChannelTags(ids)
           })
-        })
-      }
-
-      function getChannelIds() {
-        var tags = configChannelsEl.querySelectorAll('.tag')
-        var ids = []
-        for (var i = 0; i < tags.length; i++) {
-          var text = tags[i].textContent.replace('\u00D7', '').trim()
-          if (text) ids.push(text)
+          configChannelsEl.querySelector('#inact-channel-input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') configChannelsEl.querySelector('#inact-channel-add').click()
+          })
+          configChannelsEl.querySelectorAll('.tag-remove').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var ids = getChannelIds()
+              ids.splice(parseInt(btn.dataset.index), 1)
+              renderChannelTags(ids)
+            })
+          })
         }
-        return ids
-      }
 
-      async function loadConfig() {
-        try {
-          var config = await Api.apiGet('/api/inactivity/config')
-          configEnabled.checked = config.enabled !== false
-          renderChannelTags(config.channelIds || [])
-        } catch {
-          configEnabled.checked = true
-          renderChannelTags([])
+        function getChannelIds() {
+          var ids = []
+          configChannelsEl.querySelectorAll('.tag').forEach(function (t) {
+            var text = t.textContent.replace('\u00D7', '').trim()
+            if (text) ids.push(text)
+          })
+          return ids
         }
-      }
 
-      async function saveConfig() {
-        configResult.textContent = ''
-        configSaveBtn.disabled = true
-        configSaveBtn.textContent = 'Saving...'
-        try {
-          var body = {
-            enabled: configEnabled.checked,
-            channelIds: getChannelIds()
+        async function loadConfig() {
+          try {
+            var config = await Api.apiGet('/api/inactivity/config')
+            configEnabled.checked = config.enabled !== false
+            renderChannelTags(config.channelIds || [])
+          } catch {
+            configEnabled.checked = true
+            renderChannelTags([])
           }
-          await Api.apiPut('/api/inactivity/config', body)
-          Ui.showToast('Inactivity config saved', 'success')
-          configResult.textContent = 'Saved.'
-          configResult.style.color = 'var(--color-success)'
-        } catch (error) {
-          configResult.textContent = 'Failed: ' + error.message
-          configResult.style.color = 'var(--color-danger)'
-        } finally {
-          configSaveBtn.disabled = false
-          configSaveBtn.textContent = 'Save'
-        }
-      }
-
-      function init() {
-        durationSelect.addEventListener('change', function () {
-          customGroup.classList.toggle('hidden', this.value !== 'custom')
-        })
-        submitBtn.addEventListener('click', onSubmit)
-        loadPending()
-
-        var perm = Auth.getPermission()
-        if (perm && HELPER_LEVELS.indexOf(perm) !== -1) {
-          configSection.classList.remove('hidden')
-          loadConfig()
-          configSaveBtn.addEventListener('click', saveConfig)
         }
 
-        Ui.initTagInput && Ui.initTagInput()
-      }
+        async function saveConfig() {
+          configResult.textContent = ''
+          configSaveBtn.disabled = true
+          configSaveBtn.textContent = 'Saving...'
+          try {
+            await Api.apiPut('/api/inactivity/config', {
+              enabled: configEnabled.checked,
+              channelIds: getChannelIds()
+            })
+            Ui.showToast('Inactivity config saved', 'success')
+            configResult.textContent = 'Saved.'
+            configResult.style.color = 'var(--color-success)'
+          } catch (error) {
+            configResult.textContent = 'Failed: ' + error.message
+            configResult.style.color = 'var(--color-danger)'
+          } finally {
+            configSaveBtn.disabled = false
+            configSaveBtn.textContent = 'Save'
+          }
+        }
 
-      const token = Auth.requireAuth()
-      if (token) init()
-      else globalThis.addEventListener('authsuccess', init, { once: true })
+        configSaveBtn.addEventListener('click', saveConfig)
+        loadConfig()
+      }
     </script>
   </body>
 </html>
