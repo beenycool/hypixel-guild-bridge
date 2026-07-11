@@ -5,13 +5,13 @@ import BadWords from 'bad-words'
 import type { ModerationConfigurations } from './moderation-configurations'
 
 export class Profanity {
-  public profanityFilter: BadWords.BadWords
+  public profanityFilter: BadWords
 
   constructor(private readonly config: ModerationConfigurations) {
     this.profanityFilter = this.createFilter()
   }
 
-  private createFilter(): BadWords.BadWords {
+  private createFilter(): BadWords {
     const profanityFilter = new BadWords()
     profanityFilter.removeWords(...this.config.getProfanityWhitelist())
     profanityFilter.addWords(...this.config.getProfanityBlacklist())
@@ -28,8 +28,7 @@ export class Profanity {
   }
 
   public filterProfanity(message: string): { filteredMessage: string; changed: boolean } {
-    if (!this.config.getProfanityEnabled())
-      return { filteredMessage: message, changed: false }
+    if (!this.config.getProfanityEnabled()) return { filteredMessage: message, changed: false }
     assert.ok(this.profanityFilter)
 
     let changed = false
