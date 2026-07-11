@@ -23,6 +23,7 @@ import DisconnectCommand from './commands/disconnect.js'
 import ExecuteCommand from './commands/execute.js'
 import InviteCommand from './commands/invite.js'
 import JoinCommand from './commands/join.js'
+import KickCommand from './commands/kick.js'
 import ListCommand from './commands/list.js'
 import LogCommand from './commands/log.js'
 import MessagesCommand from './commands/messages.js'
@@ -96,6 +97,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       ExecuteCommand,
       InviteCommand,
       JoinCommand,
+      KickCommand,
       ListCommand,
       LogCommand,
       MessagesCommand,
