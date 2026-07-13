@@ -339,6 +339,9 @@ export class SettingsApiHandler {
           const deleteAfter = number_(body.deleteAfterSeconds, 300)
           cfg.setDurationTemporarilyInteractions(bridgeId, Duration.seconds(deleteAfter))
           cfg.setMaxTemporarilyInteractions(bridgeId, number_(body.maxEvents, 10))
+          cfg.setPersistGuildJoinLeave(bridgeId, bool(body.persistJoinLeave))
+          const deleteJoinLeaveAfter = number_(body.deleteJoinLeaveAfterSeconds, 172800) // 2 days in seconds
+          cfg.setDurationJoinLeaveInteractions(bridgeId, Duration.seconds(deleteJoinLeaveAfter))
           cfg.setRandomChatterEnabled(bridgeId, bool(body.chatterEnabled))
           cfg.setRandomChatterIntervalMinutes(bridgeId, number_(body.chatterIntervalMinutes, 15))
           cfg.setRandomChatterMinimumOnlinePlayers(bridgeId, number_(body.chatterMinOnlinePlayers, 1))

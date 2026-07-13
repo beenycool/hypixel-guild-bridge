@@ -425,6 +425,26 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsDuration`, value.toSeconds())
   }
 
+  public getPersistGuildJoinLeave(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_persistGuildJoinLeave`, false)
+  }
+
+  public setPersistGuildJoinLeave(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_persistGuildJoinLeave`, enabled)
+  }
+
+  public getDurationJoinLeaveInteractions(bridgeId: string): Duration {
+    const value = this.configuration.getNumber(
+      `${bridgeId}_joinLeaveInteractionsDuration`,
+      Duration.days(2).toSeconds()
+    )
+    return Duration.seconds(value)
+  }
+
+  public setDurationJoinLeaveInteractions(bridgeId: string, value: Duration): void {
+    this.configuration.setNumber(`${bridgeId}_joinLeaveInteractionsDuration`, value.toSeconds())
+  }
+
   // ========== Moderation Configurations ==========
 
   /**
@@ -1213,6 +1233,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         persistOnlineOffline: this.getPersistGuildOnlineOffline(bridgeId),
         deleteAfterSeconds: this.getDurationTemporarilyInteractions(bridgeId).toSeconds(),
         maxEvents: this.getMaxTemporarilyInteractions(bridgeId),
+        persistJoinLeave: this.getPersistGuildJoinLeave(bridgeId),
+        deleteJoinLeaveAfterSeconds: this.getDurationJoinLeaveInteractions(bridgeId).toSeconds(),
         chatterEnabled: this.getRandomChatterEnabled(bridgeId),
         chatterIntervalMinutes: this.getRandomChatterIntervalMinutes(bridgeId),
         chatterMinOnlinePlayers: this.getRandomChatterMinimumOnlinePlayers(bridgeId),

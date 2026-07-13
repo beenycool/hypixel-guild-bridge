@@ -119,7 +119,8 @@ export class Core extends Instance<InstanceType.Core> {
     this.discordConfigurations = new DiscordConfigurations(this.configurationsManager)
     this.discordTemporarilyInteractions = new DiscordTemporarilyInteractions(
       this.databaseManager,
-      this.discordConfigurations
+      this.discordConfigurations,
+      this.bridgeConfigurations
     )
     this.discordInstanceHistoryButton = new InstanceHistoryButton(this.databaseManager, this.logger)
     this.discordEmojis = new DiscordEmojis(this.databaseManager)

@@ -252,6 +252,35 @@ const CATEGORIES = [
       {
         t: 'section',
         collapsible: true,
+        title: 'Join/Leave Events',
+        children: [
+          {
+            id: 'persistJoinLeave',
+            t: 'boolean',
+            label: 'Persist Join/Leave',
+            hint: 'Keep join/leave messages in the channel.'
+          },
+          {
+            t: 'section',
+            collapsible: true,
+            title: 'When NOT Persisted',
+            condition: (data) => !bool(data.persistJoinLeave),
+            children: [
+              {
+                id: 'deleteJoinLeaveAfterSeconds',
+                t: 'number',
+                label: 'Delete After (seconds)',
+                hint: '86400\u2013604800 (1\u20137 days)',
+                min: 86400,
+                max: 604800
+              }
+            ]
+          }
+        ]
+      },
+      {
+        t: 'section',
+        collapsible: true,
         title: 'Random Chatter',
         children: [
           { id: 'chatterEnabled', t: 'boolean', label: 'Enable Random Chatter' },

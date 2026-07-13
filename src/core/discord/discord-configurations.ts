@@ -113,6 +113,15 @@ export class DiscordConfigurations {
     this.configuration.setNumber('temporarilyInteractionsDuration', value.toSeconds())
   }
 
+  public getDurationJoinLeaveInteractions(): Duration {
+    const value = this.configuration.getNumber('joinLeaveInteractionsDuration', Duration.days(2).toSeconds())
+    return Duration.seconds(value)
+  }
+
+  public setDurationJoinLeaveInteractions(value: Duration): void {
+    this.configuration.setNumber('joinLeaveInteractionsDuration', value.toSeconds())
+  }
+
   public getMinecraftToDiscordFormat(): string {
     return this.configuration.getString('minecraftToDiscordFormat', '{message}')
   }
