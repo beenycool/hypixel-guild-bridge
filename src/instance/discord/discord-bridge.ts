@@ -185,7 +185,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       }
     }
 
-    await this.instanceStatusManager.send(event)
+    await this.instanceStatusManager.send()
   }
 
   async onChat(event: ChatEvent): Promise<void> {
@@ -808,12 +808,20 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       }
     }
 
+    const botUsernameOverride =
+      event.bridgeId !== undefined
+        ? this.application.core.bridgeConfigurations.getBotUsernameOverride(event.bridgeId)
+        : undefined
+    const effectiveBotName = botUsernameOverride ?? botName
     const botAvatar =
-      botName === 'Bridge Bot'
+      effectiveBotName === 'Bridge Bot'
         ? `https://www.mc-heads.net/avatar/MHF_Question`
-        : `https://www.mc-heads.net/avatar/${botName}`
-    const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
-    const namePart = botRank ? `${botRank}§f` : `§a${botName}§f`
+        : `https://www.mc-heads.net/avatar/${effectiveBotName}`
+    const botRank =
+      botUsernameOverride === undefined && botInstanceName
+        ? this.application.minecraftManager.getBotRank(botInstanceName)
+        : undefined
+    const namePart = botRank ? `${botRank}§f` : `§a${effectiveBotName}§f`
 
     const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
       kind: 'command',
@@ -839,7 +847,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         if (this.messageToImage.shouldRenderImage()) {
           const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-            username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
+            username: effectiveBotName === 'Bridge Bot' ? 'MHF_Question' : effectiveBotName
           })
           await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
         } else {

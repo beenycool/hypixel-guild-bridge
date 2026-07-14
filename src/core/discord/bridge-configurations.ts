@@ -121,6 +121,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_starfallCultReminder`)
     this.configuration.delete(`${bridgeId}_announceMutedPlayer`)
 
+    this.configuration.delete(`${bridgeId}_botUsernameOverride`)
     // Per-bridge language
     this.configuration.delete(`${bridgeId}_language`)
     // Passthrough commands settings
@@ -257,6 +258,24 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setMinecraftInstances(bridgeId: string, instanceNames: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_minecraftInstances`, instanceNames)
+  }
+
+  // ========== Bot Username Override ==========
+
+  /**
+   * Get the per-bridge bot username override for Discord image rendering.
+   * Returns undefined when no override is set (uses the real bot account name).
+   */
+  public getBotUsernameOverride(bridgeId: string): string | undefined {
+    const value = this.getBridgeString('botUsernameOverride', bridgeId)
+    return value === '' ? undefined : value
+  }
+
+  /**
+   * Set the per-bridge bot username override. Pass undefined or empty string to clear.
+   */
+  public setBotUsernameOverride(bridgeId: string, name: string | undefined): void {
+    this.setBridgeString('botUsernameOverride', bridgeId, name)
   }
 
   // ========== Language Configuration ==========
@@ -1225,7 +1244,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         alwaysReply: this.getAlwaysReplyReaction(bridgeId),
         enforceVerification: this.getEnforceVerification(bridgeId),
         minecraftTextImages: this.getTextToImage(bridgeId),
-        language: this.getLanguage(bridgeId) ?? ''
+        language: this.getLanguage(bridgeId) ?? '',
+        botUsernameOverride: this.getBotUsernameOverride(bridgeId) ?? ''
       },
       minecraftEvents: {
         memberOnline: this.getGuildOnline(bridgeId),

@@ -330,6 +330,7 @@ export class SettingsApiHandler {
           cfg.setEnforceVerification(bridgeId, bool(body.enforceVerification))
           cfg.setTextToImage(bridgeId, bool(body.minecraftTextImages))
           cfg.setLanguage(bridgeId, string_(body.language) || undefined)
+          cfg.setBotUsernameOverride(bridgeId, string_(body.botUsernameOverride) || undefined)
           break
         }
         case 'minecraftEvents': {
