@@ -20,6 +20,7 @@ export class DeadlineScheduler {
   ) {}
 
   public start(): void {
+    this.logger.info('DeadlineScheduler: Starting (interval=5m)')
     // Run every 5 minutes
     this.intervalHandle = setInterval(
       () => {
@@ -32,6 +33,7 @@ export class DeadlineScheduler {
   }
 
   public stop(): void {
+    this.logger.info('DeadlineScheduler: Stopping')
     if (this.intervalHandle !== undefined) {
       clearInterval(this.intervalHandle)
       this.intervalHandle = undefined
@@ -39,17 +41,23 @@ export class DeadlineScheduler {
   }
 
   public async checkDeadlines(): Promise<void> {
-    if (this.isRunning) return
+    if (this.isRunning) {
+      this.logger.info('DeadlineScheduler: Already running, skipping cycle')
+      return
+    }
     this.isRunning = true
 
     try {
       const now = Math.floor(Date.now() / 1000)
+      this.logger.info(`DeadlineScheduler: Running check at timestamp ${now}`)
 
       // Get active tournaments
       const activeTournaments = await this.databaseManager.queryRows<Tournament>(
         'SELECT * FROM "tournaments" WHERE "status" = $1',
         [TournamentStatus.Active]
       )
+
+      this.logger.info(`DeadlineScheduler: Found ${activeTournaments.length} active tournament(s)`)
 
       for (const tournament of activeTournaments) {
         // Get matches that are ACTIVE, REPORTED, or DISPUTED and have a deadline
@@ -61,14 +69,18 @@ export class DeadlineScheduler {
           [tournament.id, MatchStatus.Active, MatchStatus.Reported, MatchStatus.Disputed]
         )
 
+        this.logger.info(`Tournament ${tournament.id}: Checking deadlines for ${matches.length} match(es)`)
+
         const names = await this.getPlayerNames(tournament.id)
 
         for (const match of matches) {
           if (match.deadlineAt === undefined) continue
 
+          const timeRemaining = match.deadlineAt - now
+
           // 1. Expired deadline
           if (now >= match.deadlineAt) {
-            this.logger.info(`Match ${match.id} deadline expired. Auto-resolving...`)
+            this.logger.info(`Match ${match.id}: Deadline expired (was ${match.deadlineAt}), auto-resolving`)
             await this.matchManager.handleDeadlineExpiry(match.id).catch((error: unknown) => {
               this.logger.error(`Failed to handle deadline expiry for match ${match.id}:`, error)
             })
@@ -78,7 +90,7 @@ export class DeadlineScheduler {
           // 2. 24h Warning
           const twentyFourHours = 24 * 3600
           if (now >= match.deadlineAt - twentyFourHours && match.warningsSent === 0) {
-            this.logger.info(`Sending 24h warning for match ${match.id}`)
+            this.logger.info(`Match ${match.id}: Sending 24h warning (deadline=${match.deadlineAt}, ${Math.floor(timeRemaining / 3600)}h remaining)`)
 
             // Update warning sent flag
             await this.databaseManager.execute('UPDATE "tournament_matches" SET "warningsSent" = 1 WHERE "id" = $1', [
@@ -112,6 +124,8 @@ export class DeadlineScheduler {
                   this.logger.error(`Failed to send deadline warning for match ${match.id}:`, error)
                 })
             }
+          } else {
+            this.logger.info(`Match ${match.id}: Deadline OK (${Math.floor(timeRemaining / 3600)}h remaining, warningsSent=${match.warningsSent})`)
           }
         }
       }
@@ -123,17 +137,18 @@ export class DeadlineScheduler {
       )
 
       for (const tournament of signupTournaments) {
-        const thirtyMinBeforeClose = 30 * 60
         if (tournament.checkinClosesAt !== undefined && now >= tournament.checkinClosesAt) {
           continue
         }
 
         if (tournament.checkinClosesAt !== undefined && now >= tournament.checkinClosesAt - 3600) {
+          this.logger.info(`Tournament ${tournament.id}: Check-in closing soon, sending reminders`)
           const uncheckinPlayers = await this.databaseManager.queryRows<TournamentPlayer>(
             'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND ("checkedInAt" IS NULL OR "status" = $2)',
             [tournament.id, PlayerStatus.Registered]
           )
 
+          this.logger.info(`Tournament ${tournament.id}: Reminding ${uncheckinPlayers.length} player(s) to check in`)
           for (const player of uncheckinPlayers) {
             await this.notifications
               .sendWhisper(

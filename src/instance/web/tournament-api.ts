@@ -40,11 +40,14 @@ export class TournamentApiHandler {
 
     const method = request.method ?? 'GET'
 
+    this.logger.info(`API ${method} ${pathPart}`)
+
     const auth = this.verifyAuth(request, response)
     if (auth === undefined) return true
     const permission = auth.permission
 
     if (permission < Permission.Helper) {
+      this.logger.info(`API ${pathPart}: Forbidden — permission level ${permission}`)
       sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
       return true
     }

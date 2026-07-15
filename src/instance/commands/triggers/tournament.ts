@@ -20,6 +20,8 @@ export default class Tournament extends ChatCommandHandler {
       return 'No bridge configured for this chat channel.'
     }
 
+    context.app.logger.info(`MC !tournament ${subcommand} — user=${context.message.user.displayName()}, bridgeId=${bridgeId}`)
+
     const tournamentManager = context.app.core.tournamentManager
     const tournament = tournamentManager.getActiveTournament(bridgeId)
     if (tournament === undefined) {
@@ -33,6 +35,7 @@ export default class Tournament extends ChatCommandHandler {
 
     switch (subcommand) {
       case 'join': {
+        context.app.logger.info(`MC tournament join: tournament=${tournament.id}, player=${playerUuid}`)
         if (tournament.status !== TournamentStatus.Signup) {
           return 'Tournament signups are closed.'
         }
@@ -45,6 +48,7 @@ export default class Tournament extends ChatCommandHandler {
       }
 
       case 'checkin': {
+        context.app.logger.info(`MC tournament checkin: tournament=${tournament.id}, player=${playerUuid}`)
         if (tournament.status !== TournamentStatus.Signup) {
           return 'Tournament is not in signup phase.'
         }
@@ -57,6 +61,7 @@ export default class Tournament extends ChatCommandHandler {
       }
 
       case 'report': {
+        context.app.logger.info(`MC tournament report: tournament=${tournament.id}, player=${playerUuid}, args=${context.args.slice(1).join(',')}`)
         if (tournament.status !== TournamentStatus.Active) {
           return 'Tournament is not active.'
         }
@@ -112,6 +117,7 @@ export default class Tournament extends ChatCommandHandler {
       }
 
       case 'forfeit': {
+        context.app.logger.info(`MC tournament forfeit: tournament=${tournament.id}, player=${playerUuid}`)
         if (tournament.status !== TournamentStatus.Active) return 'Tournament is not active.'
         const fPlayer = await context.app.core.databaseManager.queryOne<TournamentPlayer>(
           'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND "playerUuid" = $2',
@@ -138,6 +144,7 @@ export default class Tournament extends ChatCommandHandler {
       }
 
       case 'bracket': {
+        context.app.logger.info(`MC tournament bracket: tournament=${tournament.id}`)
         if (tournament.discordChannelId !== undefined) {
           return `The bracket is available in the Discord channel: <#${tournament.discordChannelId}>`
         }
@@ -150,6 +157,7 @@ export default class Tournament extends ChatCommandHandler {
           'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
           [tournament.id]
         )
+        context.app.logger.info(`MC tournament status: tournament=${tournament.id}, player=${playerUuid} — ${players.length} registered`)
         return `Tournament: ${tournament.name} | Status: ${tournament.status} | Round: ${tournament.currentRound}/${tournament.totalRounds} | Players: ${players.length} | Best of: ${tournament.bestOf} | Game: ${tournament.gameType}`
       }
     }

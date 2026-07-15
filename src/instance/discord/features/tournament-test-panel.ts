@@ -20,6 +20,8 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   constructor(clientInstance: DiscordInstance) {
     super(clientInstance)
 
+    this.application.logger.info('TournamentTestPanel: Initialized')
+
     const client = this.clientInstance.getClient()
     client.on('interactionCreate', (interaction) => {
       if (!interaction.isButton() || !interaction.isMessageComponent()) return
@@ -34,6 +36,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
     const parts = interaction.customId.split(':')
     if (parts.length < 3) {
+      this.application.logger.info(`TournamentTestPanel: Invalid button customId: ${interaction.customId}`)
       await interaction.editReply({ content: 'Invalid button.' })
       return
     }
@@ -41,8 +44,11 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     const action = parts[1]
     const panelMessageId = parts[2]
 
+    this.application.logger.info(`TournamentTestPanel: Button pressed — action=${action}, panel=${panelMessageId}`)
+
     const panel = this.application.core.tournamentTestPanels.get(panelMessageId)
     if (panel === undefined) {
+      this.application.logger.info(`TournamentTestPanel: Panel ${panelMessageId} not found`)
       await interaction.editReply({ content: 'This test panel is no longer active.' })
       return
     }
@@ -174,6 +180,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   }
 
   private async handleResolveRound(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
+    this.application.logger.info(`TournamentTestPanel: Resolving round for tournament ${panel.tournamentId}`)
     const tournament = await this.application.core.tournamentManager.getTournament(panel.tournamentId)
     if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
       await interaction.editReply({ content: 'Tournament is not active.' })
@@ -186,6 +193,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     )
 
     if (activeMatches.length === 0) {
+      this.application.logger.info(`TournamentTestPanel: No active matches in round ${tournament.currentRound}`)
       await interaction.editReply({ content: 'No active matches in the current round to resolve.' })
       return
     }
@@ -232,6 +240,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   }
 
   private async handleResolveMatch(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
+    this.application.logger.info(`TournamentTestPanel: Resolving match for tournament ${panel.tournamentId}`)
     const tournament = await this.application.core.tournamentManager.getTournament(panel.tournamentId)
     if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
       await interaction.editReply({ content: 'Tournament is not active.' })
@@ -244,6 +253,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     )
 
     if (activeMatch === undefined) {
+      this.application.logger.info(`TournamentTestPanel: No active match in round ${tournament.currentRound}`)
       await interaction.editReply({ content: 'No active matches in the current round to resolve.' })
       return
     }
@@ -292,6 +302,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   }
 
   private async handleRewindRound(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
+    this.application.logger.info(`TournamentTestPanel: Rewinding round for panel ${panel.messageId} (step ${panel.currentStep} -> ${panel.currentStep - 1})`)
     if (panel.currentStep === 0) {
       await interaction.editReply({ content: 'Nothing to rewind.' })
       return
@@ -380,6 +391,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   }
 
   private async handleRewindAll(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
+    this.application.logger.info(`TournamentTestPanel: Rewinding all for panel ${panel.messageId}`)
     let currentPanel: TournamentTestPanelEntry | undefined = { ...panel }
 
     while (currentPanel !== undefined && currentPanel.currentStep > 0) {
@@ -393,6 +405,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   }
 
   private async handleCleanup(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
+    this.application.logger.info(`TournamentTestPanel: Cleaning up tournament ${panel.tournamentId}, panel ${panel.messageId}`)
     await this.application.core.tournamentManager.cancelTournament(panel.tournamentId).catch(() => undefined)
 
     await this.application.core.databaseManager.execute('DELETE FROM "tournament_players" WHERE "tournamentId" = $1', [

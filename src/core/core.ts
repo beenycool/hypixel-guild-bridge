@@ -179,7 +179,7 @@ export class Core extends Instance<InstanceType.Core> {
     this.scoresManager = new ScoresManager(this, this.databaseManager)
 
     this.tournamentManager = new TournamentManager(this.databaseManager, application)
-    this.tournamentTestPanels = new TournamentTestPanels(this.databaseManager)
+    this.tournamentTestPanels = new TournamentTestPanels(this.databaseManager, this.logger)
     application.addShutdownListener(async () => {
       this.tournamentManager.stopScheduler()
     })

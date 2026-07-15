@@ -184,6 +184,7 @@ export default {
 
   handler: async function (context) {
     const subcommand = context.interaction.options.getSubcommand()
+    context.application.logger.info(`Discord /tournament ${subcommand} — user=${context.interaction.user.id}, channel=${context.interaction.channelId}`)
     let bridgeId = context.bridgeId
 
     if ((subcommand === 'test' || subcommand === 'set-category' || subcommand === 'cancel') && bridgeId === undefined) {
@@ -241,6 +242,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament create: bridgeId=${bridgeId}, name="${name}", gameType="${gameType}", bestOf=${bestOf}, deadline=${deadline}`)
       try {
         const tournament = await context.application.core.tournamentManager.createTournament(
           bridgeId,
@@ -309,6 +311,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament join: tournament=${tournament.id}, user=${context.interaction.user.id}`)
       try {
         await context.application.core.tournamentManager.addPlayer(
           tournament.id,
@@ -341,6 +344,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament leave: tournament=${tournament.id}, user=${context.interaction.user.id}`)
       try {
         await context.application.core.tournamentManager.removePlayer(tournament.id, link.uuid)
         await context.interaction.editReply('✅ You have left the tournament.')
@@ -373,6 +377,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament start: tournament=${tournament.id}, guildId=${guildId}`)
       try {
         await context.interaction.editReply('Generating bracket and creating channels... (This may take a moment)')
         await context.application.core.tournamentManager.startTournament(tournament.id, guildId)
@@ -402,6 +407,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament cancel: tournament=${tournament.id}`)
       try {
         await context.application.core.tournamentManager.cancelTournament(tournament.id)
         await context.interaction.editReply(
@@ -520,6 +526,7 @@ export default {
       const p1Wins = isPlayer1 ? myWins : theirWins
       const p2Wins = isPlayer1 ? theirWins : myWins
 
+      context.application.logger.info(`Discord /tournament report: match=${match.id}, player=${player.id}, winnerChoice=${winnerChoice}, myWins=${myWins}, theirWins=${theirWins}`)
       try {
         const result = await context.application.core.tournamentManager.matchManager.submitReport(
           match.id,
@@ -604,6 +611,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament confirm: match=${matchId}, winner="${winnerName}" (playerId=${winnerId}), by=${context.interaction.user.id}`)
       try {
         await context.application.core.tournamentManager.matchManager.adminConfirm(matchId, winnerId)
         await context.interaction.editReply(`✅ Match ${matchId} winner has been forced to **${winnerName}**!`)
@@ -630,6 +638,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament open-checkin: tournament=${tournament.id}`)
       try {
         await context.application.core.tournamentManager.openCheckinManually(tournament.id)
         await context.interaction.editReply('✅ Check-in has been opened for the tournament!')
@@ -657,6 +666,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament checkin: tournament=${tournament.id}, user=${context.interaction.user.id}`)
       try {
         await context.application.core.tournamentManager.checkinPlayer(
           tournament.id,
@@ -684,6 +694,7 @@ export default {
       const matchId = context.interaction.options.getInteger('match_id', true)
       const hours = context.interaction.options.getInteger('hours', true)
 
+      context.application.logger.info(`Discord /tournament extend: match=${matchId}, hours=${hours}`)
       try {
         const maxExtensionHours = context.application.core.bridgeConfigurations.getTournamentMaxExtensionHours(bridgeId)
         const result = await context.application.core.tournamentManager.matchManager.extendDeadline(
@@ -738,6 +749,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament forfeit: match=${match.id}, player=${player.id}`)
       try {
         await context.application.core.tournamentManager.matchManager.forfeit(match.id, player.id)
         await context.interaction.editReply('Forfeit accepted.')
@@ -774,6 +786,7 @@ export default {
         return
       }
 
+      context.application.logger.info(`Discord /tournament set-category: bridgeId=${bridgeId}, categoryId=${category.id}`)
       context.application.core.bridgeConfigurations.setTournamentCategoryId(bridgeId, category.id)
       await context.interaction.reply({
         content: `Tournament category set to <#${category.id}>. All future tournaments will be placed inside this category.`,
@@ -794,6 +807,7 @@ export default {
 
       await context.interaction.deferReply()
 
+      context.application.logger.info(`Discord /tournament test: bridgeId=${bridgeId}, user=${context.interaction.user.id}`)
       try {
         const name = context.interaction.options.getString('name') ?? 'Test Tournament'
         const gameType = context.interaction.options.getString('game_type') ?? 'Bridge'
@@ -1129,6 +1143,7 @@ export default {
       const tournamentId = context.interaction.options.getInteger('tournament_id', true)
       const limit = context.interaction.options.getInteger('limit') ?? 50
 
+      context.application.logger.info(`Discord /tournament audit: tournamentId=${tournamentId}, limit=${limit}`)
       try {
         const logs = await context.application.core.tournamentManager.auditLogger.getLogs(tournamentId, limit)
         if (logs.length === 0) {
@@ -1168,6 +1183,7 @@ export default {
       const matchId = context.interaction.options.getInteger('match_id', true)
       const url = context.interaction.options.getString('url', true)
 
+      context.application.logger.info(`Discord /tournament proof: matchId=${matchId}, url="${url}"`)
       try {
         new URL(url)
       } catch {

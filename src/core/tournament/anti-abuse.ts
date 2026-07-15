@@ -1,3 +1,5 @@
+import type { Logger } from 'log4js'
+
 import { UserRateLimiter } from '../../utility/rate-limiter-map.js'
 import type { DatabaseManager } from '../../common/database-manager.js'
 
@@ -11,10 +13,14 @@ export class AntiAbuse {
   private readonly forfeitTracker = new Map<string, { opponent: string; count: number }[]>()
   private readonly overrideTracker = new Map<string, number>()
 
-  constructor(private readonly databaseManager: DatabaseManager) {}
+  constructor(
+    private readonly databaseManager: DatabaseManager,
+    private readonly logger?: Logger
+  ) {}
 
   checkSignupRate(userId: string): AbuseCheckResult {
     if (!this.signupLimiter.tryAcquire(userId)) {
+      this.logger?.info(`AntiAbuse: Rate limit hit for user ${userId}`)
       return { allowed: false, reason: 'Please slow down. You are joining/leaving too fast.' }
     }
     return { allowed: true }
@@ -25,6 +31,7 @@ export class AntiAbuse {
     const sameOpponent = history.filter((h) => h.opponent === opponentUuid)
 
     if (sameOpponent.length >= 3) {
+      this.logger?.info(`AntiAbuse: Suspicious forfeit pattern — ${playerUuid} forfeiting to ${opponentUuid} (${sameOpponent.length}x)`)
       return { allowed: false, reason: 'FLAGGED: Suspicious forfeit pattern' }
     }
 
@@ -35,11 +42,13 @@ export class AntiAbuse {
     const history = this.forfeitTracker.get(playerUuid) ?? []
     history.push({ opponent: opponentUuid, count: (history.find((h) => h.opponent === opponentUuid)?.count ?? 0) + 1 })
     this.forfeitTracker.set(playerUuid, history)
+    this.logger?.info(`AntiAbuse: Recorded forfeit — ${playerUuid} vs ${opponentUuid}`)
   }
 
   async checkFalseReporting(adminDiscordId: string): Promise<AbuseCheckResult> {
     const overrides = this.overrideTracker.get(adminDiscordId) ?? 0
     if (overrides >= 3) {
+      this.logger?.info(`AntiAbuse: High override rate — admin ${adminDiscordId} (${overrides} overrides)`)
       return { allowed: false, reason: 'FLAGGED: High admin override rate' }
     }
     return { allowed: true }
@@ -48,6 +57,7 @@ export class AntiAbuse {
   recordAdminOverride(adminDiscordId: string): void {
     const current = this.overrideTracker.get(adminDiscordId) ?? 0
     this.overrideTracker.set(adminDiscordId, current + 1)
+    this.logger?.info(`AntiAbuse: Recorded admin override — ${adminDiscordId} (total: ${current + 1})`)
   }
 
   /**
@@ -55,6 +65,7 @@ export class AntiAbuse {
    * Cross-references mojang table for shared identifiers.
    */
   async checkAltAccounts(tournamentId: number, playerUuids: string[]): Promise<AbuseCheckResult> {
+    this.logger?.info(`AntiAbuse: Checking alt accounts for tournament ${tournamentId} (${playerUuids.length} player(s))`)
     try {
       const rows = await this.databaseManager.queryRows<{ player_uuid: string; ip: string | null }>(
         'SELECT player_uuid, ip FROM mojang WHERE player_uuid = ANY($1)',
@@ -71,6 +82,7 @@ export class AntiAbuse {
 
       for (const [ip, uuids] of ipMap) {
         if (uuids.length > 1) {
+          this.logger?.info(`AntiAbuse: Potential alts detected — IP ${ip} shared by ${uuids.join(', ')}`)
           return { allowed: false, reason: `FLAGGED: Potential alt accounts sharing IP ${ip}` }
         }
       }

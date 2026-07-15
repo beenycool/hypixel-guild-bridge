@@ -1,15 +1,21 @@
+import type { Logger } from 'log4js'
+
 import type { DatabaseManager } from '../../common/database-manager.js'
 
 export class TournamentTestPanels {
   private readonly entries = new Map<string, TournamentTestPanelEntry>()
 
-  constructor(private readonly databaseManager: DatabaseManager) {}
+  constructor(
+    private readonly databaseManager: DatabaseManager,
+    private readonly logger?: Logger
+  ) {}
 
   public async load(): Promise<void> {
     const rows = await this.databaseManager.queryRows<StoredTournamentTestPanelEntry>(
       'SELECT * FROM "tournamentTestPanels"'
     )
     this.entries.clear()
+    this.logger?.info(`TournamentTestPanels: Loaded ${rows.length} panel(s)`)
     for (const row of rows) {
       this.entries.set(row.messageId, fromStoredEntry(row))
     }
@@ -20,6 +26,7 @@ export class TournamentTestPanels {
   }
 
   public add(entry: TournamentTestPanelEntry): void {
+    this.logger?.info(`TournamentTestPanels: Adding panel ${entry.messageId} for tournament ${entry.tournamentId}`)
     const stored = { ...entry }
     this.entries.set(entry.messageId, stored)
 
@@ -55,6 +62,7 @@ export class TournamentTestPanels {
   }
 
   public remove(messageId: string): void {
+    this.logger?.info(`TournamentTestPanels: Removing panel ${messageId}`)
     this.entries.delete(messageId)
 
     this.databaseManager.enqueueWrite(`removing tournament test panel ${messageId}`, async (database) => {
@@ -63,6 +71,7 @@ export class TournamentTestPanels {
   }
 
   public updateStep(messageId: string, currentStep: number, historyJson: string): void {
+    this.logger?.info(`TournamentTestPanels: Updating panel ${messageId} — step=${currentStep}`)
     const current = this.entries.get(messageId)
     if (current !== undefined) {
       current.currentStep = currentStep
@@ -78,6 +87,7 @@ export class TournamentTestPanels {
   }
 
   public removeByTournamentId(tournamentId: number): void {
+    this.logger?.info(`TournamentTestPanels: Removing panels for tournament ${tournamentId}`)
     const toRemove: string[] = []
     for (const [messageId, entry] of this.entries) {
       if (entry.tournamentId === tournamentId) {

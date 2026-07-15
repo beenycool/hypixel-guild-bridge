@@ -26,6 +26,7 @@ export class TournamentNotifications {
    * Broadcast a tournament milestone event to all relevant channels.
    */
   broadcastMilestone(tournament: any, message: string): void {
+    this.application.logger.info(`Tournament ${tournament.id}: Broadcasting milestone — "${message}"`)
     try {
       const event: BroadcastEvent = {
         eventId: `tournament:${tournament.name}:${Date.now()}`,
@@ -66,20 +67,33 @@ export class TournamentNotifications {
    * Sends a whisper to a player.
    */
   public async sendWhisper(bridgeId: string, playerUuid: string, message: string): Promise<boolean> {
+    this.application.logger.info(`sendWhisper: bridgeId=${bridgeId}, playerUuid=${playerUuid}, message="${message.slice(0, 80)}${message.length > 80 ? '...' : ''}"`)
+
     const announceMc = this.application.core.bridgeConfigurations.getTournamentAnnounceMc(bridgeId)
-    if (!announceMc) return false
+    if (!announceMc) {
+      this.application.logger.info(`sendWhisper: MC announcements disabled for bridge ${bridgeId}`)
+      return false
+    }
 
     // Resolve name from uuid
-    const profile = await this.application.mojangApi.profileByUuid(playerUuid).catch(() => undefined)
+    const profile = await this.application.mojangApi.profileByUuid(playerUuid).catch(() => {
+      this.application.logger.info(`sendWhisper: Failed to resolve profile for ${playerUuid}`)
+      return undefined
+    })
     if (!profile) return false
 
     const inst = this.getConnectedMinecraftInstance(bridgeId)
-    if (!inst) return false
+    if (!inst) {
+      this.application.logger.info(`sendWhisper: No connected MC instance for bridge ${bridgeId}`)
+      return false
+    }
 
     try {
       await inst.send(`/msg ${profile.name} ${message}`, MinecraftSendChatPriority.Default, undefined)
+      this.application.logger.info(`sendWhisper: Whisper sent to ${profile.name}`)
       return true
-    } catch {
+    } catch (error) {
+      this.application.logger.info(`sendWhisper: Failed to send whisper to ${profile.name}: ${error}`)
       return false
     }
   }
@@ -88,16 +102,25 @@ export class TournamentNotifications {
    * Sends a public guild chat announcement.
    */
   public async announceToGuild(bridgeId: string, message: string): Promise<void> {
+    this.application.logger.info(`announceToGuild: bridgeId=${bridgeId}, message="${message.slice(0, 100)}${message.length > 100 ? '...' : ''}"`)
+
     const announceMc = this.application.core.bridgeConfigurations.getTournamentAnnounceMc(bridgeId)
-    if (!announceMc) return
+    if (!announceMc) {
+      this.application.logger.info(`announceToGuild: MC announcements disabled for bridge ${bridgeId}`)
+      return
+    }
 
     const inst = this.getConnectedMinecraftInstance(bridgeId)
-    if (!inst) return
+    if (!inst) {
+      this.application.logger.info(`announceToGuild: No connected MC instance for bridge ${bridgeId}`)
+      return
+    }
 
     try {
       await inst.send(`/gc ${message}`, MinecraftSendChatPriority.Default, undefined)
-    } catch {
-      // ignore errors
+      this.application.logger.info(`announceToGuild: Guild announcement sent`)
+    } catch (error) {
+      this.application.logger.info(`announceToGuild: Failed: ${error}`)
     }
   }
 
@@ -105,13 +128,20 @@ export class TournamentNotifications {
    * Sends a Discord announcement embed to the configured tournament notification channel.
    */
   public async announceToDiscord(bridgeId: string, embed: EmbedBuilder): Promise<void> {
+    this.application.logger.info(`announceToDiscord: bridgeId=${bridgeId}`)
     const channelId = this.application.core.bridgeConfigurations.getTournamentNotificationChannelId(bridgeId)
-    if (!channelId) return
+    if (!channelId) {
+      this.application.logger.info(`announceToDiscord: No notification channel configured for bridge ${bridgeId}`)
+      return
+    }
 
     const client = this.application.discordInstance.getClient()
     const channel = await client.channels.fetch(channelId).catch(() => undefined)
     if (channel?.isSendable()) {
+      this.application.logger.info(`announceToDiscord: Sending embed to channel ${channelId}`)
       await channel.send({ embeds: [embed] }).catch(() => undefined)
+    } else {
+      this.application.logger.info(`announceToDiscord: Channel ${channelId} not available for sending`)
     }
   }
 
@@ -126,6 +156,8 @@ export class TournamentNotifications {
     p1Name: string,
     p2Name: string
   ): Promise<void> {
+    this.application.logger.info(`Match ${match.id}: Notifying match start — ${p1Name} vs ${p2Name} (round ${match.round})`)
+
     const mcMessage = this.t(bridgeId, 'tournament.match.whisper', {
       round: match.round,
       p1: p1Name,
@@ -139,6 +171,8 @@ export class TournamentNotifications {
       p2: p1Name
     })
     await this.sendWhisper(bridgeId, p2Uuid, mcMessage2)
+
+    this.application.logger.info(`Match ${match.id}: Notifications sent to both players`)
   }
 
   /**
@@ -152,6 +186,8 @@ export class TournamentNotifications {
     p1Name: string,
     p2Name: string
   ): Promise<void> {
+    this.application.logger.info(`Match ${match.id}: Sending deadline warning to ${p1Name} and ${p2Name}`)
+
     // 1. MC Whispers
     const mcMessage = this.t(bridgeId, 'tournament.deadline.warning', { opponent: p2Name })
     await this.sendWhisper(bridgeId, p1Uuid, mcMessage)
@@ -161,6 +197,7 @@ export class TournamentNotifications {
 
     // 2. Discord Thread Announcement
     if (match.discordThreadId) {
+      this.application.logger.info(`Match ${match.id}: Sending deadline warning to thread ${match.discordThreadId}`)
       const client = this.application.discordInstance.getClient()
       const thread = await client.channels.fetch(match.discordThreadId).catch(() => undefined)
       if (thread?.isSendable()) {
@@ -188,6 +225,8 @@ export class TournamentNotifications {
     r1ClaimedWinner: string,
     r2ClaimedWinner: string
   ): Promise<void> {
+    this.application.logger.info(`Match ${match.id}: Notifying dispute — ${p1Name} claims ${r1ClaimedWinner}, ${p2Name} claims ${r2ClaimedWinner}`)
+
     const embed = new EmbedBuilder()
       .setTitle('🚨 Match Disputed')
       .setColor('#FF0000')
@@ -204,6 +243,7 @@ export class TournamentNotifications {
 
     // Also send an update to the match thread
     if (match.discordThreadId) {
+      this.application.logger.info(`Match ${match.id}: Sending dispute alert to thread ${match.discordThreadId}`)
       const client = this.application.discordInstance.getClient()
       const thread = await client.channels.fetch(match.discordThreadId).catch(() => undefined)
       if (thread?.isSendable()) {
@@ -223,6 +263,8 @@ export class TournamentNotifications {
    * Announce round completion.
    */
   public async announceRoundComplete(tournament: Tournament, round: number): Promise<void> {
+    this.application.logger.info(`Tournament ${tournament.id}: Announcing round ${round} completion`)
+
     const embed = new EmbedBuilder()
       .setTitle(`Round ${round} Complete!`)
       .setColor('#00FF00')
@@ -243,6 +285,8 @@ export class TournamentNotifications {
    * Announce tournament winner.
    */
   public async announceWinner(tournament: Tournament, winnerName: string): Promise<void> {
+    this.application.logger.info(`Tournament ${tournament.id}: Announcing winner — ${winnerName}`)
+
     const embed = new EmbedBuilder()
       .setTitle('🏆 Tournament Winner Crowned!')
       .setColor('#FFA500')
@@ -264,10 +308,14 @@ export class TournamentNotifications {
     loserId: number | undefined,
     playerNames: Map<number, string>
   ): Promise<void> {
-    if (tournament.liveChannelId === undefined) return
+    if (tournament.liveChannelId === undefined) {
+      this.application.logger.info(`Tournament ${tournament.id}: No live channel for live update`)
+      return
+    }
     const winnerName = playerNames.get(winnerId) ?? 'Unknown'
     const loserName = loserId === undefined ? 'BYE' : (playerNames.get(loserId) ?? 'Unknown')
     const score = match.player1Wins > 0 || match.player2Wins > 0 ? `${match.player1Wins}-${match.player2Wins}` : ''
+    this.application.logger.info(`Tournament ${tournament.id}: Live update — ${winnerName} defeated ${loserName}${score ? ` ${score}` : ''}`)
 
     const embed = new EmbedBuilder()
       .setTitle('🏆 Match Result')
@@ -291,6 +339,7 @@ export class TournamentNotifications {
     checkedInCount: number,
     minRequired: number
   ): Promise<void> {
+    this.application.logger.info(`Tournament ${tournament.id}: Notifying cancellation — ${checkedInCount}/${minRequired} checked in`)
     const embed = new EmbedBuilder()
       .setTitle('🏆 Tournament Cancelled — Insufficient Check-ins')
       .setColor('#FF0000')
@@ -314,6 +363,7 @@ export class TournamentNotifications {
     streamUrl: string,
     channelId: string
   ): Promise<void> {
+    this.application.logger.info(`announceStream: ${playerName} streaming ${tournamentName} at ${streamUrl}`)
     try {
       const message = `🔴 ${playerName} is now live: ${streamUrl}`
 
