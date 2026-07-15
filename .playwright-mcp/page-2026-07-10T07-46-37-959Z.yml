@@ -1,0 +1,15 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - heading "Settings" [level=1] [ref=e4]
+      - generic [ref=e5]:
+        - combobox [ref=e6] [cursor=pointer]
+        - button "+" [ref=e7] [cursor=pointer]
+        - generic "WebSocket connection" [ref=e8]
+    - complementary [ref=e11]:
+      - list
+  - generic [ref=e16]:
+    - heading "Rankup" [level=2] [ref=e17]
+    - paragraph [ref=e18]: Enter your access token to continue
+    - textbox "access token" [active] [ref=e20]
+    - button "Connect" [ref=e21] [cursor=pointer]
