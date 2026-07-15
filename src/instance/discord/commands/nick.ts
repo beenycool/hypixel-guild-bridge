@@ -3,7 +3,7 @@ import { SlashCommandBuilder } from 'discord.js'
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 
-const MINECRAFT_NAME_REGEX = /^[a-zA-Z0-9_]{1,16}$/
+const MINECRAFT_NAME_REGEX = /^[a-zA-Z0-9_]{3,16}$/
 
 export default {
   getCommandBuilder: () =>
@@ -35,7 +35,7 @@ export default {
     const cfg = context.application.core.bridgeConfigurations
     const currentOverride = cfg.getBotUsernameOverride(context.bridgeId)
 
-    if (name === null || name.trim().length === 0) {
+    if (name === null) {
       if (currentOverride === undefined) {
         await interaction.reply({
           content: 'No custom nick is set. The bot uses its real Minecraft username.',
@@ -52,10 +52,17 @@ export default {
     }
 
     const trimmed = name.trim()
+    if (trimmed.length === 0) {
+      await interaction.reply({
+        content: 'Name cannot be empty or whitespace only.',
+        ephemeral: true
+      })
+      return
+    }
 
     if (!MINECRAFT_NAME_REGEX.test(trimmed)) {
       await interaction.reply({
-        content: 'Invalid name. Must be 1\u201316 characters: letters, numbers, or underscores.',
+        content: 'Invalid name. Must be 3\u201316 characters: letters, numbers, or underscores.',
         ephemeral: true
       })
       return

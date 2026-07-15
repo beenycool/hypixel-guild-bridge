@@ -325,11 +325,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (game) return
     }
 
-    const removeLater =
-      event.type === GuildPlayerEventType.Offline ||
-      event.type === GuildPlayerEventType.Online ||
-      event.type === GuildPlayerEventType.Join ||
-      event.type === GuildPlayerEventType.Leave
     const username = event.user.displayName()
 
     let messages: Message[]
@@ -381,9 +376,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           channelId: message.channelId,
           messageId: message.id,
           createdAt: currentTime,
-          type: 'online-offline' as const
+          type: 'online-offline' as const,
+          bridgeId: event.bridgeId
         }))
-        this.messageDeleter.add(entries)
+        await this.messageDeleter.add(entries)
       }
     }
 
@@ -401,7 +397,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           type: 'join-leave' as const,
           bridgeId: event.bridgeId
         }))
-        this.messageDeleter.add(entries)
+        await this.messageDeleter.add(entries)
       }
     }
 
@@ -826,6 +822,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         : `${botRank}§f`
       : `§a${effectiveBotName}§f`
 
+    this.logger.debug(
+      `[cmd-image] bridgeId="${event.bridgeId}" botName="${botName}" override="${botUsernameOverride ?? 'none'}" effectiveBotName="${effectiveBotName}" botRank="${botRank ?? 'none'}" namePart="${namePart}"`
+    )
+
     const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
       kind: 'command',
       instanceName: event.instanceName
@@ -849,6 +849,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
         if (this.messageToImage.shouldRenderImage()) {
           const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
+          this.logger.debug(
+            `[cmd-image] formattedMessage="${formattedMessage}" skinUsername="${botName}" channelType="${channelType}"`
+          )
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
             username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
           })

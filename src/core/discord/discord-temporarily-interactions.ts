@@ -63,13 +63,19 @@ export class DiscordTemporarilyInteractions {
     const interactionsCount = new Map<string, number>()
     for (const interaction of allInteractions) {
       if (interaction.type === 'join-leave') {
-        if (interaction.createdAt + joinLeaveDuration.toMilliseconds() < currentTime) {
+        const duration = interaction.bridgeId
+          ? this.bridgeConfigurations.getDurationJoinLeaveInteractions(interaction.bridgeId)
+          : joinLeaveDuration
+        if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
           toDelete.push(interaction)
         }
         continue
       }
 
-      if (interaction.createdAt + onlineOfflineDuration.toMilliseconds() < currentTime) {
+      const duration = interaction.bridgeId
+        ? this.bridgeConfigurations.getDurationTemporarilyInteractions(interaction.bridgeId)
+        : onlineOfflineDuration
+      if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
         toDelete.push(interaction)
         continue
       }

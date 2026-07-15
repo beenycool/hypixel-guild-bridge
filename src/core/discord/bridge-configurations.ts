@@ -88,6 +88,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_persistGuildOnlineOffline`)
     this.configuration.delete(`${bridgeId}_temporarilyInteractionsCount`)
     this.configuration.delete(`${bridgeId}_temporarilyInteractionsDuration`)
+    this.configuration.delete(`${bridgeId}_persistGuildJoinLeave`)
+    this.configuration.delete(`${bridgeId}_joinLeaveInteractionsDuration`)
     // Moderation settings
     this.configuration.delete(`${bridgeId}_heatPunishmentEnabled`)
     this.configuration.delete(`${bridgeId}_kicksPerDay`)

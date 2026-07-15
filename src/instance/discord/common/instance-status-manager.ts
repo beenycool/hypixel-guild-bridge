@@ -1,5 +1,5 @@
-import type { ButtonInteraction, MessageActionRowComponentData } from 'discord.js'
-import { ButtonStyle, ComponentType, escapeMarkdown, MessageFlags } from 'discord.js'
+import type { ButtonInteraction } from 'discord.js'
+import { escapeMarkdown, MessageFlags } from 'discord.js'
 
 import type Application from '../../../application'
 import { InstanceMessageType, Permission } from '../../../common/application-event'
@@ -148,16 +148,4 @@ export class InstanceStatusManager {
   }
 
   public async send(): Promise<void> {}
-
-  private generateButtons(): MessageActionRowComponentData[] {
-    return [
-      {
-        type: ComponentType.Button,
-        style: ButtonStyle.Primary,
-        customId: InstanceStatusManager.DetailsButtonId,
-        label: 'Show Details',
-        emoji: { name: '📑' }
-      }
-    ]
-  }
 }
