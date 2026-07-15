@@ -184,11 +184,11 @@ export class TournamentChannelManager {
     this.application.logger.info(`createMatchThread: Thread created — ${thread.id}`)
 
     // Add players to thread if their discord ID is linked
-    if (player1.discordId != null) {
+    if (player1.discordId !== undefined) {
       this.application.logger.info(`createMatchThread: Adding player1 discord ${player1.discordId} to thread ${thread.id}`)
       await this.addMemberWithRetry(thread, player1.discordId)
     }
-    if (player2.discordId != null) {
+    if (player2.discordId !== undefined) {
       this.application.logger.info(`createMatchThread: Adding player2 discord ${player2.discordId} to thread ${thread.id}`)
       await this.addMemberWithRetry(thread, player2.discordId)
     }

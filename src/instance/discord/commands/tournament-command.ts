@@ -859,9 +859,12 @@ export default {
         // Start the tournament
         try {
           await context.application.core.tournamentManager.startTournament(tournament.id, guildId, categoryId)
-        } catch {
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : String(error)
+          context.application.logger.error(`Tournament test: startTournament failed for tournament ${tournament.id}: ${msg}`)
+          context.application.logger.debug(`Tournament test: startTournament error stack: ${error instanceof Error ? error.stack : 'no stack'}`)
           await context.application.core.tournamentManager.cancelTournament(tournament.id)
-          await context.interaction.editReply('Failed to start test tournament. It has been cancelled.')
+          await context.interaction.editReply(`❌ Failed to start test tournament. It has been cancelled. Error: ${msg}`)
           return
         }
 
