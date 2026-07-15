@@ -152,7 +152,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
 
     username = username.trim().slice(0, 16)
 
-    if (/^\w+$/.test(username)) return username
+    if (/^[\w.-]+$/.test(username)) return username
     if (username.includes(' ')) return username.split(' ')[0]
     return undefined
   }

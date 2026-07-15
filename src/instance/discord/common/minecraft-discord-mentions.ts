@@ -9,12 +9,19 @@ const MaxMemberSearchTokens = 5
 const ResolvedMentionsCache = new Map<string, { userId: string; timestamp: number }>()
 const CacheTTL = 60 * 60 * 1000 // 1 hour
 
+const MinecraftNameCache = new Map<string, { userId: string; timestamp: number }>()
+const MinecraftNameCacheTTL = 60 * 60 * 1000 // 1 hour
+
 export interface ResolvedDiscordMentions {
   content: string
   userIds: string[]
 }
 
-export async function resolveDiscordMentionsInMessage(message: string, guild: Guild): Promise<ResolvedDiscordMentions> {
+export async function resolveDiscordMentionsInMessage(
+  message: string,
+  guild: Guild,
+  resolveMinecraftName?: (username: string) => Promise<string | undefined>
+): Promise<ResolvedDiscordMentions> {
   const uniqueTokens = new Map<string, string>()
   for (const match of message.matchAll(MentionTokenRegex)) {
     const token = match[1]
@@ -62,11 +69,36 @@ export async function resolveDiscordMentionsInMessage(message: string, guild: Gu
     }
   }
 
+  // Fallback: try resolving unmatched tokens as Minecraft usernames
+  if (resolveMinecraftName !== undefined) {
+    for (const [lowered, token] of searchEntries) {
+      if (tokenToUserId.has(lowered)) continue
+
+      const cached = MinecraftNameCache.get(lowered)
+      if (cached !== undefined && Date.now() - cached.timestamp < MinecraftNameCacheTTL) {
+        tokenToUserId.set(lowered, cached.userId)
+      } else {
+        const discordId = await resolveMinecraftName(token)
+        if (discordId !== undefined) {
+          tokenToUserId.set(lowered, discordId)
+          MinecraftNameCache.set(lowered, { userId: discordId, timestamp: Date.now() })
+        }
+      }
+    }
+  }
+
   // Clean old cache entries occasionally
   if (ResolvedMentionsCache.size > 500) {
     const now = Date.now()
     for (const [key, value] of ResolvedMentionsCache.entries()) {
       if (now - value.timestamp > CacheTTL) ResolvedMentionsCache.delete(key)
+    }
+  }
+
+  if (MinecraftNameCache.size > 500) {
+    const now = Date.now()
+    for (const [key, value] of MinecraftNameCache.entries()) {
+      if (now - value.timestamp > MinecraftNameCacheTTL) MinecraftNameCache.delete(key)
     }
   }
 

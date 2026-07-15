@@ -295,7 +295,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     if (channel === undefined) return undefined
     if (channel.type !== DiscordChannelType.GuildText) return undefined
     try {
-      return await resolveDiscordMentionsInMessage(message, channel.guild)
+      return await resolveDiscordMentionsInMessage(message, channel.guild, async (mcName) => {
+        const profile = await this.application.mojangApi.profileByUsername(mcName)
+        if (profile === undefined) return undefined
+        const link = await this.application.core.verification.findByIngame(profile.id)
+        return link?.discordId
+      })
     } catch (error) {
       this.logger.warn('Failed to resolve Discord mentions for Minecraft chat', error)
       return undefined
