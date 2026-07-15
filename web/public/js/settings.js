@@ -210,6 +210,21 @@ const CATEGORIES = [
         label: 'Language',
         optionsFrom: 'availableLanguages',
         fallbackOptions: [{ label: 'en', value: 'en' }]
+      },
+      {
+        t: 'section',
+        collapsible: true,
+        title: 'Bot Appearance (Image Mode)',
+        children: [
+          {
+            id: 'botUsernameOverride',
+            t: 'text',
+            label: 'Bot Username Override',
+            hint: "Override the bot's Minecraft username and skin in rendered chat images. Leave empty to show the real bot name.",
+            placeholder: 'SpoofedName',
+            max: 16
+          }
+        ]
       }
     ]
   },
@@ -252,6 +267,35 @@ const CATEGORIES = [
       {
         t: 'section',
         collapsible: true,
+        title: 'Join/Leave Events',
+        children: [
+          {
+            id: 'persistJoinLeave',
+            t: 'boolean',
+            label: 'Persist Join/Leave',
+            hint: 'Keep join/leave messages in the channel.'
+          },
+          {
+            t: 'section',
+            collapsible: true,
+            title: 'When NOT Persisted',
+            condition: (data) => !bool(data.persistJoinLeave),
+            children: [
+              {
+                id: 'deleteJoinLeaveAfterSeconds',
+                t: 'number',
+                label: 'Delete After (seconds)',
+                hint: '86400\u2013604800 (1\u20137 days)',
+                min: 86400,
+                max: 604800
+              }
+            ]
+          }
+        ]
+      },
+      {
+        t: 'section',
+        collapsible: true,
         title: 'Random Chatter',
         children: [
           { id: 'chatterEnabled', t: 'boolean', label: 'Enable Random Chatter' },
@@ -284,6 +328,25 @@ const CATEGORIES = [
             hint: 'Pause chatter shortly after real chat activity (0\u201360).',
             min: 0,
             max: 60
+          }
+        ]
+      },
+      {
+        t: 'section',
+        collapsible: true,
+        title: 'Welcome Online Messages',
+        children: [
+          {
+            id: 'welcomeOnlineEnabled',
+            t: 'boolean',
+            label: 'Enable Welcome Messages',
+            hint: 'When enabled, guild chat announces a custom welcome message when a player logs onto Hypixel.'
+          },
+          {
+            id: 'welcomeOnlineMessages',
+            t: 'welcomeTable',
+            label: 'Player Welcome Messages',
+            hint: 'Use {username} placeholder for their name.'
           }
         ]
       }
@@ -392,174 +455,6 @@ const CATEGORIES = [
       },
       {
         t: 'section',
-        title: 'Discord Messages',
-        collapsible: true,
-        children: [
-          { id: 'discord.status.chat-interrupted', t: 'text', label: 'Chat Interrupted' },
-          { id: 'discord.status.chat-resumed', t: 'text', label: 'Chat Resumed' },
-          { id: 'discord.status.chat-failed', t: 'text', label: 'Chat Failed' },
-          { id: 'discord.status.chat-notice', t: 'text', label: 'Chat Notice' },
-          { id: 'discord.status.requires-authentication', t: 'text', label: 'Requires Authentication' },
-          { id: 'discord.status.instance-started', t: 'text', label: 'Instance Started' },
-          { id: 'discord.message.no-permission', t: 'text', label: 'No Permission' },
-          { id: 'discord.message.no-permission-roles', t: 'textarea', label: 'No Permission (Roles)' },
-          { id: 'discord.message.no-permission-admin', t: 'textarea', label: 'No Permission (Admin)' },
-          { id: 'discord.message.no-permission-roles-admin', t: 'textarea', label: 'No Permission (Roles Admin)' }
-        ]
-      },
-      {
-        t: 'section',
-        title: 'Discord Commands (/settings, /commands)',
-        collapsible: true,
-        children: [
-          { id: 'discord.commands.settings.essential', t: 'text', label: 'Settings: Essential' },
-          { id: 'discord.commands.settings.recommended', t: 'text', label: 'Settings: Recommended' },
-          { id: 'discord.commands.settings.warning', t: 'text', label: 'Settings: Warning' },
-          { id: 'discord.commands.settings.header', t: 'textarea', label: 'Settings: Header' },
-          { id: 'discord.commands.settings.header1', t: 'text', label: 'Settings: Header 1' },
-          { id: 'discord.commands.settings.header2', t: 'text', label: 'Settings: Header 2' },
-          { id: 'discord.commands.settings.header3', t: 'text', label: 'Settings: Header 3' },
-          { id: 'discord.commands.settings.faq', t: 'text', label: 'Settings: FAQ' },
-          { id: 'discord.commands.settings.main.title', t: 'text', label: 'Settings: Main title' },
-          { id: 'discord.commands.settings.main.description', t: 'textarea', label: 'Settings: Main description' },
-          { id: 'discord.commands.commands.title', t: 'text', label: 'Commands: Title' },
-          { id: 'discord.commands.commands.description', t: 'textarea', label: 'Commands: Description' },
-          { id: 'discord.commands.commands.stats.discord', t: 'text', label: 'Commands: Discord stats' },
-          { id: 'discord.commands.commands.stats.minecraft', t: 'text', label: 'Commands: Minecraft stats' },
-          { id: 'discord.commands.commands.stats.commands', t: 'text', label: 'Commands: Command stats' },
-          { id: 'discord.commands.commands.tabs.discord', t: 'text', label: 'Commands: Discord tab' },
-          { id: 'discord.commands.commands.tabs.minecraft', t: 'text', label: 'Commands: Minecraft tab' },
-          { id: 'discord.commands.commands.actions.search', t: 'text', label: 'Commands: Search action' },
-          { id: 'discord.commands.commands.actions.categories', t: 'text', label: 'Commands: Categories action' },
-          { id: 'discord.commands.commands.actions.details', t: 'text', label: 'Commands: Details action' },
-          { id: 'discord.commands.commands.actions.back-to-list', t: 'text', label: 'Commands: Back to list' },
-          { id: 'discord.commands.commands.actions.clear-search', t: 'text', label: 'Commands: Clear search' },
-          { id: 'discord.commands.commands.actions.clear-category', t: 'text', label: 'Commands: Clear category' },
-          { id: 'discord.commands.commands.filters.search', t: 'text', label: 'Commands: Search filter' },
-          { id: 'discord.commands.commands.filters.category', t: 'text', label: 'Commands: Category filter' },
-          { id: 'discord.commands.commands.no-results', t: 'text', label: 'Commands: No results' },
-          {
-            id: 'discord.commands.commands.try-different-filters',
-            t: 'text',
-            label: 'Commands: Try different filters'
-          },
-          { id: 'discord.commands.commands.no-categories', t: 'text', label: 'Commands: No categories' },
-          { id: 'discord.commands.commands.command-not-found', t: 'text', label: 'Commands: Command not found' },
-          { id: 'discord.commands.commands.pagination.info', t: 'text', label: 'Commands: Pagination info' },
-          { id: 'discord.commands.commands.pagination.display', t: 'textarea', label: 'Commands: Pagination display' },
-          { id: 'discord.commands.commands.pagination.previous', t: 'text', label: 'Commands: Previous page' },
-          { id: 'discord.commands.commands.pagination.next', t: 'text', label: 'Commands: Next page' },
-          { id: 'discord.commands.commands.search.title', t: 'text', label: 'Commands: Search title' },
-          { id: 'discord.commands.commands.search.label', t: 'text', label: 'Commands: Search label' },
-          { id: 'discord.commands.commands.categories.title', t: 'text', label: 'Commands: Categories title' },
-          {
-            id: 'discord.commands.commands.categories.description',
-            t: 'text',
-            label: 'Commands: Categories description'
-          },
-          { id: 'discord.commands.commands.categories.select', t: 'text', label: 'Commands: Category select' },
-          { id: 'discord.commands.commands.details.category', t: 'text', label: 'Commands: Details category' },
-          { id: 'discord.commands.commands.details.aliases', t: 'text', label: 'Commands: Details aliases' },
-          { id: 'discord.commands.commands.details.permission', t: 'text', label: 'Commands: Details permission' },
-          { id: 'discord.commands.commands.details.status', t: 'text', label: 'Commands: Details status' },
-          { id: 'discord.commands.commands.details.enabled', t: 'text', label: 'Commands: Details enabled' },
-          { id: 'discord.commands.commands.details.disabled', t: 'text', label: 'Commands: Details disabled' },
-          { id: 'discord.commands.commands.details.custom-name', t: 'text', label: 'Commands: Details custom name' },
-          { id: 'discord.commands.commands.admin.title', t: 'text', label: 'Commands: Admin title' },
-          { id: 'discord.commands.commands.admin.description', t: 'textarea', label: 'Commands: Admin description' },
-          { id: 'discord.commands.commands.admin.rename.button', t: 'text', label: 'Commands: Rename button' },
-          {
-            id: 'discord.commands.commands.admin.rename.modal.title',
-            t: 'text',
-            label: 'Commands: Rename modal title'
-          },
-          {
-            id: 'discord.commands.commands.admin.rename.modal.label',
-            t: 'text',
-            label: 'Commands: Rename modal label'
-          },
-          {
-            id: 'discord.commands.commands.admin.rename.modal.placeholder',
-            t: 'text',
-            label: 'Commands: Rename modal placeholder'
-          },
-          { id: 'discord.commands.commands.admin.rename.modal.success', t: 'text', label: 'Commands: Rename success' },
-          {
-            id: 'discord.commands.commands.admin.rename.modal.error.empty',
-            t: 'text',
-            label: 'Commands: Rename error empty'
-          },
-          {
-            id: 'discord.commands.commands.admin.rename.modal.error.invalid',
-            t: 'text',
-            label: 'Commands: Rename error invalid'
-          },
-          {
-            id: 'discord.commands.commands.admin.rename.modal.error.duplicate',
-            t: 'text',
-            label: 'Commands: Rename error duplicate'
-          },
-          {
-            id: 'discord.commands.commands.admin.rename.modal.error.protected',
-            t: 'text',
-            label: 'Commands: Rename error protected'
-          },
-          { id: 'discord.commands.commands.admin.toggle.enable', t: 'text', label: 'Commands: Toggle enable' },
-          { id: 'discord.commands.commands.admin.toggle.disable', t: 'text', label: 'Commands: Toggle disable' },
-          { id: 'discord.commands.commands.admin.toggle.success', t: 'text', label: 'Commands: Toggle success' },
-          {
-            id: 'discord.commands.commands.admin.toggle.error.protected',
-            t: 'text',
-            label: 'Commands: Toggle error protected'
-          },
-          { id: 'discord.commands.commands.admin.audit.title', t: 'text', label: 'Commands: Audit title' },
-          { id: 'discord.commands.commands.admin.audit.empty', t: 'text', label: 'Commands: Audit empty' },
-          {
-            id: 'discord.commands.commands.admin.audit.entry.rename',
-            t: 'text',
-            label: 'Commands: Audit rename entry'
-          },
-          {
-            id: 'discord.commands.commands.admin.audit.entry.enable',
-            t: 'text',
-            label: 'Commands: Audit enable entry'
-          },
-          {
-            id: 'discord.commands.commands.admin.audit.entry.disable',
-            t: 'text',
-            label: 'Commands: Audit disable entry'
-          },
-          {
-            id: 'discord.commands.commands.admin.audit.entry.restore',
-            t: 'text',
-            label: 'Commands: Audit restore entry'
-          },
-          { id: 'discord.commands.commands.admin.audit.timestamp', t: 'text', label: 'Commands: Audit timestamp' },
-          { id: 'discord.commands.commands.admin.audit.by', t: 'text', label: 'Commands: Audit by' },
-          {
-            id: 'discord.commands.commands.admin.confirm.disable.title',
-            t: 'text',
-            label: 'Commands: Confirm disable title'
-          },
-          {
-            id: 'discord.commands.commands.admin.confirm.disable.message',
-            t: 'textarea',
-            label: 'Commands: Confirm disable message'
-          },
-          {
-            id: 'discord.commands.commands.admin.confirm.disable.confirm',
-            t: 'text',
-            label: 'Commands: Confirm disable confirm'
-          },
-          {
-            id: 'discord.commands.commands.admin.confirm.disable.cancel',
-            t: 'text',
-            label: 'Commands: Confirm disable cancel'
-          }
-        ]
-      },
-      {
-        t: 'section',
         title: 'Instance Messages (disconnect, auth, errors)',
         collapsible: true,
         children: [
@@ -620,12 +515,6 @@ const CATEGORIES = [
             hint: 'Said when a muted player tries to chat.'
           },
           {
-            id: 'instance.repeat.messages',
-            t: 'msglist',
-            label: 'Repeat Block Messages',
-            hint: 'Random messages when Hypixel blocks a repeated message.'
-          },
-          {
             id: 'instance.reaction.block',
             t: 'text',
             label: 'Blocked Message Notice',
@@ -667,6 +556,92 @@ const CATEGORIES = [
             label: 'Guild Muted Status Template',
             hint: 'Said when bot checks mute status. Variable: {{duration}}'
           }
+        ]
+      },
+      {
+        t: 'section',
+        title: 'Tournament',
+        collapsible: true,
+        children: [
+          { id: 'tournament.create.success', t: 'text', label: 'Create Success' },
+          { id: 'tournament.start.insufficient', t: 'text', label: 'Start Insufficient' },
+          { id: 'tournament.report.invalid', t: 'text', label: 'Report Invalid' },
+          { id: 'tournament.report.disputed', t: 'text', label: 'Report Disputed' },
+          { id: 'tournament.deadline.warning', t: 'text', label: 'Deadline Warning' },
+          { id: 'tournament.match.whisper', t: 'textarea', label: 'Match Whisper' },
+          { id: 'tournament.thread.title', t: 'text', label: 'Thread Title' },
+          { id: 'tournament.tracker.title', t: 'text', label: 'Tracker Title' },
+          { id: 'tournament.round.complete', t: 'text', label: 'Round Complete' },
+          { id: 'tournament.winner.announce', t: 'text', label: 'Winner Announce' },
+          { id: 'tournament.cancelled', t: 'text', label: 'Cancelled' },
+          { id: 'tournament.forfeit', t: 'text', label: 'Forfeit' },
+          { id: 'tournament.checkin.open', t: 'text', label: 'Checkin Open' },
+          { id: 'tournament.checkin.reminder', t: 'text', label: 'Checkin Reminder' },
+          { id: 'tournament.report.score', t: 'text', label: 'Report Score' },
+          { id: 'tournament.bye', t: 'text', label: 'Bye' },
+          { id: 'tournament.join.rate_limit', t: 'text', label: 'Join Rate Limit' },
+          { id: 'tournament.stats.header', t: 'text', label: 'Stats Header' },
+          { id: 'tournament.stats.no_data', t: 'text', label: 'Stats No Data' },
+          { id: 'tournament.sub.whisper', t: 'text', label: 'Sub Whisper' },
+          { id: 'tournament.audit.title', t: 'text', label: 'Audit Title' },
+          { id: 'tournament.audit.no_entries', t: 'text', label: 'Audit No Entries' },
+          { id: 'tournament.schedule.title', t: 'text', label: 'Schedule Title' },
+          { id: 'tournament.proof.added', t: 'text', label: 'Proof Added' },
+          { id: 'tournament.signup.embed.title', t: 'text', label: 'Signup Embed Title' },
+          { id: 'tournament.signup.embed.footer', t: 'text', label: 'Signup Embed Footer' },
+          { id: 'tournament.live.announce', t: 'text', label: 'Live Announce' }
+        ]
+      },
+      {
+        t: 'section',
+        title: 'Spontaneous Events',
+        collapsible: true,
+        children: [
+          { id: 'instance.spontaneous.quickMath.question', t: 'text', label: 'Quick Math Question' },
+          { id: 'instance.spontaneous.quickMath.answer', t: 'text', label: 'Quick Math Answer' },
+          { id: 'instance.spontaneous.quickMath.correct', t: 'text', label: 'Quick Math Correct' },
+          { id: 'instance.spontaneous.counting.start', t: 'text', label: 'Counting Start' },
+          { id: 'instance.spontaneous.counting.fail', t: 'text', label: 'Counting Fail' },
+          { id: 'instance.spontaneous.counting.blame', t: 'text', label: 'Counting Blame' },
+          { id: 'instance.spontaneous.unscramble.question', t: 'text', label: 'Unscramble Question' },
+          { id: 'instance.spontaneous.unscramble.answer', t: 'text', label: 'Unscramble Answer' },
+          { id: 'instance.spontaneous.unscramble.correct', t: 'text', label: 'Unscramble Correct' },
+          { id: 'instance.spontaneous.trivia.question', t: 'text', label: 'Trivia Question' },
+          { id: 'instance.spontaneous.trivia.answer', t: 'text', label: 'Trivia Answer' },
+          { id: 'instance.spontaneous.trivia.correct', t: 'text', label: 'Trivia Correct' }
+        ]
+      },
+      {
+        t: 'section',
+        title: 'Hypixel',
+        collapsible: true,
+        children: [
+          { id: 'instance.hypixel.news', t: 'text', label: 'News' },
+          { id: 'instance.hypixel.status', t: 'text', label: 'Status' },
+          { id: 'instance.hypixel.statusUpdate', t: 'text', label: 'Status Update' },
+          { id: 'instance.hypixel.alpha', t: 'text', label: 'Alpha' }
+        ]
+      },
+      {
+        t: 'section',
+        title: 'Heat',
+        collapsible: true,
+        children: [
+          { id: 'instance.heat.warn', t: 'text', label: 'Warn' },
+          { id: 'instance.heat.denied', t: 'text', label: 'Denied' }
+        ]
+      },
+      {
+        t: 'section',
+        title: 'Game Commands',
+        collapsible: true,
+        children: [
+          { id: 'commands.mute.game', t: 'text', label: 'Mute Game' },
+          { id: 'commands.roulette.win', t: 'text', label: 'Roulette Win' },
+          { id: 'commands.roulette.lose', t: 'text', label: 'Roulette Lose' },
+          { id: 'commands.vengeance.win', t: 'text', label: 'Vengeance Win' },
+          { id: 'commands.vengeance.draw', t: 'text', label: 'Vengeance Draw' },
+          { id: 'commands.vengeance.lose', t: 'text', label: 'Vengeance Lose' }
         ]
       }
     ]
@@ -1313,6 +1288,59 @@ function renderDemotionRulesTable(data) {
     </div>`
 }
 
+function welcomeRowHTML(entry) {
+  const e = entry || {}
+  const idCounter = ++rankFieldIdCounter
+  return `<tr>
+      <td style="display:flex;gap:4px;align-items:center">
+        <input class="input" data-uuid="${idCounter}" value="${esc(e.uuid || '')}" placeholder="UUID" style="flex:1" />
+        <button class="btn btn-secondary btn-sm" data-lookup="${idCounter}" title="Resolve username to UUID">🔍</button>
+      </td>
+      <td><input class="input" data-message="${idCounter}" value="${esc(e.message || '')}" placeholder="Welcome {username}!" style="min-width:280px" /></td>
+      <td><button class="btn btn-danger btn-sm" data-action="delete" title="Remove">✕</button></td>
+    </tr>`
+}
+
+function renderWelcomeTable(data) {
+  const entries = Array.isArray(data.welcomeOnlineMessages) ? data.welcomeOnlineMessages : []
+  const rows = entries.length > 0 ? entries.map(welcomeRowHTML).join('') : placeholderRow(3, 'No welcome messages configured.')
+  return `<div class="settings-subsection">
+      <div class="settings-subsection-title">Player Welcome Messages</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Player</th><th>Welcome Message</th><th></th></tr></thead>
+          <tbody id="welcome-tbody">${rows}</tbody>
+        </table>
+      </div>
+      <button class="btn btn-secondary btn-sm mt-sm" data-action="add-welcome">+ Add Player Welcome</button>
+    </div>`
+}
+
+function readWelcomeRows() {
+  const tbody = document.querySelector('#welcome-tbody')
+  if (!tbody) return []
+  const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
+  return rows.map((tr) => {
+    const uuidInput = tr.querySelector('[data-uuid]')
+    const msgInput = tr.querySelector('[data-message]')
+    return {
+      uuid: uuidInput ? uuidInput.value.trim() : '',
+      message: msgInput ? msgInput.value.trim() : ''
+    }
+  })
+}
+
+function addWelcomeRow() {
+  const tbody = document.querySelector('#welcome-tbody')
+  if (!tbody) return
+  const ph = tbody.querySelector('[data-placeholder]')
+  if (ph) ph.remove()
+  const tr = document.createElement('tr')
+  tr.innerHTML = welcomeRowHTML({ uuid: '', message: '' })
+  tbody.append(tr)
+  checkDirty()
+}
+
 function readPromotionRows() {
   const tbody = document.querySelector('#promo-tbody')
   if (!tbody) return []
@@ -1385,6 +1413,10 @@ function renderCategoryPanel(cat) {
     }
     if (f.t === 'demotionRules') {
       bodyHTML += renderDemotionRulesTable(data)
+      continue
+    }
+    if (f.t === 'welcomeTable') {
+      bodyHTML += renderWelcomeTable(data)
       continue
     }
     const v = fieldValue(data, f)
@@ -1737,6 +1769,10 @@ function readCategoryState(cat) {
         target[f.id] = readDemotionRows()
         continue
       }
+      if (f.t === 'welcomeTable') {
+        target[f.id] = readWelcomeRows()
+        continue
+      }
       if (f.t === 'link' || f.t === 'danger') continue
       const element = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
       if (!element) continue
@@ -1777,7 +1813,8 @@ function serializeCategory(cat, data) {
           break
         }
         case 'promotionRules':
-        case 'demotionRules': {
+        case 'demotionRules':
+        case 'welcomeTable': {
           subset[f.id] = JSON.stringify(v || [])
           break
         }
@@ -2060,7 +2097,7 @@ function removeRow(button) {
   if (!tr || !tbody) return
   tr.remove()
   if (!tbody.querySelector('tr:not([data-placeholder])')) {
-    const cols = tbody.id === 'promo-tbody' ? 5 : 6
+    const cols = tbody.id === 'promo-tbody' ? 5 : tbody.id === 'welcome-tbody' ? 3 : 6
     tbody.innerHTML = placeholderRow(cols, 'No rules configured.')
   }
   checkDirty()
@@ -2125,19 +2162,62 @@ function attachDelegatedListeners() {
       }
       return
     }
-    if (currentCategory !== 'rankup') return
+    // UUID lookup for welcome table
+    const lookupBtn = e.target.closest('[data-lookup]')
+    if (lookupBtn) {
+      const id = lookupBtn.dataset.lookup
+      const row = lookupBtn.closest('tr')
+      const input = row ? row.querySelector(`[data-uuid="${id}"]`) : null
+      if (input) {
+        const username = globalThis.prompt('Enter the Minecraft username:')
+        if (username && username.trim()) {
+          const btn = lookupBtn
+          btn.disabled = true
+          btn.textContent = '...'
+          Api.apiGet(`/api/player/${encodeURIComponent(username.trim())}`)
+            .then((data) => {
+              if (data && data.uuid) {
+                input.value = data.uuid
+                markDirty()
+              } else {
+                globalThis.alert('Could not find player with that username.')
+              }
+            })
+            .catch(() => {
+              globalThis.alert('Failed to resolve username. Check the name and try again.')
+            })
+            .finally(() => {
+              btn.disabled = false
+              btn.textContent = '🔍'
+            })
+        }
+      }
+      return
+    }
+    if (currentCategory !== 'rankup' && currentCategory !== 'minecraftEvents') return
     const button = e.target.closest('[data-action]')
     if (!button) return
-    switch (button.dataset.action) {
-      case 'add-promotion':
-        addPromotionRow()
-        break
-      case 'add-demotion':
-        addDemotionRow()
-        break
-      case 'delete':
-        removeRow(button)
-        break
+    if (currentCategory === 'rankup') {
+      switch (button.dataset.action) {
+        case 'add-promotion':
+          addPromotionRow()
+          break
+        case 'add-demotion':
+          addDemotionRow()
+          break
+        case 'delete':
+          removeRow(button)
+          break
+      }
+    } else if (currentCategory === 'minecraftEvents') {
+      switch (button.dataset.action) {
+        case 'add-welcome':
+          addWelcomeRow()
+          break
+        case 'delete':
+          removeRow(button)
+          break
+      }
     }
   })
 }

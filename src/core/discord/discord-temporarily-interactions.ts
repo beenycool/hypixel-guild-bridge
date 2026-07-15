@@ -1,5 +1,6 @@
 import type { DatabaseManager } from '../../common/database-manager'
 
+import type { BridgeConfigurations } from './bridge-configurations'
 import type { DiscordConfigurations } from './discord-configurations'
 
 export class DiscordTemporarilyInteractions {
@@ -7,11 +8,14 @@ export class DiscordTemporarilyInteractions {
 
   constructor(
     private readonly databaseManager: DatabaseManager,
-    private readonly discordConfigurations: DiscordConfigurations
+    private readonly discordConfigurations: DiscordConfigurations,
+    private readonly bridgeConfigurations: BridgeConfigurations
   ) {}
 
   public async load(): Promise<void> {
-    const rows = await this.databaseManager.queryRows<StoredDiscordMessage>('SELECT * FROM "discordTempInteractions"')
+    const rows = await this.databaseManager.queryRows<StoredDiscordMessage>(
+      'SELECT "messageId", "channelId", "createdAt", "type", "bridgeId" FROM "discordTempInteractions"'
+    )
     this.entries.clear()
     for (const row of rows) {
       this.entries.set(row.messageId, { ...row, createdAt: row.createdAt * 1000 })
@@ -26,11 +30,19 @@ export class DiscordTemporarilyInteractions {
     this.databaseManager.enqueueTransaction('saving temporary discord interactions', async (database) => {
       for (const entry of entries) {
         await database.query(
-          `INSERT INTO "discordTempInteractions" ("messageId", "channelId", "createdAt") VALUES ($1, $2, $3)
+          `INSERT INTO "discordTempInteractions" ("messageId", "channelId", "createdAt", "type", "bridgeId") VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT ("messageId") DO UPDATE SET
              "channelId" = EXCLUDED."channelId",
-             "createdAt" = EXCLUDED."createdAt"`,
-          [entry.messageId, entry.channelId, Math.floor(entry.createdAt / 1000)]
+             "createdAt" = EXCLUDED."createdAt",
+             "type" = EXCLUDED."type",
+             "bridgeId" = EXCLUDED."bridgeId"`,
+          [
+            entry.messageId,
+            entry.channelId,
+            Math.floor(entry.createdAt / 1000),
+            entry.type ?? 'online-offline',
+            entry.bridgeId ?? null
+          ]
         )
       }
     })
@@ -39,7 +51,8 @@ export class DiscordTemporarilyInteractions {
   public findToDelete(): DiscordMessage[] {
     const currentTime = Date.now()
     const maxInteractions = this.discordConfigurations.getMaxTemporarilyInteractions()
-    const duration = this.discordConfigurations.getDurationTemporarilyInteractions()
+    const onlineOfflineDuration = this.discordConfigurations.getDurationTemporarilyInteractions()
+    const joinLeaveDuration = this.discordConfigurations.getDurationJoinLeaveInteractions()
 
     const allInteractions = [...this.entries.values()]
       .map((entry) => ({ ...entry }))
@@ -49,7 +62,14 @@ export class DiscordTemporarilyInteractions {
 
     const interactionsCount = new Map<string, number>()
     for (const interaction of allInteractions) {
-      if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
+      if (interaction.type === 'join-leave') {
+        if (interaction.createdAt + joinLeaveDuration.toMilliseconds() < currentTime) {
+          toDelete.push(interaction)
+        }
+        continue
+      }
+
+      if (interaction.createdAt + onlineOfflineDuration.toMilliseconds() < currentTime) {
         toDelete.push(interaction)
         continue
       }
@@ -86,6 +106,8 @@ export interface DiscordMessage {
   channelId: string
   messageId: string
   createdAt: number
+  type?: string
+  bridgeId?: string
 }
 
 interface StoredDiscordMessage extends Omit<DiscordMessage, 'createdAt'> {

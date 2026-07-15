@@ -101,6 +101,29 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           message: message
         })
       }
+
+      if (
+        event.type === GuildPlayerEventType.Online &&
+        bridgeId !== undefined &&
+        bridgeConfig.getWelcomeOnlineEnabled(bridgeId)
+      ) {
+        const playerUuid = event.user.mojangProfile()?.id
+        if (playerUuid !== undefined) {
+          const messages = bridgeConfig.getWelcomeOnlineMessages(bridgeId)
+          const playerEntry = messages.find((m) => m.uuid.replace(/-/g, '').toLowerCase() === playerUuid.replace(/-/g, '').toLowerCase())
+          if (playerEntry !== undefined) {
+            let message = playerEntry.message
+            message = message.replaceAll('{username}', event.user.displayName())
+            await this.application.emit('broadcast', {
+              ...this.eventHelper.fillBaseEvent(),
+              channels: [ChannelType.Public],
+              color: Color.Good,
+              user: event.user,
+              message: message
+            })
+          }
+        }
+      }
     }
     this.application.on('guildPlayer', this.guildPlayerListener)
   }

@@ -185,7 +185,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       }
     }
 
-    await this.instanceStatusManager.send(event)
+    await this.instanceStatusManager.send()
   }
 
   async onChat(event: ChatEvent): Promise<void> {
@@ -325,7 +325,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (game) return
     }
 
-    const removeLater = event.type === GuildPlayerEventType.Offline || event.type === GuildPlayerEventType.Online
+    const removeLater =
+      event.type === GuildPlayerEventType.Offline ||
+      event.type === GuildPlayerEventType.Online ||
+      event.type === GuildPlayerEventType.Join ||
+      event.type === GuildPlayerEventType.Leave
     const username = event.user.displayName()
 
     let messages: Message[]
@@ -366,7 +370,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       )
     }
 
-    if (removeLater) {
+    if (event.type === GuildPlayerEventType.Offline || event.type === GuildPlayerEventType.Online) {
       const shouldPersist =
         this.application.bridgeResolver.isMultiBridgeEnabled() && event.bridgeId !== undefined
           ? this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(event.bridgeId)
@@ -376,9 +380,28 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const entries = messages.map((message) => ({
           channelId: message.channelId,
           messageId: message.id,
-          createdAt: currentTime
+          createdAt: currentTime,
+          type: 'online-offline' as const
         }))
-        await this.messageDeleter.add(entries)
+        this.messageDeleter.add(entries)
+      }
+    }
+
+    if (event.type === GuildPlayerEventType.Join || event.type === GuildPlayerEventType.Leave) {
+      const shouldPersist =
+        this.application.bridgeResolver.isMultiBridgeEnabled() && event.bridgeId !== undefined
+          ? this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(event.bridgeId)
+          : false
+      if (!shouldPersist) {
+        const currentTime = Date.now()
+        const entries = messages.map((message) => ({
+          channelId: message.channelId,
+          messageId: message.id,
+          createdAt: currentTime,
+          type: 'join-leave' as const,
+          bridgeId: event.bridgeId
+        }))
+        this.messageDeleter.add(entries)
       }
     }
 
@@ -785,12 +808,23 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       }
     }
 
+    const botUsernameOverride =
+      event.bridgeId !== undefined
+        ? this.application.core.bridgeConfigurations.getBotUsernameOverride(event.bridgeId)
+        : undefined
+    const effectiveBotName = botUsernameOverride ?? botName
+
     const botAvatar =
       botName === 'Bridge Bot'
         ? `https://www.mc-heads.net/avatar/MHF_Question`
         : `https://www.mc-heads.net/avatar/${botName}`
+
     const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
-    const namePart = botRank ? `${botRank}§f` : `§a${botName}§f`
+    const namePart = botRank
+      ? botUsernameOverride !== undefined
+        ? `${botRank.replace(new RegExp(botName, 'i'), botUsernameOverride)}§f`
+        : `${botRank}§f`
+      : `§a${effectiveBotName}§f`
 
     const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
       kind: 'command',

@@ -120,7 +120,10 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_darkAuctionReminder`)
     this.configuration.delete(`${bridgeId}_starfallCultReminder`)
     this.configuration.delete(`${bridgeId}_announceMutedPlayer`)
+    this.configuration.delete(`${bridgeId}_welcomeOnlineEnabled`)
+    this.configuration.delete(`${bridgeId}_welcomeOnlineMessages`)
 
+    this.configuration.delete(`${bridgeId}_botUsernameOverride`)
     // Per-bridge language
     this.configuration.delete(`${bridgeId}_language`)
     // Passthrough commands settings
@@ -257,6 +260,24 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setMinecraftInstances(bridgeId: string, instanceNames: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_minecraftInstances`, instanceNames)
+  }
+
+  // ========== Bot Username Override ==========
+
+  /**
+   * Get the per-bridge bot username override for Discord image rendering.
+   * Returns undefined when no override is set (uses the real bot account name).
+   */
+  public getBotUsernameOverride(bridgeId: string): string | undefined {
+    const value = this.getBridgeString('botUsernameOverride', bridgeId)
+    return value === '' ? undefined : value
+  }
+
+  /**
+   * Set the per-bridge bot username override. Pass undefined or empty string to clear.
+   */
+  public setBotUsernameOverride(bridgeId: string, name: string | undefined): void {
+    this.setBridgeString('botUsernameOverride', bridgeId, name)
   }
 
   // ========== Language Configuration ==========
@@ -423,6 +444,26 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setDurationTemporarilyInteractions(bridgeId: string, value: Duration): void {
     this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsDuration`, value.toSeconds())
+  }
+
+  public getPersistGuildJoinLeave(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_persistGuildJoinLeave`, false)
+  }
+
+  public setPersistGuildJoinLeave(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_persistGuildJoinLeave`, enabled)
+  }
+
+  public getDurationJoinLeaveInteractions(bridgeId: string): Duration {
+    const value = this.configuration.getNumber(
+      `${bridgeId}_joinLeaveInteractionsDuration`,
+      Duration.days(2).toSeconds()
+    )
+    return Duration.seconds(value)
+  }
+
+  public setDurationJoinLeaveInteractions(bridgeId: string, value: Duration): void {
+    this.configuration.setNumber(`${bridgeId}_joinLeaveInteractionsDuration`, value.toSeconds())
   }
 
   // ========== Moderation Configurations ==========
@@ -791,6 +832,28 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
 
   public setAnnounceMutedPlayer(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_announceMutedPlayer`, enabled)
+  }
+
+  public getWelcomeOnlineEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_welcomeOnlineEnabled`, false)
+  }
+
+  public setWelcomeOnlineEnabled(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_welcomeOnlineEnabled`, enabled)
+  }
+
+  public getWelcomeOnlineMessages(bridgeId: string): { uuid: string; message: string }[] {
+    const raw = this.configuration.getString(`${bridgeId}_welcomeOnlineMessages`, '[]')
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  public setWelcomeOnlineMessages(bridgeId: string, messages: { uuid: string; message: string }[]): void {
+    this.configuration.setString(`${bridgeId}_welcomeOnlineMessages`, JSON.stringify(messages))
   }
 
   // ========== Passthrough Commands Configurations ==========
@@ -1205,7 +1268,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         alwaysReply: this.getAlwaysReplyReaction(bridgeId),
         enforceVerification: this.getEnforceVerification(bridgeId),
         minecraftTextImages: this.getTextToImage(bridgeId),
-        language: this.getLanguage(bridgeId) ?? ''
+        language: this.getLanguage(bridgeId) ?? '',
+        botUsernameOverride: this.getBotUsernameOverride(bridgeId) ?? ''
       },
       minecraftEvents: {
         memberOnline: this.getGuildOnline(bridgeId),
@@ -1213,13 +1277,17 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         persistOnlineOffline: this.getPersistGuildOnlineOffline(bridgeId),
         deleteAfterSeconds: this.getDurationTemporarilyInteractions(bridgeId).toSeconds(),
         maxEvents: this.getMaxTemporarilyInteractions(bridgeId),
+        persistJoinLeave: this.getPersistGuildJoinLeave(bridgeId),
+        deleteJoinLeaveAfterSeconds: this.getDurationJoinLeaveInteractions(bridgeId).toSeconds(),
         chatterEnabled: this.getRandomChatterEnabled(bridgeId),
         chatterIntervalMinutes: this.getRandomChatterIntervalMinutes(bridgeId),
         chatterMinOnlinePlayers: this.getRandomChatterMinimumOnlinePlayers(bridgeId),
         chatterUseBotName: this.getRandomChatterIncludePlayerName(bridgeId),
         chatterMessages: this.getRandomChatterMessages(bridgeId, []),
         chatterAntiRepeatLength: this.getRandomChatterAntiRepeatLength(bridgeId),
-        chatterQuietWindowMinutes: this.getRandomChatterQuietWindowMinutes(bridgeId)
+        chatterQuietWindowMinutes: this.getRandomChatterQuietWindowMinutes(bridgeId),
+        welcomeOnlineEnabled: this.getWelcomeOnlineEnabled(bridgeId),
+        welcomeOnlineMessages: this.getWelcomeOnlineMessages(bridgeId)
       },
       qualityOfLife: {
         guildJoinReaction: this.getJoinGuildReaction(bridgeId),
