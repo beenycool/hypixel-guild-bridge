@@ -158,19 +158,22 @@ export class TournamentNotifications {
   ): Promise<void> {
     this.application.logger.info(`Match ${match.id}: Notifying match start — ${p1Name} vs ${p2Name} (round ${match.round})`)
 
-    const mcMessage = this.t(bridgeId, 'tournament.match.whisper', {
-      round: match.round,
-      p1: p1Name,
-      p2: p2Name
-    })
-    await this.sendWhisper(bridgeId, p1Uuid, mcMessage)
+    const isTestPlayer = p1Uuid.startsWith('00000000-0000-0000-0000-')
+    if (!isTestPlayer) {
+      const mcMessage = this.t(bridgeId, 'tournament.match.whisper', {
+        round: match.round,
+        p1: p1Name,
+        p2: p2Name
+      })
+      await this.sendWhisper(bridgeId, p1Uuid, mcMessage)
 
-    const mcMessage2 = this.t(bridgeId, 'tournament.match.whisper', {
-      round: match.round,
-      p1: p2Name,
-      p2: p1Name
-    })
-    await this.sendWhisper(bridgeId, p2Uuid, mcMessage2)
+      const mcMessage2 = this.t(bridgeId, 'tournament.match.whisper', {
+        round: match.round,
+        p1: p2Name,
+        p2: p1Name
+      })
+      await this.sendWhisper(bridgeId, p2Uuid, mcMessage2)
+    }
 
     this.application.logger.info(`Match ${match.id}: Notifications sent to both players`)
   }

@@ -794,6 +794,10 @@ export class TournamentManager {
 
     const map = new Map<number, string>()
     for (const p of players) {
+      if (p.playerUuid.startsWith('00000000-0000-0000-0000-')) {
+        map.set(p.id, `Player #${p.id}`)
+        continue
+      }
       const profile = await this.application.mojangApi.profileByUuid(p.playerUuid).catch(() => undefined)
       map.set(p.id, profile?.name ?? `Player #${p.id}`)
     }

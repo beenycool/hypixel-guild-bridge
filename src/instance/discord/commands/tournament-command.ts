@@ -857,7 +857,13 @@ export default {
         const categoryId = categoryChannel?.id
 
         // Start the tournament
-        await context.application.core.tournamentManager.startTournament(tournament.id, guildId, categoryId)
+        try {
+          await context.application.core.tournamentManager.startTournament(tournament.id, guildId, categoryId)
+        } catch {
+          await context.application.core.tournamentManager.cancelTournament(tournament.id)
+          await context.interaction.editReply('Failed to start test tournament. It has been cancelled.')
+          return
+        }
 
         // Get updated tournament
         const startedTournament = await context.application.core.tournamentManager.getTournament(tournament.id)
@@ -959,19 +965,7 @@ export default {
           if (roundContent) panelEmbed.addFields({ name: `Round ${r}`, value: roundContent })
         }
 
-        // Store panel state
-        context.application.core.tournamentTestPanels.add({
-          messageId: '',
-          channelId: context.interaction.channelId,
-          guildId,
-          tournamentId: tournament.id,
-          bridgeId,
-          currentStep: 0,
-          historyJson: '[]',
-          createdAt: Date.now()
-        })
-
-        // Send the control panel and update the messageId
+        // Send the control panel (placeholder customIds)
         const panelMessage = await context.interaction.editReply({
           embeds: [panelEmbed],
           components: [
@@ -988,60 +982,36 @@ export default {
           ]
         })
 
-        // Update panel with message ID
-        const panelEntries = context.application.core.tournamentTestPanels.getAll()
-        const latestPanel = panelEntries.find((p) => p.tournamentId === tournament.id && p.messageId === '')
-        if (latestPanel !== undefined) {
-          context.application.core.tournamentTestPanels.remove('')
-          context.application.core.tournamentTestPanels.add({
-            ...latestPanel,
-            messageId: panelMessage.id
-          })
+        // Store panel state with real messageId (single write, no race)
+        context.application.core.tournamentTestPanels.add({
+          messageId: panelMessage.id,
+          channelId: context.interaction.channelId,
+          guildId,
+          tournamentId: tournament.id,
+          bridgeId,
+          currentStep: 0,
+          historyJson: '[]',
+          createdAt: Date.now()
+        })
 
-          // Update button customIds with the real messageId
-          const components = [
+        // Update button customIds with the real messageId
+        await context.interaction.editReply({
+          components: [
             {
               type: 1 as const,
               components: [
-                {
-                  type: 2 as const,
-                  style: 3,
-                  customId: `tournament-test:resolve-round:${panelMessage.id}`,
-                  label: '▶ Resolve Round'
-                },
-                {
-                  type: 2 as const,
-                  style: 1,
-                  customId: `tournament-test:resolve-match:${panelMessage.id}`,
-                  label: '⏭ Resolve Match'
-                },
-                {
-                  type: 2 as const,
-                  style: 2,
-                  customId: `tournament-test:rewind-round:${panelMessage.id}`,
-                  label: '⏮ Rewind Round'
-                },
-                {
-                  type: 2 as const,
-                  style: 2,
-                  customId: `tournament-test:rewind-all:${panelMessage.id}`,
-                  label: '⏮ Rewind All'
-                },
-                {
-                  type: 2 as const,
-                  style: 4,
-                  customId: `tournament-test:cleanup:${panelMessage.id}`,
-                  label: '🗑 Cleanup'
-                }
+                { type: 2 as const, style: 3, customId: `tournament-test:resolve-round:${panelMessage.id}`, label: '▶ Resolve Round' },
+                { type: 2 as const, style: 1, customId: `tournament-test:resolve-match:${panelMessage.id}`, label: '⏭ Resolve Match' },
+                { type: 2 as const, style: 2, customId: `tournament-test:rewind-round:${panelMessage.id}`, label: '⏮ Rewind Round' },
+                { type: 2 as const, style: 2, customId: `tournament-test:rewind-all:${panelMessage.id}`, label: '⏮ Rewind All' },
+                { type: 2 as const, style: 4, customId: `tournament-test:cleanup:${panelMessage.id}`, label: '🗑 Cleanup' }
               ]
             }
           ]
-          await context.interaction.editReply({ components })
-        }
-
-        context.application.core.tournamentTestPanels.updateStep(panelMessage.id, 0, '[]')
+        })
       } catch (error: unknown) {
-        await context.interaction.editReply(error instanceof Error ? error.message : String(error))
+        context.application.logger.error(`Tournament test failed: ${error instanceof Error ? error.message : String(error)}`)
+        await context.interaction.editReply(`❌ Test tournament failed: ${error instanceof Error ? error.message : String(error)}`)
       }
       return
     }
