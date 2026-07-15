@@ -276,12 +276,20 @@ const CATEGORIES = [
             hint: 'Keep join/leave messages in the channel.'
           },
           {
-            id: 'deleteJoinLeaveAfterSeconds',
-            t: 'number',
-            label: 'Auto-delete after (seconds)',
-            hint: '86400\u2013604800 (1\u20137 days)',
-            min: 86400,
-            max: 604800
+            t: 'section',
+            collapsible: true,
+            title: 'When NOT Persisted',
+            condition: (data) => !bool(data.persistJoinLeave),
+            children: [
+              {
+                id: 'deleteJoinLeaveAfterSeconds',
+                t: 'number',
+                label: 'Delete After (seconds)',
+                hint: '86400\u2013604800 (1\u20137 days)',
+                min: 86400,
+                max: 604800
+              }
+            ]
           }
         ]
       },

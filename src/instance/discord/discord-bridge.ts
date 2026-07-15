@@ -330,6 +330,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (game) return
     }
 
+    const removeLater =
+      event.type === GuildPlayerEventType.Offline ||
+      event.type === GuildPlayerEventType.Online ||
+      event.type === GuildPlayerEventType.Join ||
+      event.type === GuildPlayerEventType.Leave
     const username = event.user.displayName()
 
     let messages: Message[]
@@ -402,7 +407,26 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           type: 'join-leave' as const,
           bridgeId: event.bridgeId
         }))
-        await this.messageDeleter.add(entries)
+        }))
+        this.messageDeleter.add(entries)
+      }
+    }
+
+    if (event.type === GuildPlayerEventType.Join || event.type === GuildPlayerEventType.Leave) {
+      const shouldPersist =
+        this.application.bridgeResolver.isMultiBridgeEnabled() && event.bridgeId !== undefined
+          ? this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(event.bridgeId)
+          : false
+      if (!shouldPersist) {
+        const currentTime = Date.now()
+        const entries = messages.map((message) => ({
+          channelId: message.channelId,
+          messageId: message.id,
+          createdAt: currentTime,
+          type: 'join-leave' as const,
+          bridgeId: event.bridgeId
+        }))
+        this.messageDeleter.add(entries)
       }
     }
 

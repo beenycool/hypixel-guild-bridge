@@ -40,7 +40,7 @@ export class DiscordTemporarilyInteractions {
             entry.messageId,
             entry.channelId,
             Math.floor(entry.createdAt / 1000),
-            entry.type ?? 'online-offline',
+            entry.type ?? null,
             entry.bridgeId ?? null
           ]
         )
