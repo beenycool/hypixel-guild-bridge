@@ -1,0 +1,93 @@
+import { isAxiosError } from 'axios'
+
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { ChatCommandHandler } from '../../../common/commands.js'
+import { httpClient } from '../../../common/http.js'
+import { getUuidIfExists, usernameNotExists } from '../common/utility.js'
+
+interface CoralWinstreakEntry {
+  mode: string
+  winstreak: number
+}
+
+interface CoralWinstreakResponse {
+  uuid: string
+  displayname?: string | null
+  modes?: CoralWinstreakEntry[]
+}
+
+const MODE_ABBR: Record<string, string> = {
+  solos: 'Solo',
+  doubles: 'Dbl',
+  threes: 'Tri',
+  fours: 'Quad',
+  '4v4': '4v4',
+  overall: 'All',
+  core: 'Core'
+}
+
+function formatWs(mode: string, count: number): string {
+  return `${MODE_ABBR[mode.toLowerCase()] ?? mode}: ${count}ws`
+}
+
+export default class WinstreakCommand extends ChatCommandHandler {
+  constructor() {
+    super({
+      triggers: ['ws', 'winstreak'],
+      description: 'Show winstreaks for a player.',
+      example: 'ws %s'
+    })
+  }
+
+  async handler(context: ChatCommandContext): Promise<string> {
+    const givenUsername = context.args[0] ?? context.username
+    const urchinApiKey = context.app.urchinApiKey
+
+    if (!urchinApiKey) {
+      return context.app.i18n.t(($) => $['commands.winstreak.no-key'])
+    }
+
+    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
+    if (uuid == undefined) return usernameNotExists(context, givenUsername)
+
+    try {
+      const response = await httpClient.get<CoralWinstreakResponse>(
+        `https://api.urchin.gg/v3/player/winstreaks`,
+        {
+          params: { player: uuid },
+          headers: { 'X-API-Key': urchinApiKey }
+        }
+      )
+
+      const modes = response.data.modes
+      if (!modes || modes.length === 0) {
+        return context.app.i18n.t(($) => $['commands.winstreak.no-data'], { username: givenUsername })
+      }
+
+      const sorted = modes
+        .filter((m) => m.winstreak > 0)
+        .sort((a, b) => b.winstreak - a.winstreak)
+
+      if (sorted.length === 0) {
+        return context.app.i18n.t(($) => $['commands.winstreak.no-data'], { username: givenUsername })
+      }
+
+      const parts = sorted.map((m) => formatWs(m.mode, m.winstreak))
+      const summary = parts.join(' | ')
+
+      return context.app.i18n.t(($) => $['commands.winstreak.result'], { username: givenUsername, summary })
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 404) {
+        return context.app.i18n.t(($) => $['commands.winstreak.not-found'], { username: givenUsername })
+      }
+      if (isAxiosError(error) && error.response?.status === 401) {
+        return context.app.i18n.t(($) => $['commands.winstreak.invalid-key'])
+      }
+      if (isAxiosError(error) && error.response?.status === 403) {
+        return context.app.i18n.t(($) => $['commands.winstreak.locked-key'])
+      }
+      context.logger.error(error)
+      return context.app.i18n.t(($) => $['commands.winstreak.error'], { username: givenUsername })
+    }
+  }
+}

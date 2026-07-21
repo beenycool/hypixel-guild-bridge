@@ -61,7 +61,6 @@ import Level from './triggers/level.js'
 import List from './triggers/list.js'
 import MagicalPower from './triggers/magicalpower.js'
 import Mayor from './triggers/mayor.js'
-import Monitor from './triggers/monitor.js'
 import Murdermystery from './triggers/murdermystery.js'
 import Mute from './triggers/mute.js'
 import Networth from './triggers/networth.js'
@@ -110,6 +109,7 @@ import Vengeance from './triggers/vengeance.js'
 import Warp from './triggers/warp.js'
 import Weight from './triggers/weight.js'
 import Woolwars from './triggers/woolwars.js'
+import Winstreak from './triggers/winstreak.js'
 
 export class CommandsInstance extends ConnectableInstance<InstanceType.Commands> {
   public readonly commands: ChatCommandHandler[]
@@ -169,7 +169,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new List(),
       new MagicalPower(),
       new Mayor(),
-      new Monitor(),
       new Murdermystery(),
       new Mute(),
       new Networth(),
@@ -217,6 +216,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Warp(),
       new Weight(),
       new Woolwars(),
+      new Winstreak(),
       new Translate()
     ]
 

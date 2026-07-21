@@ -452,11 +452,24 @@ export class TournamentChannelManager {
       }
 
       if (roundContent) {
-        embed.addFields({
-          name: `Round ${r}`,
-          value: roundContent,
-          inline: false
-        })
+        const maxLen = 1024
+        if (roundContent.length <= maxLen) {
+          embed.addFields({ name: `Round ${r}`, value: roundContent, inline: false })
+        } else {
+          const chunks: string[] = []
+          for (const line of roundContent.trim().split('\n')) {
+            const last = chunks[chunks.length - 1]
+            if (last !== undefined && last.length + line.length + 1 <= maxLen) {
+              chunks[chunks.length - 1] = last + '\n' + line
+            } else {
+              chunks.push(line)
+            }
+          }
+          for (let i = 0; i < chunks.length; i++) {
+            const label = chunks.length > 1 ? `Round ${r} (${i + 1}/${chunks.length})` : `Round ${r}`
+            embed.addFields({ name: label, value: chunks[i], inline: false })
+          }
+        }
       }
     }
 
