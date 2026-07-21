@@ -204,7 +204,7 @@ export default class MessageToImage {
   constructor(private readonly application: Application) {}
 
   private async loadSkinImage(username: string, skinSize: number): Promise<Image> {
-    const url = `https://cravatar.eu/helmhead/${encodeURIComponent(username)}/${skinSize}.png`
+    const url = `https://mc-heads.net/head/${encodeURIComponent(username)}/${skinSize}`
     const cacheKey = `${username}_${skinSize}`
     const cached = MessageToImage.skinCache.get(cacheKey)
     if (cached && Date.now() - cached.fetchedAt < MessageToImage.SkinCacheTTL) {
