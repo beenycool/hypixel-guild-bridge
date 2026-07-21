@@ -5,15 +5,10 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 import { httpClient } from '../../../common/http.js'
 import { getUuidIfExists, usernameNotExists } from '../common/utility.js'
 
-interface CoralWinstreakEntry {
-  mode: string
-  winstreak: number
-}
-
 interface CoralWinstreakResponse {
   uuid: string
   displayname?: string | null
-  modes?: CoralWinstreakEntry[]
+  modes?: Record<string, number>
 }
 
 const MODE_ABBR: Record<string, string> = {
@@ -60,19 +55,20 @@ export default class WinstreakCommand extends ChatCommandHandler {
       )
 
       const modes = response.data.modes
-      if (!modes || modes.length === 0) {
+      if (!modes) {
         return context.app.i18n.t(($) => $['commands.winstreak.no-data'], { username: givenUsername })
       }
 
-      const sorted = modes
+      const entries = Object.entries(modes)
+        .map(([mode, winstreak]) => ({ mode, winstreak }))
         .filter((m) => m.winstreak > 0)
         .sort((a, b) => b.winstreak - a.winstreak)
 
-      if (sorted.length === 0) {
+      if (entries.length === 0) {
         return context.app.i18n.t(($) => $['commands.winstreak.no-data'], { username: givenUsername })
       }
 
-      const parts = sorted.map((m) => formatWs(m.mode, m.winstreak))
+      const parts = entries.map((m) => formatWs(m.mode, m.winstreak))
       const summary = parts.join(' | ')
 
       return context.app.i18n.t(($) => $['commands.winstreak.result'], { username: givenUsername, summary })
