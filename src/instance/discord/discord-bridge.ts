@@ -365,12 +365,23 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           const isPromoteType = existing.initialType === GuildPlayerEventType.Promote
           const actionWord = isPromoteType ? 'promoted' : 'demoted'
           const eventColor = isPromoteType ? Color.Good : Color.Bad
-          const compactedMessage = `${username} was ${actionWord} from ${existing.initialRank} to ${parsed.toRank}`
+
+          const pattern = /was (?:promoted|demoted) from .+/i
+          const replacement = `was ${actionWord} from ${existing.initialRank} to ${parsed.toRank}`
+
+          const compactedMessage = event.message.replace(pattern, replacement)
+          let compactedRawMessage = event.rawMessage.replace(pattern, replacement)
+
+          if (actionWord === 'demoted') {
+            compactedRawMessage = compactedRawMessage.replace(/§a/g, '§c')
+          } else if (actionWord === 'promoted') {
+            compactedRawMessage = compactedRawMessage.replace(/§c/g, '§a')
+          }
 
           activeEvent = {
             ...event,
             message: compactedMessage,
-            rawMessage: compactedMessage,
+            rawMessage: compactedRawMessage,
             color: eventColor,
             type: existing.initialType
           }
