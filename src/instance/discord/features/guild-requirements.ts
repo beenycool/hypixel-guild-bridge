@@ -1,5 +1,5 @@
 import type { ButtonInteraction, Client, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js'
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, escapeMarkdown, MessageFlags } from 'discord.js'
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, escapeMarkdown, MessageFlags } from 'discord.js'
 
 import type { GuildRequirementsConfig } from '../../../application-config.js'
 import type { GuildPlayerEvent, InstanceType } from '../../../common/application-event.js'
@@ -212,6 +212,21 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     const action = parts[1]
     const instanceName = parts[2]
     const username = parts.slice(3).join(':')
+
+    const disabledRows = interaction.message.components.map((row) => {
+      const builder = new ActionRowBuilder<ButtonBuilder>()
+      if ('components' in row && Array.isArray(row.components)) {
+        for (const component of row.components) {
+          if (component.type === ComponentType.Button) {
+            builder.addComponents(ButtonBuilder.from(component).setDisabled(true))
+          }
+        }
+      }
+      return builder
+    })
+    await interaction.message
+      .edit({ components: disabledRows })
+      .catch(() => undefined)
 
     if (action === 'accept') {
       const command = `/g accept ${username}`
