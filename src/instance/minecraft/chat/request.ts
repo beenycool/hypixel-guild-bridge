@@ -15,7 +15,7 @@ export default {
         ...context.eventHelper.fillBaseEvent(),
 
         color: Color.Good,
-        channels: [ChannelType.Public, ChannelType.Officer],
+        channels: [ChannelType.Officer],
 
         type: GuildPlayerEventType.Request,
         user: user,

@@ -48,6 +48,14 @@ export class DiscordConfigurations {
     this.configuration.setStringArray('ownerRoleIds', roleIds)
   }
 
+  public getJoinRequestRoleIds(): string[] {
+    return this.configuration.getStringArray('joinRequestRoleIds', [])
+  }
+
+  public setJoinRequestRoleIds(roleIds: string[]): void {
+    this.configuration.setStringArray('joinRequestRoleIds', roleIds)
+  }
+
   public getLoggerChannelIds(): string[] {
     return this.configuration.getStringArray('loggerChannelIds', [])
   }

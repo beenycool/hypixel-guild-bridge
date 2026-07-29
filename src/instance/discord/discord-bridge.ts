@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 
-import type { APIEmbed, ApplicationEmoji, Message, TextBasedChannelFields, Webhook } from 'discord.js'
+import type { MessageMentionOptions, APIEmbed, ApplicationEmoji, Message, TextBasedChannelFields, Webhook } from 'discord.js'
 import { AttachmentBuilder, ChannelType as DiscordChannelType, escapeMarkdown, hyperlink } from 'discord.js'
 import type { Logger } from 'log4js'
 
@@ -375,6 +375,32 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       }
     }
 
+    let pingContent: string | undefined
+    let allowedMentions: MessageMentionOptions | undefined
+
+    if (activeEvent.type === GuildPlayerEventType.Request) {
+      const bridgeId = activeEvent.bridgeId
+      const roleIds = [
+        ...(bridgeId !== undefined
+          ? [
+              ...this.application.core.bridgeConfigurations.getJoinRequestRoleIds(bridgeId),
+              ...this.application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
+              ...this.application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
+              ...this.application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
+            ]
+          : []),
+        ...this.application.core.discordConfigurations.getJoinRequestRoleIds(),
+        ...this.application.core.discordConfigurations.getOfficerRoleIds(),
+        ...this.application.core.discordConfigurations.getHelperRoleIds(),
+        ...this.application.core.discordConfigurations.getOwnerRoleIds()
+      ]
+      const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
+      if (uniqueRoleIds.length > 0) {
+        pingContent = uniqueRoleIds.map((id) => `<@&${id}>`).join(' ')
+        allowedMentions = { parse: [], roles: uniqueRoleIds }
+      }
+    }
+
     let messages: Message[]
     if (this.messageToImage.shouldRenderImage()) {
       const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
@@ -393,6 +419,18 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           username: activeEvent.user.displayName()
         })
       )
+      if (pingContent !== undefined) {
+        const targetChannels = this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
+          kind: 'guildPlayer',
+          instanceName: activeEvent.instanceName
+        })
+        for (const channelId of targetChannels) {
+          const channel = await this.clientInstance.getClient().channels.fetch(channelId).catch(() => undefined)
+          if (channel?.isSendable()) {
+            await channel.send({ content: pingContent, allowedMentions: allowedMentions ?? { parse: [] } })
+          }
+        }
+      }
     } else {
       const clickableUsername = hyperlink(username, activeEvent.user.profileLink())
 
@@ -412,7 +450,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           kind: 'guildPlayer',
           instanceName: activeEvent.instanceName
         }),
-        embed
+        embed,
+        pingContent,
+        allowedMentions
       )
     }
 
@@ -500,6 +540,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           timestamp: Date.now(),
           messages: allSent
         })
+      }
+    }
+
+    if (activeEvent.type === GuildPlayerEventType.Request) {
+      for (const message of messages) {
+        try {
+          await message.react('✅')
+          await message.react('❌')
+        } catch (error: unknown) {
+          this.logger.error(error, 'Failed to react to join request message')
+        }
       }
     }
 
@@ -803,7 +854,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   private async sendEmbedToChannels(
     event: GenerateEmbedType & Pick<BaseEvent, 'eventId'>,
     channels: string[],
-    preGeneratedEmbed: APIEmbed | undefined
+    preGeneratedEmbed: APIEmbed | undefined,
+    content?: string,
+    allowedMentions?: MessageMentionOptions
   ): Promise<Message<true>[]> {
     const results = await Promise.all(
       channels.map(async (channelId) => {
@@ -813,7 +866,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           if (!channel.isSendable() || channel.type !== DiscordChannelType.GuildText) return
 
           const embed = preGeneratedEmbed ?? (await this.generateEmbed(event, channel.guildId))
-          const message = await channel.send({ embeds: [embed], allowedMentions: { parse: [] } })
+          const message = await channel.send({
+            ...(content !== undefined ? { content } : {}),
+            embeds: [embed],
+            allowedMentions: allowedMentions ?? { parse: [] }
+          })
 
           this.messageAssociation.addMessageId(event.eventId, {
             guildId: message.inGuild() ? message.guildId : undefined,

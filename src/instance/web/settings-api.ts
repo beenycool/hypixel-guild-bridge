@@ -199,8 +199,9 @@ export class SettingsApiHandler {
     // Collect role IDs for name resolution
     const roleIds = new Set<string>()
     for (const id of array((categories.staffRoles as SettingObject)?.helperRoleIds)) roleIds.add(id)
-
+    for (const id of array((categories.staffRoles as SettingObject)?.officerRoleIds)) roleIds.add(id)
     for (const id of array((categories.staffRoles as SettingObject)?.ownerRoleIds)) roleIds.add(id)
+    for (const id of array((categories.staffRoles as SettingObject)?.joinRequestRoleIds)) roleIds.add(id)
 
     const resolvedChannels: { id: string; name: string | null }[] = []
     const client = this.application.discordInstance?.getClient?.()
@@ -322,7 +323,9 @@ export class SettingsApiHandler {
         }
         case 'staffRoles': {
           cfg.setHelperRoleIds(bridgeId, array(body.helperRoleIds))
+          cfg.setOfficerRoleIds(bridgeId, array(body.officerRoleIds))
           cfg.setOwnerRoleIds(bridgeId, array(body.ownerRoleIds))
+          cfg.setJoinRequestRoleIds(bridgeId, array(body.joinRequestRoleIds))
           break
         }
         case 'discordSettings': {

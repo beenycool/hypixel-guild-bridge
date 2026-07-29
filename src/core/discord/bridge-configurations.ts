@@ -78,7 +78,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_chatSummaryEnabled`)
     this.configuration.delete(`${bridgeId}_minecraftInstances`)
     this.configuration.delete(`${bridgeId}_helperRoleIds`)
+    this.configuration.delete(`${bridgeId}_officerRoleIds`)
     this.configuration.delete(`${bridgeId}_ownerRoleIds`)
+    this.configuration.delete(`${bridgeId}_joinRequestRoleIds`)
 
     this.configuration.delete(`${bridgeId}_alwaysReplyReaction`)
     this.configuration.delete(`${bridgeId}_enforceVerification`)
@@ -317,6 +319,20 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   /**
+   * Get officer role IDs for a specific bridge
+   */
+  public getOfficerRoleIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_officerRoleIds`, [])
+  }
+
+  /**
+   * Set officer role IDs for a specific bridge
+   */
+  public setOfficerRoleIds(bridgeId: string, roleIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_officerRoleIds`, roleIds)
+  }
+
+  /**
    * Get owner role IDs for a specific bridge
    */
   public getOwnerRoleIds(bridgeId: string): string[] {
@@ -328,6 +344,20 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setOwnerRoleIds(bridgeId: string, roleIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_ownerRoleIds`, roleIds)
+  }
+
+  /**
+   * Get join request role IDs for a specific bridge
+   */
+  public getJoinRequestRoleIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_joinRequestRoleIds`, [])
+  }
+
+  /**
+   * Set join request role IDs for a specific bridge
+   */
+  public setJoinRequestRoleIds(bridgeId: string, roleIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_joinRequestRoleIds`, roleIds)
   }
 
   // ========== Discord Settings ==========
@@ -1264,7 +1294,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       },
       staffRoles: {
         helperRoleIds: this.getHelperRoleIds(bridgeId),
-        ownerRoleIds: this.getOwnerRoleIds(bridgeId)
+        officerRoleIds: this.getOfficerRoleIds(bridgeId),
+        ownerRoleIds: this.getOwnerRoleIds(bridgeId),
+        joinRequestRoleIds: this.getJoinRequestRoleIds(bridgeId)
       },
       discordSettings: {
         alwaysReply: this.getAlwaysReplyReaction(bridgeId),
