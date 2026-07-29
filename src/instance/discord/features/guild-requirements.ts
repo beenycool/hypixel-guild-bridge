@@ -35,17 +35,18 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     client.on('interactionCreate', (interaction) => {
       if (!interaction.isButton() || !interaction.isMessageComponent()) return
 
+      if (interaction.customId.startsWith('join-request:')) {
+        void this.handleJoinRequestButton(interaction).catch(
+          this.errorHandler.promiseCatch('handling join request button interaction')
+        )
+        return
+      }
+
       const payload = this.parseAcceptButton(interaction.customId)
       if (!payload) return
 
       void this.handleAcceptButton(interaction, payload).catch(
         this.errorHandler.promiseCatch('handling guild join request accept button')
-      )
-    })
-
-    client.on('messageReactionAdd', (reaction, user) => {
-      void this.handleMessageReaction(reaction, user).catch(
-        this.errorHandler.promiseCatch('handling join request message reaction')
       )
     })
   }
@@ -189,48 +190,30 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     await this.application.sendMinecraft([instanceName], MinecraftSendChatPriority.Default, undefined, `/oc ${summary}`)
   }
 
-  private async handleMessageReaction(
-    reaction: MessageReaction | PartialMessageReaction,
-    user: User | PartialUser
-  ): Promise<void> {
-    if (user.bot) return
-
-    try {
-      if (reaction.partial) await reaction.fetch()
-      if (reaction.message.partial) await reaction.message.fetch()
-    } catch (error: unknown) {
-      this.logger.error('Failed to fetch reaction or message', error)
+  private async handleJoinRequestButton(interaction: ButtonInteraction): Promise<void> {
+    if (!interaction.inGuild()) {
+      await interaction.reply({ content: 'This action can only be used in a server.', flags: MessageFlags.Ephemeral })
       return
     }
 
-    const emojiName = reaction.emoji.name
-    if (emojiName !== '✅' && emojiName !== '❌') return
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
-    const message = reaction.message
-    const textSources = [
-      message.content ?? '',
-      ...message.embeds.map((e) => `${e.title ?? ''}\n${e.description ?? ''}`)
-    ].join('\n')
+    if (!(await this.ensurePermission(interaction))) {
+      await interaction.editReply('You do not have permission to manage guild join requests.')
+      return
+    }
 
-    const regex = /(\w{3,32}) has requested to join/i
-    const match = regex.exec(textSources)
-    if (!match) return
+    const parts = interaction.customId.split(':')
+    if (parts.length < 4) {
+      await interaction.editReply('Invalid button action.')
+      return
+    }
 
-    const username = match[1]
-    const permission = await this.clientInstance.resolvePermission(user.id)
-    if (permission < Permission.Helper) return
+    const action = parts[1]
+    const instanceName = parts[2]
+    const username = parts.slice(3).join(':')
 
-    const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(message.channelId)
-    const instanceName = getFirstConnectedBridgeMinecraftInstanceName(this.application, bridgeId)
-
-    if (emojiName === '✅') {
-      if (instanceName === undefined) {
-        if (message.channel.isSendable()) {
-          await message.reply({ content: `No connected Minecraft instance available to accept ${escapeMarkdown(username)}.` })
-        }
-        return
-      }
-
+    if (action === 'accept') {
       const command = `/g accept ${username}`
       try {
         const result = await checkChatTriggers(
@@ -242,19 +225,23 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
           username
         )
         const formatted = formatChatTriggerResponse(result, `Accept ${escapeMarkdown(username)}`)
-        if (message.channel.isSendable()) {
-          await message.reply({ embeds: [formatted] })
+        await interaction.editReply({ embeds: [formatted] })
+        if (interaction.channel?.isSendable()) {
+          await interaction.channel.send({
+            content: `✅ **Accepted** join request for **${escapeMarkdown(username)}** (by <@${interaction.user.id}>).`,
+            allowedMentions: { parse: [] }
+          })
         }
       } catch (error: unknown) {
-        this.logger.error('Failed to accept guild request via reaction', error)
-        if (message.channel.isSendable()) {
-          await message.reply({ content: `Failed to accept ${escapeMarkdown(username)}. Check logs for details.` })
-        }
+        this.logger.error('Failed to accept guild request', error)
+        await interaction.editReply('Failed to accept the request. Check logs for details.')
       }
-    } else if (emojiName === '❌') {
-      if (message.channel.isSendable()) {
-        await message.reply({
-          content: `❌ Request to join by **${escapeMarkdown(username)}** was declined by <@${user.id}>.`
+    } else if (action === 'deny') {
+      await interaction.editReply({ content: `Denied join request for ${escapeMarkdown(username)}.` })
+      if (interaction.channel?.isSendable()) {
+        await interaction.channel.send({
+          content: `❌ **Denied** join request for **${escapeMarkdown(username)}** (by <@${interaction.user.id}>).`,
+          allowedMentions: { parse: [] }
         })
       }
     }
