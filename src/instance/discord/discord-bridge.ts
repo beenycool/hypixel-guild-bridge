@@ -41,6 +41,7 @@ import MessageDeleter from './common/message-deletor.js'
 import MessageToImage from './common/message-to-image.js'
 import { resolveDiscordMentionsInMessage } from './common/minecraft-discord-mentions.js'
 import type { ResolvedDiscordMentions } from './common/minecraft-discord-mentions.js'
+import { parseRankChange, RankCompactTracker } from './common/rank-compact-tracker.js'
 import type DiscordInstance from './discord-instance.js'
 
 const DASH_SEPARATOR = '-'.repeat(53) + '\n'
@@ -49,6 +50,7 @@ const PLAIN_GUILD_PREFIXES = ['Guild > ', 'Officer > ', DASH_SEPARATOR]
 
 export default class DiscordBridge extends Bridge<DiscordInstance> {
   public readonly messageDeleter: MessageDeleter
+  public readonly rankCompactTracker = new RankCompactTracker()
   private readonly messageAssociation: MessageAssociation
   private readonly messageToImage
 
@@ -330,55 +332,94 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (game) return
     }
 
-    const removeLater =
-      event.type === GuildPlayerEventType.Offline ||
-      event.type === GuildPlayerEventType.Online ||
-      event.type === GuildPlayerEventType.Join ||
-      event.type === GuildPlayerEventType.Leave
+    if (event.type === GuildPlayerEventType.Leave || event.type === GuildPlayerEventType.Kick) {
+      const userId = event.user.mojangProfile()?.id ?? event.user.displayName()
+      const bridgeId = event.bridgeId ?? 'default'
+      const key = `${bridgeId}:${userId}`
+      this.rankCompactTracker.delete(key)
+    }
+
+    let activeEvent = event
+    let rankTrackerKey: string | undefined
+    const isRankChange = event.type === GuildPlayerEventType.Promote || event.type === GuildPlayerEventType.Demote
     const username = event.user.displayName()
+
+    if (isRankChange) {
+      const parsed = parseRankChange(event.message)
+      if (parsed !== undefined) {
+        const userId = event.user.mojangProfile()?.id ?? username
+        const bridgeId = event.bridgeId ?? 'default'
+        rankTrackerKey = `${bridgeId}:${userId}`
+        const existing = this.rankCompactTracker.get(rankTrackerKey)
+
+        if (existing !== undefined) {
+          for (const oldMessage of existing.messages) {
+            await oldMessage.delete().catch(() => undefined)
+          }
+
+          if (existing.initialRank === parsed.toRank) {
+            this.rankCompactTracker.delete(rankTrackerKey)
+            return
+          }
+
+          const actionWord = existing.initialType === GuildPlayerEventType.Promote ? 'promoted' : 'demoted'
+          const compactedMessage = `${username} was ${actionWord} from ${existing.initialRank} to ${parsed.toRank}`
+
+          activeEvent = {
+            ...event,
+            message: compactedMessage,
+            rawMessage: compactedMessage,
+            type: existing.initialType
+          }
+        }
+      }
+    }
 
     let messages: Message[]
     if (this.messageToImage.shouldRenderImage()) {
-      const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(event.rawMessage)).replaceAll(/^-+/g, '')
+      const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
+        /^-+/g,
+        ''
+      )
       const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
       messages = await this.sendImageToChannels(
-        event.eventId,
-        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+        activeEvent.eventId,
+        this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
           kind: 'guildPlayer',
-          instanceName: event.instanceName
+          instanceName: activeEvent.instanceName
         }),
         await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: event.user.displayName()
+          username: activeEvent.user.displayName()
         })
       )
     } else {
-      const clickableUsername = hyperlink(username, event.user.profileLink())
+      const clickableUsername = hyperlink(username, activeEvent.user.profileLink())
 
-      const withoutPrefix = event.message.replaceAll(/^-+/g, '')
+      const withoutPrefix = activeEvent.message.replaceAll(/^-+/g, '')
 
       const newMessage = escapeMarkdown(withoutPrefix).replaceAll(escapeMarkdown(username), clickableUsername)
 
       const embed = {
-        url: event.user.profileLink(),
+        url: activeEvent.user.profileLink(),
         description: newMessage,
-        color: event.color
+        color: activeEvent.color
       } satisfies APIEmbed
 
       messages = await this.sendEmbedToChannels(
-        { ...event, type: undefined },
-        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+        { ...activeEvent, type: undefined },
+        this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
           kind: 'guildPlayer',
-          instanceName: event.instanceName
+          instanceName: activeEvent.instanceName
         }),
         embed
       )
     }
 
-    if (event.type === GuildPlayerEventType.Offline || event.type === GuildPlayerEventType.Online) {
+    if (activeEvent.type === GuildPlayerEventType.Offline || activeEvent.type === GuildPlayerEventType.Online) {
       const shouldPersist =
-        this.application.bridgeResolver.isMultiBridgeEnabled() && event.bridgeId !== undefined
-          ? this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(event.bridgeId)
+        this.application.bridgeResolver.isMultiBridgeEnabled() && activeEvent.bridgeId !== undefined
+          ? this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(activeEvent.bridgeId)
           : false
       if (!shouldPersist) {
         const currentTime = Date.now()
@@ -387,16 +428,16 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           messageId: message.id,
           createdAt: currentTime,
           type: 'online-offline' as const,
-          bridgeId: event.bridgeId
+          bridgeId: activeEvent.bridgeId
         }))
         await this.messageDeleter.add(entries)
       }
     }
 
-    if (event.type === GuildPlayerEventType.Join || event.type === GuildPlayerEventType.Leave) {
+    if (activeEvent.type === GuildPlayerEventType.Join || activeEvent.type === GuildPlayerEventType.Leave) {
       const shouldPersist =
-        this.application.bridgeResolver.isMultiBridgeEnabled() && event.bridgeId !== undefined
-          ? this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(event.bridgeId)
+        this.application.bridgeResolver.isMultiBridgeEnabled() && activeEvent.bridgeId !== undefined
+          ? this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(activeEvent.bridgeId)
           : false
       if (!shouldPersist) {
         const currentTime = Date.now()
@@ -405,16 +446,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           messageId: message.id,
           createdAt: currentTime,
           type: 'join-leave' as const,
-          bridgeId: event.bridgeId
+          bridgeId: activeEvent.bridgeId
         }))
-        this.messageDeleter.add(entries)
+        await this.messageDeleter.add(entries)
       }
     }
 
-    if (event.type === GuildPlayerEventType.Promote && event.bridgeId !== undefined) {
-      const promoteChannelIds = this.application.core.bridgeConfigurations.getPromoteChannelIds(event.bridgeId)
+    let promoteImageMessages: Message[] = []
+    if (activeEvent.type === GuildPlayerEventType.Promote && activeEvent.bridgeId !== undefined) {
+      const promoteChannelIds = this.application.core.bridgeConfigurations.getPromoteChannelIds(activeEvent.bridgeId)
       if (promoteChannelIds.length > 0) {
-        const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(event.rawMessage)).replaceAll(
+        const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
           /^-+/g,
           ''
         )
@@ -422,25 +464,50 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
         try {
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-            username: event.user.displayName()
+            username: activeEvent.user.displayName()
           })
-          const imageMessages = await this.sendImageToChannels(event.eventId, promoteChannelIds, image)
+          const imageMessages = await this.sendImageToChannels(activeEvent.eventId, promoteChannelIds, image)
+          promoteImageMessages = imageMessages
           for (const message of imageMessages) {
-            await message.react('🔥').catch((error) => {
+            await message.react('🔥').catch((error: unknown) => {
               this.logger.error(error, 'Failed to react to promotion message')
             })
           }
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error(error, 'Failed to generate Minecraft chat image for promotion')
         }
       }
     }
 
-    if (event.type === GuildPlayerEventType.Join || event.type === GuildPlayerEventType.Leave) {
-      const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+    if (isRankChange && rankTrackerKey !== undefined) {
+      const parsed = parseRankChange(event.message)
+      if (parsed !== undefined) {
+        const existing = this.rankCompactTracker.get(rankTrackerKey)
+        const initialRank = existing !== undefined ? existing.initialRank : parsed.fromRank
+        const initialType =
+          existing !== undefined
+            ? existing.initialType
+            : event.type === GuildPlayerEventType.Promote
+              ? GuildPlayerEventType.Promote
+              : GuildPlayerEventType.Demote
+
+        const allSent = [...messages, ...promoteImageMessages]
+        this.rankCompactTracker.set(rankTrackerKey, {
+          userId: event.user.mojangProfile()?.id ?? username,
+          initialRank,
+          currentRank: parsed.toRank,
+          initialType,
+          timestamp: Date.now(),
+          messages: allSent
+        })
+      }
+    }
+
+    if (activeEvent.type === GuildPlayerEventType.Join || activeEvent.type === GuildPlayerEventType.Leave) {
+      const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(activeEvent.instanceName)
       if (bridgeId !== undefined) {
         const emojiType =
-          event.type === GuildPlayerEventType.Join
+          activeEvent.type === GuildPlayerEventType.Join
             ? this.application.core.bridgeConfigurations.getJoinReactionEmojiType(bridgeId)
             : this.application.core.bridgeConfigurations.getLeaveReactionEmojiType(bridgeId)
 

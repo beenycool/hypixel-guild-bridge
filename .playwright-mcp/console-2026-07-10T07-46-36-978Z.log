@@ -1,2 +1,0 @@
-[     918ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://safe-citadel-79898-0cfea9458f9b.herokuapp.com/settings.html?token=eyJzdWIiOiIxMTc0Nzg1Njk2NTI4MDcyNzM4IiwicGVybSI6NCwiZXhwIjoxNzgzNzU1NTUxLCJpYXQiOjE3ODM2NjkxNTF9.ZIgYTm16zo6aqNcry3uhojM0ANO4Djcx_2-aDKHsplg:0
-[    1011ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://safe-citadel-79898-0cfea9458f9b.herokuapp.com/favicon.ico:0

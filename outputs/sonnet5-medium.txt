@@ -1,3 +1,0 @@
-=== sonnet5-medium ===
-ERROR after 2.07s:
-Request failed with status code 429

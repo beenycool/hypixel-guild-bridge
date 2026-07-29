@@ -4,7 +4,7 @@ import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
-import type { Tournament, TournamentMatch, TournamentPlayer } from '../../core/tournament/types.js'
+import { MatchStatus, TournamentStatus, type Tournament, type TournamentMatch, type TournamentPlayer } from '../../core/tournament/types.js'
 
 import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
@@ -201,6 +201,28 @@ export class TournamentApiHandler {
         return true
       }
       await this.handleOpenCheckin(response, tournamentId)
+      return true
+    }
+
+    if (subRoute === 'test') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Helper) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      const testAction = segments[2]
+      if (testAction === 'resolve-match') {
+        await this.handleTestResolveMatch(request, response, tournamentId)
+        return true
+      }
+      if (testAction === 'resolve-round') {
+        await this.handleTestResolveRound(request, response, tournamentId)
+        return true
+      }
+      sendError(response, 'NOT_FOUND', 'Unknown test action. Use resolve-match or resolve-round.', 404)
       return true
     }
 
@@ -470,6 +492,82 @@ export class TournamentApiHandler {
       this.logger.error('Failed to open check-in:', error)
       sendError(response, 'INTERNAL_ERROR', String(error), 500)
     }
+  }
+
+  private async handleTestResolveMatch(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number
+  ): Promise<void> {
+    try {
+      const result = await this.resolveTestMatches(tournamentId, 1)
+      sendSuccess(response, result)
+    } catch (error: unknown) {
+      this.logger.error('Failed to resolve test match:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleTestResolveRound(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number
+  ): Promise<void> {
+    try {
+      const result = await this.resolveTestMatches(tournamentId, 0)
+      sendSuccess(response, result)
+    } catch (error: unknown) {
+      this.logger.error('Failed to resolve test round:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async resolveTestMatches(
+    tournamentId: number,
+    limit: number
+  ): Promise<{ resolved: number; matches: { id: number; winner: string }[] }> {
+    const tournament = await this.application.core.tournamentManager.getTournament(tournamentId)
+    if (tournament === undefined) throw new Error('Tournament not found.')
+    if (tournament.status !== TournamentStatus.Active) throw new Error('Tournament is not active.')
+
+    const db = this.application.core.databaseManager
+    const mm = this.application.core.tournamentManager.matchManager
+
+    const matchQuery =
+      limit > 0
+        ? 'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND "round" = $2 AND "status" = $3 ORDER BY "matchIndex" ASC LIMIT $4'
+        : 'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND "round" = $2 AND "status" = $3 ORDER BY "matchIndex" ASC'
+
+    const params: unknown[] = limit > 0 ? [tournamentId, tournament.currentRound, MatchStatus.Active, limit] : [tournamentId, tournament.currentRound, MatchStatus.Active]
+
+    const activeMatches = await db.queryRows<TournamentMatch>(matchQuery, params)
+    if (activeMatches.length === 0) throw new Error(`No active matches in round ${tournament.currentRound}.`)
+
+    const players = await db.queryRows<TournamentPlayer>(
+      'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
+      [tournamentId]
+    )
+
+    const resolved: { id: number; winner: string }[] = []
+
+    for (const match of activeMatches) {
+      if (match.player1Id === undefined || match.player2Id === undefined) continue
+
+      const player1 = players.find((p) => p.id === match.player1Id)
+      const player2 = players.find((p) => p.id === match.player2Id)
+      if (player1 === undefined || player2 === undefined) continue
+
+      const winnerId = player1.seed < player2.seed ? player1.id : player2.id
+      const winner = player1.seed < player2.seed ? player1.playerUuid : player2.playerUuid
+      const winScore = Math.ceil(tournament.bestOf / 2)
+
+      await mm.submitReport(match.id, match.player1Id, winnerId, winScore, 0).catch(() => undefined)
+      await mm.submitReport(match.id, match.player2Id, winnerId, 0, winScore).catch(() => undefined)
+
+      resolved.push({ id: match.id, winner: winner.slice(0, 8) })
+    }
+
+    return { resolved: resolved.length, matches: resolved }
   }
 
   private async readJsonBody(

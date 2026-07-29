@@ -1,3 +1,0 @@
-=== sonnet5-low ===
-ERROR after 2.08s:
-Request failed with status code 429
