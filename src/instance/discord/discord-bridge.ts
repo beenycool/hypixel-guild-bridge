@@ -376,8 +376,31 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     let components: ActionRowBuilder<ButtonBuilder>[] | undefined
+    let pingContent: string | undefined
+    let allowedMentions: MessageMentionOptions | undefined
 
     if (activeEvent.type === GuildPlayerEventType.Request) {
+      const bridgeId = activeEvent.bridgeId
+      const roleIds = [
+        ...(bridgeId !== undefined
+          ? [
+              ...this.application.core.bridgeConfigurations.getJoinRequestRoleIds(bridgeId),
+              ...this.application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
+              ...this.application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
+              ...this.application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
+            ]
+          : []),
+        ...this.application.core.discordConfigurations.getJoinRequestRoleIds(),
+        ...this.application.core.discordConfigurations.getOfficerRoleIds(),
+        ...this.application.core.discordConfigurations.getHelperRoleIds(),
+        ...this.application.core.discordConfigurations.getOwnerRoleIds()
+      ]
+      const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
+      if (uniqueRoleIds.length > 0) {
+        pingContent = uniqueRoleIds.map((id) => `<@&${id}>`).join(' ')
+        allowedMentions = { parse: [], roles: uniqueRoleIds }
+      }
+
       const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`join-request:accept:${activeEvent.instanceName}:${username}`)
@@ -411,7 +434,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           username: activeEvent.user.displayName()
         })
       )
-      if (components !== undefined && components.length > 0) {
+      if ((components !== undefined && components.length > 0) || pingContent !== undefined) {
         const targetChannels = this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
           kind: 'guildPlayer',
           instanceName: activeEvent.instanceName
@@ -419,7 +442,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         for (const channelId of targetChannels) {
           const channel = await this.clientInstance.getClient().channels.fetch(channelId).catch(() => undefined)
           if (channel?.isSendable()) {
-            await channel.send({ components, allowedMentions: { parse: [] } })
+            await channel.send({
+              ...(pingContent !== undefined ? { content: pingContent } : {}),
+              ...(components !== undefined && components.length > 0 ? { components } : {}),
+              allowedMentions: allowedMentions ?? { parse: [] }
+            })
           }
         }
       }
@@ -443,7 +470,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           instanceName: activeEvent.instanceName
         }),
         embed,
-        components
+        components,
+        pingContent,
+        allowedMentions
       )
     }
 
@@ -836,7 +865,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     event: GenerateEmbedType & Pick<BaseEvent, 'eventId'>,
     channels: string[],
     preGeneratedEmbed: APIEmbed | undefined,
-    components?: ActionRowBuilder<ButtonBuilder>[]
+    components?: ActionRowBuilder<ButtonBuilder>[],
+    content?: string,
+    allowedMentions?: MessageMentionOptions
   ): Promise<Message<true>[]> {
     const results = await Promise.all(
       channels.map(async (channelId) => {
@@ -847,9 +878,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
           const embed = preGeneratedEmbed ?? (await this.generateEmbed(event, channel.guildId))
           const message = await channel.send({
+            ...(content !== undefined ? { content } : {}),
             embeds: [embed],
             ...(components !== undefined && components.length > 0 ? { components } : {}),
-            allowedMentions: { parse: [] }
+            allowedMentions: allowedMentions ?? { parse: [] }
           })
 
           this.messageAssociation.addMessageId(event.eventId, {
