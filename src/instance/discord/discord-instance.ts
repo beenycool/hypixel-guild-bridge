@@ -67,8 +67,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
           keepOverLimit: (message: Message) => message.author.id === message.client.user.id
         },
         PresenceManager: { maxSize: 0 },
-        ReactionManager: { maxSize: 0 },
-        ReactionUserManager: { maxSize: 0 },
         StageInstanceManager: { maxSize: 0 },
         ThreadManager: { maxSize: 0 },
         ThreadMemberManager: { maxSize: 0 },
@@ -83,10 +81,11 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.DirectMessages
       ],
-      partials: [Partials.Channel, Partials.Message]
+      partials: [Partials.Channel, Partials.Message, Partials.Reaction]
     })
 
     this.client.on('error', (error: Error) => {
