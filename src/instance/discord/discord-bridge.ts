@@ -362,13 +362,16 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
             return
           }
 
-          const actionWord = existing.initialType === GuildPlayerEventType.Promote ? 'promoted' : 'demoted'
+          const isPromoteType = existing.initialType === GuildPlayerEventType.Promote
+          const actionWord = isPromoteType ? 'promoted' : 'demoted'
+          const eventColor = isPromoteType ? Color.Good : Color.Bad
           const compactedMessage = `${username} was ${actionWord} from ${existing.initialRank} to ${parsed.toRank}`
 
           activeEvent = {
             ...event,
             message: compactedMessage,
             rawMessage: compactedMessage,
+            color: eventColor,
             type: existing.initialType
           }
         }

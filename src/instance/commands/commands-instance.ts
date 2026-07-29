@@ -15,6 +15,7 @@ import { InternalInstancePrefix } from '../../common/instance.js'
 
 import EightBallCommand from './triggers/8ball.js'
 import Api from './triggers/api.js'
+import Arcade from './triggers/arcade.js'
 import Asian from './triggers/asian.js'
 import AuctionHouse from './triggers/auction.js'
 import Bedwars from './triggers/bedwars.js'
@@ -37,6 +38,7 @@ import Denick from './triggers/denick.js'
 import DevelopmentExcuse from './triggers/devexcuse.js'
 import Discord from './triggers/discord'
 import Dojo from './triggers/dojo.js'
+import Droppers from './triggers/droppers.js'
 import DuelsBridge from './triggers/duels-bridge.js'
 import Duels from './triggers/duels.js'
 import Eggs from './triggers/eggs'
@@ -122,6 +124,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     this.commands = [
       new Api(),
+      new Arcade(),
       new Asian(),
       new AuctionHouse(),
       new Bits(),
@@ -146,6 +149,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new DevelopmentExcuse(),
       new Discord(),
       new Dojo(),
+      new Droppers(),
       new Eggs(),
       new Election(),
       new EightBallCommand(),

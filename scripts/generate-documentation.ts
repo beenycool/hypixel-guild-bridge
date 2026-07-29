@@ -35,11 +35,12 @@ async function generateChatCommands(): Promise<string> {
     const resolvedPath = '../' + chatCommandsDirectory + chatCommandPath.replaceAll('.ts', '.js')
     const importedModule = (await import(resolvedPath)) as unknown as { default: ChatCommandHandler | PartyManager }
     const module = importedModule.default
+    if (typeof module !== 'function') continue
     const loadedModule = new (module as unknown as new () => ChatCommandHandler | PartyManager)()
     if (loadedModule instanceof ChatCommandHandler) {
       table.push([`\`${loadedModule.triggers[0]}\``, loadedModule.description])
-    } else if (loadedModule instanceof PartyManager) {
-      for (const resolvedCommand of loadedModule.resolveCommands()) {
+    } else if (typeof (loadedModule as { resolveCommands?: unknown }).resolveCommands === 'function') {
+      for (const resolvedCommand of (loadedModule as { resolveCommands: () => ChatCommandHandler[] }).resolveCommands()) {
         table.push([`\`${resolvedCommand.triggers[0]}\``, resolvedCommand.description])
       }
     } else {
