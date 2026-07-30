@@ -2429,3 +2429,982 @@
 2026-07-30T09:32:02.571101+00:00 app[web.1]: [36m[2026-07-30T09:32:02.571] [DEBUG] Percy_cookie - [39mClient quit on its own volition. No further trying to reconnect.
 2026-07-30T09:32:02.572234+00:00 app[web.1]: [36m[2026-07-30T09:32:02.572] [DEBUG] blockops - [39mClient quit on its own volition. No further trying to reconnect.
 2026-07-30T09:32:03.197888+00:00 heroku[web.1]: Process exited with status 0
+2026-07-30T09:32:08.432873+00:00 heroku[web.1]: Starting process with command `node --import tsx/esm index.ts`
+2026-07-30T09:32:09.962625+00:00 app[web.1]: [heroku-exec] Starting
+2026-07-30T09:32:10.361984+00:00 heroku[web.1]: Starting process with command `node --import tsx/esm index.ts`
+2026-07-30T09:32:11.731061+00:00 app[web.1]: [heroku-exec] Starting
+2026-07-30T09:32:11.906357+00:00 app[web.1]: [32m[2026-07-30T09:32:11.905] [INFO] Main - [39mStarting application...
+2026-07-30T09:32:11.906589+00:00 app[web.1]: [32m[2026-07-30T09:32:11.906] [INFO] Main - [39mRoot Directory: /app
+2026-07-30T09:32:11.906651+00:00 app[web.1]: [32m[2026-07-30T09:32:11.906] [INFO] Main - [39mConfig Directory: /app/config
+2026-07-30T09:32:11.906731+00:00 app[web.1]: [32m[2026-07-30T09:32:11.906] [INFO] Main - [39mEnvironment:
+2026-07-30T09:32:11.906809+00:00 app[web.1]: [32m[2026-07-30T09:32:11.906] [INFO] Main - [39mPORT: 44847
+2026-07-30T09:32:11.906875+00:00 app[web.1]: [32m[2026-07-30T09:32:11.906] [INFO] Main - [39mINTERNAL_PORT: 9091
+2026-07-30T09:32:11.907737+00:00 app[web.1]: [36m[2026-07-30T09:32:11.907] [DEBUG] Main - [39mSetting up process...
+2026-07-30T09:32:11.907901+00:00 app[web.1]: [36m[2026-07-30T09:32:11.907] [DEBUG] Main - [39mLoading up languages...
+2026-07-30T09:32:11.910046+00:00 app[web.1]: [32m[2026-07-30T09:32:11.909] [INFO] Main - [39mLoading configuration from base64 environment variable "CONFIG_B64"
+2026-07-30T09:32:11.924927+00:00 app[web.1]: [32m[2026-07-30T09:32:11.924] [INFO] internal/core - [39mUsing PostgreSQL database connection with max connections: 3
+2026-07-30T09:32:11.947471+00:00 app[web.1]: [32m[2026-07-30T09:32:11.947] [INFO] Application - [39mTournamentTestPanel: Initialized
+2026-07-30T09:32:11.950772+00:00 app[web.1]: [36m[2026-07-30T09:32:11.950] [DEBUG] internal/prometheus - [39mListening on port 9090
+2026-07-30T09:32:11.950880+00:00 app[web.1]: [36m[2026-07-30T09:32:11.950] [DEBUG] internal/prometheus - [39mprometheus is enabled
+2026-07-30T09:32:11.951681+00:00 app[web.1]: [32m[2026-07-30T09:32:11.951] [INFO] web-server - [39mTournamentWsEvents: Started
+2026-07-30T09:32:11.958511+00:00 app[web.1]: [32m[2026-07-30T09:32:11.958] [INFO] Main - [39mHealth proxy listening on port 44847 → proxying to 9091
+2026-07-30T09:32:11.958634+00:00 app[web.1]: [32m[2026-07-30T09:32:11.958] [INFO] web-server - [39mWeb server listening on port 9091
+2026-07-30T09:32:11.966727+00:00 app[web.1]: [36m[2026-07-30T09:32:11.966] [DEBUG] internal/prometheus - [39mCollecting metrics
+2026-07-30T09:32:12.025133+00:00 app[web.1]: [SKYHELPER-NETWORTH] A MAJOR update is available! Current version: 1.27.3, Latest version: 2.8.0. NOTE: This update may contain BREAKING changes.
+2026-07-30T09:32:12.031480+00:00 app[web.1]: (node:2) TimeoutNaNWarning: NaN is not a number.
+2026-07-30T09:32:12.031481+00:00 app[web.1]: Timeout duration was set to 1.
+2026-07-30T09:32:12.031481+00:00 app[web.1]: (Use `node --trace-warnings ...` to show where the warning was created)
+2026-07-30T09:32:12.380394+00:00 app[web.1]: [36m[2026-07-30T09:32:12.380] [DEBUG] internal/core - [39mStatusHistory loaded (on-demand mode)
+2026-07-30T09:32:12.664012+00:00 app[web.1]: [36m[2026-07-30T09:32:12.663] [DEBUG] internal/core - [39mAutocomplete loaded (on-demand mode)
+2026-07-30T09:32:12.672260+00:00 app[web.1]: [32m[2026-07-30T09:32:12.672] [INFO] Application - [39mTournament 67 (fadfdsdfd): Loaded active tournament, status=ACTIVE, bridgeId=persy
+2026-07-30T09:32:12.672294+00:00 app[web.1]: [32m[2026-07-30T09:32:12.672] [INFO] Application - [39mLoaded 1 active tournaments from database.
+2026-07-30T09:32:12.675630+00:00 app[web.1]: [32m[2026-07-30T09:32:12.675] [INFO] internal/core - [39mTournamentTestPanels: Loaded 1 panel(s)
+2026-07-30T09:32:12.675768+00:00 app[web.1]: [32m[2026-07-30T09:32:12.675] [INFO] Application - [39mDeadlineScheduler: Starting (interval=5m)
+2026-07-30T09:32:12.676036+00:00 app[web.1]: [32m[2026-07-30T09:32:12.675] [INFO] Application - [39mRehydrating tournament state from database...
+2026-07-30T09:32:12.676071+00:00 app[web.1]: [32m[2026-07-30T09:32:12.676] [INFO] Application - [39mTournament 67 (fadfdsdfd): Rehydrating ACTIVE state...
+2026-07-30T09:32:12.680932+00:00 app[web.1]: [32m[2026-07-30T09:32:12.680] [INFO] Application - [39mTournament 67: Found 31 matches for rehydration
+2026-07-30T09:32:12.681000+00:00 app[web.1]: [32m[2026-07-30T09:32:12.680] [INFO] Application - [39mMatch 233: Rehydrating, status=ACTIVE, round=4
+2026-07-30T09:32:12.681988+00:00 app[web.1]: [33m[2026-07-30T09:32:12.681] [WARN] Application - [39mThread 1531769092711645265 for match 233 not found, recreating...
+2026-07-30T09:32:12.682013+00:00 app[web.1]: [32m[2026-07-30T09:32:12.681] [INFO] Application - [39mMatch 234: Rehydrating, status=ACTIVE, round=4
+2026-07-30T09:32:12.682208+00:00 app[web.1]: [33m[2026-07-30T09:32:12.682] [WARN] Application - [39mThread 1531769064224198757 for match 234 not found, recreating...
+2026-07-30T09:32:12.682332+00:00 app[web.1]: [32m[2026-07-30T09:32:12.682] [INFO] Application - [39mTournament rehydration complete
+2026-07-30T09:32:12.682890+00:00 app[web.1]: [36m[2026-07-30T09:32:12.682] [DEBUG] internal/MinecraftManager - [39mSTARTUP_LOAD: mojangInstances=["blockops","blockopstemp","johnguab","Percy_cookie","quaqqak"]
+2026-07-30T09:32:12.682963+00:00 app[web.1]: [36m[2026-07-30T09:32:12.682] [DEBUG] internal/MinecraftManager - [39mSTARTUP_CFG: [{"bridge":"persy","instances":["quaqqak","percy_cookie"]},{"bridge":"guab","instances":["johnguab"]},{"bridge":"blockops","instances":["blockops"]}]
+2026-07-30T09:32:12.752473+00:00 app[web.1]: [32m[2026-07-30T09:32:12.752] [INFO] internal/PluginsManager - [39mLoading plugin: example-plugin.ts
+2026-07-30T09:32:12.755206+00:00 app[web.1]: [32m[2026-07-30T09:32:12.755] [INFO] Application - [39mLanguage changed successfully to English.
+2026-07-30T09:32:12.755706+00:00 app[web.1]: [32m[2026-07-30T09:32:12.755] [INFO] internal/PluginsManager - [39mLoading plugin: submission-game.ts
+2026-07-30T09:32:12.758681+00:00 app[web.1]: [36m[2026-07-30T09:32:12.758] [DEBUG] Application - [39mSignaling plugin instance type=plugin,name=example-plugin
+2026-07-30T09:32:12.758737+00:00 app[web.1]: [32m[2026-07-30T09:32:12.758] [INFO] example-plugin - [39mRunning on plugin
+2026-07-30T09:32:12.758765+00:00 app[web.1]: [36m[2026-07-30T09:32:12.758] [DEBUG] Application - [39mSignaling plugin instance type=plugin,name=submission-game
+2026-07-30T09:32:12.758860+00:00 app[web.1]: [36m[2026-07-30T09:32:12.758] [DEBUG] Application - [39mConnecting instance type=discord,name=discord
+2026-07-30T09:32:12.758939+00:00 app[web.1]: [36m[2026-07-30T09:32:12.758] [DEBUG] discord - [39mDiscord connecting
+2026-07-30T09:32:12.759369+00:00 app[web.1]: [32m[2026-07-30T09:32:12.759] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:0","createdAt":1785403932759,"instanceType":"discord","instanceName":"discord","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:13.041178+00:00 app[web.1]: [36m[2026-07-30T09:32:13.041] [DEBUG] Application - [39mConnecting instance type=commands,name=internal/commands
+2026-07-30T09:32:13.041558+00:00 app[web.1]: [32m[2026-07-30T09:32:13.041] [INFO] internal/commands - [39m[instanceStatus] {"eventId":"commands:internal/commands:0","createdAt":1785403933041,"instanceType":"commands","instanceName":"internal/commands","status":{"from":"fresh","to":"connected"}}
+2026-07-30T09:32:13.041639+00:00 app[web.1]: [36m[2026-07-30T09:32:13.041] [DEBUG] internal/commands - [39mchat commands are ready to serve
+2026-07-30T09:32:13.041681+00:00 app[web.1]: [36m[2026-07-30T09:32:13.041] [DEBUG] Application - [39mConnecting instance type=minecraft,name=blockops
+2026-07-30T09:32:13.041914+00:00 app[web.1]: [32m[2026-07-30T09:32:13.041] [INFO] blockops - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:32:13.165646+00:00 app[web.1]: [32m[2026-07-30T09:32:13.165] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:0","createdAt":1785403933165,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:13.167364+00:00 app[web.1]: [36m[2026-07-30T09:32:13.167] [DEBUG] Application - [39mConnecting instance type=minecraft,name=blockopstemp
+2026-07-30T09:32:13.167405+00:00 app[web.1]: [36m[2026-07-30T09:32:13.167] [DEBUG] blockopstemp - [39minstance is attempting to connect automatically but configured to not auto-connect. Attempt stopped.
+2026-07-30T09:32:13.167571+00:00 app[web.1]: [32m[2026-07-30T09:32:13.167] [INFO] blockopstemp - [39m[instanceStatus] {"eventId":"minecraft:blockopstemp:0","createdAt":1785403933167,"instanceType":"minecraft","instanceName":"blockopstemp","message":{"type":"minecraftInstanceNotAutoConnect"}}
+2026-07-30T09:32:13.167633+00:00 app[web.1]: [36m[2026-07-30T09:32:13.167] [DEBUG] Application - [39mConnecting instance type=minecraft,name=johnguab
+2026-07-30T09:32:13.167670+00:00 app[web.1]: [32m[2026-07-30T09:32:13.167] [INFO] johnguab - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:32:13.258483+00:00 app[web.1]: [32m[2026-07-30T09:32:13.258] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:0","createdAt":1785403933258,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:13.259648+00:00 app[web.1]: [36m[2026-07-30T09:32:13.259] [DEBUG] Application - [39mConnecting instance type=minecraft,name=Percy_cookie
+2026-07-30T09:32:13.259679+00:00 app[web.1]: [32m[2026-07-30T09:32:13.259] [INFO] Percy_cookie - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:32:13.373793+00:00 heroku[web.1]: Stopping all processes with SIGTERM
+2026-07-30T09:32:13.309476+00:00 app[web.1]: [32m[2026-07-30T09:32:13.309] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:0","createdAt":1785403933309,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:13.310589+00:00 app[web.1]: [36m[2026-07-30T09:32:13.310] [DEBUG] Application - [39mConnecting instance type=minecraft,name=quaqqak
+2026-07-30T09:32:13.310619+00:00 app[web.1]: [36m[2026-07-30T09:32:13.310] [DEBUG] quaqqak - [39minstance is attempting to connect automatically but configured to not auto-connect. Attempt stopped.
+2026-07-30T09:32:13.310711+00:00 app[web.1]: [32m[2026-07-30T09:32:13.310] [INFO] quaqqak - [39m[instanceStatus] {"eventId":"minecraft:quaqqak:0","createdAt":1785403933310,"instanceType":"minecraft","instanceName":"quaqqak","bridgeId":"persy","message":{"type":"minecraftInstanceNotAutoConnect"}}
+2026-07-30T09:32:13.311162+00:00 app[web.1]: [32m[2026-07-30T09:32:13.311] [INFO] Main - [39mApp is connected
+2026-07-30T09:32:13.326914+00:00 app[web.1]: [32m[2026-07-30T09:32:13.326] [INFO] discord - [39mDiscord client ready, logged in as bot1453693252971659275#7466
+2026-07-30T09:32:13.327808+00:00 app[web.1]: [32m[2026-07-30T09:32:13.327] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:1","createdAt":1785403933326,"instanceType":"discord","instanceName":"discord","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:32:13.417379+00:00 app[web.1]: [32m[2026-07-30T09:32:13.417] [INFO] discord - [39mRegistering emoji=./resources/x.webp under the name can_not_repeat_message
+2026-07-30T09:32:13.480559+00:00 app[web.1]: [91m[2026-07-30T09:32:13.476] [ERROR] discord - [39mUnexpected error: registering emojis in guild DiscordAPIError[50046]: Invalid Asset
+2026-07-30T09:32:13.480560+00:00 app[web.1]: at handleErrors (/app/node_modules/@discordjs/rest/src/lib/handlers/Shared.ts:148:10)
+2026-07-30T09:32:13.480560+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-07-30T09:32:13.480561+00:00 app[web.1]: at async SequentialHandler.runRequest (/app/node_modules/@discordjs/rest/src/lib/handlers/SequentialHandler.ts:417:20)
+2026-07-30T09:32:13.480561+00:00 app[web.1]: at async SequentialHandler.queueRequest (/app/node_modules/@discordjs/rest/src/lib/handlers/SequentialHandler.ts:169:11)
+2026-07-30T09:32:13.480562+00:00 app[web.1]: at async _REST.request (/app/node_modules/@discordjs/rest/src/lib/REST.ts:210:20)
+2026-07-30T09:32:13.480562+00:00 app[web.1]: at async ApplicationEmojiManager.create (/app/node_modules/discord.js/src/managers/ApplicationEmojiManager.js:57:19)
+2026-07-30T09:32:13.480563+00:00 app[web.1]: at async EmojiHandler.registerEmojis (/app/src/instance/discord/handlers/emoji-handler.ts:58:7) {
+2026-07-30T09:32:13.480563+00:00 app[web.1]: requestBody: {
+2026-07-30T09:32:13.480564+00:00 app[web.1]: files: undefined,
+2026-07-30T09:32:13.480564+00:00 app[web.1]: json: {
+2026-07-30T09:32:13.480564+00:00 app[web.1]: image: 'data:image/jpg;base64,ZmF0YWw6IHBhdGggJ3Jlc291cmNlcy94LndlYnAnIGV4aXN0cyBvbiBkaXNrLCBidXQgbm90IGluICdIRUFEJwo=',
+2026-07-30T09:32:13.480565+00:00 app[web.1]: name: 'can_not_repeat_message'
+2026-07-30T09:32:13.480565+00:00 app[web.1]: }
+2026-07-30T09:32:13.480572+00:00 app[web.1]: },
+2026-07-30T09:32:13.480573+00:00 app[web.1]: rawError: { message: 'Invalid Asset', code: 50046 },
+2026-07-30T09:32:13.480573+00:00 app[web.1]: code: 50046,
+2026-07-30T09:32:13.480573+00:00 app[web.1]: status: 400,
+2026-07-30T09:32:13.480573+00:00 app[web.1]: method: 'POST',
+2026-07-30T09:32:13.480574+00:00 app[web.1]: url: 'https://discord.com/api/v10/applications/1453693252971659275/emojis'
+2026-07-30T09:32:13.480575+00:00 app[web.1]: }
+2026-07-30T09:32:13.482811+00:00 app[web.1]: [32m[2026-07-30T09:32:13.482] [INFO] Main - [39mProcess has caught SIGTERM signal.
+2026-07-30T09:32:13.483054+00:00 app[web.1]: [36m[2026-07-30T09:32:13.482] [DEBUG] Main - [39mShutting down application
+2026-07-30T09:32:13.483295+00:00 app[web.1]: [36m[2026-07-30T09:32:13.483] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=Percy_cookie
+2026-07-30T09:32:13.484910+00:00 app[web.1]: [32m[2026-07-30T09:32:13.484] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:1","createdAt":1785403933484,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"connecting","to":"ended"}}
+2026-07-30T09:32:13.484999+00:00 app[web.1]: [36m[2026-07-30T09:32:13.484] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=johnguab
+2026-07-30T09:32:13.487170+00:00 app[web.1]: [32m[2026-07-30T09:32:13.487] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:1","createdAt":1785403933487,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"connecting","to":"ended"}}
+2026-07-30T09:32:13.487213+00:00 app[web.1]: [36m[2026-07-30T09:32:13.487] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=blockops
+2026-07-30T09:32:13.488015+00:00 app[web.1]: [32m[2026-07-30T09:32:13.487] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:1","createdAt":1785403933487,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"connecting","to":"ended"}}
+2026-07-30T09:32:13.488063+00:00 app[web.1]: [36m[2026-07-30T09:32:13.488] [DEBUG] Application - [39mDisconnecting instance type=commands,name=internal/commands
+2026-07-30T09:32:13.488185+00:00 app[web.1]: [32m[2026-07-30T09:32:13.488] [INFO] internal/commands - [39m[instanceStatus] {"eventId":"commands:internal/commands:1","createdAt":1785403933488,"instanceType":"commands","instanceName":"internal/commands","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:32:13.488221+00:00 app[web.1]: [36m[2026-07-30T09:32:13.488] [DEBUG] internal/commands - [39mchat commands have been disabled
+2026-07-30T09:32:13.488275+00:00 app[web.1]: [36m[2026-07-30T09:32:13.488] [DEBUG] Application - [39mDisconnecting instance type=discord,name=discord
+2026-07-30T09:32:13.512964+00:00 app[web.1]: [32m[2026-07-30T09:32:13.512] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:2","createdAt":1785403933512,"instanceType":"discord","instanceName":"discord","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:32:13.513030+00:00 app[web.1]: [36m[2026-07-30T09:32:13.512] [DEBUG] discord - [39mdiscord instance has disconnected
+2026-07-30T09:32:13.513330+00:00 app[web.1]: [32m[2026-07-30T09:32:13.513] [INFO] web-server - [39mTournamentWsEvents: Stopped, clearing 0 subscriber(s)
+2026-07-30T09:32:13.513519+00:00 app[web.1]: [32m[2026-07-30T09:32:13.513] [INFO] Application - [39mDeadlineScheduler: Stopping
+2026-07-30T09:32:13.595603+00:00 heroku[web.1]: Process exited with status 0
+2026-07-30T09:32:13.868723+00:00 heroku[web.1]: State changed from starting to up
+2026-07-30T09:32:13.773384+00:00 app[web.1]: [32m[2026-07-30T09:32:13.772] [INFO] Main - [39mStarting application...
+2026-07-30T09:32:13.773634+00:00 app[web.1]: [32m[2026-07-30T09:32:13.773] [INFO] Main - [39mRoot Directory: /app
+2026-07-30T09:32:13.773696+00:00 app[web.1]: [32m[2026-07-30T09:32:13.773] [INFO] Main - [39mConfig Directory: /app/config
+2026-07-30T09:32:13.773799+00:00 app[web.1]: [32m[2026-07-30T09:32:13.773] [INFO] Main - [39mEnvironment:
+2026-07-30T09:32:13.773880+00:00 app[web.1]: [32m[2026-07-30T09:32:13.773] [INFO] Main - [39mPORT: 43342
+2026-07-30T09:32:13.773944+00:00 app[web.1]: [32m[2026-07-30T09:32:13.773] [INFO] Main - [39mINTERNAL_PORT: 9091
+2026-07-30T09:32:13.774826+00:00 app[web.1]: [36m[2026-07-30T09:32:13.774] [DEBUG] Main - [39mSetting up process...
+2026-07-30T09:32:13.775039+00:00 app[web.1]: [36m[2026-07-30T09:32:13.774] [DEBUG] Main - [39mLoading up languages...
+2026-07-30T09:32:13.777483+00:00 app[web.1]: [32m[2026-07-30T09:32:13.777] [INFO] Main - [39mLoading configuration from base64 environment variable "CONFIG_B64"
+2026-07-30T09:32:13.793317+00:00 app[web.1]: [32m[2026-07-30T09:32:13.793] [INFO] internal/core - [39mUsing PostgreSQL database connection with max connections: 3
+2026-07-30T09:32:13.815971+00:00 app[web.1]: [32m[2026-07-30T09:32:13.815] [INFO] Application - [39mTournamentTestPanel: Initialized
+2026-07-30T09:32:13.819408+00:00 app[web.1]: [36m[2026-07-30T09:32:13.819] [DEBUG] internal/prometheus - [39mListening on port 9090
+2026-07-30T09:32:13.819532+00:00 app[web.1]: [36m[2026-07-30T09:32:13.819] [DEBUG] internal/prometheus - [39mprometheus is enabled
+2026-07-30T09:32:13.820337+00:00 app[web.1]: [32m[2026-07-30T09:32:13.820] [INFO] web-server - [39mTournamentWsEvents: Started
+2026-07-30T09:32:13.827531+00:00 app[web.1]: [32m[2026-07-30T09:32:13.827] [INFO] Main - [39mHealth proxy listening on port 43342 → proxying to 9091
+2026-07-30T09:32:13.827680+00:00 app[web.1]: [32m[2026-07-30T09:32:13.827] [INFO] web-server - [39mWeb server listening on port 9091
+2026-07-30T09:32:13.840244+00:00 app[web.1]: [36m[2026-07-30T09:32:13.840] [DEBUG] internal/prometheus - [39mCollecting metrics
+2026-07-30T09:32:13.966244+00:00 app[web.1]: (node:2) TimeoutNaNWarning: NaN is not a number.
+2026-07-30T09:32:13.966246+00:00 app[web.1]: Timeout duration was set to 1.
+2026-07-30T09:32:13.966246+00:00 app[web.1]: (Use `node --trace-warnings ...` to show where the warning was created)
+2026-07-30T09:32:13.968847+00:00 app[web.1]: [SKYHELPER-NETWORTH] A MAJOR update is available! Current version: 1.27.3, Latest version: 2.8.0. NOTE: This update may contain BREAKING changes.
+2026-07-30T09:32:14.464793+00:00 app[web.1]: [36m[2026-07-30T09:32:14.464] [DEBUG] internal/core - [39mStatusHistory loaded (on-demand mode)
+2026-07-30T09:32:14.743645+00:00 app[web.1]: [36m[2026-07-30T09:32:14.743] [DEBUG] internal/core - [39mAutocomplete loaded (on-demand mode)
+2026-07-30T09:32:14.745594+00:00 app[web.1]: [32m[2026-07-30T09:32:14.745] [INFO] Application - [39mTournament 67 (fadfdsdfd): Loaded active tournament, status=ACTIVE, bridgeId=persy
+2026-07-30T09:32:14.745617+00:00 app[web.1]: [32m[2026-07-30T09:32:14.745] [INFO] Application - [39mLoaded 1 active tournaments from database.
+2026-07-30T09:32:14.747169+00:00 app[web.1]: [32m[2026-07-30T09:32:14.747] [INFO] internal/core - [39mTournamentTestPanels: Loaded 1 panel(s)
+2026-07-30T09:32:14.747319+00:00 app[web.1]: [32m[2026-07-30T09:32:14.747] [INFO] Application - [39mDeadlineScheduler: Starting (interval=5m)
+2026-07-30T09:32:14.747585+00:00 app[web.1]: [32m[2026-07-30T09:32:14.747] [INFO] Application - [39mRehydrating tournament state from database...
+2026-07-30T09:32:14.747613+00:00 app[web.1]: [32m[2026-07-30T09:32:14.747] [INFO] Application - [39mTournament 67 (fadfdsdfd): Rehydrating ACTIVE state...
+2026-07-30T09:32:14.750339+00:00 app[web.1]: [32m[2026-07-30T09:32:14.750] [INFO] Application - [39mTournament 67: Found 31 matches for rehydration
+2026-07-30T09:32:14.750387+00:00 app[web.1]: [32m[2026-07-30T09:32:14.750] [INFO] Application - [39mMatch 233: Rehydrating, status=ACTIVE, round=4
+2026-07-30T09:32:14.751412+00:00 app[web.1]: [33m[2026-07-30T09:32:14.751] [WARN] Application - [39mThread 1531769092711645265 for match 233 not found, recreating...
+2026-07-30T09:32:14.751433+00:00 app[web.1]: [32m[2026-07-30T09:32:14.751] [INFO] Application - [39mMatch 234: Rehydrating, status=ACTIVE, round=4
+2026-07-30T09:32:14.751622+00:00 app[web.1]: [33m[2026-07-30T09:32:14.751] [WARN] Application - [39mThread 1531769064224198757 for match 234 not found, recreating...
+2026-07-30T09:32:14.751767+00:00 app[web.1]: [32m[2026-07-30T09:32:14.751] [INFO] Application - [39mTournament rehydration complete
+2026-07-30T09:32:14.752355+00:00 app[web.1]: [36m[2026-07-30T09:32:14.752] [DEBUG] internal/MinecraftManager - [39mSTARTUP_LOAD: mojangInstances=["blockops","blockopstemp","johnguab","Percy_cookie","quaqqak"]
+2026-07-30T09:32:14.752431+00:00 app[web.1]: [36m[2026-07-30T09:32:14.752] [DEBUG] internal/MinecraftManager - [39mSTARTUP_CFG: [{"bridge":"persy","instances":["quaqqak","percy_cookie"]},{"bridge":"guab","instances":["johnguab"]},{"bridge":"blockops","instances":["blockops"]}]
+2026-07-30T09:32:14.842397+00:00 app[web.1]: [32m[2026-07-30T09:32:14.842] [INFO] internal/PluginsManager - [39mLoading plugin: example-plugin.ts
+2026-07-30T09:32:14.844555+00:00 app[web.1]: [32m[2026-07-30T09:32:14.844] [INFO] Application - [39mLanguage changed successfully to English.
+2026-07-30T09:32:14.845037+00:00 app[web.1]: [32m[2026-07-30T09:32:14.844] [INFO] internal/PluginsManager - [39mLoading plugin: submission-game.ts
+2026-07-30T09:32:14.848607+00:00 app[web.1]: [36m[2026-07-30T09:32:14.848] [DEBUG] Application - [39mSignaling plugin instance type=plugin,name=example-plugin
+2026-07-30T09:32:14.848645+00:00 app[web.1]: [32m[2026-07-30T09:32:14.848] [INFO] example-plugin - [39mRunning on plugin
+2026-07-30T09:32:14.848666+00:00 app[web.1]: [36m[2026-07-30T09:32:14.848] [DEBUG] Application - [39mSignaling plugin instance type=plugin,name=submission-game
+2026-07-30T09:32:14.848800+00:00 app[web.1]: [36m[2026-07-30T09:32:14.848] [DEBUG] Application - [39mConnecting instance type=discord,name=discord
+2026-07-30T09:32:14.848876+00:00 app[web.1]: [36m[2026-07-30T09:32:14.848] [DEBUG] discord - [39mDiscord connecting
+2026-07-30T09:32:14.849279+00:00 app[web.1]: [32m[2026-07-30T09:32:14.849] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:0","createdAt":1785403934848,"instanceType":"discord","instanceName":"discord","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:15.204109+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=5ebed5e0-4567-e623-69be-3c3681966225 fwd="13.41.125.195" dyno=web.1 connect=7002ms service=7ms status=200 bytes=14879 protocol=http1.1 tls=false
+2026-07-30T09:31:16.000000+00:00 app[api]: Build started by user yaseensaoud@outlook.com
+2026-07-30T09:32:18.206286+00:00 app[web.1]: [36m[2026-07-30T09:32:18.206] [DEBUG] Application - [39mConnecting instance type=commands,name=internal/commands
+2026-07-30T09:32:18.206655+00:00 app[web.1]: [32m[2026-07-30T09:32:18.206] [INFO] internal/commands - [39m[instanceStatus] {"eventId":"commands:internal/commands:0","createdAt":1785403938206,"instanceType":"commands","instanceName":"internal/commands","status":{"from":"fresh","to":"connected"}}
+2026-07-30T09:32:18.206804+00:00 app[web.1]: [36m[2026-07-30T09:32:18.206] [DEBUG] internal/commands - [39mchat commands are ready to serve
+2026-07-30T09:32:18.206832+00:00 app[web.1]: [36m[2026-07-30T09:32:18.206] [DEBUG] Application - [39mConnecting instance type=minecraft,name=blockops
+2026-07-30T09:32:18.207123+00:00 app[web.1]: [32m[2026-07-30T09:32:18.207] [INFO] blockops - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:32:18.335366+00:00 app[web.1]: [32m[2026-07-30T09:32:18.335] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:0","createdAt":1785403938335,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:18.337036+00:00 app[web.1]: [36m[2026-07-30T09:32:18.336] [DEBUG] Application - [39mConnecting instance type=minecraft,name=blockopstemp
+2026-07-30T09:32:18.337074+00:00 app[web.1]: [36m[2026-07-30T09:32:18.337] [DEBUG] blockopstemp - [39minstance is attempting to connect automatically but configured to not auto-connect. Attempt stopped.
+2026-07-30T09:32:18.337266+00:00 app[web.1]: [32m[2026-07-30T09:32:18.337] [INFO] blockopstemp - [39m[instanceStatus] {"eventId":"minecraft:blockopstemp:0","createdAt":1785403938337,"instanceType":"minecraft","instanceName":"blockopstemp","message":{"type":"minecraftInstanceNotAutoConnect"}}
+2026-07-30T09:32:18.337325+00:00 app[web.1]: [36m[2026-07-30T09:32:18.337] [DEBUG] Application - [39mConnecting instance type=minecraft,name=johnguab
+2026-07-30T09:32:18.337361+00:00 app[web.1]: [32m[2026-07-30T09:32:18.337] [INFO] johnguab - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:32:18.424521+00:00 app[web.1]: [32m[2026-07-30T09:32:18.424] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:0","createdAt":1785403938424,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:18.425820+00:00 app[web.1]: [36m[2026-07-30T09:32:18.425] [DEBUG] Application - [39mConnecting instance type=minecraft,name=Percy_cookie
+2026-07-30T09:32:18.425821+00:00 app[web.1]: [32m[2026-07-30T09:32:18.425] [INFO] Percy_cookie - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:32:18.523827+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=1e2b9822-77ee-3244-186d-a218a7259d6e fwd="135.181.209.89" dyno=web.1 connect=0ms service=4ms status=200 bytes=14913 protocol=http1.1 tls=false
+2026-07-30T09:32:18.473946+00:00 app[web.1]: [32m[2026-07-30T09:32:18.473] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:0","createdAt":1785403938473,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:32:18.475114+00:00 app[web.1]: [36m[2026-07-30T09:32:18.475] [DEBUG] Application - [39mConnecting instance type=minecraft,name=quaqqak
+2026-07-30T09:32:18.475149+00:00 app[web.1]: [36m[2026-07-30T09:32:18.475] [DEBUG] quaqqak - [39minstance is attempting to connect automatically but configured to not auto-connect. Attempt stopped.
+2026-07-30T09:32:18.475260+00:00 app[web.1]: [32m[2026-07-30T09:32:18.475] [INFO] quaqqak - [39m[instanceStatus] {"eventId":"minecraft:quaqqak:0","createdAt":1785403938475,"instanceType":"minecraft","instanceName":"quaqqak","bridgeId":"persy","message":{"type":"minecraftInstanceNotAutoConnect"}}
+2026-07-30T09:32:18.475627+00:00 app[web.1]: [32m[2026-07-30T09:32:18.475] [INFO] Main - [39mApp is connected
+2026-07-30T09:32:18.490608+00:00 app[web.1]: [32m[2026-07-30T09:32:18.490] [INFO] discord - [39mDiscord client ready, logged in as bot1453693252971659275#7466
+2026-07-30T09:32:18.491471+00:00 app[web.1]: [32m[2026-07-30T09:32:18.491] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:1","createdAt":1785403938490,"instanceType":"discord","instanceName":"discord","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:32:18.581117+00:00 app[web.1]: [32m[2026-07-30T09:32:18.580] [INFO] discord - [39mRegistering emoji=./resources/x.webp under the name can_not_repeat_message
+2026-07-30T09:32:18.679660+00:00 app[web.1]: [91m[2026-07-30T09:32:18.675] [ERROR] discord - [39mUnexpected error: registering emojis in guild DiscordAPIError[50046]: Invalid Asset
+2026-07-30T09:32:18.679662+00:00 app[web.1]: at handleErrors (/app/node_modules/@discordjs/rest/src/lib/handlers/Shared.ts:148:10)
+2026-07-30T09:32:18.679663+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-07-30T09:32:18.679663+00:00 app[web.1]: at async SequentialHandler.runRequest (/app/node_modules/@discordjs/rest/src/lib/handlers/SequentialHandler.ts:417:20)
+2026-07-30T09:32:18.679664+00:00 app[web.1]: at async SequentialHandler.queueRequest (/app/node_modules/@discordjs/rest/src/lib/handlers/SequentialHandler.ts:169:11)
+2026-07-30T09:32:18.679664+00:00 app[web.1]: at async _REST.request (/app/node_modules/@discordjs/rest/src/lib/REST.ts:210:20)
+2026-07-30T09:32:18.679669+00:00 app[web.1]: at async ApplicationEmojiManager.create (/app/node_modules/discord.js/src/managers/ApplicationEmojiManager.js:57:19)
+2026-07-30T09:32:18.679671+00:00 app[web.1]: at async EmojiHandler.registerEmojis (/app/src/instance/discord/handlers/emoji-handler.ts:58:7) {
+2026-07-30T09:32:18.679672+00:00 app[web.1]: requestBody: {
+2026-07-30T09:32:18.679672+00:00 app[web.1]: files: undefined,
+2026-07-30T09:32:18.679673+00:00 app[web.1]: json: {
+2026-07-30T09:32:18.679673+00:00 app[web.1]: image: 'data:image/jpg;base64,ZmF0YWw6IHBhdGggJ3Jlc291cmNlcy94LndlYnAnIGV4aXN0cyBvbiBkaXNrLCBidXQgbm90IGluICdIRUFEJwo=',
+2026-07-30T09:32:18.679674+00:00 app[web.1]: name: 'can_not_repeat_message'
+2026-07-30T09:32:18.679674+00:00 app[web.1]: }
+2026-07-30T09:32:18.679674+00:00 app[web.1]: },
+2026-07-30T09:32:18.679675+00:00 app[web.1]: rawError: { message: 'Invalid Asset', code: 50046 },
+2026-07-30T09:32:18.679675+00:00 app[web.1]: code: 50046,
+2026-07-30T09:32:18.679675+00:00 app[web.1]: status: 400,
+2026-07-30T09:32:18.679676+00:00 app[web.1]: method: 'POST',
+2026-07-30T09:32:18.679676+00:00 app[web.1]: url: 'https://discord.com/api/v10/applications/1453693252971659275/emojis'
+2026-07-30T09:32:18.679676+00:00 app[web.1]: }
+2026-07-30T09:32:18.915473+00:00 app[web.1]: [32m[2026-07-30T09:32:18.915] [INFO] blockops - [39mMinecraft client ready, logged in
+2026-07-30T09:32:18.915903+00:00 app[web.1]: [36m[2026-07-30T09:32:18.915] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:18.916939+00:00 app[web.1]: [32m[2026-07-30T09:32:18.916] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.918217+00:00 app[web.1]: [32m[2026-07-30T09:32:18.918] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.919119+00:00 app[web.1]: [32m[2026-07-30T09:32:18.919] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.919836+00:00 app[web.1]: [32m[2026-07-30T09:32:18.919] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403938915"
+2026-07-30T09:32:18.919934+00:00 app[web.1]: [32m[2026-07-30T09:32:18.919] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:2","createdAt":1785403938915,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:32:18.920060+00:00 app[web.1]: [36m[2026-07-30T09:32:18.920] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:32:18.920846+00:00 app[web.1]: [32m[2026-07-30T09:32:18.920] [INFO] blockops - [39mMinecraft instance has connected
+2026-07-30T09:32:18.932817+00:00 app[web.1]: [32m[2026-07-30T09:32:18.932] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403938932"
+2026-07-30T09:32:18.944516+00:00 app[web.1]: [36m[2026-07-30T09:32:18.944] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:18.944838+00:00 app[web.1]: [32m[2026-07-30T09:32:18.944] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.945444+00:00 app[web.1]: [32m[2026-07-30T09:32:18.945] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.946120+00:00 app[web.1]: [32m[2026-07-30T09:32:18.946] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.946509+00:00 app[web.1]: [32m[2026-07-30T09:32:18.946] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403938944"
+2026-07-30T09:32:18.947369+00:00 app[web.1]: [36m[2026-07-30T09:32:18.947] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:18.947588+00:00 app[web.1]: [36m[2026-07-30T09:32:18.947] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:18.947787+00:00 app[web.1]: [36m[2026-07-30T09:32:18.947] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:18.948118+00:00 app[web.1]: [32m[2026-07-30T09:32:18.948] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.948742+00:00 app[web.1]: [32m[2026-07-30T09:32:18.948] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.949381+00:00 app[web.1]: [32m[2026-07-30T09:32:18.949] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.950399+00:00 app[web.1]: [32m[2026-07-30T09:32:18.950] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403938947"
+2026-07-30T09:32:18.950507+00:00 app[web.1]: [32m[2026-07-30T09:32:18.950] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.951107+00:00 app[web.1]: [32m[2026-07-30T09:32:18.951] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.951680+00:00 app[web.1]: [32m[2026-07-30T09:32:18.951] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.952602+00:00 app[web.1]: [32m[2026-07-30T09:32:18.952] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403938947"
+2026-07-30T09:32:18.952685+00:00 app[web.1]: [32m[2026-07-30T09:32:18.952] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.953355+00:00 app[web.1]: [32m[2026-07-30T09:32:18.953] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.953968+00:00 app[web.1]: [32m[2026-07-30T09:32:18.953] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'TheBlockOp' (111d375f-dc37-4218-a871-24a2d42456e0)...
+2026-07-30T09:32:18.954730+00:00 app[web.1]: [32m[2026-07-30T09:32:18.954] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403938947"
+2026-07-30T09:32:18.994113+00:00 app[web.1]: [32m[2026-07-30T09:32:18.994] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="You were spawned in Limbo." createdAt="1785403938993"
+2026-07-30T09:32:18.994147+00:00 app[web.1]: [32m[2026-07-30T09:32:18.994] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="/limbo for more information." createdAt="1785403938993"
+2026-07-30T09:32:19.050505+00:00 app[web.1]: [33m[2026-07-30T09:32:19.049] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.050507+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/essential/essential-service.ts:244:20)
+2026-07-30T09:32:19.050507+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.050507+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.050508+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.050508+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.050509+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.050509+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.050509+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.050509+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.050510+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.058249+00:00 app[web.1]: [33m[2026-07-30T09:32:19.057] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.058251+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/feather/feather-service.ts:137:20)
+2026-07-30T09:32:19.058251+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.058252+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.058252+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.058252+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.058253+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.058253+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.058254+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.058254+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.058254+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.065101+00:00 app[web.1]: [33m[2026-07-30T09:32:19.064] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.065102+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/feather/feather-service.ts:137:20)
+2026-07-30T09:32:19.065102+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.065102+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.065103+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.065103+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.065103+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.065104+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.065104+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.065104+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.065104+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.065487+00:00 app[web.1]: [33m[2026-07-30T09:32:19.065] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.065487+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/feather/feather-service.ts:137:20)
+2026-07-30T09:32:19.065487+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.065488+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.065488+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.065488+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.065488+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.065489+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.065489+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.065489+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.065489+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.072999+00:00 app[web.1]: [32m[2026-07-30T09:32:19.072] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ ----------ⓅⒺⓇⓈⓎ---------- ✥" createdAt="1785403939072"
+2026-07-30T09:32:19.074404+00:00 app[web.1]: [32m[2026-07-30T09:32:19.074] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Our Discord: https://discord.gg/bfVTBdsMej ✥" createdAt="1785403939074"
+2026-07-30T09:32:19.074506+00:00 app[web.1]: [32m[2026-07-30T09:32:19.074] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Weekly-Goal every Player: 40.000 GEXP ✥" createdAt="1785403939074"
+2026-07-30T09:32:19.074572+00:00 app[web.1]: [32m[2026-07-30T09:32:19.074] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ ⚔We are the best guild ⚔✥" createdAt="1785403939074"
+2026-07-30T09:32:19.074641+00:00 app[web.1]: [32m[2026-07-30T09:32:19.074] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Annoucement: Discord link got updated, please join the Disc ✥" createdAt="1785403939074"
+2026-07-30T09:32:19.074692+00:00 app[web.1]: [32m[2026-07-30T09:32:19.074] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Please follow the Rules! ✥" createdAt="1785403939074"
+2026-07-30T09:32:19.074764+00:00 app[web.1]: [32m[2026-07-30T09:32:19.074] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ ----------ⓅⒺⓇⓈⓎ---------- ✥" createdAt="1785403939074"
+2026-07-30T09:32:19.075498+00:00 app[web.1]: [33m[2026-07-30T09:32:19.075] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.075499+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/feather/feather-service.ts:137:20)
+2026-07-30T09:32:19.075499+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.075504+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.075504+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.075505+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.075505+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.075505+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.075506+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.075506+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.075506+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.081447+00:00 app[web.1]: [33m[2026-07-30T09:32:19.081] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:32:19.081448+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.081448+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.081448+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.081448+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.081448+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.081449+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.081449+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.081449+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.081449+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.081450+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.082536+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| ------------ THE BLOCK OPS ------------" createdAt="1785403939082"
+2026-07-30T09:32:19.082592+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="|" createdAt="1785403939082"
+2026-07-30T09:32:19.082637+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| ✦ Status: ONLINE" createdAt="1785403939082"
+2026-07-30T09:32:19.082683+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| ✦ Daily Goal: 100k GEXP" createdAt="1785403939082"
+2026-07-30T09:32:19.082824+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="|" createdAt="1785403939082"
+2026-07-30T09:32:19.082865+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| Be sure to /g discord to stay updated!" createdAt="1785403939082"
+2026-07-30T09:32:19.082907+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| NOTE: Be respectful to all squad members." createdAt="1785403939082"
+2026-07-30T09:32:19.082943+00:00 app[web.1]: [32m[2026-07-30T09:32:19.082] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| -------------------------------------------" createdAt="1785403939082"
+2026-07-30T09:32:19.083911+00:00 app[web.1]: [33m[2026-07-30T09:32:19.083] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:32:19.083911+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.083911+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.083911+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.083912+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.083912+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.083912+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.083912+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.083912+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.083913+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.083913+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.084522+00:00 app[web.1]: [33m[2026-07-30T09:32:19.084] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:32:19.084524+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.084524+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.084524+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.084524+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.084524+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.084525+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.084525+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.084525+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.084525+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.084525+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.087445+00:00 app[web.1]: [33m[2026-07-30T09:32:19.086] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.087446+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.087446+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.087446+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.087452+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.087452+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.087453+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.087453+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.087453+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.087454+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.087454+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.088341+00:00 app[web.1]: [33m[2026-07-30T09:32:19.088] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:32:19.088341+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.088342+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.088342+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.088342+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.088343+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.088343+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.088343+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.088343+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.088344+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.088344+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.094191+00:00 app[web.1]: [32m[2026-07-30T09:32:19.094] [INFO] Percy_cookie - [39mMinecraft client ready, logged in
+2026-07-30T09:32:19.094338+00:00 app[web.1]: [36m[2026-07-30T09:32:19.094] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.094677+00:00 app[web.1]: [32m[2026-07-30T09:32:19.094] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.095258+00:00 app[web.1]: [32m[2026-07-30T09:32:19.095] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.095424+00:00 app[web.1]: [32m[2026-07-30T09:32:19.095] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.096163+00:00 app[web.1]: [32m[2026-07-30T09:32:19.096] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403939094"
+2026-07-30T09:32:19.096251+00:00 app[web.1]: [32m[2026-07-30T09:32:19.096] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:11","createdAt":1785403939094,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:32:19.096315+00:00 app[web.1]: [36m[2026-07-30T09:32:19.096] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:32:19.096625+00:00 app[web.1]: [32m[2026-07-30T09:32:19.096] [INFO] Percy_cookie - [39mMinecraft instance has connected
+2026-07-30T09:32:19.098303+00:00 app[web.1]: [33m[2026-07-30T09:32:19.098] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.098303+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.098303+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.098310+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.098310+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.098312+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.098312+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.098312+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.098312+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.098312+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.098312+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.103981+00:00 app[web.1]: [33m[2026-07-30T09:32:19.103] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.103983+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.103983+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.103983+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.103984+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.103984+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.103984+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.103985+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.103985+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.103985+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.103986+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.107186+00:00 app[web.1]: [33m[2026-07-30T09:32:19.107] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.107187+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.107187+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.107187+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.107188+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.107188+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.107189+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.107189+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.107189+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.107190+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.107190+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.116817+00:00 app[web.1]: [33m[2026-07-30T09:32:19.116] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.116818+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.116818+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.116818+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.116819+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.116819+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.116819+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.116819+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.116820+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.116820+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.116820+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.119355+00:00 app[web.1]: [32m[2026-07-30T09:32:19.119] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403939119"
+2026-07-30T09:32:19.130725+00:00 app[web.1]: [36m[2026-07-30T09:32:19.130] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.130948+00:00 app[web.1]: [36m[2026-07-30T09:32:19.130] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.131075+00:00 app[web.1]: [36m[2026-07-30T09:32:19.131] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.131205+00:00 app[web.1]: [36m[2026-07-30T09:32:19.131] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.131426+00:00 app[web.1]: [32m[2026-07-30T09:32:19.131] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.132068+00:00 app[web.1]: [32m[2026-07-30T09:32:19.132] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.132285+00:00 app[web.1]: [32m[2026-07-30T09:32:19.132] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.133351+00:00 app[web.1]: [32m[2026-07-30T09:32:19.133] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403939130"
+2026-07-30T09:32:19.133352+00:00 app[web.1]: [32m[2026-07-30T09:32:19.133] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.133958+00:00 app[web.1]: [32m[2026-07-30T09:32:19.133] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.134156+00:00 app[web.1]: [32m[2026-07-30T09:32:19.134] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.134935+00:00 app[web.1]: [32m[2026-07-30T09:32:19.134] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403939130"
+2026-07-30T09:32:19.135036+00:00 app[web.1]: [32m[2026-07-30T09:32:19.134] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.135732+00:00 app[web.1]: [32m[2026-07-30T09:32:19.135] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.135958+00:00 app[web.1]: [32m[2026-07-30T09:32:19.135] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.136881+00:00 app[web.1]: [32m[2026-07-30T09:32:19.136] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403939130"
+2026-07-30T09:32:19.137054+00:00 app[web.1]: [32m[2026-07-30T09:32:19.136] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.137693+00:00 app[web.1]: [32m[2026-07-30T09:32:19.137] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.137964+00:00 app[web.1]: [32m[2026-07-30T09:32:19.137] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.138840+00:00 app[web.1]: [32m[2026-07-30T09:32:19.138] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403939131"
+2026-07-30T09:32:19.140997+00:00 app[web.1]: [32m[2026-07-30T09:32:19.140] [INFO] Application - [39m[FeatherService] Successfully authenticated with Feather Client API!
+2026-07-30T09:32:19.147311+00:00 app[web.1]: [33m[2026-07-30T09:32:19.147] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Feather API GET /minecraft/server-id returned HTTP 429: <html>
+2026-07-30T09:32:19.147312+00:00 app[web.1]: <head><title>429 Too Many Requests</title></head>
+2026-07-30T09:32:19.147312+00:00 app[web.1]: <body>
+2026-07-30T09:32:19.147313+00:00 app[web.1]: <center><h1>429 Too Many Requests</h1></center>
+2026-07-30T09:32:19.147313+00:00 app[web.1]: <hr><center>nginx</center>
+2026-07-30T09:32:19.147314+00:00 app[web.1]: </body>
+2026-07-30T09:32:19.147314+00:00 app[web.1]: </html>
+2026-07-30T09:32:19.147314+00:00 app[web.1]: 
+2026-07-30T09:32:19.147315+00:00 app[web.1]: at IncomingMessage.<anonymous> (/app/src/core/feather/feather-service.ts:256:22)
+2026-07-30T09:32:19.147315+00:00 app[web.1]: at IncomingMessage.emit (node:events:521:24)
+2026-07-30T09:32:19.147315+00:00 app[web.1]: at endReadableNT (node:internal/streams/readable:1729:12)
+2026-07-30T09:32:19.147316+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+2026-07-30T09:32:19.149609+00:00 app[web.1]: [33m[2026-07-30T09:32:19.149] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Feather API GET /minecraft/server-id returned HTTP 429: <html>
+2026-07-30T09:32:19.149611+00:00 app[web.1]: <head><title>429 Too Many Requests</title></head>
+2026-07-30T09:32:19.149611+00:00 app[web.1]: <body>
+2026-07-30T09:32:19.149612+00:00 app[web.1]: <center><h1>429 Too Many Requests</h1></center>
+2026-07-30T09:32:19.149612+00:00 app[web.1]: <hr><center>nginx</center>
+2026-07-30T09:32:19.149612+00:00 app[web.1]: </body>
+2026-07-30T09:32:19.149613+00:00 app[web.1]: </html>
+2026-07-30T09:32:19.149613+00:00 app[web.1]: 
+2026-07-30T09:32:19.149613+00:00 app[web.1]: at IncomingMessage.<anonymous> (/app/src/core/feather/feather-service.ts:256:22)
+2026-07-30T09:32:19.149614+00:00 app[web.1]: at IncomingMessage.emit (node:events:521:24)
+2026-07-30T09:32:19.149614+00:00 app[web.1]: at endReadableNT (node:internal/streams/readable:1729:12)
+2026-07-30T09:32:19.149614+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+2026-07-30T09:32:19.149991+00:00 app[web.1]: [33m[2026-07-30T09:32:19.149] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Feather API GET /minecraft/server-id returned HTTP 429: <html>
+2026-07-30T09:32:19.149991+00:00 app[web.1]: <head><title>429 Too Many Requests</title></head>
+2026-07-30T09:32:19.149992+00:00 app[web.1]: <body>
+2026-07-30T09:32:19.149993+00:00 app[web.1]: <center><h1>429 Too Many Requests</h1></center>
+2026-07-30T09:32:19.149993+00:00 app[web.1]: <hr><center>nginx</center>
+2026-07-30T09:32:19.149993+00:00 app[web.1]: </body>
+2026-07-30T09:32:19.149993+00:00 app[web.1]: </html>
+2026-07-30T09:32:19.149993+00:00 app[web.1]: 
+2026-07-30T09:32:19.149994+00:00 app[web.1]: at IncomingMessage.<anonymous> (/app/src/core/feather/feather-service.ts:256:22)
+2026-07-30T09:32:19.149994+00:00 app[web.1]: at IncomingMessage.emit (node:events:521:24)
+2026-07-30T09:32:19.149995+00:00 app[web.1]: at endReadableNT (node:internal/streams/readable:1729:12)
+2026-07-30T09:32:19.149995+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+2026-07-30T09:32:19.150310+00:00 app[web.1]: [33m[2026-07-30T09:32:19.150] [WARN] Application - [39m[FeatherService] Failed to establish Feather Client session: Error: Feather API GET /minecraft/server-id returned HTTP 429: <html>
+2026-07-30T09:32:19.150311+00:00 app[web.1]: <head><title>429 Too Many Requests</title></head>
+2026-07-30T09:32:19.150311+00:00 app[web.1]: <body>
+2026-07-30T09:32:19.150312+00:00 app[web.1]: <center><h1>429 Too Many Requests</h1></center>
+2026-07-30T09:32:19.150312+00:00 app[web.1]: <hr><center>nginx</center>
+2026-07-30T09:32:19.150313+00:00 app[web.1]: </body>
+2026-07-30T09:32:19.150313+00:00 app[web.1]: </html>
+2026-07-30T09:32:19.150313+00:00 app[web.1]: 
+2026-07-30T09:32:19.150313+00:00 app[web.1]: at IncomingMessage.<anonymous> (/app/src/core/feather/feather-service.ts:256:22)
+2026-07-30T09:32:19.150314+00:00 app[web.1]: at IncomingMessage.emit (node:events:521:24)
+2026-07-30T09:32:19.150314+00:00 app[web.1]: at endReadableNT (node:internal/streams/readable:1729:12)
+2026-07-30T09:32:19.150314+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+2026-07-30T09:32:19.162421+00:00 app[web.1]: [32m[2026-07-30T09:32:19.162] [INFO] johnguab - [39mMinecraft client ready, logged in
+2026-07-30T09:32:19.162600+00:00 app[web.1]: [36m[2026-07-30T09:32:19.162] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.162904+00:00 app[web.1]: [32m[2026-07-30T09:32:19.162] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.163700+00:00 app[web.1]: [32m[2026-07-30T09:32:19.163] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.164464+00:00 app[web.1]: [32m[2026-07-30T09:32:19.164] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403939162"
+2026-07-30T09:32:19.164465+00:00 app[web.1]: [32m[2026-07-30T09:32:19.164] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:2","createdAt":1785403939162,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:32:19.164838+00:00 app[web.1]: [36m[2026-07-30T09:32:19.164] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:32:19.164869+00:00 app[web.1]: [32m[2026-07-30T09:32:19.164] [INFO] johnguab - [39mMinecraft instance has connected
+2026-07-30T09:32:19.172002+00:00 app[web.1]: [32m[2026-07-30T09:32:19.171] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="You were spawned in Limbo." createdAt="1785403939171"
+2026-07-30T09:32:19.172077+00:00 app[web.1]: [32m[2026-07-30T09:32:19.172] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="/limbo for more information." createdAt="1785403939171"
+2026-07-30T09:32:19.190233+00:00 app[web.1]: [33m[2026-07-30T09:32:19.189] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:32:19.190237+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.190239+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.190239+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.190239+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.190240+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.190241+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.190241+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.190241+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.190242+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.190242+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.192983+00:00 app[web.1]: [33m[2026-07-30T09:32:19.192] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.192985+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/essential/essential-service.ts:244:20)
+2026-07-30T09:32:19.192985+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.192986+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.192986+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.192986+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.192987+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.192995+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.192996+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.192996+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.192996+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.195416+00:00 app[web.1]: [32m[2026-07-30T09:32:19.195] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403939195"
+2026-07-30T09:32:19.195758+00:00 app[web.1]: [33m[2026-07-30T09:32:19.195] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.195759+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/essential/essential-service.ts:244:20)
+2026-07-30T09:32:19.195759+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.195759+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.195760+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient [as onIncoming] (node:_http_client:798:27)
+2026-07-30T09:32:19.195760+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.195761+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.195761+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.195761+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.195761+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.195762+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.206442+00:00 app[web.1]: [36m[2026-07-30T09:32:19.206] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.206563+00:00 app[web.1]: [36m[2026-07-30T09:32:19.206] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.206627+00:00 app[web.1]: [36m[2026-07-30T09:32:19.206] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.206717+00:00 app[web.1]: [36m[2026-07-30T09:32:19.206] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:32:19.206857+00:00 app[web.1]: [32m[2026-07-30T09:32:19.206] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.207466+00:00 app[web.1]: [32m[2026-07-30T09:32:19.207] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.208382+00:00 app[web.1]: [32m[2026-07-30T09:32:19.208] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403939206"
+2026-07-30T09:32:19.208385+00:00 app[web.1]: [32m[2026-07-30T09:32:19.208] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.209095+00:00 app[web.1]: [32m[2026-07-30T09:32:19.209] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.209678+00:00 app[web.1]: [32m[2026-07-30T09:32:19.209] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403939206"
+2026-07-30T09:32:19.209747+00:00 app[web.1]: [32m[2026-07-30T09:32:19.209] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.210398+00:00 app[web.1]: [32m[2026-07-30T09:32:19.210] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.211122+00:00 app[web.1]: [32m[2026-07-30T09:32:19.211] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403939206"
+2026-07-30T09:32:19.211157+00:00 app[web.1]: [32m[2026-07-30T09:32:19.211] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.211930+00:00 app[web.1]: [32m[2026-07-30T09:32:19.211] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:32:19.212592+00:00 app[web.1]: [32m[2026-07-30T09:32:19.212] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403939206"
+2026-07-30T09:32:19.219127+00:00 app[web.1]: [32m[2026-07-30T09:32:19.219] [INFO] Application - [39m[FeatherService] Successfully authenticated with Feather Client API!
+2026-07-30T09:32:19.233669+00:00 app[web.1]: [33m[2026-07-30T09:32:19.233] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Unexpected server response: 429
+2026-07-30T09:32:19.233670+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.233670+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.233671+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.233671+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.233672+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.233672+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.233672+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.233673+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.233673+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.233673+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.234279+00:00 app[web.1]: [32m[2026-07-30T09:32:19.234] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="You were spawned in Limbo." createdAt="1785403939234"
+2026-07-30T09:32:19.234304+00:00 app[web.1]: [32m[2026-07-30T09:32:19.234] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="/limbo for more information." createdAt="1785403939234"
+2026-07-30T09:32:19.235904+00:00 app[web.1]: [33m[2026-07-30T09:32:19.235] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Unexpected server response: 429
+2026-07-30T09:32:19.235905+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.235905+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.235905+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.235906+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.235906+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.235907+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.235907+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.235907+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.235908+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.235908+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.236506+00:00 app[web.1]: [33m[2026-07-30T09:32:19.236] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Unexpected server response: 429
+2026-07-30T09:32:19.236506+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.236506+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.236506+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.236506+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.236507+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.236507+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.236507+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.236507+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.236524+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.236524+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.238660+00:00 app[web.1]: [33m[2026-07-30T09:32:19.238] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.238661+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/essential/essential-service.ts:244:20)
+2026-07-30T09:32:19.238661+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.238661+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.238661+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.238662+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.238662+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.238662+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.238662+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.238663+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.238663+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.239342+00:00 app[web.1]: [33m[2026-07-30T09:32:19.239] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:32:19.239343+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.239343+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.239343+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.239343+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.239344+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.239344+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.239344+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.239344+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.239345+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.239345+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.241020+00:00 app[web.1]: [33m[2026-07-30T09:32:19.240] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Unexpected server response: 429
+2026-07-30T09:32:19.241020+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.241020+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.241020+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.241021+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.241021+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.241021+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.241021+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.241022+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.241022+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.241022+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.242303+00:00 app[web.1]: [33m[2026-07-30T09:32:19.242] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.242303+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/essential/essential-service.ts:244:20)
+2026-07-30T09:32:19.242303+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.242303+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.242303+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.242304+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.242304+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.242304+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.242304+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.242305+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.242305+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.245213+00:00 app[web.1]: [33m[2026-07-30T09:32:19.245] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.245214+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/essential/essential-service.ts:244:20)
+2026-07-30T09:32:19.245214+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.245214+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.245215+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.245215+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.245215+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.245215+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.245216+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.245216+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.245216+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.246774+00:00 app[web.1]: [33m[2026-07-30T09:32:19.246] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:32:19.246775+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:32:19.246775+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.246775+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.246776+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.246777+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.246777+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.246777+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.246778+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.246778+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.246778+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:32:19.254002+00:00 app[web.1]: [33m[2026-07-30T09:32:19.253] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.254002+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.254003+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.254003+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.254003+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.254004+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.254004+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.254004+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.254004+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.254005+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.254005+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.255275+00:00 app[web.1]: [33m[2026-07-30T09:32:19.255] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.255276+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/essential/essential-service.ts:244:20)
+2026-07-30T09:32:19.255276+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.255277+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.255277+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.255277+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.255286+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.255286+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.255286+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.255286+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.255286+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.260556+00:00 app[web.1]: [33m[2026-07-30T09:32:19.260] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.260556+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.260557+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.260557+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.260557+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.260557+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.260557+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.260558+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.260558+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.260558+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.260559+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.268924+00:00 app[web.1]: [33m[2026-07-30T09:32:19.268] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.268925+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.268926+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.268926+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.268926+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.268926+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.268927+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.268927+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.268927+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.268928+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.268928+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.276267+00:00 app[web.1]: [32m[2026-07-30T09:32:19.276] [INFO] Application - [39m[EssentialService] Successfully connected to Essential WebSocket!
+2026-07-30T09:32:19.300199+00:00 app[web.1]: [33m[2026-07-30T09:32:19.299] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.300200+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.300201+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.300201+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.300201+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.300202+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.300202+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.300202+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.300203+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.300203+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.300203+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.303293+00:00 app[web.1]: [33m[2026-07-30T09:32:19.303] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: Error: Mojang joinServer returned HTTP 429
+2026-07-30T09:32:19.303293+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/src/core/lunar/lunar-service.ts:180:20)
+2026-07-30T09:32:19.303293+00:00 app[web.1]: at Object.onceWrapper (node:events:631:26)
+2026-07-30T09:32:19.303293+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:32:19.303294+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:32:19.303294+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:32:19.303294+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:32:19.303294+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:32:19.303295+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:32:19.303295+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:32:19.303295+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:32:19.496013+00:00 app[web.1]: [33m[2026-07-30T09:32:19.495] [WARN] Application - [39m[LunarService] Failed to establish Lunar Client WebSocket session: AggregateError [ETIMEDOUT]:
+2026-07-30T09:32:19.496022+00:00 app[web.1]: at internalConnectMultiple (node:net:1194:18)
+2026-07-30T09:32:19.496022+00:00 app[web.1]: at internalConnectMultiple (node:net:1270:5)
+2026-07-30T09:32:19.496022+00:00 app[web.1]: at Timeout.internalConnectMultipleTimeout (node:net:1811:5)
+2026-07-30T09:32:19.496022+00:00 app[web.1]: at listOnTimeout (node:internal/timers:607:11)
+2026-07-30T09:32:19.496023+00:00 app[web.1]: at process.processTimers (node:internal/timers:541:7) {
+2026-07-30T09:32:19.496023+00:00 app[web.1]: code: 'ETIMEDOUT',
+2026-07-30T09:32:19.496024+00:00 app[web.1]: [errors]: [
+2026-07-30T09:32:19.496024+00:00 app[web.1]: Error: connect ETIMEDOUT 150.171.109.74:443
+2026-07-30T09:32:19.496024+00:00 app[web.1]: at createConnectionError (node:net:1747:14)
+2026-07-30T09:32:19.496026+00:00 app[web.1]: at Timeout.internalConnectMultipleTimeout (node:net:1806:38)
+2026-07-30T09:32:19.496026+00:00 app[web.1]: at listOnTimeout (node:internal/timers:607:11)
+2026-07-30T09:32:19.496026+00:00 app[web.1]: at process.processTimers (node:internal/timers:541:7) {
+2026-07-30T09:32:19.496026+00:00 app[web.1]: errno: -110,
+2026-07-30T09:32:19.496027+00:00 app[web.1]: code: 'ETIMEDOUT',
+2026-07-30T09:32:19.496027+00:00 app[web.1]: syscall: 'connect',
+2026-07-30T09:32:19.496027+00:00 app[web.1]: address: '150.171.109.74',
+2026-07-30T09:32:19.496027+00:00 app[web.1]: port: 443
+2026-07-30T09:32:19.496027+00:00 app[web.1]: },
+2026-07-30T09:32:19.496027+00:00 app[web.1]: Error: connect ENETUNREACH 2603:1061:14:48::1:443 - Local (:::0)
+2026-07-30T09:32:19.496027+00:00 app[web.1]: at internalConnectMultiple (node:net:1266:16)
+2026-07-30T09:32:19.496028+00:00 app[web.1]: at Timeout.internalConnectMultipleTimeout (node:net:1811:5)
+2026-07-30T09:32:19.496028+00:00 app[web.1]: at listOnTimeout (node:internal/timers:607:11)
+2026-07-30T09:32:19.496028+00:00 app[web.1]: at process.processTimers (node:internal/timers:541:7) {
+2026-07-30T09:32:19.496028+00:00 app[web.1]: errno: -101,
+2026-07-30T09:32:19.496028+00:00 app[web.1]: code: 'ENETUNREACH',
+2026-07-30T09:32:19.496028+00:00 app[web.1]: syscall: 'connect',
+2026-07-30T09:32:19.496029+00:00 app[web.1]: address: '2603:1061:14:48::1',
+2026-07-30T09:32:19.496029+00:00 app[web.1]: port: 443
+2026-07-30T09:32:19.496029+00:00 app[web.1]: }
+2026-07-30T09:32:19.496031+00:00 app[web.1]: ]
+2026-07-30T09:32:19.496031+00:00 app[web.1]: }
+2026-07-30T09:32:19.921962+00:00 app[web.1]: [36m[2026-07-30T09:32:19.921] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:32:19.946602+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946620+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946690+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946760+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946773+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946795+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946816+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946835+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.946854+00:00 app[web.1]: [32m[2026-07-30T09:32:19.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403939946"
+2026-07-30T09:32:19.947482+00:00 app[web.1]: [32m[2026-07-30T09:32:19.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403939947"
+2026-07-30T09:32:19.947510+00:00 app[web.1]: [32m[2026-07-30T09:32:19.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403939947"
+2026-07-30T09:32:19.947531+00:00 app[web.1]: [32m[2026-07-30T09:32:19.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403939947"
+2026-07-30T09:32:19.947554+00:00 app[web.1]: [32m[2026-07-30T09:32:19.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403939947"
+2026-07-30T09:32:19.947578+00:00 app[web.1]: [32m[2026-07-30T09:32:19.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403939947"
+2026-07-30T09:32:19.947600+00:00 app[web.1]: [32m[2026-07-30T09:32:19.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403939947"
+2026-07-30T09:32:20.070201+00:00 app[web.1]: [32m[2026-07-30T09:32:20.070] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| Guab" createdAt="1785403940070"
+2026-07-30T09:32:20.070219+00:00 app[web.1]: [32m[2026-07-30T09:32:20.070] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="|" createdAt="1785403940070"
+2026-07-30T09:32:20.070244+00:00 app[web.1]: [32m[2026-07-30T09:32:20.070] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| Welcome Back!" createdAt="1785403940070"
+2026-07-30T09:32:20.070266+00:00 app[web.1]: [32m[2026-07-30T09:32:20.070] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="|" createdAt="1785403940070"
+2026-07-30T09:32:20.070674+00:00 app[web.1]: [32m[2026-07-30T09:32:20.070] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| Join our Discord! --> https://Discord.gg/guab" createdAt="1785403940070"
+2026-07-30T09:32:20.070699+00:00 app[web.1]: [32m[2026-07-30T09:32:20.070] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="|" createdAt="1785403940070"
+2026-07-30T09:32:20.070742+00:00 app[web.1]: [32m[2026-07-30T09:32:20.070] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| !help to see a list of bot commands" createdAt="1785403940070"
+2026-07-30T09:32:20.097442+00:00 app[web.1]: [36m[2026-07-30T09:32:20.097] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:32:20.121488+00:00 app[web.1]: [32m[2026-07-30T09:32:20.121] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940121"
+2026-07-30T09:32:20.121499+00:00 app[web.1]: [32m[2026-07-30T09:32:20.121] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940121"
+2026-07-30T09:32:20.121533+00:00 app[web.1]: [32m[2026-07-30T09:32:20.121] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940121"
+2026-07-30T09:32:20.122121+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940122"
+2026-07-30T09:32:20.122138+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940122"
+2026-07-30T09:32:20.122166+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940122"
+2026-07-30T09:32:20.122195+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940122"
+2026-07-30T09:32:20.122225+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940122"
+2026-07-30T09:32:20.122252+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403940122"
+2026-07-30T09:32:20.122290+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403940122"
+2026-07-30T09:32:20.122323+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403940122"
+2026-07-30T09:32:20.122700+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403940122"
+2026-07-30T09:32:20.122745+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403940122"
+2026-07-30T09:32:20.122776+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403940122"
+2026-07-30T09:32:20.122809+00:00 app[web.1]: [32m[2026-07-30T09:32:20.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403940122"
+2026-07-30T09:32:20.164969+00:00 app[web.1]: [36m[2026-07-30T09:32:20.164] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:32:20.188902+00:00 app[web.1]: [32m[2026-07-30T09:32:20.188] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940188"
+2026-07-30T09:32:20.189528+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189556+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189588+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189647+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189677+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189724+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189753+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189783+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403940189"
+2026-07-30T09:32:20.189825+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403940189"
+2026-07-30T09:32:20.189857+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403940189"
+2026-07-30T09:32:20.189887+00:00 app[web.1]: [32m[2026-07-30T09:32:20.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403940189"
+2026-07-30T09:32:20.190302+00:00 app[web.1]: [32m[2026-07-30T09:32:20.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403940190"
+2026-07-30T09:32:20.190330+00:00 app[web.1]: [32m[2026-07-30T09:32:20.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403940190"
+2026-07-30T09:32:20.190362+00:00 app[web.1]: [32m[2026-07-30T09:32:20.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403940190"
+2026-07-30T09:32:20.922248+00:00 app[web.1]: [36m[2026-07-30T09:32:20.922] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:32:20.946625+00:00 app[web.1]: [32m[2026-07-30T09:32:20.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940946"
+2026-07-30T09:32:20.946654+00:00 app[web.1]: [32m[2026-07-30T09:32:20.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940946"
+2026-07-30T09:32:20.946686+00:00 app[web.1]: [32m[2026-07-30T09:32:20.946] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940946"
+2026-07-30T09:32:20.947348+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940947"
+2026-07-30T09:32:20.947373+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940947"
+2026-07-30T09:32:20.947393+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940947"
+2026-07-30T09:32:20.947412+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940947"
+2026-07-30T09:32:20.947431+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940947"
+2026-07-30T09:32:20.947450+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403940947"
+2026-07-30T09:32:20.947481+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403940947"
+2026-07-30T09:32:20.947504+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403940947"
+2026-07-30T09:32:20.947530+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403940947"
+2026-07-30T09:32:20.947578+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403940947"
+2026-07-30T09:32:20.947613+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403940947"
+2026-07-30T09:32:20.947648+00:00 app[web.1]: [32m[2026-07-30T09:32:20.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403940947"
+2026-07-30T09:32:21.097650+00:00 app[web.1]: [36m[2026-07-30T09:32:21.097] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:32:21.121948+00:00 app[web.1]: [32m[2026-07-30T09:32:21.121] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941121"
+2026-07-30T09:32:21.121966+00:00 app[web.1]: [32m[2026-07-30T09:32:21.121] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941121"
+2026-07-30T09:32:21.122000+00:00 app[web.1]: [32m[2026-07-30T09:32:21.121] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941121"
+2026-07-30T09:32:21.122909+00:00 app[web.1]: [32m[2026-07-30T09:32:21.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941122"
+2026-07-30T09:32:21.122940+00:00 app[web.1]: [32m[2026-07-30T09:32:21.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941122"
+2026-07-30T09:32:21.122972+00:00 app[web.1]: [32m[2026-07-30T09:32:21.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941122"
+2026-07-30T09:32:21.123007+00:00 app[web.1]: [32m[2026-07-30T09:32:21.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941122"
+2026-07-30T09:32:21.123042+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941122"
+2026-07-30T09:32:21.123080+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403941122"
+2026-07-30T09:32:21.123119+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403941122"
+2026-07-30T09:32:21.123140+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403941122"
+2026-07-30T09:32:21.123162+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403941122"
+2026-07-30T09:32:21.123187+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403941122"
+2026-07-30T09:32:21.123221+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403941122"
+2026-07-30T09:32:21.123252+00:00 app[web.1]: [32m[2026-07-30T09:32:21.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403941122"
+2026-07-30T09:32:21.165495+00:00 app[web.1]: [36m[2026-07-30T09:32:21.165] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:32:21.189850+00:00 app[web.1]: [32m[2026-07-30T09:32:21.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.189884+00:00 app[web.1]: [32m[2026-07-30T09:32:21.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.189908+00:00 app[web.1]: [32m[2026-07-30T09:32:21.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.189975+00:00 app[web.1]: [32m[2026-07-30T09:32:21.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.189994+00:00 app[web.1]: [32m[2026-07-30T09:32:21.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.190013+00:00 app[web.1]: [32m[2026-07-30T09:32:21.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.190033+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.190052+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.190070+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403941189"
+2026-07-30T09:32:21.190102+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403941189"
+2026-07-30T09:32:21.190127+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403941189"
+2026-07-30T09:32:21.190149+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403941189"
+2026-07-30T09:32:21.190198+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403941189"
+2026-07-30T09:32:21.190222+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403941189"
+2026-07-30T09:32:21.190251+00:00 app[web.1]: [32m[2026-07-30T09:32:21.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403941189"
+2026-07-30T09:32:21.922587+00:00 app[web.1]: [36m[2026-07-30T09:32:21.922] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:32:21.947189+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947212+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947234+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947254+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947274+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947917+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947940+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947960+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.947980+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403941947"
+2026-07-30T09:32:21.948012+00:00 app[web.1]: [32m[2026-07-30T09:32:21.947] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403941947"
+2026-07-30T09:32:21.948036+00:00 app[web.1]: [32m[2026-07-30T09:32:21.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403941947"
+2026-07-30T09:32:21.948058+00:00 app[web.1]: [32m[2026-07-30T09:32:21.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403941947"
+2026-07-30T09:32:21.948081+00:00 app[web.1]: [32m[2026-07-30T09:32:21.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403941947"
+2026-07-30T09:32:21.948103+00:00 app[web.1]: [32m[2026-07-30T09:32:21.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403941947"
+2026-07-30T09:32:21.948124+00:00 app[web.1]: [32m[2026-07-30T09:32:21.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403941947"
+2026-07-30T09:32:22.098033+00:00 app[web.1]: [36m[2026-07-30T09:32:22.097] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:32:22.123099+00:00 app[web.1]: [32m[2026-07-30T09:32:22.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123131+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123164+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123196+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123223+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123253+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123286+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123316+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123348+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403942122"
+2026-07-30T09:32:22.123395+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403942122"
+2026-07-30T09:32:22.123447+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403942122"
+2026-07-30T09:32:22.123497+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403942122"
+2026-07-30T09:32:22.123544+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403942122"
+2026-07-30T09:32:22.123575+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403942122"
+2026-07-30T09:32:22.123650+00:00 app[web.1]: [32m[2026-07-30T09:32:22.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403942122"
+2026-07-30T09:32:22.165334+00:00 app[web.1]: [36m[2026-07-30T09:32:22.165] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:32:22.189964+00:00 app[web.1]: [32m[2026-07-30T09:32:22.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.189979+00:00 app[web.1]: [32m[2026-07-30T09:32:22.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190001+00:00 app[web.1]: [32m[2026-07-30T09:32:22.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190026+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190046+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190066+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190085+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190102+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190120+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403942189"
+2026-07-30T09:32:22.190153+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403942189"
+2026-07-30T09:32:22.190177+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403942189"
+2026-07-30T09:32:22.190198+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403942189"
+2026-07-30T09:32:22.190221+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403942189"
+2026-07-30T09:32:22.190242+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403942189"
+2026-07-30T09:32:22.190262+00:00 app[web.1]: [32m[2026-07-30T09:32:22.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403942189"
+2026-07-30T09:32:22.923744+00:00 app[web.1]: [36m[2026-07-30T09:32:22.923] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:32:22.948510+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.948522+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.948547+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.948548+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.948573+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.948591+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.948612+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.948629+00:00 app[web.1]: [32m[2026-07-30T09:32:22.948] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942948"
+2026-07-30T09:32:22.949196+00:00 app[web.1]: [32m[2026-07-30T09:32:22.949] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403942949"
+2026-07-30T09:32:22.949260+00:00 app[web.1]: [32m[2026-07-30T09:32:22.949] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403942949"
+2026-07-30T09:32:22.949283+00:00 app[web.1]: [32m[2026-07-30T09:32:22.949] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403942949"
+2026-07-30T09:32:22.949305+00:00 app[web.1]: [32m[2026-07-30T09:32:22.949] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403942949"
+2026-07-30T09:32:22.949331+00:00 app[web.1]: [32m[2026-07-30T09:32:22.949] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403942949"
+2026-07-30T09:32:22.949377+00:00 app[web.1]: [32m[2026-07-30T09:32:22.949] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403942949"
+2026-07-30T09:32:22.949378+00:00 app[web.1]: [32m[2026-07-30T09:32:22.949] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403942949"
+2026-07-30T09:32:23.098414+00:00 app[web.1]: [36m[2026-07-30T09:32:23.098] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:32:23.122663+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122669+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122686+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122697+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122742+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122762+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122781+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122798+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122816+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403943122"
+2026-07-30T09:32:23.122848+00:00 app[web.1]: [32m[2026-07-30T09:32:23.122] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403943122"
+2026-07-30T09:32:23.123550+00:00 app[web.1]: [32m[2026-07-30T09:32:23.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403943123"
+2026-07-30T09:32:23.123590+00:00 app[web.1]: [32m[2026-07-30T09:32:23.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403943123"
+2026-07-30T09:32:23.123628+00:00 app[web.1]: [32m[2026-07-30T09:32:23.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403943123"
+2026-07-30T09:32:23.123663+00:00 app[web.1]: [32m[2026-07-30T09:32:23.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403943123"
+2026-07-30T09:32:23.123697+00:00 app[web.1]: [32m[2026-07-30T09:32:23.123] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403943123"
+2026-07-30T09:32:23.165919+00:00 app[web.1]: [36m[2026-07-30T09:32:23.165] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:32:23.189860+00:00 app[web.1]: [32m[2026-07-30T09:32:23.189] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943189"
+2026-07-30T09:32:23.190534+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190559+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190579+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190598+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190616+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190634+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190652+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190670+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403943190"
+2026-07-30T09:32:23.190701+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403943190"
+2026-07-30T09:32:23.190741+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403943190"
+2026-07-30T09:32:23.190766+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403943190"
+2026-07-30T09:32:23.190789+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403943190"
+2026-07-30T09:32:23.190809+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403943190"
+2026-07-30T09:32:23.190830+00:00 app[web.1]: [32m[2026-07-30T09:32:23.190] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403943190"
+2026-07-30T09:31:22.000000+00:00 app[api]: Build started by user yaseensaoud@outlook.com
+2026-07-30T09:32:29.211196+00:00 app[web.1]: [36m[2026-07-30T09:32:29.211] [DEBUG] internal/core - [39mResolving guild ranks from server
+2026-07-30T09:32:38.199628+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=18076e61-8e1f-ad0a-cd4e-c3a6491e8f05 fwd="13.41.125.195" dyno=web.1 connect=0ms service=4ms status=200 bytes=14928 protocol=http1.1 tls=false
+2026-07-30T09:32:01.037133+00:00 app[api]: Deploy 40872f0d by user yaseensaoud@outlook.com
+2026-07-30T09:32:01.037133+00:00 app[api]: Release v374 created by user yaseensaoud@outlook.com
+2026-07-30T09:32:02.350895+00:00 app[api]: Deploy 40872f0d by user yaseensaoud@outlook.com
+2026-07-30T09:32:02.350895+00:00 app[api]: Release v375 created by user yaseensaoud@outlook.com
+2026-07-30T09:32:48.523242+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=3732294e-95c3-3a91-48ba-8e74c70ae719 fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=14908 protocol=http1.1 tls=false
+2026-07-30T09:32:05.000000+00:00 app[api]: Build succeeded
+2026-07-30T09:32:06.000000+00:00 app[api]: Build succeeded
+2026-07-30T09:32:07.000000+00:00 app[api]: Build started by user yaseensaoud@outlook.com
+2026-07-30T09:32:53.785067+00:00 heroku[web.1]: Restarting
+2026-07-30T09:32:53.843041+00:00 heroku[web.1]: State changed from up to starting
+2026-07-30T09:32:54.801647+00:00 heroku[web.1]: Stopping all processes with SIGTERM
+2026-07-30T09:32:54.900338+00:00 app[web.1]: [32m[2026-07-30T09:32:54.900] [INFO] Main - [39mProcess has caught SIGTERM signal.
+2026-07-30T09:32:54.900636+00:00 app[web.1]: [36m[2026-07-30T09:32:54.900] [DEBUG] Main - [39mShutting down application
+2026-07-30T09:32:54.900961+00:00 app[web.1]: [36m[2026-07-30T09:32:54.900] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=Percy_cookie
+2026-07-30T09:32:54.903218+00:00 app[web.1]: [32m[2026-07-30T09:32:54.903] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:79","createdAt":1785403974903,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:32:54.903664+00:00 app[web.1]: [36m[2026-07-30T09:32:54.903] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=johnguab
+2026-07-30T09:32:54.904442+00:00 app[web.1]: [32m[2026-07-30T09:32:54.904] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:79","createdAt":1785403974904,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:32:54.904463+00:00 app[web.1]: [36m[2026-07-30T09:32:54.904] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=blockops
+2026-07-30T09:32:54.905156+00:00 app[web.1]: [32m[2026-07-30T09:32:54.905] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:80","createdAt":1785403974905,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:32:54.905213+00:00 app[web.1]: [36m[2026-07-30T09:32:54.905] [DEBUG] Application - [39mDisconnecting instance type=commands,name=internal/commands
+2026-07-30T09:32:54.905343+00:00 app[web.1]: [32m[2026-07-30T09:32:54.905] [INFO] internal/commands - [39m[instanceStatus] {"eventId":"commands:internal/commands:1","createdAt":1785403974905,"instanceType":"commands","instanceName":"internal/commands","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:32:54.905372+00:00 app[web.1]: [36m[2026-07-30T09:32:54.905] [DEBUG] internal/commands - [39mchat commands have been disabled
+2026-07-30T09:32:54.905400+00:00 app[web.1]: [36m[2026-07-30T09:32:54.905] [DEBUG] Application - [39mDisconnecting instance type=discord,name=discord
+2026-07-30T09:32:54.924064+00:00 app[web.1]: [32m[2026-07-30T09:32:54.923] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:2","createdAt":1785403974923,"instanceType":"discord","instanceName":"discord","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:32:54.924112+00:00 app[web.1]: [36m[2026-07-30T09:32:54.924] [DEBUG] discord - [39mdiscord instance has disconnected
+2026-07-30T09:32:54.924382+00:00 app[web.1]: [32m[2026-07-30T09:32:54.924] [INFO] web-server - [39mTournamentWsEvents: Stopped, clearing 0 subscriber(s)
+2026-07-30T09:32:54.924582+00:00 app[web.1]: [32m[2026-07-30T09:32:54.924] [INFO] Application - [39mDeadlineScheduler: Stopping
+2026-07-30T09:32:54.926282+00:00 app[web.1]: [36m[2026-07-30T09:32:54.926] [DEBUG] Percy_cookie - [39mClient quit on its own volition. No further trying to reconnect.
+2026-07-30T09:32:54.927546+00:00 app[web.1]: [36m[2026-07-30T09:32:54.927] [DEBUG] johnguab - [39mClient quit on its own volition. No further trying to reconnect.
+2026-07-30T09:32:54.928843+00:00 app[web.1]: [36m[2026-07-30T09:32:54.928] [DEBUG] blockops - [39mClient quit on its own volition. No further trying to reconnect.
+2026-07-30T09:32:55.246173+00:00 heroku[web.1]: Process exited with status 0
+2026-07-30T09:32:26.000000+00:00 app[api]: Build started by user yaseensaoud@outlook.com

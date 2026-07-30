@@ -42,15 +42,17 @@ export default class Status extends ChatCommandHandler {
     ])
 
     const activeClients: string[] = []
-    if (lunarStatus === true) activeClients.push('Lunar')
-    if (featherStatus === true) activeClients.push('Feather')
-    if (essentialStatus === true) activeClients.push('Essential')
+    if (lunarStatus === true) activeClients.push('Lunar Client')
+    if (featherStatus === true) activeClients.push('Feather Client')
+    if (essentialStatus === true) activeClients.push('Essential Client')
 
-    let clientTags = ''
+    let clientSuffix = ''
     if (activeClients.length > 0) {
-      clientTags = ` [Client: ${activeClients.join(', ')}]`
-    } else if (lunarStatus === false && featherStatus === false && essentialStatus === false) {
-      clientTags = ' [Client: Unknown]'
+      const clientText =
+        activeClients.length === 1
+          ? activeClients[0]
+          : activeClients.slice(0, -1).join(', ') + ' and ' + (activeClients.at(-1) ?? '')
+      clientSuffix = ` and is on ${clientText}`
     }
 
     const session = await context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => {
@@ -60,23 +62,23 @@ export default class Status extends ChatCommandHandler {
     if (!session?.online) {
       const player = await context.app.hypixelApi.getPlayer(uuid).catch(() => undefined)
       if (player !== undefined) {
-        return `${givenUsername} was last online ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago.${clientTags}`
+        return `${givenUsername} was last online ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago${clientSuffix}.`
       }
     }
 
-    return this.formatStatus(givenUsername, session) + clientTags
+    return this.formatStatus(givenUsername, session, clientSuffix)
   }
 
-  private formatStatus(username: string, session: Session | undefined): string {
+  private formatStatus(username: string, session: Session | undefined, clientSuffix: string): string {
     let result = username
 
-    if (session === undefined) return result + "'s status is unknown"
-    if (!session.online) return result + "'s status is either hidden or offline"
+    if (session === undefined) return `${result}'s status is unknown${clientSuffix}.`
+    if (!session.online) return `${result}'s status is either hidden or offline${clientSuffix}.`
 
     if (session.game != undefined) result += ` is playing ${session.game.name}`
     if (session.mode != undefined) result += ` in ${session.mode.toLowerCase()}`
     if (session.map != undefined) result += ` map ${session.map}`
 
-    return result
+    return `${result}${clientSuffix}.`
   }
 }
