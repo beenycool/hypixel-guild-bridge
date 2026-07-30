@@ -47,7 +47,7 @@ export class TournamentChannelManager {
       })
       .catch((error) => {
         this.application.logger.info(`createBracketChannel: Failed to create channel: ${error}`)
-        return
+        return undefined
       })
 
     if (channel !== undefined) {
