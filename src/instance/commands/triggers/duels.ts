@@ -146,6 +146,21 @@ function getBedwarsCombinedWins(rawDuels: Record<string, unknown>): number {
   )
 }
 
+const SPLEEF_RAW_PREFIX = 'spleef_duel'
+
+function getSpleefStatsFromRawDuels(rawDuels: Record<string, unknown>): GamemodeStats {
+  const wins = readRawNumber(rawDuels, `${SPLEEF_RAW_PREFIX}_wins`)
+  const losses = readRawNumber(rawDuels, `${SPLEEF_RAW_PREFIX}_losses`)
+
+  return {
+    wins,
+    losses,
+    winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${SPLEEF_RAW_PREFIX}`),
+    bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${SPLEEF_RAW_PREFIX}`),
+    WLRatio: divideLikeHypixel(wins, losses)
+  }
+}
+
 export default class Duels extends HypixelPlayerCommand {
   private static readonly ValidDuelTypes: ReadonlySet<DuelType> = new Set([
     'blitz',
@@ -283,6 +298,25 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[${Duels.DuelDisplayNames[duelType]}] [${this.formatDivision(division)}] ${givenUsername} ` +
+        `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}` +
+        this.formatPingSuffix()
+      )
+    }
+
+    // Spleef Duels stats
+    if (duelType === 'spleef') {
+      const rawRes = (await context.app.hypixelApi.getPlayer(player.uuid, { raw: true }).catch(() => undefined)) as any
+      const rawDuels = rawRes?.player?.stats?.Duels as Record<string, unknown> | undefined
+
+      if (rawDuels === undefined) {
+        return `${givenUsername} has no Spleef Duels stats.` + this.formatPingSuffix()
+      }
+
+      const data = getSpleefStatsFromRawDuels(rawDuels)
+      const division = calculateDuelsDivision(data.wins, 'short')
+
+      return (
+        `[Spleef] [${this.formatDivision(division)}] ${givenUsername} ` +
         `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}` +
         this.formatPingSuffix()
       )
