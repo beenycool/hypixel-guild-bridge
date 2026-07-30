@@ -85,17 +85,22 @@ export class LunarService {
   private async ensureConnected(): Promise<void> {
     const creds = this.getCredentials()
     if (!creds) {
-      this.logger.trace('No connected Minecraft instance available for Lunar Client authentication.')
+      this.logger.info('[LunarService] Cannot connect: No connected Minecraft instance available for Lunar Client authentication.')
       return
     }
 
     try {
+      this.logger.info(`[LunarService] Connecting to Lunar Client authenticator using account '${creds.username}' (${creds.uuid})...`)
       this.jwt = await this.authenticateWithLunar(creds.uuid, creds.username, creds.accessToken)
       if (this.jwt) {
+        this.logger.info('[LunarService] Authenticated with Lunar Client! Connecting to Game WebSocket...')
         await this.connectGameWs(creds.uuid, creds.username, this.jwt)
+        this.logger.info('[LunarService] Successfully connected to Lunar Client Game WebSocket!')
+      } else {
+        this.logger.warn('[LunarService] Lunar Client authentication failed: No JWT returned.')
       }
     } catch (error: unknown) {
-      this.logger.warn('Failed to establish Lunar Client WebSocket session:', error)
+      this.logger.warn('[LunarService] Failed to establish Lunar Client WebSocket session:', error)
     }
   }
 
@@ -220,12 +225,14 @@ export class LunarService {
         }
       })
 
-      ws.on('close', () => {
+      ws.on('close', (code, reason) => {
+        this.logger.warn(`[LunarService] Lunar Client Game WebSocket closed (code: ${code}, reason: ${reason.toString() || 'none'}).`)
         this.stopHeartbeat()
         this.gameWs = undefined
       })
 
       ws.on('error', (err: Error) => {
+        this.logger.warn(`[LunarService] Lunar Client Game WebSocket error:`, err)
         this.stopHeartbeat()
         this.gameWs = undefined
         reject(err)

@@ -64,14 +64,16 @@ export class EssentialService {
   private async ensureConnected(): Promise<void> {
     const creds = this.getCredentials()
     if (!creds) {
-      this.logger.trace('No connected Minecraft instance available for Essential authentication.')
+      this.logger.info('[EssentialService] Cannot connect: No connected Minecraft instance available for Essential authentication.')
       return
     }
 
     try {
+      this.logger.info(`[EssentialService] Connecting to Essential WebSocket using account '${creds.username}' (${creds.uuid})...`)
       await this.connectWebSocket(creds.accessToken, creds.uuid, creds.username)
+      this.logger.info('[EssentialService] Successfully connected to Essential WebSocket!')
     } catch (error: unknown) {
-      this.logger.warn('Failed to establish Essential WebSocket session:', error)
+      this.logger.warn('[EssentialService] Failed to establish Essential WebSocket session:', error)
     }
   }
 

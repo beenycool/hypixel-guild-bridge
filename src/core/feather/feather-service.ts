@@ -71,14 +71,20 @@ export class FeatherService {
 
     const creds = this.getCredentials()
     if (!creds) {
-      this.logger.trace('No connected Minecraft instance available for Feather Client authentication.')
+      this.logger.info('[FeatherService] Cannot connect: No connected Minecraft instance available for Feather Client authentication.')
       return
     }
 
     try {
+      this.logger.info(`[FeatherService] Authenticating with Feather Client API using account '${creds.username}' (${creds.uuid})...`)
       this.jwt = await this.authenticateWithFeather(creds.uuid, creds.username, creds.accessToken)
+      if (this.jwt) {
+        this.logger.info('[FeatherService] Successfully authenticated with Feather Client API!')
+      } else {
+        this.logger.warn('[FeatherService] Feather Client authentication failed: No JWT returned.')
+      }
     } catch (error: unknown) {
-      this.logger.warn('Failed to establish Feather Client session:', error)
+      this.logger.warn('[FeatherService] Failed to establish Feather Client session:', error)
     }
   }
 
