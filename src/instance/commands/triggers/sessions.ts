@@ -167,6 +167,51 @@ function extractDuelSubmodes(stats: Record<string, unknown>): { name: string; wi
   return submodes.slice(0, 5)
 }
 
+// ---- Bedwars submodes ----
+
+const BEDWARS_MODE_SUFFIXES = ['1', '2', '3', '4', '4v4', 'castle']
+const BEDWARS_MODE_LABELS: Record<string, string> = {
+  '1': 'Solo',
+  '2': 'Dubs',
+  '3': '3s',
+  '4': '4s',
+  '4v4': '4v4',
+  castle: 'Castle'
+}
+
+function extractBedwarsSubmodes(stats: Record<string, unknown>): { name: string; wins: number; losses: number; kills: number; deaths: number; finalKills: number; finalDeaths: number; gamesPlayed: number }[] {
+  const result: { name: string; wins: number; losses: number; kills: number; deaths: number; finalKills: number; finalDeaths: number; gamesPlayed: number }[] = []
+  for (const suffix of BEDWARS_MODE_SUFFIXES) {
+    const wins = (stats[`wins_bedwars_${suffix}`] as number) ?? 0
+    if (wins === 0) continue
+    const losses = (stats[`losses_bedwars_${suffix}`] as number) ?? 0
+    const kills = (stats[`kills_bedwars_${suffix}`] as number) ?? 0
+    const deaths = (stats[`deaths_bedwars_${suffix}`] as number) ?? 0
+    const finalKills = (stats[`final_kills_bedwars_${suffix}`] as number) ?? 0
+    const finalDeaths = (stats[`final_deaths_bedwars_${suffix}`] as number) ?? 0
+    const gamesPlayed = (stats[`games_played_bedwars_${suffix}`] as number) ?? 0
+    result.push({ name: BEDWARS_MODE_LABELS[suffix], wins, losses, kills, deaths, finalKills, finalDeaths, gamesPlayed })
+  }
+  result.sort((a, b) => b.gamesPlayed - a.gamesPlayed)
+  return result.slice(0, 3)
+}
+
+function formatBedwarsSubmode(s: { name: string; wins: number; losses: number; kills: number; deaths: number; finalKills: number; finalDeaths: number; gamesPlayed: number }): string {
+  const parts: string[] = []
+  const wlr = ratio(s.wins, s.losses)
+  parts.push(wlr ? `${s.wins}W/${s.losses}L(${wlr})` : `${s.wins}W/${s.losses}L`)
+  if (s.finalKills || s.finalDeaths) {
+    const fkdr = ratio(s.finalKills, s.finalDeaths)
+    parts.push(fkdr ? `${s.finalKills}FK/${s.finalDeaths}FD(${fkdr})` : `${s.finalKills}FK/${s.finalDeaths}FD`)
+  }
+  if (s.kills || s.deaths) {
+    const kdr = ratio(s.kills, s.deaths)
+    parts.push(kdr ? `${s.kills}K/${s.deaths}D(${kdr})` : `${s.kills}K/${s.deaths}D`)
+  }
+  if (s.gamesPlayed) parts.push(`${s.gamesPlayed}GP`)
+  return `${s.name}:${parts.join(' ')}`
+}
+
 function formatBedwars(stats: Record<string, unknown>): string {
   const w = (stats.wins_bedwars as number) ?? 0
   const k = (stats.kills_bedwars as number) ?? 0
@@ -190,7 +235,52 @@ function formatBedwars(stats: Record<string, unknown>): string {
   if (bb !== 0) parts.push(`${fmt(bb)}BB`)
   if (bl !== 0) parts.push(`${fmt(bl)}BL`)
   if (ws !== 0) parts.push(`${fmt(ws)}WS`)
+
+  const submodes = extractBedwarsSubmodes(stats)
+  if (submodes.length > 0) {
+    const subParts = submodes.map(formatBedwarsSubmode)
+    parts.push(subParts.join(', '))
+  }
   return `BW: ${parts.join(', ')}`
+}
+
+// ---- SkyWars submodes ----
+
+const SKYWARS_MODE_IDS = ['solo_normal', 'team_normal', 'mega', 'ranked', 'labs', 'solo_insane', 'team_insane', 'mega_doubles']
+const SKYWARS_MODE_LABELS: Record<string, string> = {
+  solo_normal: 'Solo',
+  team_normal: 'Team',
+  mega: 'Mega',
+  ranked: 'Ranked',
+  labs: 'Labs',
+  solo_insane: 'SoloI',
+  team_insane: 'TeamI',
+  mega_doubles: 'MegaD'
+}
+
+function extractSkywarsSubmodes(stats: Record<string, unknown>): { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }[] {
+  const result: { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }[] = []
+  for (const id of SKYWARS_MODE_IDS) {
+    const wins = (stats[`wins_${id}`] as number) ?? 0
+    if (wins === 0) continue
+    const losses = (stats[`losses_${id}`] as number) ?? 0
+    const kills = (stats[`kills_${id}`] as number) ?? 0
+    const deaths = (stats[`deaths_${id}`] as number) ?? 0
+    const gamesPlayed = (stats[`games_played_${id}`] as number) ?? (stats[`games_played_skywars_${id}`] as number) ?? 0
+    result.push({ name: SKYWARS_MODE_LABELS[id], wins, losses, kills, deaths, gamesPlayed })
+  }
+  result.sort((a, b) => b.gamesPlayed - a.gamesPlayed)
+  return result.slice(0, 3)
+}
+
+function formatSkywarsSubmode(s: { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }): string {
+  const parts: string[] = []
+  const kdr = ratio(s.kills, s.deaths)
+  parts.push(kdr ? `${s.kills}K/${s.deaths}D(${kdr})` : `${s.kills}K/${s.deaths}D`)
+  const wlr = ratio(s.wins, s.losses)
+  parts.push(wlr ? `${s.wins}W/${s.losses}L(${wlr})` : `${s.wins}W/${s.losses}L`)
+  if (s.gamesPlayed) parts.push(`${s.gamesPlayed}GP`)
+  return `${s.name}:${parts.join(' ')}`
 }
 
 function formatSkywars(stats: Record<string, unknown>): string {
@@ -214,6 +304,12 @@ function formatSkywars(stats: Record<string, unknown>): string {
   if (gp !== 0) parts.push(`${gp}GP`)
   if (xp !== 0) parts.push(`${fmt(xp)}XP`)
   if (souls !== 0) parts.push(`${fmt(souls)}Souls`)
+
+  const submodes = extractSkywarsSubmodes(stats)
+  if (submodes.length > 0) {
+    const subParts = submodes.map(formatSkywarsSubmode)
+    parts.push(subParts.join(', '))
+  }
   return `SW: ${parts.join(', ')}`
 }
 
@@ -229,7 +325,10 @@ function formatDuels(stats: Record<string, unknown>): string {
 
   const submodes = extractDuelSubmodes(stats)
   if (submodes.length > 0) {
-    const subParts = submodes.map((s) => `${s.name}: ${s.wins}W ${s.losses}L`)
+    const subParts = submodes.map((s) => {
+      const swlr = ratio(s.wins, s.losses)
+      return swlr ? `${s.name}:${s.wins}W/${s.losses}L(${swlr})` : `${s.name}:${s.wins}W/${s.losses}L`
+    })
     parts.push(subParts.join(', '))
   }
   return `Duels: ${parts.join(', ')}`
