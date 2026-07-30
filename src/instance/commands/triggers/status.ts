@@ -41,23 +41,16 @@ export default class Status extends ChatCommandHandler {
       withTimeout(context.app.essentialService.checkEssentialStatus(uuid))
     ])
 
+    const activeClients: string[] = []
+    if (lunarStatus === true) activeClients.push('Lunar 🌙')
+    if (featherStatus === true) activeClients.push('Feather 🪶')
+    if (essentialStatus === true) activeClients.push('Essential ✨')
+
     let clientTags = ''
-    if (lunarStatus === true) {
-      clientTags += ' [Lunar: Online 🌙]'
-    } else if (lunarStatus === false) {
-      clientTags += ' [Lunar: Offline]'
-    }
-
-    if (featherStatus === true) {
-      clientTags += ' [Feather: Online 🪶]'
-    } else if (featherStatus === false) {
-      clientTags += ' [Feather: Offline]'
-    }
-
-    if (essentialStatus === true) {
-      clientTags += ' [Essential: Online ✨]'
-    } else if (essentialStatus === false) {
-      clientTags += ' [Essential: Offline]'
+    if (activeClients.length > 0) {
+      clientTags = ` [Client: ${activeClients.join(', ')}]`
+    } else if (lunarStatus === false && featherStatus === false && essentialStatus === false) {
+      clientTags = ' [Client: Unknown]'
     }
 
     const session = await context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => {
