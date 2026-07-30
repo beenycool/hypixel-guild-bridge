@@ -20,12 +20,29 @@ export default class Status extends ChatCommandHandler {
     const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
     if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
-    const lunarStatus = await context.app.lunarService.checkLunarStatus(uuid).catch(() => undefined)
-    let lunarTag = ''
+    const [lunarStatus, featherStatus, essentialStatus] = await Promise.all([
+      context.app.lunarService.checkLunarStatus(uuid).catch(() => undefined),
+      context.app.featherService.checkFeatherStatus(uuid).catch(() => undefined),
+      context.app.essentialService.checkEssentialStatus(uuid).catch(() => undefined)
+    ])
+
+    let clientTags = ''
     if (lunarStatus === true) {
-      lunarTag = ' [Lunar: Online 🌙]'
+      clientTags += ' [Lunar: Online 🌙]'
     } else if (lunarStatus === false) {
-      lunarTag = ' [Lunar: Offline]'
+      clientTags += ' [Lunar: Offline]'
+    }
+
+    if (featherStatus === true) {
+      clientTags += ' [Feather: Online 🪶]'
+    } else if (featherStatus === false) {
+      clientTags += ' [Feather: Offline]'
+    }
+
+    if (essentialStatus === true) {
+      clientTags += ' [Essential: Online ✨]'
+    } else if (essentialStatus === false) {
+      clientTags += ' [Essential: Offline]'
     }
 
     const session = await context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => {
@@ -35,11 +52,11 @@ export default class Status extends ChatCommandHandler {
     if (!session?.online) {
       const player = await context.app.hypixelApi.getPlayer(uuid).catch(() => undefined)
       if (player !== undefined) {
-        return `${givenUsername} was last online ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago.${lunarTag}`
+        return `${givenUsername} was last online ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago.${clientTags}`
       }
     }
 
-    return this.formatStatus(givenUsername, session) + lunarTag
+    return this.formatStatus(givenUsername, session) + clientTags
   }
 
   private formatStatus(username: string, session: Session | undefined): string {

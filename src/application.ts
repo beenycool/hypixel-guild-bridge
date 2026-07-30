@@ -38,6 +38,8 @@ import { PluginsManager } from './instance/features/plugins-manager.js'
 import HypixelUpdates from './instance/hypixel-updates.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { LunarService } from './core/lunar/lunar-service.js'
+import { FeatherService } from './core/feather/feather-service.js'
+import { EssentialService } from './core/essential/essential-service.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import type ApplicationMetrics from './instance/prometheus/application-metrics.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
@@ -75,6 +77,8 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly hypixelApi: HypixelClient
   public readonly mojangApi: MojangApi
   public readonly lunarService: LunarService
+  public readonly featherService: FeatherService
+  public readonly essentialService: EssentialService
 
   private commandConfigManagerField: CommandConfigManager | undefined
 
@@ -191,11 +195,27 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.autoRestart = new AutoRestart(this)
     this.autoLinker = new AutoLinker(this)
 
+    const defaultAccount = process.env.CLIENT_MINECRAFT_INSTANCE ?? 'percy_cookie'
+
     this.lunarService = new LunarService(
       this,
       this.logger,
-      this.config.lunarClient?.minecraftInstance,
+      this.config.lunarClient?.minecraftInstance ?? defaultAccount,
       this.config.lunarClient?.cacheSeconds
+    )
+
+    this.featherService = new FeatherService(
+      this,
+      this.logger,
+      this.config.featherClient?.minecraftInstance ?? defaultAccount,
+      this.config.featherClient?.cacheSeconds
+    )
+
+    this.essentialService = new EssentialService(
+      this,
+      this.logger,
+      this.config.essentialClient?.minecraftInstance ?? defaultAccount,
+      this.config.essentialClient?.cacheSeconds
     )
   }
 

@@ -141,6 +141,18 @@ export const LunarClientConfig = t.iface([], {
   "cacheSeconds": t.opt("number"),
 });
 
+export const FeatherClientConfig = t.iface([], {
+  "enabled": t.opt("boolean"),
+  "minecraftInstance": t.opt("string"),
+  "cacheSeconds": t.opt("number"),
+});
+
+export const EssentialClientConfig = t.iface([], {
+  "enabled": t.opt("boolean"),
+  "minecraftInstance": t.opt("string"),
+  "cacheSeconds": t.opt("number"),
+});
+
 export const ApplicationConfig = t.iface([], {
   "version": t.lit(2),
   "general": "GeneralConfig",
@@ -157,6 +169,8 @@ export const ApplicationConfig = t.iface([], {
   "bridges": t.opt(t.array("BridgeConfig")),
   "tournament": t.opt("TournamentConfig"),
   "lunarClient": t.opt("LunarClientConfig"),
+  "featherClient": t.opt("FeatherClientConfig"),
+  "essentialClient": t.opt("EssentialClientConfig"),
 });
 
 const exportedTypeSuite: t.ITypeSuite = {
@@ -178,6 +192,8 @@ const exportedTypeSuite: t.ITypeSuite = {
   BridgeConfig,
   TournamentConfig,
   LunarClientConfig,
+  FeatherClientConfig,
+  EssentialClientConfig,
   ApplicationConfig,
 };
 export default exportedTypeSuite;
