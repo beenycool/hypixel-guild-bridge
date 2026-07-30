@@ -20,10 +20,25 @@ export default class Status extends ChatCommandHandler {
     const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
     if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
+    const withTimeout = async <T>(promise: Promise<T>, ms = 2000): Promise<T | undefined> => {
+      return new Promise<T | undefined>((resolve) => {
+        const timer = setTimeout(() => resolve(undefined), ms)
+        promise
+          .then((val) => {
+            clearTimeout(timer)
+            resolve(val)
+          })
+          .catch(() => {
+            clearTimeout(timer)
+            resolve(undefined)
+          })
+      })
+    }
+
     const [lunarStatus, featherStatus, essentialStatus] = await Promise.all([
-      context.app.lunarService.checkLunarStatus(uuid).catch(() => undefined),
-      context.app.featherService.checkFeatherStatus(uuid).catch(() => undefined),
-      context.app.essentialService.checkEssentialStatus(uuid).catch(() => undefined)
+      withTimeout(context.app.lunarService.checkLunarStatus(uuid)),
+      withTimeout(context.app.featherService.checkFeatherStatus(uuid)),
+      withTimeout(context.app.essentialService.checkEssentialStatus(uuid))
     ])
 
     let clientTags = ''

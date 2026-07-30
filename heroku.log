@@ -321,3 +321,890 @@
 2026-07-30T09:23:30.521028+00:00 app[web.1]: [36m[2026-07-30T09:23:30.521] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 581ms
 2026-07-30T09:23:30.521067+00:00 app[web.1]: [36m[2026-07-30T09:23:30.521] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 581ms
 2026-07-30T09:23:38.198306+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=b2cc9157-aa35-6bbf-7641-5b3a90b54149 fwd="13.41.125.195" dyno=web.1 connect=0ms service=3ms status=200 bytes=15119 protocol=http1.1 tls=false
+2026-07-30T09:23:45.000000+00:00 app[api]: Build started by user yaseensaoud@outlook.com
+2026-07-30T09:23:48.523596+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=d4b77e5d-20bb-7815-88e2-6e710cdad33e fwd="135.181.209.89" dyno=web.1 connect=1ms service=3ms status=200 bytes=15120 protocol=http1.1 tls=false
+2026-07-30T09:23:50.000000+00:00 app[api]: Build started by user yaseensaoud@outlook.com
+2026-07-30T09:24:08.198989+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=f45e900f-fc1a-cde0-7945-f344d12a4a91 fwd="13.41.125.195" dyno=web.1 connect=0ms service=4ms status=200 bytes=15128 protocol=http1.1 tls=false
+2026-07-30T09:24:18.524575+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=44f40ffc-fab1-520a-8f4a-7f7b8e504114 fwd="135.181.209.89" dyno=web.1 connect=0ms service=5ms status=200 bytes=15128 protocol=http1.1 tls=false
+2026-07-30T09:24:19.940576+00:00 app[web.1]: [36m[2026-07-30T09:24:19.940] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache miss, sending /guild list...
+2026-07-30T09:24:19.940795+00:00 app[web.1]: [36m[2026-07-30T09:24:19.940] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache miss, sending /guild list...
+2026-07-30T09:24:19.940937+00:00 app[web.1]: [36m[2026-07-30T09:24:19.940] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache miss, sending /guild list...
+2026-07-30T09:24:19.941118+00:00 app[web.1]: [36m[2026-07-30T09:24:19.941] [DEBUG] blockops - [39mSending message now: /guild list
+2026-07-30T09:24:19.941316+00:00 app[web.1]: [36m[2026-07-30T09:24:19.941] [DEBUG] johnguab - [39mSending message now: /guild list
+2026-07-30T09:24:19.941418+00:00 app[web.1]: [36m[2026-07-30T09:24:19.941] [DEBUG] Percy_cookie - [39mSending message now: /guild list
+2026-07-30T09:24:20.044729+00:00 app[web.1]: [32m[2026-07-30T09:24:20.044] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403460044"
+2026-07-30T09:24:20.044857+00:00 app[web.1]: [32m[2026-07-30T09:24:20.044] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] YS7G ●" createdAt="1785403460044"
+2026-07-30T09:24:20.044891+00:00 app[web.1]: [32m[2026-07-30T09:24:20.044] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403460044"
+2026-07-30T09:24:20.046543+00:00 app[web.1]: [32m[2026-07-30T09:24:20.046] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] GGYOUDIE ● [MVP+] 1nonly_boah ●" createdAt="1785403460046"
+2026-07-30T09:24:20.046583+00:00 app[web.1]: [32m[2026-07-30T09:24:20.046] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403460046"
+2026-07-30T09:24:20.047668+00:00 app[web.1]: [32m[2026-07-30T09:24:20.047] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403460047"
+2026-07-30T09:24:20.047725+00:00 app[web.1]: [32m[2026-07-30T09:24:20.047] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] Valerwy ●" createdAt="1785403460047"
+2026-07-30T09:24:20.047750+00:00 app[web.1]: [32m[2026-07-30T09:24:20.047] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403460047"
+2026-07-30T09:24:20.047786+00:00 app[web.1]: [32m[2026-07-30T09:24:20.047] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] ElixOG ● TheBlockOp ●" createdAt="1785403460047"
+2026-07-30T09:24:20.047803+00:00 app[web.1]: [32m[2026-07-30T09:24:20.047] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403460047"
+2026-07-30T09:24:20.048346+00:00 app[web.1]: [32m[2026-07-30T09:24:20.048] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[VIP] Percy_Cookie ● [MVP+] Mr_Big_Smiley ● [MVP++] da8dy ● [MVP+] Civyr ● [MVP+] 1Joe_ ● [MVP+] Blyza ● [MVP+] Lundqvi…" createdAt="1785403460048"
+2026-07-30T09:24:20.048361+00:00 app[web.1]: [32m[2026-07-30T09:24:20.048] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403460048"
+2026-07-30T09:24:20.049848+00:00 app[web.1]: [32m[2026-07-30T09:24:20.049] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403460049"
+2026-07-30T09:24:20.049879+00:00 app[web.1]: [32m[2026-07-30T09:24:20.049] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] SpleenyPoo ●" createdAt="1785403460049"
+2026-07-30T09:24:20.049897+00:00 app[web.1]: [32m[2026-07-30T09:24:20.049] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403460049"
+2026-07-30T09:24:20.050744+00:00 app[web.1]: [32m[2026-07-30T09:24:20.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] ILYLOVE ● [MVP+] DreamBlackTea ● [MVP+] Meohre ● [MVP+] FriediY ● [VIP+] SystemicOne ● [MVP+] Lyrixcalx ● [MVP+]…" createdAt="1785403460050"
+2026-07-30T09:24:20.050766+00:00 app[web.1]: [32m[2026-07-30T09:24:20.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403460050"
+2026-07-30T09:24:20.051114+00:00 app[web.1]: [32m[2026-07-30T09:24:20.051] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] Danheimer ● [MVP+] Starwathan ● [MVP+] JWDA ● [MVP+] NinjaSteeler ● [MVP++] UnhorsedBrush04 ● [MVP++] _Catking ●…" createdAt="1785403460051"
+2026-07-30T09:24:20.051133+00:00 app[web.1]: [32m[2026-07-30T09:24:20.051] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403460051"
+2026-07-30T09:24:20.051878+00:00 app[web.1]: [32m[2026-07-30T09:24:20.051] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] flqw3d ● [MVP+] JohnGuab ● Guab_Bot ● [MVP++] pgqn ●" createdAt="1785403460051"
+2026-07-30T09:24:20.051903+00:00 app[web.1]: [32m[2026-07-30T09:24:20.051] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403460051"
+2026-07-30T09:24:20.052214+00:00 app[web.1]: [32m[2026-07-30T09:24:20.052] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] VoidFrags_ ● [MVP+] Spraid ● [MVP++] cuteing ● [MVP+] Tempo27 ● [MVP+] wpis ● [MVP++] 2ellipses ● [MVP] Kesiesie…" createdAt="1785403460052"
+2026-07-30T09:24:20.052535+00:00 app[web.1]: [32m[2026-07-30T09:24:20.052] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] DrxgonFish ● [MVP++] AsianMommyLover ● [MVP+] ETGX ● [VIP] abyssal_koko ● [MVP+] cubanos ● [MVP+] EnderAsleep ● […" createdAt="1785403460052"
+2026-07-30T09:24:20.052554+00:00 app[web.1]: [32m[2026-07-30T09:24:20.052] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403460052"
+2026-07-30T09:24:20.052942+00:00 app[web.1]: [32m[2026-07-30T09:24:20.052] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] melau ● [MVP+] SlimmeBoyVin ● [MVP+] Veniard ● [MVP+] 8140 ● [MVP+] lplxavi ● [MVP++] diskne ● [VIP] bezakos ● […" createdAt="1785403460052"
+2026-07-30T09:24:20.065653+00:00 app[web.1]: [32m[2026-07-30T09:24:20.065] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403460065"
+2026-07-30T09:24:20.067313+00:00 app[web.1]: [32m[2026-07-30T09:24:20.067] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] stacoja ● [MVP+] SirWuro ● [MVP+] _Jewier_ ● [MVP+] Retikasd ● [MVP+] AchJonas ● [MVP+] babelaid ● [MVP+] 0hSile…" createdAt="1785403460067"
+2026-07-30T09:24:20.067331+00:00 app[web.1]: [32m[2026-07-30T09:24:20.067] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403460067"
+2026-07-30T09:24:20.069463+00:00 app[web.1]: [32m[2026-07-30T09:24:20.069] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] Gablplautze ● [MVP++] Bas4 ● [VIP] OhB1ock ● [MVP++] Mysteriosm ● [MVP++] BrazilianPrince ● [VIP] qw45214 ● ninja…" createdAt="1785403460069"
+2026-07-30T09:24:20.069740+00:00 app[web.1]: [32m[2026-07-30T09:24:20.069] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403460069"
+2026-07-30T09:24:20.071187+00:00 app[web.1]: [32m[2026-07-30T09:24:20.071] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] _JustFoxy ● [MVP+] wFirex ● [VIP] Coollector ● [VIP+] transpancy ● [MVP+] NotNytox ● [VIP] olxvia ● [MVP++] Aqua…" createdAt="1785403460070"
+2026-07-30T09:24:20.071208+00:00 app[web.1]: [32m[2026-07-30T09:24:20.071] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403460070"
+2026-07-30T09:24:20.071749+00:00 app[web.1]: [32m[2026-07-30T09:24:20.071] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403460071"
+2026-07-30T09:24:20.071784+00:00 app[web.1]: [32m[2026-07-30T09:24:20.071] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Tp2_ ●" createdAt="1785403460071"
+2026-07-30T09:24:20.071803+00:00 app[web.1]: [32m[2026-07-30T09:24:20.071] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403460071"
+2026-07-30T09:24:20.072452+00:00 app[web.1]: [32m[2026-07-30T09:24:20.072] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] Mkil2 ● [MVP+] ProxySvetac ● [MVP+] _Vorr_ ● [MVP+] iSpawnblock ●" createdAt="1785403460072"
+2026-07-30T09:24:20.072469+00:00 app[web.1]: [32m[2026-07-30T09:24:20.072] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403460072"
+2026-07-30T09:24:20.073010+00:00 app[web.1]: [32m[2026-07-30T09:24:20.072] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Guabbing ● [MVP+] tinging ● [VIP] Select1ve ● [MVP+] Fox248G ● [VIP] Djenih ● [VIP] Defilade ● [MVP++] Valescca ● [MVP+…" createdAt="1785403460072"
+2026-07-30T09:24:20.073030+00:00 app[web.1]: [32m[2026-07-30T09:24:20.073] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403460072"
+2026-07-30T09:24:20.441539+00:00 app[web.1]: [36m[2026-07-30T09:24:20.441] [DEBUG] internal/core - [39m[guildManager] list(blockops) listNow took 501ms (125 members)
+2026-07-30T09:24:20.441553+00:00 app[web.1]: [36m[2026-07-30T09:24:20.441] [DEBUG] internal/core - [39m[guildManager] list(blockops) members parsed: 125
+2026-07-30T09:24:20.441604+00:00 app[web.1]: [36m[2026-07-30T09:24:20.441] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache hit after queue (age 501ms)
+2026-07-30T09:24:20.441623+00:00 app[web.1]: [36m[2026-07-30T09:24:20.441] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 501ms
+2026-07-30T09:24:20.441674+00:00 app[web.1]: [36m[2026-07-30T09:24:20.441] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 501ms
+2026-07-30T09:24:20.470462+00:00 app[web.1]: [36m[2026-07-30T09:24:20.470] [DEBUG] internal/core - [39m[guildManager] list(johnguab) listNow took 530ms (39 members)
+2026-07-30T09:24:20.470465+00:00 app[web.1]: [36m[2026-07-30T09:24:20.470] [DEBUG] internal/core - [39m[guildManager] list(johnguab) members parsed: 39
+2026-07-30T09:24:20.470490+00:00 app[web.1]: [36m[2026-07-30T09:24:20.470] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache hit after queue (age 530ms)
+2026-07-30T09:24:20.470521+00:00 app[web.1]: [36m[2026-07-30T09:24:20.470] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 530ms
+2026-07-30T09:24:20.470615+00:00 app[web.1]: [36m[2026-07-30T09:24:20.470] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 530ms
+2026-07-30T09:24:20.474339+00:00 app[web.1]: [36m[2026-07-30T09:24:20.474] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) listNow took 533ms (119 members)
+2026-07-30T09:24:20.474342+00:00 app[web.1]: [36m[2026-07-30T09:24:20.474] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) members parsed: 119
+2026-07-30T09:24:20.474367+00:00 app[web.1]: [36m[2026-07-30T09:24:20.474] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache hit after queue (age 534ms)
+2026-07-30T09:24:20.474384+00:00 app[web.1]: [36m[2026-07-30T09:24:20.474] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 534ms
+2026-07-30T09:24:20.474416+00:00 app[web.1]: [36m[2026-07-30T09:24:20.474] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 534ms
+2026-07-30T09:24:29.251038+00:00 heroku[web.1]: Restarting
+2026-07-30T09:24:29.311298+00:00 heroku[web.1]: State changed from up to starting
+2026-07-30T09:24:28.999026+00:00 app[api]: Deploy 0c86b142 by user yaseensaoud@outlook.com
+2026-07-30T09:24:28.999026+00:00 app[api]: Release v370 created by user yaseensaoud@outlook.com
+2026-07-30T09:24:29.449168+00:00 heroku[web.1]: Restarting
+2026-07-30T09:24:29.195562+00:00 app[api]: Deploy 0c86b142 by user yaseensaoud@outlook.com
+2026-07-30T09:24:29.195562+00:00 app[api]: Release v371 created by user yaseensaoud@outlook.com
+2026-07-30T09:24:30.300662+00:00 heroku[web.1]: Stopping all processes with SIGTERM
+2026-07-30T09:24:30.402845+00:00 app[web.1]: [32m[2026-07-30T09:24:30.402] [INFO] Main - [39mProcess has caught SIGTERM signal.
+2026-07-30T09:24:30.403158+00:00 app[web.1]: [36m[2026-07-30T09:24:30.403] [DEBUG] Main - [39mShutting down application
+2026-07-30T09:24:30.403360+00:00 app[web.1]: [36m[2026-07-30T09:24:30.403] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=Percy_cookie
+2026-07-30T09:24:30.405423+00:00 app[web.1]: [32m[2026-07-30T09:24:30.405] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:199","createdAt":1785403470405,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:24:30.405501+00:00 app[web.1]: [36m[2026-07-30T09:24:30.405] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=johnguab
+2026-07-30T09:24:30.406091+00:00 app[web.1]: [32m[2026-07-30T09:24:30.406] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:199","createdAt":1785403470406,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:24:30.406119+00:00 app[web.1]: [36m[2026-07-30T09:24:30.406] [DEBUG] Application - [39mDisconnecting instance type=minecraft,name=blockops
+2026-07-30T09:24:30.406492+00:00 app[web.1]: [32m[2026-07-30T09:24:30.406] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:212","createdAt":1785403470406,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:24:30.406513+00:00 app[web.1]: [36m[2026-07-30T09:24:30.406] [DEBUG] Application - [39mDisconnecting instance type=commands,name=internal/commands
+2026-07-30T09:24:30.406639+00:00 app[web.1]: [32m[2026-07-30T09:24:30.406] [INFO] internal/commands - [39m[instanceStatus] {"eventId":"commands:internal/commands:3","createdAt":1785403470406,"instanceType":"commands","instanceName":"internal/commands","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:24:30.406662+00:00 app[web.1]: [36m[2026-07-30T09:24:30.406] [DEBUG] internal/commands - [39mchat commands have been disabled
+2026-07-30T09:24:30.406688+00:00 app[web.1]: [36m[2026-07-30T09:24:30.406] [DEBUG] Application - [39mDisconnecting instance type=discord,name=discord
+2026-07-30T09:24:30.424359+00:00 app[web.1]: [32m[2026-07-30T09:24:30.424] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:12","createdAt":1785403470424,"instanceType":"discord","instanceName":"discord","status":{"from":"connected","to":"ended"}}
+2026-07-30T09:24:30.424385+00:00 app[web.1]: [36m[2026-07-30T09:24:30.424] [DEBUG] discord - [39mdiscord instance has disconnected
+2026-07-30T09:24:30.424614+00:00 app[web.1]: [32m[2026-07-30T09:24:30.424] [INFO] web-server - [39mTournamentWsEvents: Stopped, clearing 0 subscriber(s)
+2026-07-30T09:24:30.424804+00:00 app[web.1]: [32m[2026-07-30T09:24:30.424] [INFO] Application - [39mDeadlineScheduler: Stopping
+2026-07-30T09:24:30.428358+00:00 app[web.1]: [36m[2026-07-30T09:24:30.428] [DEBUG] Percy_cookie - [39mClient quit on its own volition. No further trying to reconnect.
+2026-07-30T09:24:30.429938+00:00 app[web.1]: [36m[2026-07-30T09:24:30.429] [DEBUG] blockops - [39mClient quit on its own volition. No further trying to reconnect.
+2026-07-30T09:24:30.430145+00:00 app[web.1]: [36m[2026-07-30T09:24:30.430] [DEBUG] johnguab - [39mClient quit on its own volition. No further trying to reconnect.
+2026-07-30T09:24:30.498483+00:00 heroku[web.1]: Process exited with status 0
+2026-07-30T09:24:33.000000+00:00 app[api]: Build succeeded
+2026-07-30T09:24:34.000000+00:00 app[api]: Build succeeded
+2026-07-30T09:24:36.301134+00:00 heroku[web.1]: Starting process with command `node --import tsx/esm index.ts`
+2026-07-30T09:24:36.739208+00:00 heroku[web.1]: Starting process with command `node --import tsx/esm index.ts`
+2026-07-30T09:24:37.570599+00:00 app[web.1]: [heroku-exec] Starting
+2026-07-30T09:24:38.137123+00:00 app[web.1]: [heroku-exec] Starting
+2026-07-30T09:24:39.564650+00:00 app[web.1]: [32m[2026-07-30T09:24:39.563] [INFO] Main - [39mStarting application...
+2026-07-30T09:24:39.564877+00:00 app[web.1]: [32m[2026-07-30T09:24:39.564] [INFO] Main - [39mRoot Directory: /app
+2026-07-30T09:24:39.564950+00:00 app[web.1]: [32m[2026-07-30T09:24:39.564] [INFO] Main - [39mConfig Directory: /app/config
+2026-07-30T09:24:39.565018+00:00 app[web.1]: [32m[2026-07-30T09:24:39.564] [INFO] Main - [39mEnvironment:
+2026-07-30T09:24:39.565094+00:00 app[web.1]: [32m[2026-07-30T09:24:39.565] [INFO] Main - [39mPORT: 16924
+2026-07-30T09:24:39.565164+00:00 app[web.1]: [32m[2026-07-30T09:24:39.565] [INFO] Main - [39mINTERNAL_PORT: 9091
+2026-07-30T09:24:39.566035+00:00 app[web.1]: [36m[2026-07-30T09:24:39.565] [DEBUG] Main - [39mSetting up process...
+2026-07-30T09:24:39.566201+00:00 app[web.1]: [36m[2026-07-30T09:24:39.566] [DEBUG] Main - [39mLoading up languages...
+2026-07-30T09:24:39.568358+00:00 app[web.1]: [32m[2026-07-30T09:24:39.568] [INFO] Main - [39mLoading configuration from base64 environment variable "CONFIG_B64"
+2026-07-30T09:24:39.583170+00:00 app[web.1]: [32m[2026-07-30T09:24:39.583] [INFO] internal/core - [39mUsing PostgreSQL database connection with max connections: 3
+2026-07-30T09:24:39.606124+00:00 app[web.1]: [32m[2026-07-30T09:24:39.606] [INFO] Application - [39mTournamentTestPanel: Initialized
+2026-07-30T09:24:39.609488+00:00 app[web.1]: [36m[2026-07-30T09:24:39.609] [DEBUG] internal/prometheus - [39mListening on port 9090
+2026-07-30T09:24:39.609598+00:00 app[web.1]: [36m[2026-07-30T09:24:39.609] [DEBUG] internal/prometheus - [39mprometheus is enabled
+2026-07-30T09:24:39.610394+00:00 app[web.1]: [32m[2026-07-30T09:24:39.610] [INFO] web-server - [39mTournamentWsEvents: Started
+2026-07-30T09:24:39.617352+00:00 app[web.1]: [32m[2026-07-30T09:24:39.617] [INFO] Main - [39mHealth proxy listening on port 16924 → proxying to 9091
+2026-07-30T09:24:39.617527+00:00 app[web.1]: [32m[2026-07-30T09:24:39.617] [INFO] web-server - [39mWeb server listening on port 9091
+2026-07-30T09:24:39.631129+00:00 app[web.1]: [36m[2026-07-30T09:24:39.631] [DEBUG] internal/prometheus - [39mCollecting metrics
+2026-07-30T09:24:39.703849+00:00 app[web.1]: (node:2) TimeoutNaNWarning: NaN is not a number.
+2026-07-30T09:24:39.703851+00:00 app[web.1]: Timeout duration was set to 1.
+2026-07-30T09:24:39.703852+00:00 app[web.1]: (Use `node --trace-warnings ...` to show where the warning was created)
+2026-07-30T09:24:39.822238+00:00 app[web.1]: [SKYHELPER-NETWORTH] A MAJOR update is available! Current version: 1.27.3, Latest version: 2.8.0. NOTE: This update may contain BREAKING changes.
+2026-07-30T09:24:40.411498+00:00 heroku[web.1]: State changed from starting to up
+2026-07-30T09:24:40.348637+00:00 app[web.1]: [32m[2026-07-30T09:24:40.347] [INFO] Main - [39mStarting application...
+2026-07-30T09:24:40.348873+00:00 app[web.1]: [32m[2026-07-30T09:24:40.348] [INFO] Main - [39mRoot Directory: /app
+2026-07-30T09:24:40.348962+00:00 app[web.1]: [32m[2026-07-30T09:24:40.348] [INFO] Main - [39mConfig Directory: /app/config
+2026-07-30T09:24:40.349033+00:00 app[web.1]: [32m[2026-07-30T09:24:40.348] [INFO] Main - [39mEnvironment:
+2026-07-30T09:24:40.349121+00:00 app[web.1]: [32m[2026-07-30T09:24:40.349] [INFO] Main - [39mPORT: 37704
+2026-07-30T09:24:40.349199+00:00 app[web.1]: [32m[2026-07-30T09:24:40.349] [INFO] Main - [39mINTERNAL_PORT: 9091
+2026-07-30T09:24:40.350070+00:00 app[web.1]: [36m[2026-07-30T09:24:40.349] [DEBUG] Main - [39mSetting up process...
+2026-07-30T09:24:40.350285+00:00 app[web.1]: [36m[2026-07-30T09:24:40.350] [DEBUG] Main - [39mLoading up languages...
+2026-07-30T09:24:40.352577+00:00 app[web.1]: [32m[2026-07-30T09:24:40.352] [INFO] Main - [39mLoading configuration from base64 environment variable "CONFIG_B64"
+2026-07-30T09:24:40.369621+00:00 app[web.1]: [32m[2026-07-30T09:24:40.369] [INFO] internal/core - [39mUsing PostgreSQL database connection with max connections: 3
+2026-07-30T09:24:40.401727+00:00 app[web.1]: [32m[2026-07-30T09:24:40.400] [INFO] Application - [39mTournamentTestPanel: Initialized
+2026-07-30T09:24:40.404813+00:00 app[web.1]: [36m[2026-07-30T09:24:40.404] [DEBUG] internal/prometheus - [39mListening on port 9090
+2026-07-30T09:24:40.404980+00:00 app[web.1]: [36m[2026-07-30T09:24:40.404] [DEBUG] internal/prometheus - [39mprometheus is enabled
+2026-07-30T09:24:40.405756+00:00 app[web.1]: [32m[2026-07-30T09:24:40.405] [INFO] web-server - [39mTournamentWsEvents: Started
+2026-07-30T09:24:40.413574+00:00 app[web.1]: [32m[2026-07-30T09:24:40.413] [INFO] Main - [39mHealth proxy listening on port 37704 → proxying to 9091
+2026-07-30T09:24:40.413752+00:00 app[web.1]: [32m[2026-07-30T09:24:40.413] [INFO] web-server - [39mWeb server listening on port 9091
+2026-07-30T09:24:40.428632+00:00 app[web.1]: [36m[2026-07-30T09:24:40.428] [DEBUG] internal/prometheus - [39mCollecting metrics
+2026-07-30T09:24:40.489204+00:00 app[web.1]: (node:2) TimeoutNaNWarning: NaN is not a number.
+2026-07-30T09:24:40.489206+00:00 app[web.1]: Timeout duration was set to 1.
+2026-07-30T09:24:40.489207+00:00 app[web.1]: (Use `node --trace-warnings ...` to show where the warning was created)
+2026-07-30T09:24:40.496146+00:00 app[web.1]: [SKYHELPER-NETWORTH] A MAJOR update is available! Current version: 1.27.3, Latest version: 2.8.0. NOTE: This update may contain BREAKING changes.
+2026-07-30T09:24:40.681240+00:00 heroku[web.1]: Stopping all processes with SIGTERM
+2026-07-30T09:24:40.957092+00:00 app[web.1]: [36m[2026-07-30T09:24:40.956] [DEBUG] internal/core - [39mAutocomplete loaded (on-demand mode)
+2026-07-30T09:24:40.964178+00:00 app[web.1]: [35m[2026-07-30T09:24:40.963] [FATAL] Main - [39mAssertionError [ERR_ASSERTION]: Database is closed
+2026-07-30T09:24:40.964180+00:00 app[web.1]: at DatabaseManager.query (/app/src/common/database-manager.ts:286:12)
+2026-07-30T09:24:40.964180+00:00 app[web.1]: at DatabaseManager.queryRows (/app/src/common/database-manager.ts:65:31)
+2026-07-30T09:24:40.964181+00:00 app[web.1]: at TournamentManager.load (/app/src/core/tournament/tournament-manager.ts:64:47)
+2026-07-30T09:24:40.964181+00:00 app[web.1]: at Core.initialize (/app/src/core/core.ts:296:34)
+2026-07-30T09:24:40.964182+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-07-30T09:24:40.964182+00:00 app[web.1]: at async Core.awaitReady (/app/src/core/core.ts:277:5)
+2026-07-30T09:24:40.964182+00:00 app[web.1]: at async Application.start (/app/src/application.ts:308:5)
+2026-07-30T09:24:40.964183+00:00 app[web.1]: at async <anonymous> (/app/index.ts:397:3) {
+2026-07-30T09:24:40.964183+00:00 app[web.1]: generatedMessage: false,
+2026-07-30T09:24:40.964184+00:00 app[web.1]: code: 'ERR_ASSERTION',
+2026-07-30T09:24:40.964185+00:00 app[web.1]: actual: false,
+2026-07-30T09:24:40.964185+00:00 app[web.1]: expected: true,
+2026-07-30T09:24:40.964185+00:00 app[web.1]: operator: '==',
+2026-07-30T09:24:40.964185+00:00 app[web.1]: diff: 'simple'
+2026-07-30T09:24:40.964186+00:00 app[web.1]: }
+2026-07-30T09:24:40.964270+00:00 app[web.1]: [35m[2026-07-30T09:24:40.964] [FATAL] Main - [39mstopping the process for the controller to restart this node...
+2026-07-30T09:24:41.047175+00:00 heroku[web.1]: Process exited with status 1
+2026-07-30T09:24:41.230140+00:00 app[web.1]: [36m[2026-07-30T09:24:41.229] [DEBUG] internal/core - [39mStatusHistory loaded (on-demand mode)
+2026-07-30T09:24:41.536093+00:00 app[web.1]: [36m[2026-07-30T09:24:41.535] [DEBUG] internal/core - [39mAutocomplete loaded (on-demand mode)
+2026-07-30T09:24:41.544457+00:00 app[web.1]: [32m[2026-07-30T09:24:41.544] [INFO] Application - [39mTournament 67 (fadfdsdfd): Loaded active tournament, status=ACTIVE, bridgeId=persy
+2026-07-30T09:24:41.544478+00:00 app[web.1]: [32m[2026-07-30T09:24:41.544] [INFO] Application - [39mLoaded 1 active tournaments from database.
+2026-07-30T09:24:41.557776+00:00 app[web.1]: [32m[2026-07-30T09:24:41.557] [INFO] internal/core - [39mTournamentTestPanels: Loaded 1 panel(s)
+2026-07-30T09:24:41.557971+00:00 app[web.1]: [32m[2026-07-30T09:24:41.557] [INFO] Application - [39mDeadlineScheduler: Starting (interval=5m)
+2026-07-30T09:24:41.558276+00:00 app[web.1]: [32m[2026-07-30T09:24:41.558] [INFO] Application - [39mRehydrating tournament state from database...
+2026-07-30T09:24:41.558319+00:00 app[web.1]: [32m[2026-07-30T09:24:41.558] [INFO] Application - [39mTournament 67 (fadfdsdfd): Rehydrating ACTIVE state...
+2026-07-30T09:24:41.563488+00:00 app[web.1]: [32m[2026-07-30T09:24:41.563] [INFO] Application - [39mTournament 67: Found 31 matches for rehydration
+2026-07-30T09:24:41.563573+00:00 app[web.1]: [32m[2026-07-30T09:24:41.563] [INFO] Application - [39mMatch 233: Rehydrating, status=ACTIVE, round=4
+2026-07-30T09:24:41.564698+00:00 app[web.1]: [33m[2026-07-30T09:24:41.564] [WARN] Application - [39mThread 1531769092711645265 for match 233 not found, recreating...
+2026-07-30T09:24:41.564722+00:00 app[web.1]: [32m[2026-07-30T09:24:41.564] [INFO] Application - [39mMatch 234: Rehydrating, status=ACTIVE, round=4
+2026-07-30T09:24:41.564949+00:00 app[web.1]: [33m[2026-07-30T09:24:41.564] [WARN] Application - [39mThread 1531769064224198757 for match 234 not found, recreating...
+2026-07-30T09:24:41.565061+00:00 app[web.1]: [32m[2026-07-30T09:24:41.565] [INFO] Application - [39mTournament rehydration complete
+2026-07-30T09:24:41.565645+00:00 app[web.1]: [36m[2026-07-30T09:24:41.565] [DEBUG] internal/MinecraftManager - [39mSTARTUP_LOAD: mojangInstances=["blockops","blockopstemp","johnguab","Percy_cookie","quaqqak"]
+2026-07-30T09:24:41.565718+00:00 app[web.1]: [36m[2026-07-30T09:24:41.565] [DEBUG] internal/MinecraftManager - [39mSTARTUP_CFG: [{"bridge":"persy","instances":["quaqqak","percy_cookie"]},{"bridge":"guab","instances":["johnguab"]},{"bridge":"blockops","instances":["blockops"]}]
+2026-07-30T09:24:41.634335+00:00 app[web.1]: [32m[2026-07-30T09:24:41.634] [INFO] internal/PluginsManager - [39mLoading plugin: example-plugin.ts
+2026-07-30T09:24:41.637455+00:00 app[web.1]: [32m[2026-07-30T09:24:41.637] [INFO] Application - [39mLanguage changed successfully to English.
+2026-07-30T09:24:41.637999+00:00 app[web.1]: [32m[2026-07-30T09:24:41.637] [INFO] internal/PluginsManager - [39mLoading plugin: submission-game.ts
+2026-07-30T09:24:41.641740+00:00 app[web.1]: [36m[2026-07-30T09:24:41.641] [DEBUG] Application - [39mSignaling plugin instance type=plugin,name=example-plugin
+2026-07-30T09:24:41.641787+00:00 app[web.1]: [32m[2026-07-30T09:24:41.641] [INFO] example-plugin - [39mRunning on plugin
+2026-07-30T09:24:41.641813+00:00 app[web.1]: [36m[2026-07-30T09:24:41.641] [DEBUG] Application - [39mSignaling plugin instance type=plugin,name=submission-game
+2026-07-30T09:24:41.641889+00:00 app[web.1]: [36m[2026-07-30T09:24:41.641] [DEBUG] Application - [39mConnecting instance type=discord,name=discord
+2026-07-30T09:24:41.642007+00:00 app[web.1]: [36m[2026-07-30T09:24:41.641] [DEBUG] discord - [39mDiscord connecting
+2026-07-30T09:24:41.642710+00:00 app[web.1]: [32m[2026-07-30T09:24:41.642] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:0","createdAt":1785403481642,"instanceType":"discord","instanceName":"discord","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:24:40.604266+00:00 app[web.1]: [36m[2026-07-30T09:24:40.604] [DEBUG] internal/core - [39mStatusHistory loaded (on-demand mode)
+2026-07-30T09:24:40.800584+00:00 app[web.1]: [32m[2026-07-30T09:24:40.800] [INFO] Main - [39mProcess has caught SIGTERM signal.
+2026-07-30T09:24:40.800887+00:00 app[web.1]: [36m[2026-07-30T09:24:40.800] [DEBUG] Main - [39mShutting down application
+2026-07-30T09:24:40.801659+00:00 app[web.1]: [32m[2026-07-30T09:24:40.801] [INFO] web-server - [39mTournamentWsEvents: Stopped, clearing 0 subscriber(s)
+2026-07-30T09:24:40.801879+00:00 app[web.1]: [32m[2026-07-30T09:24:40.801] [INFO] Application - [39mDeadlineScheduler: Stopping
+2026-07-30T09:24:41.987681+00:00 app[web.1]: [36m[2026-07-30T09:24:41.987] [DEBUG] Application - [39mConnecting instance type=commands,name=internal/commands
+2026-07-30T09:24:41.988123+00:00 app[web.1]: [32m[2026-07-30T09:24:41.988] [INFO] internal/commands - [39m[instanceStatus] {"eventId":"commands:internal/commands:0","createdAt":1785403481987,"instanceType":"commands","instanceName":"internal/commands","status":{"from":"fresh","to":"connected"}}
+2026-07-30T09:24:41.988231+00:00 app[web.1]: [36m[2026-07-30T09:24:41.988] [DEBUG] internal/commands - [39mchat commands are ready to serve
+2026-07-30T09:24:41.988260+00:00 app[web.1]: [36m[2026-07-30T09:24:41.988] [DEBUG] Application - [39mConnecting instance type=minecraft,name=blockops
+2026-07-30T09:24:41.988503+00:00 app[web.1]: [32m[2026-07-30T09:24:41.988] [INFO] blockops - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:24:42.139501+00:00 app[web.1]: [32m[2026-07-30T09:24:42.139] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:0","createdAt":1785403482139,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:24:42.141206+00:00 app[web.1]: [36m[2026-07-30T09:24:42.141] [DEBUG] Application - [39mConnecting instance type=minecraft,name=blockopstemp
+2026-07-30T09:24:42.141242+00:00 app[web.1]: [36m[2026-07-30T09:24:42.141] [DEBUG] blockopstemp - [39minstance is attempting to connect automatically but configured to not auto-connect. Attempt stopped.
+2026-07-30T09:24:42.141411+00:00 app[web.1]: [32m[2026-07-30T09:24:42.141] [INFO] blockopstemp - [39m[instanceStatus] {"eventId":"minecraft:blockopstemp:0","createdAt":1785403482141,"instanceType":"minecraft","instanceName":"blockopstemp","message":{"type":"minecraftInstanceNotAutoConnect"}}
+2026-07-30T09:24:42.141471+00:00 app[web.1]: [36m[2026-07-30T09:24:42.141] [DEBUG] Application - [39mConnecting instance type=minecraft,name=johnguab
+2026-07-30T09:24:42.141510+00:00 app[web.1]: [32m[2026-07-30T09:24:42.141] [INFO] johnguab - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:24:42.229872+00:00 app[web.1]: [32m[2026-07-30T09:24:42.229] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:0","createdAt":1785403482229,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:24:42.231313+00:00 app[web.1]: [36m[2026-07-30T09:24:42.231] [DEBUG] Application - [39mConnecting instance type=minecraft,name=Percy_cookie
+2026-07-30T09:24:42.231315+00:00 app[web.1]: [32m[2026-07-30T09:24:42.231] [INFO] Percy_cookie - [39mConnecting to me.hypixel.net (host 1/1)
+2026-07-30T09:24:42.315260+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=8eb48391-bb79-f9b0-73fb-714b18f4a9b8 fwd="13.41.125.195" dyno=web.1 connect=4001ms service=119ms status=200 bytes=15187 protocol=http1.1 tls=false
+2026-07-30T09:24:42.289397+00:00 app[web.1]: [32m[2026-07-30T09:24:42.289] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:0","createdAt":1785403482289,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"fresh","to":"connecting"}}
+2026-07-30T09:24:42.290636+00:00 app[web.1]: [36m[2026-07-30T09:24:42.290] [DEBUG] Application - [39mConnecting instance type=minecraft,name=quaqqak
+2026-07-30T09:24:42.290670+00:00 app[web.1]: [36m[2026-07-30T09:24:42.290] [DEBUG] quaqqak - [39minstance is attempting to connect automatically but configured to not auto-connect. Attempt stopped.
+2026-07-30T09:24:42.290977+00:00 app[web.1]: [32m[2026-07-30T09:24:42.290] [INFO] quaqqak - [39m[instanceStatus] {"eventId":"minecraft:quaqqak:0","createdAt":1785403482290,"instanceType":"minecraft","instanceName":"quaqqak","bridgeId":"persy","message":{"type":"minecraftInstanceNotAutoConnect"}}
+2026-07-30T09:24:42.291410+00:00 app[web.1]: [32m[2026-07-30T09:24:42.291] [INFO] Main - [39mApp is connected
+2026-07-30T09:24:42.306951+00:00 app[web.1]: [32m[2026-07-30T09:24:42.306] [INFO] discord - [39mDiscord client ready, logged in as bot1453693252971659275#7466
+2026-07-30T09:24:42.307821+00:00 app[web.1]: [32m[2026-07-30T09:24:42.307] [INFO] discord - [39m[instanceStatus] {"eventId":"discord:discord:1","createdAt":1785403482306,"instanceType":"discord","instanceName":"discord","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:24:42.403759+00:00 app[web.1]: [32m[2026-07-30T09:24:42.403] [INFO] discord - [39mRegistering emoji=./resources/x.webp under the name can_not_repeat_message
+2026-07-30T09:24:42.466528+00:00 app[web.1]: [91m[2026-07-30T09:24:42.462] [ERROR] discord - [39mUnexpected error: registering emojis in guild DiscordAPIError[50046]: Invalid Asset
+2026-07-30T09:24:42.466530+00:00 app[web.1]: at handleErrors (/app/node_modules/@discordjs/rest/src/lib/handlers/Shared.ts:148:10)
+2026-07-30T09:24:42.466531+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-07-30T09:24:42.466532+00:00 app[web.1]: at async SequentialHandler.runRequest (/app/node_modules/@discordjs/rest/src/lib/handlers/SequentialHandler.ts:417:20)
+2026-07-30T09:24:42.466532+00:00 app[web.1]: at async SequentialHandler.queueRequest (/app/node_modules/@discordjs/rest/src/lib/handlers/SequentialHandler.ts:169:11)
+2026-07-30T09:24:42.466532+00:00 app[web.1]: at async _REST.request (/app/node_modules/@discordjs/rest/src/lib/REST.ts:210:20)
+2026-07-30T09:24:42.466533+00:00 app[web.1]: at async ApplicationEmojiManager.create (/app/node_modules/discord.js/src/managers/ApplicationEmojiManager.js:57:19)
+2026-07-30T09:24:42.466533+00:00 app[web.1]: at async EmojiHandler.registerEmojis (/app/src/instance/discord/handlers/emoji-handler.ts:58:7) {
+2026-07-30T09:24:42.466534+00:00 app[web.1]: requestBody: {
+2026-07-30T09:24:42.466534+00:00 app[web.1]: files: undefined,
+2026-07-30T09:24:42.466535+00:00 app[web.1]: json: {
+2026-07-30T09:24:42.466535+00:00 app[web.1]: image: 'data:image/jpg;base64,ZmF0YWw6IHBhdGggJ3Jlc291cmNlcy94LndlYnAnIGV4aXN0cyBvbiBkaXNrLCBidXQgbm90IGluICdIRUFEJwo=',
+2026-07-30T09:24:42.466536+00:00 app[web.1]: name: 'can_not_repeat_message'
+2026-07-30T09:24:42.466536+00:00 app[web.1]: }
+2026-07-30T09:24:42.466544+00:00 app[web.1]: },
+2026-07-30T09:24:42.466544+00:00 app[web.1]: rawError: { message: 'Invalid Asset', code: 50046 },
+2026-07-30T09:24:42.466544+00:00 app[web.1]: code: 50046,
+2026-07-30T09:24:42.466545+00:00 app[web.1]: status: 400,
+2026-07-30T09:24:42.466545+00:00 app[web.1]: method: 'POST',
+2026-07-30T09:24:42.466546+00:00 app[web.1]: url: 'https://discord.com/api/v10/applications/1453693252971659275/emojis'
+2026-07-30T09:24:42.466546+00:00 app[web.1]: }
+2026-07-30T09:24:42.877499+00:00 app[web.1]: [32m[2026-07-30T09:24:42.877] [INFO] blockops - [39mMinecraft client ready, logged in
+2026-07-30T09:24:42.877797+00:00 app[web.1]: [36m[2026-07-30T09:24:42.877] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:42.878760+00:00 app[web.1]: [32m[2026-07-30T09:24:42.878] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403482877"
+2026-07-30T09:24:42.878851+00:00 app[web.1]: [32m[2026-07-30T09:24:42.878] [INFO] blockops - [39m[instanceStatus] {"eventId":"minecraft:blockops:2","createdAt":1785403482877,"instanceType":"minecraft","instanceName":"blockops","bridgeId":"blockops","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:24:42.879007+00:00 app[web.1]: [36m[2026-07-30T09:24:42.878] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:24:42.879701+00:00 app[web.1]: [32m[2026-07-30T09:24:42.879] [INFO] blockops - [39mMinecraft instance has connected
+2026-07-30T09:24:42.908255+00:00 app[web.1]: [32m[2026-07-30T09:24:42.908] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403482907"
+2026-07-30T09:24:42.933540+00:00 app[web.1]: [36m[2026-07-30T09:24:42.933] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:42.933764+00:00 app[web.1]: [32m[2026-07-30T09:24:42.933] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403482933"
+2026-07-30T09:24:42.934901+00:00 app[web.1]: [36m[2026-07-30T09:24:42.934] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:42.934902+00:00 app[web.1]: [36m[2026-07-30T09:24:42.934] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:42.934902+00:00 app[web.1]: [36m[2026-07-30T09:24:42.934] [DEBUG] blockops - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:42.935194+00:00 app[web.1]: [32m[2026-07-30T09:24:42.935] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403482934"
+2026-07-30T09:24:42.935283+00:00 app[web.1]: [32m[2026-07-30T09:24:42.935] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403482934"
+2026-07-30T09:24:42.935342+00:00 app[web.1]: [32m[2026-07-30T09:24:42.935] [INFO] blockops - [39m[minecraftSelfBroadcast] instance=blockops bridge=blockops createdAt="1785403482934"
+2026-07-30T09:24:42.944615+00:00 app[web.1]: [32m[2026-07-30T09:24:42.944] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="You were spawned in Limbo." createdAt="1785403482944"
+2026-07-30T09:24:42.944661+00:00 app[web.1]: [32m[2026-07-30T09:24:42.944] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="/limbo for more information." createdAt="1785403482944"
+2026-07-30T09:24:43.049476+00:00 app[web.1]: [32m[2026-07-30T09:24:43.049] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ ----------ⓅⒺⓇⓈⓎ---------- ✥" createdAt="1785403483049"
+2026-07-30T09:24:43.050381+00:00 app[web.1]: [32m[2026-07-30T09:24:43.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Our Discord: https://discord.gg/bfVTBdsMej ✥" createdAt="1785403483050"
+2026-07-30T09:24:43.050451+00:00 app[web.1]: [32m[2026-07-30T09:24:43.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Weekly-Goal every Player: 40.000 GEXP ✥" createdAt="1785403483050"
+2026-07-30T09:24:43.050506+00:00 app[web.1]: [32m[2026-07-30T09:24:43.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ ⚔We are the best guild ⚔✥" createdAt="1785403483050"
+2026-07-30T09:24:43.050593+00:00 app[web.1]: [32m[2026-07-30T09:24:43.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Annoucement: Discord link got updated, please join the Disc ✥" createdAt="1785403483050"
+2026-07-30T09:24:43.050594+00:00 app[web.1]: [32m[2026-07-30T09:24:43.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ Please follow the Rules! ✥" createdAt="1785403483050"
+2026-07-30T09:24:43.050643+00:00 app[web.1]: [32m[2026-07-30T09:24:43.050] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="| ✥ ----------ⓅⒺⓇⓈⓎ---------- ✥" createdAt="1785403483050"
+2026-07-30T09:24:43.060111+00:00 app[web.1]: [32m[2026-07-30T09:24:43.060] [INFO] Percy_cookie - [39mMinecraft client ready, logged in
+2026-07-30T09:24:43.060192+00:00 app[web.1]: [36m[2026-07-30T09:24:43.060] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.060448+00:00 app[web.1]: [32m[2026-07-30T09:24:43.060] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403483059"
+2026-07-30T09:24:43.060517+00:00 app[web.1]: [32m[2026-07-30T09:24:43.060] [INFO] Percy_cookie - [39m[instanceStatus] {"eventId":"minecraft:Percy_cookie:11","createdAt":1785403483060,"instanceType":"minecraft","instanceName":"Percy_cookie","bridgeId":"persy","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:24:43.060570+00:00 app[web.1]: [36m[2026-07-30T09:24:43.060] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:24:43.060843+00:00 app[web.1]: [32m[2026-07-30T09:24:43.060] [INFO] Percy_cookie - [39mMinecraft instance has connected
+2026-07-30T09:24:43.074031+00:00 app[web.1]: [32m[2026-07-30T09:24:43.073] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403483073"
+2026-07-30T09:24:43.075747+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| ------------ THE BLOCK OPS ------------" createdAt="1785403483075"
+2026-07-30T09:24:43.075783+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="|" createdAt="1785403483075"
+2026-07-30T09:24:43.075819+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| ✦ Status: ONLINE" createdAt="1785403483075"
+2026-07-30T09:24:43.075844+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| ✦ Daily Goal: 100k GEXP" createdAt="1785403483075"
+2026-07-30T09:24:43.075868+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="|" createdAt="1785403483075"
+2026-07-30T09:24:43.075893+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| Be sure to /g discord to stay updated!" createdAt="1785403483075"
+2026-07-30T09:24:43.075965+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| NOTE: Be respectful to all squad members." createdAt="1785403483075"
+2026-07-30T09:24:43.075988+00:00 app[web.1]: [32m[2026-07-30T09:24:43.075] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="| -------------------------------------------" createdAt="1785403483075"
+2026-07-30T09:24:43.094344+00:00 app[web.1]: [36m[2026-07-30T09:24:43.094] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.094498+00:00 app[web.1]: [36m[2026-07-30T09:24:43.094] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.094613+00:00 app[web.1]: [36m[2026-07-30T09:24:43.094] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.094760+00:00 app[web.1]: [36m[2026-07-30T09:24:43.094] [DEBUG] Percy_cookie - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.095038+00:00 app[web.1]: [32m[2026-07-30T09:24:43.094] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403483094"
+2026-07-30T09:24:43.095105+00:00 app[web.1]: [32m[2026-07-30T09:24:43.095] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403483094"
+2026-07-30T09:24:43.095146+00:00 app[web.1]: [32m[2026-07-30T09:24:43.095] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403483094"
+2026-07-30T09:24:43.095189+00:00 app[web.1]: [32m[2026-07-30T09:24:43.095] [INFO] Percy_cookie - [39m[minecraftSelfBroadcast] instance=Percy_cookie bridge=persy createdAt="1785403483094"
+2026-07-30T09:24:43.097407+00:00 app[web.1]: [32m[2026-07-30T09:24:43.097] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="You were spawned in Limbo." createdAt="1785403483097"
+2026-07-30T09:24:43.097439+00:00 app[web.1]: [32m[2026-07-30T09:24:43.097] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="/limbo for more information." createdAt="1785403483097"
+2026-07-30T09:24:43.229487+00:00 app[web.1]: [32m[2026-07-30T09:24:43.229] [INFO] johnguab - [39mMinecraft client ready, logged in
+2026-07-30T09:24:43.229646+00:00 app[web.1]: [36m[2026-07-30T09:24:43.229] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.230079+00:00 app[web.1]: [32m[2026-07-30T09:24:43.230] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403483229"
+2026-07-30T09:24:43.230197+00:00 app[web.1]: [32m[2026-07-30T09:24:43.230] [INFO] johnguab - [39m[instanceStatus] {"eventId":"minecraft:johnguab:2","createdAt":1785403483229,"instanceType":"minecraft","instanceName":"johnguab","bridgeId":"guab","status":{"from":"connecting","to":"connected"}}
+2026-07-30T09:24:43.230275+00:00 app[web.1]: [36m[2026-07-30T09:24:43.230] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:24:43.230702+00:00 app[web.1]: [32m[2026-07-30T09:24:43.230] [INFO] johnguab - [39mMinecraft instance has connected
+2026-07-30T09:24:43.255274+00:00 app[web.1]: [32m[2026-07-30T09:24:43.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403483255"
+2026-07-30T09:24:43.273570+00:00 app[web.1]: [36m[2026-07-30T09:24:43.273] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.273731+00:00 app[web.1]: [36m[2026-07-30T09:24:43.273] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.273803+00:00 app[web.1]: [36m[2026-07-30T09:24:43.273] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.273883+00:00 app[web.1]: [36m[2026-07-30T09:24:43.273] [DEBUG] johnguab - [39mSpawn event triggered. sending to limbo...
+2026-07-30T09:24:43.274099+00:00 app[web.1]: [32m[2026-07-30T09:24:43.274] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403483273"
+2026-07-30T09:24:43.274181+00:00 app[web.1]: [32m[2026-07-30T09:24:43.274] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403483273"
+2026-07-30T09:24:43.274237+00:00 app[web.1]: [32m[2026-07-30T09:24:43.274] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403483273"
+2026-07-30T09:24:43.274272+00:00 app[web.1]: [32m[2026-07-30T09:24:43.274] [INFO] johnguab - [39m[minecraftSelfBroadcast] instance=johnguab bridge=guab createdAt="1785403483273"
+2026-07-30T09:24:43.276249+00:00 app[web.1]: [32m[2026-07-30T09:24:43.276] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="You were spawned in Limbo." createdAt="1785403483276"
+2026-07-30T09:24:43.276289+00:00 app[web.1]: [32m[2026-07-30T09:24:43.276] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="/limbo for more information." createdAt="1785403483276"
+2026-07-30T09:24:43.879695+00:00 app[web.1]: [36m[2026-07-30T09:24:43.879] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:24:43.903086+00:00 app[web.1]: [32m[2026-07-30T09:24:43.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483902"
+2026-07-30T09:24:43.903134+00:00 app[web.1]: [32m[2026-07-30T09:24:43.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483902"
+2026-07-30T09:24:43.903158+00:00 app[web.1]: [32m[2026-07-30T09:24:43.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483902"
+2026-07-30T09:24:43.903181+00:00 app[web.1]: [32m[2026-07-30T09:24:43.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483902"
+2026-07-30T09:24:43.904297+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483904"
+2026-07-30T09:24:43.904335+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483904"
+2026-07-30T09:24:43.904368+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483904"
+2026-07-30T09:24:43.904405+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483904"
+2026-07-30T09:24:43.904442+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403483904"
+2026-07-30T09:24:43.904499+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403483904"
+2026-07-30T09:24:43.904539+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403483904"
+2026-07-30T09:24:43.904580+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403483904"
+2026-07-30T09:24:43.904618+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403483904"
+2026-07-30T09:24:43.904686+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403483904"
+2026-07-30T09:24:43.904722+00:00 app[web.1]: [32m[2026-07-30T09:24:43.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403483904"
+2026-07-30T09:24:44.037026+00:00 app[web.1]: [32m[2026-07-30T09:24:44.036] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| Guab" createdAt="1785403484036"
+2026-07-30T09:24:44.037060+00:00 app[web.1]: [32m[2026-07-30T09:24:44.037] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="|" createdAt="1785403484036"
+2026-07-30T09:24:44.037093+00:00 app[web.1]: [32m[2026-07-30T09:24:44.037] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| Welcome Back!" createdAt="1785403484036"
+2026-07-30T09:24:44.037142+00:00 app[web.1]: [32m[2026-07-30T09:24:44.037] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="|" createdAt="1785403484036"
+2026-07-30T09:24:44.037602+00:00 app[web.1]: [32m[2026-07-30T09:24:44.037] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| Join our Discord! --> https://Discord.gg/guab" createdAt="1785403484037"
+2026-07-30T09:24:44.037637+00:00 app[web.1]: [32m[2026-07-30T09:24:44.037] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="|" createdAt="1785403484037"
+2026-07-30T09:24:44.037665+00:00 app[web.1]: [32m[2026-07-30T09:24:44.037] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="| !help to see a list of bot commands" createdAt="1785403484037"
+2026-07-30T09:24:44.060341+00:00 app[web.1]: [36m[2026-07-30T09:24:44.060] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:24:44.085022+00:00 app[web.1]: [32m[2026-07-30T09:24:44.084] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484084"
+2026-07-30T09:24:44.085571+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085596+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085618+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085638+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085659+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085679+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085698+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085718+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403484085"
+2026-07-30T09:24:44.085750+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403484085"
+2026-07-30T09:24:44.085775+00:00 app[web.1]: [32m[2026-07-30T09:24:44.085] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403484085"
+2026-07-30T09:24:44.086156+00:00 app[web.1]: [32m[2026-07-30T09:24:44.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403484086"
+2026-07-30T09:24:44.086183+00:00 app[web.1]: [32m[2026-07-30T09:24:44.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403484086"
+2026-07-30T09:24:44.086206+00:00 app[web.1]: [32m[2026-07-30T09:24:44.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403484086"
+2026-07-30T09:24:44.086229+00:00 app[web.1]: [32m[2026-07-30T09:24:44.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403484086"
+2026-07-30T09:24:44.230744+00:00 app[web.1]: [36m[2026-07-30T09:24:44.230] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:24:44.255042+00:00 app[web.1]: [32m[2026-07-30T09:24:44.254] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484254"
+2026-07-30T09:24:44.255667+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255690+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255710+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255731+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255751+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255771+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255790+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255809+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403484255"
+2026-07-30T09:24:44.255841+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403484255"
+2026-07-30T09:24:44.255867+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403484255"
+2026-07-30T09:24:44.255923+00:00 app[web.1]: [32m[2026-07-30T09:24:44.255] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403484255"
+2026-07-30T09:24:44.256305+00:00 app[web.1]: [32m[2026-07-30T09:24:44.256] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403484256"
+2026-07-30T09:24:44.256336+00:00 app[web.1]: [32m[2026-07-30T09:24:44.256] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403484256"
+2026-07-30T09:24:44.256365+00:00 app[web.1]: [32m[2026-07-30T09:24:44.256] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403484256"
+2026-07-30T09:24:44.879384+00:00 app[web.1]: [36m[2026-07-30T09:24:44.879] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:24:44.902770+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.902826+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.902862+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.902891+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.902919+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.902969+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.902997+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.903025+00:00 app[web.1]: [32m[2026-07-30T09:24:44.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.903051+00:00 app[web.1]: [32m[2026-07-30T09:24:44.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403484902"
+2026-07-30T09:24:44.903625+00:00 app[web.1]: [32m[2026-07-30T09:24:44.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403484903"
+2026-07-30T09:24:44.903662+00:00 app[web.1]: [32m[2026-07-30T09:24:44.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403484903"
+2026-07-30T09:24:44.903693+00:00 app[web.1]: [32m[2026-07-30T09:24:44.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403484903"
+2026-07-30T09:24:44.903725+00:00 app[web.1]: [32m[2026-07-30T09:24:44.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403484903"
+2026-07-30T09:24:44.903755+00:00 app[web.1]: [32m[2026-07-30T09:24:44.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403484903"
+2026-07-30T09:24:44.903785+00:00 app[web.1]: [32m[2026-07-30T09:24:44.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403484903"
+2026-07-30T09:24:45.061019+00:00 app[web.1]: [36m[2026-07-30T09:24:45.060] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:24:45.086706+00:00 app[web.1]: [32m[2026-07-30T09:24:45.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485086"
+2026-07-30T09:24:45.086745+00:00 app[web.1]: [32m[2026-07-30T09:24:45.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485086"
+2026-07-30T09:24:45.086838+00:00 app[web.1]: [32m[2026-07-30T09:24:45.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485086"
+2026-07-30T09:24:45.086874+00:00 app[web.1]: [32m[2026-07-30T09:24:45.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485086"
+2026-07-30T09:24:45.086907+00:00 app[web.1]: [32m[2026-07-30T09:24:45.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485086"
+2026-07-30T09:24:45.086990+00:00 app[web.1]: [32m[2026-07-30T09:24:45.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485086"
+2026-07-30T09:24:45.087015+00:00 app[web.1]: [32m[2026-07-30T09:24:45.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485086"
+2026-07-30T09:24:45.087754+00:00 app[web.1]: [32m[2026-07-30T09:24:45.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485087"
+2026-07-30T09:24:45.087790+00:00 app[web.1]: [32m[2026-07-30T09:24:45.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403485087"
+2026-07-30T09:24:45.087840+00:00 app[web.1]: [32m[2026-07-30T09:24:45.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403485087"
+2026-07-30T09:24:45.087873+00:00 app[web.1]: [32m[2026-07-30T09:24:45.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403485087"
+2026-07-30T09:24:45.087909+00:00 app[web.1]: [32m[2026-07-30T09:24:45.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403485087"
+2026-07-30T09:24:45.087968+00:00 app[web.1]: [32m[2026-07-30T09:24:45.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403485087"
+2026-07-30T09:24:45.088003+00:00 app[web.1]: [32m[2026-07-30T09:24:45.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403485087"
+2026-07-30T09:24:45.088038+00:00 app[web.1]: [32m[2026-07-30T09:24:45.088] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403485087"
+2026-07-30T09:24:45.231963+00:00 app[web.1]: [36m[2026-07-30T09:24:45.231] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:24:45.256678+00:00 app[web.1]: [32m[2026-07-30T09:24:45.256] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485256"
+2026-07-30T09:24:45.256710+00:00 app[web.1]: [32m[2026-07-30T09:24:45.256] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485256"
+2026-07-30T09:24:45.256741+00:00 app[web.1]: [32m[2026-07-30T09:24:45.256] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485256"
+2026-07-30T09:24:45.257686+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485257"
+2026-07-30T09:24:45.257722+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485257"
+2026-07-30T09:24:45.257754+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485257"
+2026-07-30T09:24:45.257826+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485257"
+2026-07-30T09:24:45.257856+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485257"
+2026-07-30T09:24:45.257884+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403485257"
+2026-07-30T09:24:45.257937+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403485257"
+2026-07-30T09:24:45.257998+00:00 app[web.1]: [32m[2026-07-30T09:24:45.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403485257"
+2026-07-30T09:24:45.258062+00:00 app[web.1]: [32m[2026-07-30T09:24:45.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403485257"
+2026-07-30T09:24:45.258099+00:00 app[web.1]: [32m[2026-07-30T09:24:45.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403485257"
+2026-07-30T09:24:45.258132+00:00 app[web.1]: [32m[2026-07-30T09:24:45.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403485257"
+2026-07-30T09:24:45.258165+00:00 app[web.1]: [32m[2026-07-30T09:24:45.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403485257"
+2026-07-30T09:24:45.879649+00:00 app[web.1]: [36m[2026-07-30T09:24:45.879] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:24:45.902847+00:00 app[web.1]: [32m[2026-07-30T09:24:45.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485902"
+2026-07-30T09:24:45.903874+00:00 app[web.1]: [32m[2026-07-30T09:24:45.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.903918+00:00 app[web.1]: [32m[2026-07-30T09:24:45.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.903975+00:00 app[web.1]: [32m[2026-07-30T09:24:45.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.904009+00:00 app[web.1]: [32m[2026-07-30T09:24:45.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.904041+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.904067+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.904091+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.904118+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403485903"
+2026-07-30T09:24:45.904160+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403485903"
+2026-07-30T09:24:45.904191+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403485903"
+2026-07-30T09:24:45.904220+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403485903"
+2026-07-30T09:24:45.904255+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403485903"
+2026-07-30T09:24:45.904288+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403485903"
+2026-07-30T09:24:45.904320+00:00 app[web.1]: [32m[2026-07-30T09:24:45.904] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403485903"
+2026-07-30T09:24:46.061366+00:00 app[web.1]: [36m[2026-07-30T09:24:46.061] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:24:46.086566+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086584+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086604+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086623+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086642+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086660+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086680+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086697+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086715+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403486086"
+2026-07-30T09:24:46.086748+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403486086"
+2026-07-30T09:24:46.086771+00:00 app[web.1]: [32m[2026-07-30T09:24:46.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403486086"
+2026-07-30T09:24:46.087463+00:00 app[web.1]: [32m[2026-07-30T09:24:46.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403486087"
+2026-07-30T09:24:46.087493+00:00 app[web.1]: [32m[2026-07-30T09:24:46.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403486087"
+2026-07-30T09:24:46.087511+00:00 app[web.1]: [32m[2026-07-30T09:24:46.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403486087"
+2026-07-30T09:24:46.087533+00:00 app[web.1]: [32m[2026-07-30T09:24:46.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403486087"
+2026-07-30T09:24:46.233232+00:00 app[web.1]: [36m[2026-07-30T09:24:46.233] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:24:46.257951+00:00 app[web.1]: [32m[2026-07-30T09:24:46.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.257991+00:00 app[web.1]: [32m[2026-07-30T09:24:46.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258014+00:00 app[web.1]: [32m[2026-07-30T09:24:46.257] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258034+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258054+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258073+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258091+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258109+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258127+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403486257"
+2026-07-30T09:24:46.258162+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403486257"
+2026-07-30T09:24:46.258188+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403486257"
+2026-07-30T09:24:46.258704+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403486258"
+2026-07-30T09:24:46.258730+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403486258"
+2026-07-30T09:24:46.258752+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403486258"
+2026-07-30T09:24:46.258774+00:00 app[web.1]: [32m[2026-07-30T09:24:46.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403486258"
+2026-07-30T09:24:46.879798+00:00 app[web.1]: [36m[2026-07-30T09:24:46.879] [DEBUG] blockops - [39mSending message now: /limbo
+2026-07-30T09:24:46.902844+00:00 app[web.1]: [32m[2026-07-30T09:24:46.902] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486902"
+2026-07-30T09:24:46.903538+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903559+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903585+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903609+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903634+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903658+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903682+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903705+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403486903"
+2026-07-30T09:24:46.903742+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="The lobby you attempted to join was full or offline." createdAt="1785403486903"
+2026-07-30T09:24:46.903771+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403486903"
+2026-07-30T09:24:46.903798+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403486903"
+2026-07-30T09:24:46.903826+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="To return to 'reality', use /lobby GAME." createdAt="1785403486903"
+2026-07-30T09:24:46.903854+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403486903"
+2026-07-30T09:24:46.903899+00:00 app[web.1]: [32m[2026-07-30T09:24:46.903] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403486903"
+2026-07-30T09:24:47.061737+00:00 app[web.1]: [36m[2026-07-30T09:24:47.061] [DEBUG] Percy_cookie - [39mSending message now: /limbo
+2026-07-30T09:24:47.086510+00:00 app[web.1]: [32m[2026-07-30T09:24:47.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487086"
+2026-07-30T09:24:47.086528+00:00 app[web.1]: [32m[2026-07-30T09:24:47.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487086"
+2026-07-30T09:24:47.086549+00:00 app[web.1]: [32m[2026-07-30T09:24:47.086] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487086"
+2026-07-30T09:24:47.087244+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487087"
+2026-07-30T09:24:47.087266+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487087"
+2026-07-30T09:24:47.087285+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487087"
+2026-07-30T09:24:47.087305+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487087"
+2026-07-30T09:24:47.087323+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487087"
+2026-07-30T09:24:47.087341+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403487087"
+2026-07-30T09:24:47.087372+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="The lobby you attempted to join was full or offline." createdAt="1785403487087"
+2026-07-30T09:24:47.087394+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403487087"
+2026-07-30T09:24:47.087416+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403487087"
+2026-07-30T09:24:47.087438+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="To return to 'reality', use /lobby GAME." createdAt="1785403487087"
+2026-07-30T09:24:47.087459+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403487087"
+2026-07-30T09:24:47.087480+00:00 app[web.1]: [32m[2026-07-30T09:24:47.087] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403487087"
+2026-07-30T09:24:47.233490+00:00 app[web.1]: [36m[2026-07-30T09:24:47.233] [DEBUG] johnguab - [39mSending message now: /limbo
+2026-07-30T09:24:47.258100+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487257"
+2026-07-30T09:24:47.258120+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487257"
+2026-07-30T09:24:47.258140+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487257"
+2026-07-30T09:24:47.258786+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487258"
+2026-07-30T09:24:47.258808+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487258"
+2026-07-30T09:24:47.258853+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487258"
+2026-07-30T09:24:47.258866+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487258"
+2026-07-30T09:24:47.258884+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487258"
+2026-07-30T09:24:47.258902+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403487258"
+2026-07-30T09:24:47.258973+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="The lobby you attempted to join was full or offline." createdAt="1785403487258"
+2026-07-30T09:24:47.258974+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Because of this, you were routed to Limbo, a subset of your own imagination." createdAt="1785403487258"
+2026-07-30T09:24:47.258997+00:00 app[web.1]: [32m[2026-07-30T09:24:47.258] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="This place doesn't exist anywhere, and you can stay here as long as you'd like." createdAt="1785403487258"
+2026-07-30T09:24:47.259020+00:00 app[web.1]: [32m[2026-07-30T09:24:47.259] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="To return to 'reality', use /lobby GAME." createdAt="1785403487258"
+2026-07-30T09:24:47.259043+00:00 app[web.1]: [32m[2026-07-30T09:24:47.259] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Examples: /lobby, /lobby skywars, /lobby arcade" createdAt="1785403487258"
+2026-07-30T09:24:47.259064+00:00 app[web.1]: [32m[2026-07-30T09:24:47.259] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Watch out, though, as there are things that live in Limbo." createdAt="1785403487258"
+2026-07-30T09:24:48.523016+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=35bd9bb0-9a50-cc0f-7b37-4a89e907de2d fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=14892 protocol=http1.1 tls=false
+2026-07-30T09:24:53.275041+00:00 app[web.1]: [36m[2026-07-30T09:24:53.274] [DEBUG] internal/core - [39mResolving guild ranks from server
+2026-07-30T09:25:08.199528+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=f8980eae-e1c3-a25e-896d-61a29260de7c fwd="13.41.125.195" dyno=web.1 connect=0ms service=4ms status=200 bytes=14903 protocol=http1.1 tls=false
+2026-07-30T09:25:18.522975+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=efe53e6c-f1ae-1531-4b80-bef26f61eab6 fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=14903 protocol=http1.1 tls=false
+2026-07-30T09:25:30.374878+00:00 app[web.1]: [36m[2026-07-30T09:25:30.374] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache miss, sending /guild list...
+2026-07-30T09:25:30.375406+00:00 app[web.1]: [36m[2026-07-30T09:25:30.375] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache miss, sending /guild list...
+2026-07-30T09:25:30.375553+00:00 app[web.1]: [36m[2026-07-30T09:25:30.375] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache miss, sending /guild list...
+2026-07-30T09:25:30.375719+00:00 app[web.1]: [36m[2026-07-30T09:25:30.375] [DEBUG] blockops - [39mSending message now: /guild list
+2026-07-30T09:25:30.376014+00:00 app[web.1]: [36m[2026-07-30T09:25:30.375] [DEBUG] johnguab - [39mSending message now: /guild list
+2026-07-30T09:25:30.376157+00:00 app[web.1]: [36m[2026-07-30T09:25:30.376] [DEBUG] Percy_cookie - [39mSending message now: /guild list
+2026-07-30T09:25:30.485983+00:00 app[web.1]: [32m[2026-07-30T09:25:30.485] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403530485"
+2026-07-30T09:25:30.486731+00:00 app[web.1]: [32m[2026-07-30T09:25:30.486] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] SpleenyPoo ●" createdAt="1785403530486"
+2026-07-30T09:25:30.486755+00:00 app[web.1]: [32m[2026-07-30T09:25:30.486] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403530486"
+2026-07-30T09:25:30.487562+00:00 app[web.1]: [32m[2026-07-30T09:25:30.487] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] flqw3d ● [MVP+] JohnGuab ● Guab_Bot ● [MVP++] pgqn ●" createdAt="1785403530487"
+2026-07-30T09:25:30.487587+00:00 app[web.1]: [32m[2026-07-30T09:25:30.487] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403530487"
+2026-07-30T09:25:30.488317+00:00 app[web.1]: [32m[2026-07-30T09:25:30.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] melau ● [MVP+] SlimmeBoyVin ● [MVP+] Veniard ● [MVP+] 8140 ● [MVP+] lplxavi ● [MVP++] diskne ● [VIP] bezakos ● […" createdAt="1785403530488"
+2026-07-30T09:25:30.488345+00:00 app[web.1]: [32m[2026-07-30T09:25:30.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403530488"
+2026-07-30T09:25:30.488393+00:00 app[web.1]: [32m[2026-07-30T09:25:30.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Tp2_ ●" createdAt="1785403530488"
+2026-07-30T09:25:30.488415+00:00 app[web.1]: [32m[2026-07-30T09:25:30.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403530488"
+2026-07-30T09:25:30.488777+00:00 app[web.1]: [32m[2026-07-30T09:25:30.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] Mkil2 ● [MVP+] ProxySvetac ● [MVP+] _Vorr_ ● [MVP+] iSpawnblock ●" createdAt="1785403530488"
+2026-07-30T09:25:30.488797+00:00 app[web.1]: [32m[2026-07-30T09:25:30.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403530488"
+2026-07-30T09:25:30.489267+00:00 app[web.1]: [32m[2026-07-30T09:25:30.489] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Guabbing ● [MVP+] tinging ● [VIP] Select1ve ● [MVP+] Fox248G ● [VIP] Djenih ● [VIP] Defilade ● [MVP++] Valescca ● [MVP+…" createdAt="1785403530489"
+2026-07-30T09:25:30.489297+00:00 app[web.1]: [32m[2026-07-30T09:25:30.489] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403530489"
+2026-07-30T09:25:30.515360+00:00 app[web.1]: [32m[2026-07-30T09:25:30.515] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403530515"
+2026-07-30T09:25:30.515385+00:00 app[web.1]: [32m[2026-07-30T09:25:30.515] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] Valerwy ●" createdAt="1785403530515"
+2026-07-30T09:25:30.515407+00:00 app[web.1]: [32m[2026-07-30T09:25:30.515] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403530515"
+2026-07-30T09:25:30.515448+00:00 app[web.1]: [32m[2026-07-30T09:25:30.515] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] ElixOG ● TheBlockOp ●" createdAt="1785403530515"
+2026-07-30T09:25:30.515467+00:00 app[web.1]: [32m[2026-07-30T09:25:30.515] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403530515"
+2026-07-30T09:25:30.515876+00:00 app[web.1]: [32m[2026-07-30T09:25:30.515] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] Danheimer ● [MVP+] Starwathan ● [MVP+] JWDA ● [MVP+] NinjaSteeler ● [MVP++] UnhorsedBrush04 ● [MVP++] _Catking ●…" createdAt="1785403530515"
+2026-07-30T09:25:30.515893+00:00 app[web.1]: [32m[2026-07-30T09:25:30.515] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403530515"
+2026-07-30T09:25:30.523593+00:00 app[web.1]: [32m[2026-07-30T09:25:30.523] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403530523"
+2026-07-30T09:25:30.524116+00:00 app[web.1]: [32m[2026-07-30T09:25:30.524] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] YS7G ●" createdAt="1785403530524"
+2026-07-30T09:25:30.524139+00:00 app[web.1]: [32m[2026-07-30T09:25:30.524] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403530524"
+2026-07-30T09:25:30.524511+00:00 app[web.1]: [32m[2026-07-30T09:25:30.524] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] GGYOUDIE ● [MVP+] 1nonly_boah ●" createdAt="1785403530524"
+2026-07-30T09:25:30.524532+00:00 app[web.1]: [32m[2026-07-30T09:25:30.524] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403530524"
+2026-07-30T09:25:30.525101+00:00 app[web.1]: [32m[2026-07-30T09:25:30.525] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[VIP] Percy_Cookie ● [MVP+] Mr_Big_Smiley ● [MVP++] da8dy ● [MVP+] Civyr ● [MVP+] 1Joe_ ● [MVP+] Blyza ● [MVP+] Lundqvi…" createdAt="1785403530525"
+2026-07-30T09:25:30.525120+00:00 app[web.1]: [32m[2026-07-30T09:25:30.525] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403530525"
+2026-07-30T09:25:30.525914+00:00 app[web.1]: [32m[2026-07-30T09:25:30.525] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] ILYLOVE ● [MVP+] DreamBlackTea ● [MVP+] Meohre ● [MVP+] FriediY ● [VIP+] SystemicOne ● [MVP+] Lyrixcalx ● [MVP+]…" createdAt="1785403530525"
+2026-07-30T09:25:30.525950+00:00 app[web.1]: [32m[2026-07-30T09:25:30.525] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403530525"
+2026-07-30T09:25:30.526250+00:00 app[web.1]: [32m[2026-07-30T09:25:30.526] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] VoidFrags_ ● [MVP+] Spraid ● [MVP++] cuteing ● [MVP+] Tempo27 ● [MVP+] wpis ● [MVP++] 2ellipses ● [MVP] Kesiesie…" createdAt="1785403530526"
+2026-07-30T09:25:30.536504+00:00 app[web.1]: [32m[2026-07-30T09:25:30.536] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] DrxgonFish ● [MVP++] AsianMommyLover ● [MVP+] ETGX ● [VIP] abyssal_koko ● [MVP+] cubanos ● [MVP+] EnderAsleep ● […" createdAt="1785403530536"
+2026-07-30T09:25:30.537979+00:00 app[web.1]: [32m[2026-07-30T09:25:30.536] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403530536"
+2026-07-30T09:25:30.537980+00:00 app[web.1]: [32m[2026-07-30T09:25:30.536] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] Gablplautze ● [MVP++] Bas4 ● [VIP] OhB1ock ● [MVP++] Mysteriosm ● [MVP++] BrazilianPrince ● [VIP] qw45214 ● ninja…" createdAt="1785403530536"
+2026-07-30T09:25:30.537980+00:00 app[web.1]: [32m[2026-07-30T09:25:30.536] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403530536"
+2026-07-30T09:25:30.538117+00:00 app[web.1]: [32m[2026-07-30T09:25:30.538] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] _JustFoxy ● [MVP+] wFirex ● [VIP] Coollector ● [VIP+] transpancy ● [MVP+] NotNytox ● [VIP] olxvia ● [MVP++] Aqua…" createdAt="1785403530537"
+2026-07-30T09:25:30.538142+00:00 app[web.1]: [32m[2026-07-30T09:25:30.538] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403530537"
+2026-07-30T09:25:30.545945+00:00 app[web.1]: [32m[2026-07-30T09:25:30.545] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403530545"
+2026-07-30T09:25:30.546904+00:00 app[web.1]: [32m[2026-07-30T09:25:30.546] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] stacoja ● [MVP+] SirWuro ● [MVP+] _Jewier_ ● [MVP+] Retikasd ● [MVP+] AchJonas ● [MVP+] babelaid ● [MVP+] 0hSile…" createdAt="1785403530546"
+2026-07-30T09:25:30.546937+00:00 app[web.1]: [32m[2026-07-30T09:25:30.546] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403530546"
+2026-07-30T09:25:30.877422+00:00 app[web.1]: [36m[2026-07-30T09:25:30.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) listNow took 502ms (125 members)
+2026-07-30T09:25:30.877444+00:00 app[web.1]: [36m[2026-07-30T09:25:30.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) members parsed: 125
+2026-07-30T09:25:30.877509+00:00 app[web.1]: [36m[2026-07-30T09:25:30.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache hit after queue (age 502ms)
+2026-07-30T09:25:30.877538+00:00 app[web.1]: [36m[2026-07-30T09:25:30.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 503ms
+2026-07-30T09:25:30.877843+00:00 app[web.1]: [36m[2026-07-30T09:25:30.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 503ms
+2026-07-30T09:25:30.907022+00:00 app[web.1]: [36m[2026-07-30T09:25:30.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) listNow took 531ms (39 members)
+2026-07-30T09:25:30.907058+00:00 app[web.1]: [36m[2026-07-30T09:25:30.907] [DEBUG] internal/core - [39m[guildManager] list(johnguab) members parsed: 39
+2026-07-30T09:25:30.907084+00:00 app[web.1]: [36m[2026-07-30T09:25:30.907] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache hit after queue (age 532ms)
+2026-07-30T09:25:30.907109+00:00 app[web.1]: [36m[2026-07-30T09:25:30.907] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 532ms
+2026-07-30T09:25:30.907180+00:00 app[web.1]: [36m[2026-07-30T09:25:30.907] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 532ms
+2026-07-30T09:25:30.913149+00:00 app[web.1]: [36m[2026-07-30T09:25:30.913] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) listNow took 538ms (119 members)
+2026-07-30T09:25:30.913196+00:00 app[web.1]: [36m[2026-07-30T09:25:30.913] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) members parsed: 119
+2026-07-30T09:25:30.913231+00:00 app[web.1]: [36m[2026-07-30T09:25:30.913] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache hit after queue (age 538ms)
+2026-07-30T09:25:30.913262+00:00 app[web.1]: [36m[2026-07-30T09:25:30.913] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 539ms
+2026-07-30T09:25:30.913327+00:00 app[web.1]: [36m[2026-07-30T09:25:30.913] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 539ms
+2026-07-30T09:25:38.198382+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=e04eef1e-b45d-d98b-f39a-2fb01e71102c fwd="13.41.125.195" dyno=web.1 connect=0ms service=3ms status=200 bytes=14903 protocol=http1.1 tls=false
+2026-07-30T09:25:48.523646+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=8bcbba3e-fe0b-f7dc-b4ce-4d9ea44c564b fwd="135.181.209.89" dyno=web.1 connect=0ms service=4ms status=200 bytes=14904 protocol=http1.1 tls=false
+2026-07-30T09:26:08.197913+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=1d8bfae5-4830-21be-7a14-84846b4d9ecb fwd="13.41.125.195" dyno=web.1 connect=0ms service=3ms status=200 bytes=14915 protocol=http1.1 tls=false
+2026-07-30T09:26:18.522639+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=2c572ebc-52e8-b45b-a27d-3bb60d7e13fd fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=14915 protocol=http1.1 tls=false
+2026-07-30T09:26:20.373642+00:00 app[web.1]: [36m[2026-07-30T09:26:20.373] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache miss, sending /guild list...
+2026-07-30T09:26:20.373892+00:00 app[web.1]: [36m[2026-07-30T09:26:20.373] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache miss, sending /guild list...
+2026-07-30T09:26:20.374044+00:00 app[web.1]: [36m[2026-07-30T09:26:20.374] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache miss, sending /guild list...
+2026-07-30T09:26:20.374207+00:00 app[web.1]: [36m[2026-07-30T09:26:20.374] [DEBUG] blockops - [39mSending message now: /guild list
+2026-07-30T09:26:20.374426+00:00 app[web.1]: [36m[2026-07-30T09:26:20.374] [DEBUG] johnguab - [39mSending message now: /guild list
+2026-07-30T09:26:20.374538+00:00 app[web.1]: [36m[2026-07-30T09:26:20.374] [DEBUG] Percy_cookie - [39mSending message now: /guild list
+2026-07-30T09:26:20.487306+00:00 app[web.1]: [32m[2026-07-30T09:26:20.487] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403580487"
+2026-07-30T09:26:20.487345+00:00 app[web.1]: [32m[2026-07-30T09:26:20.487] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] SpleenyPoo ●" createdAt="1785403580487"
+2026-07-30T09:26:20.487369+00:00 app[web.1]: [32m[2026-07-30T09:26:20.487] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403580487"
+2026-07-30T09:26:20.487988+00:00 app[web.1]: [32m[2026-07-30T09:26:20.487] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] flqw3d ● [MVP+] JohnGuab ● Guab_Bot ● [MVP++] pgqn ●" createdAt="1785403580487"
+2026-07-30T09:26:20.488010+00:00 app[web.1]: [32m[2026-07-30T09:26:20.487] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403580487"
+2026-07-30T09:26:20.488551+00:00 app[web.1]: [32m[2026-07-30T09:26:20.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] melau ● [MVP+] SlimmeBoyVin ● [MVP+] Veniard ● [MVP+] 8140 ● [MVP+] lplxavi ● [MVP++] diskne ● [VIP] bezakos ● […" createdAt="1785403580488"
+2026-07-30T09:26:20.488576+00:00 app[web.1]: [32m[2026-07-30T09:26:20.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403580488"
+2026-07-30T09:26:20.488610+00:00 app[web.1]: [32m[2026-07-30T09:26:20.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Tp2_ ●" createdAt="1785403580488"
+2026-07-30T09:26:20.488630+00:00 app[web.1]: [32m[2026-07-30T09:26:20.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403580488"
+2026-07-30T09:26:20.488879+00:00 app[web.1]: [32m[2026-07-30T09:26:20.488] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] Mkil2 ● [MVP+] ProxySvetac ● [MVP+] _Vorr_ ● [MVP+] iSpawnblock ●" createdAt="1785403580488"
+2026-07-30T09:26:20.499766+00:00 app[web.1]: [32m[2026-07-30T09:26:20.499] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403580499"
+2026-07-30T09:26:20.499823+00:00 app[web.1]: [32m[2026-07-30T09:26:20.499] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] Valerwy ●" createdAt="1785403580499"
+2026-07-30T09:26:20.499858+00:00 app[web.1]: [32m[2026-07-30T09:26:20.499] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403580499"
+2026-07-30T09:26:20.499999+00:00 app[web.1]: [32m[2026-07-30T09:26:20.499] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] ElixOG ● TheBlockOp ●" createdAt="1785403580499"
+2026-07-30T09:26:20.500029+00:00 app[web.1]: [32m[2026-07-30T09:26:20.499] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403580499"
+2026-07-30T09:26:20.500996+00:00 app[web.1]: [32m[2026-07-30T09:26:20.500] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] Danheimer ● [MVP+] Starwathan ● [MVP+] JWDA ● [MVP+] NinjaSteeler ● [MVP++] UnhorsedBrush04 ● [MVP++] _Catking ●…" createdAt="1785403580500"
+2026-07-30T09:26:20.501016+00:00 app[web.1]: [32m[2026-07-30T09:26:20.500] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403580500"
+2026-07-30T09:26:20.501381+00:00 app[web.1]: [32m[2026-07-30T09:26:20.501] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] DrxgonFish ● [MVP++] AsianMommyLover ● [MVP+] ETGX ● [VIP] abyssal_koko ● [MVP+] cubanos ● [MVP+] EnderAsleep ● […" createdAt="1785403580501"
+2026-07-30T09:26:20.506511+00:00 app[web.1]: [32m[2026-07-30T09:26:20.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403580506"
+2026-07-30T09:26:20.506547+00:00 app[web.1]: [32m[2026-07-30T09:26:20.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] YS7G ●" createdAt="1785403580506"
+2026-07-30T09:26:20.506566+00:00 app[web.1]: [32m[2026-07-30T09:26:20.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403580506"
+2026-07-30T09:26:20.507212+00:00 app[web.1]: [32m[2026-07-30T09:26:20.507] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] GGYOUDIE ● [MVP+] 1nonly_boah ●" createdAt="1785403580507"
+2026-07-30T09:26:20.507230+00:00 app[web.1]: [32m[2026-07-30T09:26:20.507] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403580507"
+2026-07-30T09:26:20.507590+00:00 app[web.1]: [32m[2026-07-30T09:26:20.507] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[VIP] Percy_Cookie ● [MVP+] Mr_Big_Smiley ● [MVP++] da8dy ● [MVP+] Civyr ● [MVP+] 1Joe_ ● [MVP+] Blyza ● [MVP+] Lundqvi…" createdAt="1785403580507"
+2026-07-30T09:26:20.507614+00:00 app[web.1]: [32m[2026-07-30T09:26:20.507] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403580507"
+2026-07-30T09:26:20.508397+00:00 app[web.1]: [32m[2026-07-30T09:26:20.508] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] ILYLOVE ● [MVP+] DreamBlackTea ● [MVP+] Meohre ● [MVP+] FriediY ● [VIP+] SystemicOne ● [MVP+] Lyrixcalx ● [MVP+]…" createdAt="1785403580508"
+2026-07-30T09:26:20.508684+00:00 app[web.1]: [32m[2026-07-30T09:26:20.508] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403580508"
+2026-07-30T09:26:20.509102+00:00 app[web.1]: [32m[2026-07-30T09:26:20.509] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Guabbing ● [MVP+] tinging ● [VIP] Select1ve ● [MVP+] Fox248G ● [VIP] Djenih ● [VIP] Defilade ● [MVP++] Valescca ● [MVP+…" createdAt="1785403580509"
+2026-07-30T09:26:20.509124+00:00 app[web.1]: [32m[2026-07-30T09:26:20.509] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403580509"
+2026-07-30T09:26:20.520361+00:00 app[web.1]: [32m[2026-07-30T09:26:20.520] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403580520"
+2026-07-30T09:26:20.520788+00:00 app[web.1]: [32m[2026-07-30T09:26:20.520] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] Gablplautze ● [MVP++] Bas4 ● [VIP] OhB1ock ● [MVP++] Mysteriosm ● [MVP++] BrazilianPrince ● [VIP] qw45214 ● ninja…" createdAt="1785403580520"
+2026-07-30T09:26:20.520810+00:00 app[web.1]: [32m[2026-07-30T09:26:20.520] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403580520"
+2026-07-30T09:26:20.521901+00:00 app[web.1]: [32m[2026-07-30T09:26:20.521] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] _JustFoxy ● [MVP+] wFirex ● [VIP] Coollector ● [VIP+] transpancy ● [MVP+] NotNytox ● [VIP] olxvia ● [MVP++] Aqua…" createdAt="1785403580521"
+2026-07-30T09:26:20.521922+00:00 app[web.1]: [32m[2026-07-30T09:26:20.521] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403580521"
+2026-07-30T09:26:20.528715+00:00 app[web.1]: [32m[2026-07-30T09:26:20.528] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403580528"
+2026-07-30T09:26:20.529120+00:00 app[web.1]: [32m[2026-07-30T09:26:20.529] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] VoidFrags_ ● [MVP+] Spraid ● [MVP++] cuteing ● [MVP+] Tempo27 ● [MVP+] wpis ● [MVP++] 2ellipses ● [MVP] Kesiesie…" createdAt="1785403580529"
+2026-07-30T09:26:20.529144+00:00 app[web.1]: [32m[2026-07-30T09:26:20.529] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403580529"
+2026-07-30T09:26:20.529967+00:00 app[web.1]: [32m[2026-07-30T09:26:20.529] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] stacoja ● [MVP+] SirWuro ● [MVP+] _Jewier_ ● [MVP+] Retikasd ● [MVP+] AchJonas ● [MVP+] babelaid ● [MVP+] 0hSile…" createdAt="1785403580529"
+2026-07-30T09:26:20.529988+00:00 app[web.1]: [32m[2026-07-30T09:26:20.529] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403580529"
+2026-07-30T09:26:20.873562+00:00 app[web.1]: [36m[2026-07-30T09:26:20.873] [DEBUG] internal/core - [39m[guildManager] list(blockops) listNow took 500ms (125 members)
+2026-07-30T09:26:20.873585+00:00 app[web.1]: [36m[2026-07-30T09:26:20.873] [DEBUG] internal/core - [39m[guildManager] list(blockops) members parsed: 125
+2026-07-30T09:26:20.873634+00:00 app[web.1]: [36m[2026-07-30T09:26:20.873] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache hit after queue (age 500ms)
+2026-07-30T09:26:20.873654+00:00 app[web.1]: [36m[2026-07-30T09:26:20.873] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 500ms
+2026-07-30T09:26:20.873736+00:00 app[web.1]: [36m[2026-07-30T09:26:20.873] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 500ms
+2026-07-30T09:26:20.901108+00:00 app[web.1]: [36m[2026-07-30T09:26:20.900] [DEBUG] internal/core - [39m[guildManager] list(johnguab) listNow took 527ms (39 members)
+2026-07-30T09:26:20.901133+00:00 app[web.1]: [36m[2026-07-30T09:26:20.901] [DEBUG] internal/core - [39m[guildManager] list(johnguab) members parsed: 39
+2026-07-30T09:26:20.901157+00:00 app[web.1]: [36m[2026-07-30T09:26:20.901] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache hit after queue (age 528ms)
+2026-07-30T09:26:20.901193+00:00 app[web.1]: [36m[2026-07-30T09:26:20.901] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 528ms
+2026-07-30T09:26:20.901246+00:00 app[web.1]: [36m[2026-07-30T09:26:20.901] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 528ms
+2026-07-30T09:26:20.904108+00:00 app[web.1]: [36m[2026-07-30T09:26:20.904] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) listNow took 530ms (119 members)
+2026-07-30T09:26:20.904137+00:00 app[web.1]: [36m[2026-07-30T09:26:20.904] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) members parsed: 119
+2026-07-30T09:26:20.904161+00:00 app[web.1]: [36m[2026-07-30T09:26:20.904] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache hit after queue (age 530ms)
+2026-07-30T09:26:20.904180+00:00 app[web.1]: [36m[2026-07-30T09:26:20.904] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 531ms
+2026-07-30T09:26:20.904237+00:00 app[web.1]: [36m[2026-07-30T09:26:20.904] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 531ms
+2026-07-30T09:26:38.200214+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=aaae2e20-af30-8036-78d5-9869606be8cf fwd="13.41.125.195" dyno=web.1 connect=0ms service=4ms status=200 bytes=14895 protocol=http1.1 tls=false
+2026-07-30T09:26:48.524820+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=f0a05717-88f2-3a53-b107-2cd886b6321a fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=14899 protocol=http1.1 tls=false
+2026-07-30T09:27:08.197575+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=a69c5f56-c42e-c5c7-e967-bc8b3a8ca9d4 fwd="13.41.125.195" dyno=web.1 connect=0ms service=3ms status=200 bytes=14919 protocol=http1.1 tls=false
+2026-07-30T09:27:10.375086+00:00 app[web.1]: [36m[2026-07-30T09:27:10.374] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache miss, sending /guild list...
+2026-07-30T09:27:10.375311+00:00 app[web.1]: [36m[2026-07-30T09:27:10.375] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache miss, sending /guild list...
+2026-07-30T09:27:10.375425+00:00 app[web.1]: [36m[2026-07-30T09:27:10.375] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache miss, sending /guild list...
+2026-07-30T09:27:10.375608+00:00 app[web.1]: [36m[2026-07-30T09:27:10.375] [DEBUG] blockops - [39mSending message now: /guild list
+2026-07-30T09:27:10.375846+00:00 app[web.1]: [36m[2026-07-30T09:27:10.375] [DEBUG] johnguab - [39mSending message now: /guild list
+2026-07-30T09:27:10.375983+00:00 app[web.1]: [36m[2026-07-30T09:27:10.375] [DEBUG] Percy_cookie - [39mSending message now: /guild list
+2026-07-30T09:27:10.482131+00:00 app[web.1]: [32m[2026-07-30T09:27:10.482] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403630481"
+2026-07-30T09:27:10.483172+00:00 app[web.1]: [32m[2026-07-30T09:27:10.483] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] SpleenyPoo ●" createdAt="1785403630483"
+2026-07-30T09:27:10.483220+00:00 app[web.1]: [32m[2026-07-30T09:27:10.483] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403630483"
+2026-07-30T09:27:10.484004+00:00 app[web.1]: [32m[2026-07-30T09:27:10.483] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] flqw3d ● [MVP+] JohnGuab ● Guab_Bot ● [MVP++] pgqn ●" createdAt="1785403630483"
+2026-07-30T09:27:10.484046+00:00 app[web.1]: [32m[2026-07-30T09:27:10.484] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403630483"
+2026-07-30T09:27:10.484981+00:00 app[web.1]: [32m[2026-07-30T09:27:10.484] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] melau ● [MVP+] SlimmeBoyVin ● [MVP+] Veniard ● [MVP+] 8140 ● [MVP+] lplxavi ● [MVP++] diskne ● [VIP] bezakos ● […" createdAt="1785403630484"
+2026-07-30T09:27:10.485013+00:00 app[web.1]: [32m[2026-07-30T09:27:10.484] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403630484"
+2026-07-30T09:27:10.485065+00:00 app[web.1]: [32m[2026-07-30T09:27:10.485] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Tp2_ ●" createdAt="1785403630484"
+2026-07-30T09:27:10.493760+00:00 app[web.1]: [32m[2026-07-30T09:27:10.493] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403630493"
+2026-07-30T09:27:10.493806+00:00 app[web.1]: [32m[2026-07-30T09:27:10.493] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] YS7G ●" createdAt="1785403630493"
+2026-07-30T09:27:10.493832+00:00 app[web.1]: [32m[2026-07-30T09:27:10.493] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403630493"
+2026-07-30T09:27:10.494420+00:00 app[web.1]: [32m[2026-07-30T09:27:10.494] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] GGYOUDIE ● [MVP+] 1nonly_boah ●" createdAt="1785403630494"
+2026-07-30T09:27:10.494449+00:00 app[web.1]: [32m[2026-07-30T09:27:10.494] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403630494"
+2026-07-30T09:27:10.494912+00:00 app[web.1]: [32m[2026-07-30T09:27:10.494] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[VIP] Percy_Cookie ● [MVP+] Mr_Big_Smiley ● [MVP++] da8dy ● [MVP+] Civyr ● [MVP+] 1Joe_ ● [MVP+] Blyza ● [MVP+] Lundqvi…" createdAt="1785403630494"
+2026-07-30T09:27:10.494959+00:00 app[web.1]: [32m[2026-07-30T09:27:10.494] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403630494"
+2026-07-30T09:27:10.502491+00:00 app[web.1]: [32m[2026-07-30T09:27:10.502] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403630502"
+2026-07-30T09:27:10.502538+00:00 app[web.1]: [32m[2026-07-30T09:27:10.502] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] Valerwy ●" createdAt="1785403630502"
+2026-07-30T09:27:10.502563+00:00 app[web.1]: [32m[2026-07-30T09:27:10.502] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403630502"
+2026-07-30T09:27:10.502603+00:00 app[web.1]: [32m[2026-07-30T09:27:10.502] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] ElixOG ● TheBlockOp ●" createdAt="1785403630502"
+2026-07-30T09:27:10.502627+00:00 app[web.1]: [32m[2026-07-30T09:27:10.502] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403630502"
+2026-07-30T09:27:10.503390+00:00 app[web.1]: [32m[2026-07-30T09:27:10.503] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403630503"
+2026-07-30T09:27:10.503809+00:00 app[web.1]: [32m[2026-07-30T09:27:10.503] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] Danheimer ● [MVP+] Starwathan ● [MVP+] JWDA ● [MVP+] NinjaSteeler ● [MVP++] UnhorsedBrush04 ● [MVP++] _Catking ●…" createdAt="1785403630503"
+2026-07-30T09:27:10.503835+00:00 app[web.1]: [32m[2026-07-30T09:27:10.503] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403630503"
+2026-07-30T09:27:10.504301+00:00 app[web.1]: [32m[2026-07-30T09:27:10.504] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] Mkil2 ● [MVP+] ProxySvetac ● [MVP+] _Vorr_ ● [MVP+] iSpawnblock ●" createdAt="1785403630504"
+2026-07-30T09:27:10.504329+00:00 app[web.1]: [32m[2026-07-30T09:27:10.504] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403630504"
+2026-07-30T09:27:10.504759+00:00 app[web.1]: [32m[2026-07-30T09:27:10.504] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] DrxgonFish ● [MVP++] AsianMommyLover ● [MVP+] ETGX ● [VIP] abyssal_koko ● [MVP+] cubanos ● [MVP+] EnderAsleep ● […" createdAt="1785403630504"
+2026-07-30T09:27:10.504783+00:00 app[web.1]: [32m[2026-07-30T09:27:10.504] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403630504"
+2026-07-30T09:27:10.505619+00:00 app[web.1]: [32m[2026-07-30T09:27:10.505] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Guabbing ● [MVP+] tinging ● [VIP] Select1ve ● [MVP+] Fox248G ● [VIP] Djenih ● [VIP] Defilade ● [MVP++] Valescca ● [MVP+…" createdAt="1785403630505"
+2026-07-30T09:27:10.505648+00:00 app[web.1]: [32m[2026-07-30T09:27:10.505] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403630505"
+2026-07-30T09:27:10.506022+00:00 app[web.1]: [32m[2026-07-30T09:27:10.505] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] Gablplautze ● [MVP++] Bas4 ● [VIP] OhB1ock ● [MVP++] Mysteriosm ● [MVP++] BrazilianPrince ● [VIP] qw45214 ● ninja…" createdAt="1785403630505"
+2026-07-30T09:27:10.506043+00:00 app[web.1]: [32m[2026-07-30T09:27:10.506] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403630505"
+2026-07-30T09:27:10.516580+00:00 app[web.1]: [32m[2026-07-30T09:27:10.516] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] ILYLOVE ● [MVP+] DreamBlackTea ● [MVP+] Meohre ● [MVP+] FriediY ● [VIP+] SystemicOne ● [MVP+] Lyrixcalx ● [MVP+]…" createdAt="1785403630516"
+2026-07-30T09:27:10.516602+00:00 app[web.1]: [32m[2026-07-30T09:27:10.516] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403630516"
+2026-07-30T09:27:10.517378+00:00 app[web.1]: [32m[2026-07-30T09:27:10.517] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] VoidFrags_ ● [MVP+] Spraid ● [MVP++] cuteing ● [MVP+] Tempo27 ● [MVP+] wpis ● [MVP++] 2ellipses ● [MVP] Kesiesie…" createdAt="1785403630517"
+2026-07-30T09:27:10.517401+00:00 app[web.1]: [32m[2026-07-30T09:27:10.517] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403630517"
+2026-07-30T09:27:10.518389+00:00 app[web.1]: [32m[2026-07-30T09:27:10.518] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] stacoja ● [MVP+] SirWuro ● [MVP+] _Jewier_ ● [MVP+] Retikasd ● [MVP+] AchJonas ● [MVP+] babelaid ● [MVP+] 0hSile…" createdAt="1785403630518"
+2026-07-30T09:27:10.518436+00:00 app[web.1]: [32m[2026-07-30T09:27:10.518] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403630518"
+2026-07-30T09:27:10.524183+00:00 app[web.1]: [32m[2026-07-30T09:27:10.524] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] _JustFoxy ● [MVP+] wFirex ● [VIP] Coollector ● [VIP+] transpancy ● [MVP+] NotNytox ● [VIP] olxvia ● [MVP++] Aqua…" createdAt="1785403630523"
+2026-07-30T09:27:10.524203+00:00 app[web.1]: [32m[2026-07-30T09:27:10.524] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403630523"
+2026-07-30T09:27:10.877239+00:00 app[web.1]: [36m[2026-07-30T09:27:10.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) listNow took 502ms (125 members)
+2026-07-30T09:27:10.877260+00:00 app[web.1]: [36m[2026-07-30T09:27:10.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) members parsed: 125
+2026-07-30T09:27:10.877327+00:00 app[web.1]: [36m[2026-07-30T09:27:10.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache hit after queue (age 502ms)
+2026-07-30T09:27:10.877351+00:00 app[web.1]: [36m[2026-07-30T09:27:10.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 503ms
+2026-07-30T09:27:10.877402+00:00 app[web.1]: [36m[2026-07-30T09:27:10.877] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 503ms
+2026-07-30T09:27:10.903728+00:00 app[web.1]: [36m[2026-07-30T09:27:10.903] [DEBUG] internal/core - [39m[guildManager] list(johnguab) listNow took 528ms (39 members)
+2026-07-30T09:27:10.903790+00:00 app[web.1]: [36m[2026-07-30T09:27:10.903] [DEBUG] internal/core - [39m[guildManager] list(johnguab) members parsed: 39
+2026-07-30T09:27:10.903819+00:00 app[web.1]: [36m[2026-07-30T09:27:10.903] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache hit after queue (age 528ms)
+2026-07-30T09:27:10.903838+00:00 app[web.1]: [36m[2026-07-30T09:27:10.903] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 529ms
+2026-07-30T09:27:10.903879+00:00 app[web.1]: [36m[2026-07-30T09:27:10.903] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 529ms
+2026-07-30T09:27:10.907194+00:00 app[web.1]: [36m[2026-07-30T09:27:10.907] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) listNow took 532ms (119 members)
+2026-07-30T09:27:10.907197+00:00 app[web.1]: [36m[2026-07-30T09:27:10.907] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) members parsed: 119
+2026-07-30T09:27:10.907222+00:00 app[web.1]: [36m[2026-07-30T09:27:10.907] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache hit after queue (age 532ms)
+2026-07-30T09:27:10.907242+00:00 app[web.1]: [36m[2026-07-30T09:27:10.907] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 532ms
+2026-07-30T09:27:10.907361+00:00 app[web.1]: [36m[2026-07-30T09:27:10.907] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 532ms
+2026-07-30T09:27:18.523065+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=dcc4bff5-2893-0600-adfa-05f547e4ddd5 fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=14928 protocol=http1.1 tls=false
+2026-07-30T09:27:35.926067+00:00 app[web.1]: [36m[2026-07-30T09:27:35.925] [DEBUG] internal/commands - [39m[cmd] r4kz executing "!status darknesscrew" on bridge="blockops"
+2026-07-30T09:27:35.926993+00:00 app[web.1]: [32m[2026-07-30T09:27:35.926] [INFO] discord - [39m[chat] instance=discord bridge=blockops msg="!status darknesscrew" createdAt="1785403655897"
+2026-07-30T09:27:35.927373+00:00 app[web.1]: [36m[2026-07-30T09:27:35.927] [DEBUG] discord - [39m[onChat] instanceType=discord bridgeId=blockops instanceName=discord channelType=public msg="!status darknesscrew"
+2026-07-30T09:27:35.928872+00:00 app[web.1]: [32m[2026-07-30T09:27:35.928] [INFO] Application - [39m[LunarService] Connecting to Lunar Client authenticator using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:27:35.930494+00:00 app[web.1]: [32m[2026-07-30T09:27:35.930] [INFO] Application - [39m[FeatherService] Authenticating with Feather Client API using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:27:35.931812+00:00 app[web.1]: [32m[2026-07-30T09:27:35.931] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:27:35.934073+00:00 app[web.1]: [36m[2026-07-30T09:27:35.934] [DEBUG] blockops - [39mSending message now: /gc r4kz: !status darknesscrew
+2026-07-30T09:27:36.006118+00:00 app[web.1]: [36m[2026-07-30T09:27:36.006] [DEBUG] blockops - [39m[public] suppressing bot message from "TheBlockOp": r4kz: !status darknesscrew
+2026-07-30T09:27:36.006634+00:00 app[web.1]: [32m[2026-07-30T09:27:36.006] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Guild > TheBlockOp [OG]: r4kz: !status darknesscrew" createdAt="1785403656006"
+2026-07-30T09:27:36.167802+00:00 app[web.1]: [32m[2026-07-30T09:27:36.167] [INFO] Application - [39m[FeatherService] Successfully authenticated with Feather Client API!
+2026-07-30T09:27:36.213727+00:00 app[web.1]: [36m[2026-07-30T09:27:36.212] [DEBUG] Application - [39mFeather status check failed for ebe1472be26241cdb20b2b19c63b7617: Error: Feather API POST /minecraft/account-search returned HTTP 400: {"description":"Unexpected Error","data":{"fieldName":"mcID[0]"}}
+2026-07-30T09:27:36.213743+00:00 app[web.1]: at IncomingMessage.<anonymous> (/app/src/core/feather/feather-service.ts:256:22)
+2026-07-30T09:27:36.213744+00:00 app[web.1]: at IncomingMessage.emit (node:events:521:24)
+2026-07-30T09:27:36.213744+00:00 app[web.1]: at endReadableNT (node:internal/streams/readable:1729:12)
+2026-07-30T09:27:36.213744+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+2026-07-30T09:27:36.248370+00:00 app[web.1]: [33m[2026-07-30T09:27:36.247] [WARN] Application - [39m[EssentialService] Failed to establish Essential WebSocket session: Error: Unexpected server response: 401
+2026-07-30T09:27:36.248371+00:00 app[web.1]: at ClientRequest.<anonymous> (/app/node_modules/ws/lib/websocket.js:913:7)
+2026-07-30T09:27:36.248372+00:00 app[web.1]: at ClientRequest.emit (node:events:509:28)
+2026-07-30T09:27:36.248372+00:00 app[web.1]: at HTTPParser.parserOnIncomingClient (node:_http_client:798:27)
+2026-07-30T09:27:36.248372+00:00 app[web.1]: at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+2026-07-30T09:27:36.248373+00:00 app[web.1]: at TLSSocket.socketOnData (node:_http_client:633:22)
+2026-07-30T09:27:36.248373+00:00 app[web.1]: at TLSSocket.emit (node:events:509:28)
+2026-07-30T09:27:36.248374+00:00 app[web.1]: at addChunk (node:internal/streams/readable:563:12)
+2026-07-30T09:27:36.248374+00:00 app[web.1]: at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-07-30T09:27:36.248375+00:00 app[web.1]: at Readable.push (node:internal/streams/readable:394:5)
+2026-07-30T09:27:36.248375+00:00 app[web.1]: at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2026-07-30T09:27:36.358799+00:00 app[web.1]: [32m[2026-07-30T09:27:36.358] [INFO] Application - [39m[LunarService] Authenticated with Lunar Client! Connecting to Game WebSocket...
+2026-07-30T09:27:36.465743+00:00 app[web.1]: [32m[2026-07-30T09:27:36.465] [INFO] Application - [39m[LunarService] Successfully connected to Lunar Client Game WebSocket!
+2026-07-30T09:27:36.646548+00:00 app[web.1]: [36m[2026-07-30T09:27:36.646] [DEBUG] internal/commands - [39m[cmd] response for "status": darknesscrew was last online 57y144d ago. [Lunar: Online 🌙]
+2026-07-30T09:27:36.647222+00:00 app[web.1]: [36m[2026-07-30T09:27:36.647] [DEBUG] discord - [39m[cmd-response] command="status" originEventId="discord:discord:2" replyIds=1 bridgeId="blockops"
+2026-07-30T09:27:36.647409+00:00 app[web.1]: [36m[2026-07-30T09:27:36.647] [DEBUG] discord - [39m[cmd-image] bridgeId="blockops" botName="TheBlockOp" override="TungTungTungTtux" effectiveBotName="TungTungTungTtux" botRank="§7TheBlockOp §3[OG]§f" namePart="§7TungTungTungTtux §3[OG]§f§f"
+2026-07-30T09:27:36.647553+00:00 app[web.1]: [36m[2026-07-30T09:27:36.647] [DEBUG] discord - [39m[cmd-image] formattedMessage="§2Guild §2> {skin} §7TungTungTungTtux §3[OG]§f§f: §fdarknesscrew was last online 57y144d ago. [Lunar: Online 🌙]" skinUsername="TheBlockOp" channelType="public"
+2026-07-30T09:27:36.947687+00:00 app[web.1]: [36m[2026-07-30T09:27:36.947] [DEBUG] blockops - [39mSending message now: /gc darknesscrew was last online 57y144d ago. [Lunar: Online :crescent_moon:]
+2026-07-30T09:27:37.019826+00:00 app[web.1]: [36m[2026-07-30T09:27:37.019] [DEBUG] blockops - [39m[public] suppressing bot message from "TheBlockOp": darknesscrew was last online 57y144d ago. [Lunar: Online :crescent_moon:]
+2026-07-30T09:27:37.020068+00:00 app[web.1]: [32m[2026-07-30T09:27:37.020] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Guild > TheBlockOp [OG]: darknesscrew was last online 57y144d ago. [Lunar: Online :crescent_moon:]" createdAt="1785403657019"
+2026-07-30T09:27:38.198434+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=d7499348-0a3f-d9e3-4a74-d8413166082d fwd="13.41.125.195" dyno=web.1 connect=0ms service=4ms status=200 bytes=15117 protocol=http1.1 tls=false
+2026-07-30T09:27:42.704558+00:00 app[web.1]: [32m[2026-07-30T09:27:42.704] [INFO] discord - [39m[chat] instance=discord bridge=blockops msg="yes we can see if you are online" createdAt="1785403662698"
+2026-07-30T09:27:42.704573+00:00 app[web.1]: [36m[2026-07-30T09:27:42.704] [DEBUG] discord - [39m[onChat] instanceType=discord bridgeId=blockops instanceName=discord channelType=public msg="yes we can see if you are online"
+2026-07-30T09:27:42.704971+00:00 app[web.1]: [36m[2026-07-30T09:27:42.704] [DEBUG] blockops - [39mSending message now: /gc r4kz: yes we can see if you are online
+2026-07-30T09:27:42.775523+00:00 app[web.1]: [36m[2026-07-30T09:27:42.775] [DEBUG] blockops - [39m[public] suppressing bot message from "TheBlockOp": r4kz: yes we can see if you are online
+2026-07-30T09:27:42.775704+00:00 app[web.1]: [32m[2026-07-30T09:27:42.775] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Guild > TheBlockOp [OG]: r4kz: yes we can see if you are online" createdAt="1785403662775"
+2026-07-30T09:27:43.657953+00:00 app[web.1]: [32m[2026-07-30T09:27:43.657] [INFO] discord - [39m[chat] instance=discord bridge=blockops msg="peak" createdAt="1785403663656"
+2026-07-30T09:27:43.657985+00:00 app[web.1]: [36m[2026-07-30T09:27:43.657] [DEBUG] discord - [39m[onChat] instanceType=discord bridgeId=blockops instanceName=discord channelType=public msg="peak"
+2026-07-30T09:27:43.706076+00:00 app[web.1]: [36m[2026-07-30T09:27:43.705] [DEBUG] blockops - [39mSending message now: /gc r4kz: peak
+2026-07-30T09:27:43.753025+00:00 app[web.1]: [36m[2026-07-30T09:27:43.752] [DEBUG] blockops - [39m[public] suppressing bot message from "TheBlockOp": r4kz: peak
+2026-07-30T09:27:43.753232+00:00 app[web.1]: [32m[2026-07-30T09:27:43.753] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Guild > TheBlockOp [OG]: r4kz: peak" createdAt="1785403663753"
+2026-07-30T09:27:48.523458+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=3052e4a1-b2fe-0c93-aad3-9d1395593d03 fwd="135.181.209.89" dyno=web.1 connect=0ms service=4ms status=200 bytes=15120 protocol=http1.1 tls=false
+2026-07-30T09:27:55.351441+00:00 app[web.1]: [36m[2026-07-30T09:27:55.351] [DEBUG] internal/commands - [39m[cmd] r4kz executing "!status EdgierSauce1254" on bridge="blockops"
+2026-07-30T09:27:55.351621+00:00 app[web.1]: [32m[2026-07-30T09:27:55.351] [INFO] discord - [39m[chat] instance=discord bridge=blockops msg="!status EdgierSauce1254" createdAt="1785403675346"
+2026-07-30T09:27:55.351666+00:00 app[web.1]: [36m[2026-07-30T09:27:55.351] [DEBUG] discord - [39m[onChat] instanceType=discord bridgeId=blockops instanceName=discord channelType=public msg="!status EdgierSauce1254"
+2026-07-30T09:27:55.352037+00:00 app[web.1]: [32m[2026-07-30T09:27:55.351] [INFO] Application - [39m[EssentialService] Connecting to Essential WebSocket using account 'Percy_Cookie' (580383d3-26b8-4743-99a3-d0a72e887ece)...
+2026-07-30T09:27:55.354814+00:00 app[web.1]: [36m[2026-07-30T09:27:55.354] [DEBUG] blockops - [39mSending message now: /gc r4kz: !status EdgierSauce1254
+2026-07-30T09:27:55.393982+00:00 app[web.1]: [36m[2026-07-30T09:27:55.393] [DEBUG] blockops - [39m[public] suppressing bot message from "TheBlockOp": r4kz: !status EdgierSauce1254
+2026-07-30T09:27:55.394243+00:00 app[web.1]: [32m[2026-07-30T09:27:55.394] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Guild > TheBlockOp [OG]: r4kz: !status EdgierSauce1254" createdAt="1785403675394"
+2026-07-30T09:27:55.398286+00:00 app[web.1]: [36m[2026-07-30T09:27:55.397] [DEBUG] Application - [39mFeather status check failed for 4420ddf1300c449f83304b68246db3eb: Error: Feather API POST /minecraft/account-search returned HTTP 400: {"description":"Unexpected Error","data":{"fieldName":"mcID[0]"}}
+2026-07-30T09:27:55.398288+00:00 app[web.1]: at IncomingMessage.<anonymous> (/app/src/core/feather/feather-service.ts:256:22)
+2026-07-30T09:27:55.398289+00:00 app[web.1]: at IncomingMessage.emit (node:events:521:24)
+2026-07-30T09:27:55.398289+00:00 app[web.1]: at endReadableNT (node:internal/streams/readable:1729:12)
+2026-07-30T09:27:55.398289+00:00 app[web.1]: at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+2026-07-30T09:27:55.554771+00:00 app[web.1]: [32m[2026-07-30T09:27:55.554] [INFO] Application - [39m[EssentialService] Successfully connected to Essential WebSocket!
+2026-07-30T09:28:00.375050+00:00 app[web.1]: [36m[2026-07-30T09:28:00.374] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache miss, sending /guild list...
+2026-07-30T09:28:00.375282+00:00 app[web.1]: [36m[2026-07-30T09:28:00.375] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache miss, sending /guild list...
+2026-07-30T09:28:00.375407+00:00 app[web.1]: [36m[2026-07-30T09:28:00.375] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache miss, sending /guild list...
+2026-07-30T09:28:00.375550+00:00 app[web.1]: [36m[2026-07-30T09:28:00.375] [DEBUG] blockops - [39mSending message now: /guild list
+2026-07-30T09:28:00.375784+00:00 app[web.1]: [36m[2026-07-30T09:28:00.375] [DEBUG] johnguab - [39mSending message now: /guild list
+2026-07-30T09:28:00.375913+00:00 app[web.1]: [36m[2026-07-30T09:28:00.375] [DEBUG] Percy_cookie - [39mSending message now: /guild list
+2026-07-30T09:28:00.464568+00:00 app[web.1]: [32m[2026-07-30T09:28:00.464] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403680464"
+2026-07-30T09:28:00.464618+00:00 app[web.1]: [32m[2026-07-30T09:28:00.464] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] SpleenyPoo ●" createdAt="1785403680464"
+2026-07-30T09:28:00.464647+00:00 app[web.1]: [32m[2026-07-30T09:28:00.464] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403680464"
+2026-07-30T09:28:00.466029+00:00 app[web.1]: [32m[2026-07-30T09:28:00.465] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] flqw3d ● [MVP+] JohnGuab ● Guab_Bot ● [MVP++] pgqn ●" createdAt="1785403680465"
+2026-07-30T09:28:00.466059+00:00 app[web.1]: [32m[2026-07-30T09:28:00.466] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403680465"
+2026-07-30T09:28:00.466860+00:00 app[web.1]: [32m[2026-07-30T09:28:00.466] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] melau ● [MVP+] SlimmeBoyVin ● [MVP+] Veniard ● [MVP+] 8140 ● [MVP+] lplxavi ● [MVP++] diskne ● [VIP] bezakos ● […" createdAt="1785403680466"
+2026-07-30T09:28:00.466895+00:00 app[web.1]: [32m[2026-07-30T09:28:00.466] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403680466"
+2026-07-30T09:28:00.466970+00:00 app[web.1]: [32m[2026-07-30T09:28:00.466] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Tp2_ ●" createdAt="1785403680466"
+2026-07-30T09:28:00.467002+00:00 app[web.1]: [32m[2026-07-30T09:28:00.466] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403680466"
+2026-07-30T09:28:00.467421+00:00 app[web.1]: [32m[2026-07-30T09:28:00.467] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] Mkil2 ● [MVP+] ProxySvetac ● [MVP+] _Vorr_ ● [MVP+] iSpawnblock ●" createdAt="1785403680467"
+2026-07-30T09:28:00.469837+00:00 app[web.1]: [32m[2026-07-30T09:28:00.469] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403680469"
+2026-07-30T09:28:00.470385+00:00 app[web.1]: [32m[2026-07-30T09:28:00.469] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] Valerwy ●" createdAt="1785403680469"
+2026-07-30T09:28:00.470419+00:00 app[web.1]: [32m[2026-07-30T09:28:00.470] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403680469"
+2026-07-30T09:28:00.470939+00:00 app[web.1]: [32m[2026-07-30T09:28:00.470] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] ElixOG ● TheBlockOp ●" createdAt="1785403680470"
+2026-07-30T09:28:00.470979+00:00 app[web.1]: [32m[2026-07-30T09:28:00.470] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403680470"
+2026-07-30T09:28:00.471373+00:00 app[web.1]: [32m[2026-07-30T09:28:00.471] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] Danheimer ● [MVP+] Starwathan ● [MVP+] JWDA ● [MVP+] NinjaSteeler ● [MVP++] UnhorsedBrush04 ● [MVP++] _Catking ●…" createdAt="1785403680471"
+2026-07-30T09:28:00.471394+00:00 app[web.1]: [32m[2026-07-30T09:28:00.471] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403680471"
+2026-07-30T09:28:00.485382+00:00 app[web.1]: [32m[2026-07-30T09:28:00.485] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403680485"
+2026-07-30T09:28:00.485823+00:00 app[web.1]: [32m[2026-07-30T09:28:00.485] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Guabbing ● [MVP+] tinging ● [VIP] Select1ve ● [MVP+] Fox248G ● [VIP] Djenih ● [VIP] Defilade ● [MVP++] Valescca ● [MVP+…" createdAt="1785403680485"
+2026-07-30T09:28:00.485845+00:00 app[web.1]: [32m[2026-07-30T09:28:00.485] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403680485"
+2026-07-30T09:28:00.491298+00:00 app[web.1]: [32m[2026-07-30T09:28:00.491] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] DrxgonFish ● [MVP++] AsianMommyLover ● [MVP+] ETGX ● [VIP] abyssal_koko ● [MVP+] cubanos ● [MVP+] EnderAsleep ● […" createdAt="1785403680491"
+2026-07-30T09:28:00.491317+00:00 app[web.1]: [32m[2026-07-30T09:28:00.491] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403680491"
+2026-07-30T09:28:00.492293+00:00 app[web.1]: [32m[2026-07-30T09:28:00.492] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] Gablplautze ● [MVP++] Bas4 ● [VIP] OhB1ock ● [MVP++] Mysteriosm ● [MVP++] BrazilianPrince ● [VIP] qw45214 ● ninja…" createdAt="1785403680492"
+2026-07-30T09:28:00.492355+00:00 app[web.1]: [32m[2026-07-30T09:28:00.492] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403680492"
+2026-07-30T09:28:00.494079+00:00 app[web.1]: [32m[2026-07-30T09:28:00.494] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] _JustFoxy ● [MVP+] wFirex ● [VIP] Coollector ● [VIP+] transpancy ● [MVP+] NotNytox ● [VIP] olxvia ● [MVP++] Aqua…" createdAt="1785403680493"
+2026-07-30T09:28:00.494107+00:00 app[web.1]: [32m[2026-07-30T09:28:00.494] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403680493"
+2026-07-30T09:28:00.527592+00:00 app[web.1]: [32m[2026-07-30T09:28:00.527] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403680527"
+2026-07-30T09:28:00.527635+00:00 app[web.1]: [32m[2026-07-30T09:28:00.527] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] YS7G ●" createdAt="1785403680527"
+2026-07-30T09:28:00.527636+00:00 app[web.1]: [32m[2026-07-30T09:28:00.527] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403680527"
+2026-07-30T09:28:00.528122+00:00 app[web.1]: [32m[2026-07-30T09:28:00.528] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] GGYOUDIE ● [MVP+] 1nonly_boah ●" createdAt="1785403680528"
+2026-07-30T09:28:00.528144+00:00 app[web.1]: [32m[2026-07-30T09:28:00.528] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403680528"
+2026-07-30T09:28:00.528481+00:00 app[web.1]: [32m[2026-07-30T09:28:00.528] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[VIP] Percy_Cookie ● [MVP+] Mr_Big_Smiley ● [MVP++] da8dy ● [MVP+] Civyr ● [MVP+] 1Joe_ ● [MVP+] Blyza ● [MVP+] Lundqvi…" createdAt="1785403680528"
+2026-07-30T09:28:00.549495+00:00 app[web.1]: [32m[2026-07-30T09:28:00.549] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403680549"
+2026-07-30T09:28:00.550865+00:00 app[web.1]: [32m[2026-07-30T09:28:00.550] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] ILYLOVE ● [MVP+] DreamBlackTea ● [MVP+] Meohre ● [MVP+] FriediY ● [VIP+] SystemicOne ● [MVP+] Lyrixcalx ● [MVP+]…" createdAt="1785403680550"
+2026-07-30T09:28:00.550890+00:00 app[web.1]: [32m[2026-07-30T09:28:00.550] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403680550"
+2026-07-30T09:28:00.551393+00:00 app[web.1]: [32m[2026-07-30T09:28:00.551] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] VoidFrags_ ● [MVP+] Spraid ● [MVP++] cuteing ● [MVP+] Tempo27 ● [MVP+] wpis ● [MVP++] 2ellipses ● [MVP] Kesiesie…" createdAt="1785403680551"
+2026-07-30T09:28:00.551416+00:00 app[web.1]: [32m[2026-07-30T09:28:00.551] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403680551"
+2026-07-30T09:28:00.552819+00:00 app[web.1]: [32m[2026-07-30T09:28:00.552] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] stacoja ● [MVP+] SirWuro ● [MVP+] _Jewier_ ● [MVP+] Retikasd ● [MVP+] AchJonas ● [MVP+] babelaid ● [MVP+] 0hSile…" createdAt="1785403680552"
+2026-07-30T09:28:00.552842+00:00 app[web.1]: [32m[2026-07-30T09:28:00.552] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403680552"
+2026-07-30T09:28:00.876528+00:00 app[web.1]: [36m[2026-07-30T09:28:00.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) listNow took 501ms (125 members)
+2026-07-30T09:28:00.876549+00:00 app[web.1]: [36m[2026-07-30T09:28:00.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) members parsed: 125
+2026-07-30T09:28:00.876589+00:00 app[web.1]: [36m[2026-07-30T09:28:00.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache hit after queue (age 501ms)
+2026-07-30T09:28:00.876609+00:00 app[web.1]: [36m[2026-07-30T09:28:00.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 502ms
+2026-07-30T09:28:00.876671+00:00 app[web.1]: [36m[2026-07-30T09:28:00.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 502ms
+2026-07-30T09:28:00.906636+00:00 app[web.1]: [36m[2026-07-30T09:28:00.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) listNow took 531ms (39 members)
+2026-07-30T09:28:00.906642+00:00 app[web.1]: [36m[2026-07-30T09:28:00.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) members parsed: 39
+2026-07-30T09:28:00.906659+00:00 app[web.1]: [36m[2026-07-30T09:28:00.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache hit after queue (age 531ms)
+2026-07-30T09:28:00.906677+00:00 app[web.1]: [36m[2026-07-30T09:28:00.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 532ms
+2026-07-30T09:28:00.906715+00:00 app[web.1]: [36m[2026-07-30T09:28:00.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 532ms
+2026-07-30T09:28:00.910051+00:00 app[web.1]: [36m[2026-07-30T09:28:00.909] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) listNow took 535ms (119 members)
+2026-07-30T09:28:00.910069+00:00 app[web.1]: [36m[2026-07-30T09:28:00.910] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) members parsed: 119
+2026-07-30T09:28:00.910090+00:00 app[web.1]: [36m[2026-07-30T09:28:00.910] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache hit after queue (age 535ms)
+2026-07-30T09:28:00.910109+00:00 app[web.1]: [36m[2026-07-30T09:28:00.910] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 535ms
+2026-07-30T09:28:00.910143+00:00 app[web.1]: [36m[2026-07-30T09:28:00.910] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 535ms
+2026-07-30T09:28:05.605782+00:00 app[web.1]: [36m[2026-07-30T09:28:05.605] [DEBUG] internal/commands - [39m[cmd] response for "status": EdgierSauce1254 is playing Duels in duels_bridge_doubles map Hyperfrost [Lunar: Offline] [Essential: Offline]
+2026-07-30T09:28:05.606084+00:00 app[web.1]: [36m[2026-07-30T09:28:05.606] [DEBUG] discord - [39m[cmd-response] command="status" originEventId="discord:discord:5" replyIds=1 bridgeId="blockops"
+2026-07-30T09:28:05.606198+00:00 app[web.1]: [36m[2026-07-30T09:28:05.606] [DEBUG] discord - [39m[cmd-image] bridgeId="blockops" botName="TheBlockOp" override="TungTungTungTtux" effectiveBotName="TungTungTungTtux" botRank="§7TheBlockOp §3[OG]§f" namePart="§7TungTungTungTtux §3[OG]§f§f"
+2026-07-30T09:28:05.606269+00:00 app[web.1]: [36m[2026-07-30T09:28:05.606] [DEBUG] discord - [39m[cmd-image] formattedMessage="§2Guild §2> {skin} §7TungTungTungTtux §3[OG]§f§f: §fEdgierSauce1254 is playing Duels in duels_bridge_doubles map Hyperfrost [Lunar: Offline] [Essential: Offline]" skinUsername="TheBlockOp" channelType="public"
+2026-07-30T09:28:05.608939+00:00 app[web.1]: [36m[2026-07-30T09:28:05.608] [DEBUG] blockops - [39mSending message now: /gc EdgierSauce1254 is playing Duels in duels_bridge_doubles map Hyperfrost [Lunar: Offline] [Essential: Offline]
+2026-07-30T09:28:05.672221+00:00 app[web.1]: [36m[2026-07-30T09:28:05.672] [DEBUG] blockops - [39m[public] suppressing bot message from "TheBlockOp": EdgierSauce1254 is playing Duels in duels_bridge_doubles map Hyperfrost [Lunar: Offline] [Essential: Offline]
+2026-07-30T09:28:05.672436+00:00 app[web.1]: [32m[2026-07-30T09:28:05.672] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="Guild > TheBlockOp [OG]: EdgierSauce1254 is playing Duels in duels_bridge_doubles map Hyperfrost [Lunar: Offline] [Esse…" createdAt="1785403685672"
+2026-07-30T09:28:08.199192+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=627527d6-8306-48a4-2e21-2dcdfe906e2a fwd="13.41.125.195" dyno=web.1 connect=0ms service=4ms status=200 bytes=15118 protocol=http1.1 tls=false
+2026-07-30T09:28:18.522834+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=39efe7a2-63a2-fe22-f125-18a2750b2c01 fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=15119 protocol=http1.1 tls=false
+2026-07-30T09:28:35.072801+00:00 app[web.1]: [32m[2026-07-30T09:28:35.072] [INFO] Percy_cookie - [39m[guildPlayer] instance=Percy_cookie bridge=persy msg="Guild > luvlyn left." createdAt="1785403715071"
+2026-07-30T09:28:35.867765+00:00 app[web.1]: [32m[2026-07-30T09:28:35.867] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="Guild > luvlyn left." createdAt="1785403715867"
+2026-07-30T09:28:38.198230+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=597bbd8c-6e89-b67f-def1-0ae667ef4423 fwd="13.41.125.195" dyno=web.1 connect=0ms service=3ms status=200 bytes=15231 protocol=http1.1 tls=false
+2026-07-30T09:28:48.522603+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=ea3a3f50-91f6-009a-8930-75ef367b504b fwd="135.181.209.89" dyno=web.1 connect=0ms service=3ms status=200 bytes=15230 protocol=http1.1 tls=false
+2026-07-30T09:28:50.374498+00:00 app[web.1]: [36m[2026-07-30T09:28:50.374] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache miss, sending /guild list...
+2026-07-30T09:28:50.374671+00:00 app[web.1]: [36m[2026-07-30T09:28:50.374] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache miss, sending /guild list...
+2026-07-30T09:28:50.374759+00:00 app[web.1]: [36m[2026-07-30T09:28:50.374] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache miss, sending /guild list...
+2026-07-30T09:28:50.374869+00:00 app[web.1]: [36m[2026-07-30T09:28:50.374] [DEBUG] blockops - [39mSending message now: /guild list
+2026-07-30T09:28:50.375126+00:00 app[web.1]: [36m[2026-07-30T09:28:50.375] [DEBUG] johnguab - [39mSending message now: /guild list
+2026-07-30T09:28:50.375235+00:00 app[web.1]: [36m[2026-07-30T09:28:50.375] [DEBUG] Percy_cookie - [39mSending message now: /guild list
+2026-07-30T09:28:50.490744+00:00 app[web.1]: [32m[2026-07-30T09:28:50.490] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403730490"
+2026-07-30T09:28:50.491518+00:00 app[web.1]: [32m[2026-07-30T09:28:50.491] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] SpleenyPoo ●" createdAt="1785403730491"
+2026-07-30T09:28:50.491559+00:00 app[web.1]: [32m[2026-07-30T09:28:50.491] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403730491"
+2026-07-30T09:28:50.492276+00:00 app[web.1]: [32m[2026-07-30T09:28:50.492] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] flqw3d ● [MVP+] JohnGuab ● Guab_Bot ● [MVP++] pgqn ●" createdAt="1785403730492"
+2026-07-30T09:28:50.492308+00:00 app[web.1]: [32m[2026-07-30T09:28:50.492] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403730492"
+2026-07-30T09:28:50.493566+00:00 app[web.1]: [32m[2026-07-30T09:28:50.493] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403730493"
+2026-07-30T09:28:50.493610+00:00 app[web.1]: [32m[2026-07-30T09:28:50.493] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] Valerwy ●" createdAt="1785403730493"
+2026-07-30T09:28:50.493638+00:00 app[web.1]: [32m[2026-07-30T09:28:50.493] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403730493"
+2026-07-30T09:28:50.493675+00:00 app[web.1]: [32m[2026-07-30T09:28:50.493] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP++] ElixOG ● TheBlockOp ●" createdAt="1785403730493"
+2026-07-30T09:28:50.493698+00:00 app[web.1]: [32m[2026-07-30T09:28:50.493] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403730493"
+2026-07-30T09:28:50.494616+00:00 app[web.1]: [32m[2026-07-30T09:28:50.494] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP+] melau ● [MVP+] SlimmeBoyVin ● [MVP+] Veniard ● [MVP+] 8140 ● [MVP+] lplxavi ● [MVP++] diskne ● [VIP] bezakos ● […" createdAt="1785403730494"
+2026-07-30T09:28:50.494633+00:00 app[web.1]: [32m[2026-07-30T09:28:50.494] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403730494"
+2026-07-30T09:28:50.494677+00:00 app[web.1]: [32m[2026-07-30T09:28:50.494] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Tp2_ ●" createdAt="1785403730494"
+2026-07-30T09:28:50.494696+00:00 app[web.1]: [32m[2026-07-30T09:28:50.494] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403730494"
+2026-07-30T09:28:50.495270+00:00 app[web.1]: [32m[2026-07-30T09:28:50.495] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="[MVP++] Mkil2 ● [MVP+] ProxySvetac ● [MVP+] _Vorr_ ● [MVP+] iSpawnblock ●" createdAt="1785403730495"
+2026-07-30T09:28:50.495292+00:00 app[web.1]: [32m[2026-07-30T09:28:50.495] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403730495"
+2026-07-30T09:28:50.496128+00:00 app[web.1]: [32m[2026-07-30T09:28:50.496] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] Danheimer ● [MVP+] Starwathan ● [MVP+] JWDA ● [MVP+] NinjaSteeler ● [MVP++] UnhorsedBrush04 ● [MVP++] _Catking ●…" createdAt="1785403730496"
+2026-07-30T09:28:50.496154+00:00 app[web.1]: [32m[2026-07-30T09:28:50.496] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403730496"
+2026-07-30T09:28:50.496510+00:00 app[web.1]: [32m[2026-07-30T09:28:50.496] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab msg="Guabbing ● [MVP+] tinging ● [VIP] Select1ve ● [MVP+] Fox248G ● [VIP] Djenih ● [VIP] Defilade ● [MVP++] Valescca ● [MVP+…" createdAt="1785403730496"
+2026-07-30T09:28:50.506162+00:00 app[web.1]: [32m[2026-07-30T09:28:50.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403730506"
+2026-07-30T09:28:50.506200+00:00 app[web.1]: [32m[2026-07-30T09:28:50.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] YS7G ●" createdAt="1785403730506"
+2026-07-30T09:28:50.506572+00:00 app[web.1]: [32m[2026-07-30T09:28:50.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403730506"
+2026-07-30T09:28:50.506960+00:00 app[web.1]: [32m[2026-07-30T09:28:50.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] GGYOUDIE ● [MVP+] 1nonly_boah ●" createdAt="1785403730506"
+2026-07-30T09:28:50.506983+00:00 app[web.1]: [32m[2026-07-30T09:28:50.506] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403730506"
+2026-07-30T09:28:50.507417+00:00 app[web.1]: [32m[2026-07-30T09:28:50.507] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[VIP] Percy_Cookie ● [MVP+] Mr_Big_Smiley ● [MVP++] da8dy ● [MVP+] Civyr ● [MVP+] 1Joe_ ● [MVP+] Blyza ● [MVP+] Lundqvi…" createdAt="1785403730507"
+2026-07-30T09:28:50.507440+00:00 app[web.1]: [32m[2026-07-30T09:28:50.507] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403730507"
+2026-07-30T09:28:50.508644+00:00 app[web.1]: [32m[2026-07-30T09:28:50.508] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] ILYLOVE ● [MVP+] DreamBlackTea ● [MVP+] Meohre ● [MVP+] FriediY ● [VIP+] SystemicOne ● [MVP+] Lyrixcalx ● [MVP+]…" createdAt="1785403730508"
+2026-07-30T09:28:50.512257+00:00 app[web.1]: [32m[2026-07-30T09:28:50.512] [INFO] johnguab - [39m[minecraftChat] instance=johnguab bridge=guab createdAt="1785403730512"
+2026-07-30T09:28:50.514059+00:00 app[web.1]: [32m[2026-07-30T09:28:50.514] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] DrxgonFish ● [MVP++] AsianMommyLover ● [MVP+] ETGX ● [VIP] abyssal_koko ● [MVP+] cubanos ● [MVP+] EnderAsleep ● […" createdAt="1785403730513"
+2026-07-30T09:28:50.514082+00:00 app[web.1]: [32m[2026-07-30T09:28:50.514] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403730513"
+2026-07-30T09:28:50.514910+00:00 app[web.1]: [32m[2026-07-30T09:28:50.514] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[VIP] Gablplautze ● [MVP++] Bas4 ● [VIP] OhB1ock ● [MVP++] Mysteriosm ● [MVP++] BrazilianPrince ● [VIP] qw45214 ● ninja…" createdAt="1785403730514"
+2026-07-30T09:28:50.514959+00:00 app[web.1]: [32m[2026-07-30T09:28:50.514] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403730514"
+2026-07-30T09:28:50.516738+00:00 app[web.1]: [32m[2026-07-30T09:28:50.516] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops msg="[MVP+] _JustFoxy ● [MVP+] wFirex ● [VIP] Coollector ● [VIP+] transpancy ● [MVP+] NotNytox ● [VIP] olxvia ● [MVP++] Aqua…" createdAt="1785403730516"
+2026-07-30T09:28:50.516761+00:00 app[web.1]: [32m[2026-07-30T09:28:50.516] [INFO] blockops - [39m[minecraftChat] instance=blockops bridge=blockops createdAt="1785403730516"
+2026-07-30T09:28:50.528709+00:00 app[web.1]: [32m[2026-07-30T09:28:50.528] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403730528"
+2026-07-30T09:28:50.529238+00:00 app[web.1]: [32m[2026-07-30T09:28:50.529] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] VoidFrags_ ● [MVP+] Spraid ● [MVP++] cuteing ● [MVP+] Tempo27 ● [MVP+] wpis ● [MVP++] 2ellipses ● [MVP] Kesiesie…" createdAt="1785403730529"
+2026-07-30T09:28:50.529261+00:00 app[web.1]: [32m[2026-07-30T09:28:50.529] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403730529"
+2026-07-30T09:28:50.530262+00:00 app[web.1]: [32m[2026-07-30T09:28:50.530] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy msg="[MVP+] stacoja ● [MVP+] SirWuro ● [MVP+] _Jewier_ ● [MVP+] Retikasd ● [MVP+] AchJonas ● [MVP+] babelaid ● [MVP+] 0hSile…" createdAt="1785403730530"
+2026-07-30T09:28:50.530280+00:00 app[web.1]: [32m[2026-07-30T09:28:50.530] [INFO] Percy_cookie - [39m[minecraftChat] instance=Percy_cookie bridge=persy createdAt="1785403730530"
+2026-07-30T09:28:50.876217+00:00 app[web.1]: [36m[2026-07-30T09:28:50.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) listNow took 502ms (125 members)
+2026-07-30T09:28:50.876235+00:00 app[web.1]: [36m[2026-07-30T09:28:50.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) members parsed: 125
+2026-07-30T09:28:50.876275+00:00 app[web.1]: [36m[2026-07-30T09:28:50.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) cache hit after queue (age 502ms)
+2026-07-30T09:28:50.876289+00:00 app[web.1]: [36m[2026-07-30T09:28:50.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 502ms
+2026-07-30T09:28:50.876348+00:00 app[web.1]: [36m[2026-07-30T09:28:50.876] [DEBUG] internal/core - [39m[guildManager] list(blockops) total with queue 502ms
+2026-07-30T09:28:50.906504+00:00 app[web.1]: [36m[2026-07-30T09:28:50.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) listNow took 532ms (39 members)
+2026-07-30T09:28:50.906509+00:00 app[web.1]: [36m[2026-07-30T09:28:50.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) members parsed: 39
+2026-07-30T09:28:50.906541+00:00 app[web.1]: [36m[2026-07-30T09:28:50.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) cache hit after queue (age 532ms)
+2026-07-30T09:28:50.906561+00:00 app[web.1]: [36m[2026-07-30T09:28:50.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 532ms
+2026-07-30T09:28:50.906598+00:00 app[web.1]: [36m[2026-07-30T09:28:50.906] [DEBUG] internal/core - [39m[guildManager] list(johnguab) total with queue 532ms
+2026-07-30T09:28:50.909822+00:00 app[web.1]: [36m[2026-07-30T09:28:50.909] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) listNow took 535ms (119 members)
+2026-07-30T09:28:50.909844+00:00 app[web.1]: [36m[2026-07-30T09:28:50.909] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) members parsed: 119
+2026-07-30T09:28:50.909889+00:00 app[web.1]: [36m[2026-07-30T09:28:50.909] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) cache hit after queue (age 535ms)
+2026-07-30T09:28:50.909909+00:00 app[web.1]: [36m[2026-07-30T09:28:50.909] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 536ms
+2026-07-30T09:28:50.909977+00:00 app[web.1]: [36m[2026-07-30T09:28:50.909] [DEBUG] internal/core - [39m[guildManager] list(Percy_cookie) total with queue 536ms
+2026-07-30T09:29:08.199369+00:00 heroku[router]: at=info method=GET path="/metrics" host=safe-citadel-79898-0cfea9458f9b.herokuapp.com request_id=ae693593-626b-a1d6-343f-cc82c683969c fwd="13.41.125.195" dyno=web.1 connect=0ms service=4ms status=200 bytes=15229 protocol=http1.1 tls=false

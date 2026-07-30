@@ -61,7 +61,7 @@ export class EssentialService {
     }
   }
 
-  private async ensureConnected(): Promise<void> {
+  public async ensureConnected(): Promise<void> {
     const creds = this.getCredentials()
     if (!creds) {
       this.logger.info('[EssentialService] Cannot connect: No connected Minecraft instance available for Essential authentication.')

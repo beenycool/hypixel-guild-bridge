@@ -217,6 +217,12 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.config.essentialClient?.minecraftInstance ?? defaultAccount,
       this.config.essentialClient?.cacheSeconds
     )
+
+    this.on('minecraftSelfBroadcast', () => {
+      void this.lunarService.ensureConnected().catch(() => undefined)
+      void this.featherService.ensureAuthenticated().catch(() => undefined)
+      void this.essentialService.ensureConnected().catch(() => undefined)
+    })
   }
 
   public get auroraApiKey(): string | undefined {

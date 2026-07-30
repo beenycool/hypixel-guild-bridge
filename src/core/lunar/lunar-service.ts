@@ -82,7 +82,7 @@ export class LunarService {
     }
   }
 
-  private async ensureConnected(): Promise<void> {
+  public async ensureConnected(): Promise<void> {
     const creds = this.getCredentials()
     if (!creds) {
       this.logger.info('[LunarService] Cannot connect: No connected Minecraft instance available for Lunar Client authentication.')

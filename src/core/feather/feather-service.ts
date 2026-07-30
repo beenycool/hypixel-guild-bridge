@@ -66,7 +66,7 @@ export class FeatherService {
     }
   }
 
-  private async ensureAuthenticated(): Promise<void> {
+  public async ensureAuthenticated(): Promise<void> {
     if (this.jwt) return
 
     const creds = this.getCredentials()
