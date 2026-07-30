@@ -48,12 +48,12 @@ function hideAuthOverlay() {
 }
 
 function requireAuth(title) {
-  const params = new URLSearchParams(globalThis.location.search)
-  const urlToken = params.get('token')
+  const parameters = new URLSearchParams(globalThis.location.search)
+  const urlToken = parameters.get('token')
   if (urlToken) {
     setToken(urlToken)
-    params.delete('token')
-    const newSearch = params.toString()
+    parameters.delete('token')
+    const newSearch = parameters.toString()
     const newUrl = globalThis.location.pathname + (newSearch ? '?' + newSearch : '') + globalThis.location.hash
     globalThis.history.replaceState(null, '', newUrl)
   }

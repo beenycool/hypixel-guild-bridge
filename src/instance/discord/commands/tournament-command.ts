@@ -184,7 +184,9 @@ export default {
 
   handler: async function (context) {
     const subcommand = context.interaction.options.getSubcommand()
-    context.application.logger.info(`Discord /tournament ${subcommand} — user=${context.interaction.user.id}, channel=${context.interaction.channelId}`)
+    context.application.logger.info(
+      `Discord /tournament ${subcommand} — user=${context.interaction.user.id}, channel=${context.interaction.channelId}`
+    )
     let bridgeId = context.bridgeId
 
     if ((subcommand === 'test' || subcommand === 'set-category' || subcommand === 'cancel') && bridgeId === undefined) {
@@ -242,7 +244,9 @@ export default {
         return
       }
 
-      context.application.logger.info(`Discord /tournament create: bridgeId=${bridgeId}, name="${name}", gameType="${gameType}", bestOf=${bestOf}, deadline=${deadline}`)
+      context.application.logger.info(
+        `Discord /tournament create: bridgeId=${bridgeId}, name="${name}", gameType="${gameType}", bestOf=${bestOf}, deadline=${deadline}`
+      )
       try {
         const tournament = await context.application.core.tournamentManager.createTournament(
           bridgeId,
@@ -277,7 +281,7 @@ export default {
               .setDescription(
                 `React with ✅ to join or ❌ to leave.\n\n**Game:** ${gameType}\n**Best of:** ${bestOf}\n**Format:** single-elim`
               )
-              .setColor(0x3498db)
+              .setColor(0x34_98_db)
               .setFooter({ text: `React to join! Tournament ID: ${tournament.id}` })
 
             const signupMessage = await channel.send({ embeds: [signupEmbed] })
@@ -311,7 +315,9 @@ export default {
         return
       }
 
-      context.application.logger.info(`Discord /tournament join: tournament=${tournament.id}, user=${context.interaction.user.id}`)
+      context.application.logger.info(
+        `Discord /tournament join: tournament=${tournament.id}, user=${context.interaction.user.id}`
+      )
       try {
         await context.application.core.tournamentManager.addPlayer(
           tournament.id,
@@ -344,7 +350,9 @@ export default {
         return
       }
 
-      context.application.logger.info(`Discord /tournament leave: tournament=${tournament.id}, user=${context.interaction.user.id}`)
+      context.application.logger.info(
+        `Discord /tournament leave: tournament=${tournament.id}, user=${context.interaction.user.id}`
+      )
       try {
         await context.application.core.tournamentManager.removePlayer(tournament.id, link.uuid)
         await context.interaction.editReply('✅ You have left the tournament.')
@@ -526,7 +534,9 @@ export default {
       const p1Wins = isPlayer1 ? myWins : theirWins
       const p2Wins = isPlayer1 ? theirWins : myWins
 
-      context.application.logger.info(`Discord /tournament report: match=${match.id}, player=${player.id}, winnerChoice=${winnerChoice}, myWins=${myWins}, theirWins=${theirWins}`)
+      context.application.logger.info(
+        `Discord /tournament report: match=${match.id}, player=${player.id}, winnerChoice=${winnerChoice}, myWins=${myWins}, theirWins=${theirWins}`
+      )
       try {
         const result = await context.application.core.tournamentManager.matchManager.submitReport(
           match.id,
@@ -611,7 +621,9 @@ export default {
         return
       }
 
-      context.application.logger.info(`Discord /tournament confirm: match=${matchId}, winner="${winnerName}" (playerId=${winnerId}), by=${context.interaction.user.id}`)
+      context.application.logger.info(
+        `Discord /tournament confirm: match=${matchId}, winner="${winnerName}" (playerId=${winnerId}), by=${context.interaction.user.id}`
+      )
       try {
         await context.application.core.tournamentManager.matchManager.adminConfirm(matchId, winnerId)
         await context.interaction.editReply(`✅ Match ${matchId} winner has been forced to **${winnerName}**!`)
@@ -666,7 +678,9 @@ export default {
         return
       }
 
-      context.application.logger.info(`Discord /tournament checkin: tournament=${tournament.id}, user=${context.interaction.user.id}`)
+      context.application.logger.info(
+        `Discord /tournament checkin: tournament=${tournament.id}, user=${context.interaction.user.id}`
+      )
       try {
         await context.application.core.tournamentManager.checkinPlayer(
           tournament.id,
@@ -786,7 +800,9 @@ export default {
         return
       }
 
-      context.application.logger.info(`Discord /tournament set-category: bridgeId=${bridgeId}, categoryId=${category.id}`)
+      context.application.logger.info(
+        `Discord /tournament set-category: bridgeId=${bridgeId}, categoryId=${category.id}`
+      )
       context.application.core.bridgeConfigurations.setTournamentCategoryId(bridgeId, category.id)
       await context.interaction.reply({
         content: `Tournament category set to <#${category.id}>. All future tournaments will be placed inside this category.`,
@@ -807,7 +823,9 @@ export default {
 
       await context.interaction.deferReply()
 
-      context.application.logger.info(`Discord /tournament test: bridgeId=${bridgeId}, user=${context.interaction.user.id}`)
+      context.application.logger.info(
+        `Discord /tournament test: bridgeId=${bridgeId}, user=${context.interaction.user.id}`
+      )
       try {
         const name = context.interaction.options.getString('name') ?? 'Test Tournament'
         const gameType = context.interaction.options.getString('game_type') ?? 'Bridge'
@@ -860,11 +878,17 @@ export default {
         try {
           await context.application.core.tournamentManager.startTournament(tournament.id, guildId, categoryId)
         } catch (error: unknown) {
-          const msg = error instanceof Error ? error.message : String(error)
-          context.application.logger.error(`Tournament test: startTournament failed for tournament ${tournament.id}: ${msg}`)
-          context.application.logger.debug(`Tournament test: startTournament error stack: ${error instanceof Error ? error.stack : 'no stack'}`)
+          const message = error instanceof Error ? error.message : String(error)
+          context.application.logger.error(
+            `Tournament test: startTournament failed for tournament ${tournament.id}: ${message}`
+          )
+          context.application.logger.debug(
+            `Tournament test: startTournament error stack: ${error instanceof Error ? error.stack : 'no stack'}`
+          )
           await context.application.core.tournamentManager.cancelTournament(tournament.id)
-          await context.interaction.editReply(`❌ Failed to start test tournament. It has been cancelled. Error: ${msg}`)
+          await context.interaction.editReply(
+            `❌ Failed to start test tournament. It has been cancelled. Error: ${message}`
+          )
           return
         }
 
@@ -1003,25 +1027,54 @@ export default {
             {
               type: 1 as const,
               components: [
-                { type: 2 as const, style: 3, customId: `tournament-test:resolve-round:${panelMessage.id}`, label: '▶ Resolve Round' },
-                { type: 2 as const, style: 1, customId: `tournament-test:resolve-match:${panelMessage.id}`, label: '⏭ Resolve Match' },
-                { type: 2 as const, style: 2, customId: `tournament-test:rewind-round:${panelMessage.id}`, label: '⏮ Rewind Round' },
-                { type: 2 as const, style: 2, customId: `tournament-test:rewind-all:${panelMessage.id}`, label: '⏮ Rewind All' },
-                { type: 2 as const, style: 4, customId: `tournament-test:cleanup:${panelMessage.id}`, label: '🗑 Cleanup' }
+                {
+                  type: 2 as const,
+                  style: 3,
+                  customId: `tournament-test:resolve-round:${panelMessage.id}`,
+                  label: '▶ Resolve Round'
+                },
+                {
+                  type: 2 as const,
+                  style: 1,
+                  customId: `tournament-test:resolve-match:${panelMessage.id}`,
+                  label: '⏭ Resolve Match'
+                },
+                {
+                  type: 2 as const,
+                  style: 2,
+                  customId: `tournament-test:rewind-round:${panelMessage.id}`,
+                  label: '⏮ Rewind Round'
+                },
+                {
+                  type: 2 as const,
+                  style: 2,
+                  customId: `tournament-test:rewind-all:${panelMessage.id}`,
+                  label: '⏮ Rewind All'
+                },
+                {
+                  type: 2 as const,
+                  style: 4,
+                  customId: `tournament-test:cleanup:${panelMessage.id}`,
+                  label: '🗑 Cleanup'
+                }
               ]
             }
           ]
         })
       } catch (error: unknown) {
-        context.application.logger.error(`Tournament test failed: ${error instanceof Error ? error.message : String(error)}`)
-        await context.interaction.editReply(`❌ Test tournament failed: ${error instanceof Error ? error.message : String(error)}`)
+        context.application.logger.error(
+          `Tournament test failed: ${error instanceof Error ? error.message : String(error)}`
+        )
+        await context.interaction.editReply(
+          `❌ Test tournament failed: ${error instanceof Error ? error.message : String(error)}`
+        )
       }
       return
     }
 
     // 16. Schedule Availability
     if (subcommand === 'schedule') {
-      const timeStr = context.interaction.options.getString('time', true)
+      const timeString = context.interaction.options.getString('time', true)
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
       if (!tournament || tournament.status !== TournamentStatus.Active) {
         await context.interaction.reply({
@@ -1061,7 +1114,7 @@ export default {
       )
 
       try {
-        const parsed = chrono.parse(timeStr)
+        const parsed = chrono.parse(timeString)
         if (parsed.length === 0) {
           await context.interaction.reply({
             content: 'Could not parse that time. Try: "Saturday 14:00-18:00 GMT"',
@@ -1078,7 +1131,7 @@ export default {
         if (endDate) response += `to <t:${Math.floor(endDate.getTime() / 1000)}:F>`
 
         // Post availability to match thread for opponent visibility
-        if (match !== undefined && match.discordThreadId !== undefined) {
+        if (match?.discordThreadId !== undefined) {
           try {
             const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
             if (thread !== null && 'send' in thread) {
@@ -1129,7 +1182,7 @@ export default {
 
         const embed = new EmbedBuilder()
           .setTitle(`Tournament Audit Log (#${tournamentId})`)
-          .setColor(0x2ecc71)
+          .setColor(0x2e_cc_71)
           .setDescription(
             logs
               .slice(0, 10)

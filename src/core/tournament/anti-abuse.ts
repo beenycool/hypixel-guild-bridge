@@ -1,7 +1,7 @@
 import type { Logger } from 'log4js'
 
-import { UserRateLimiter } from '../../utility/rate-limiter-map.js'
 import type { DatabaseManager } from '../../common/database-manager.js'
+import { UserRateLimiter } from '../../utility/rate-limiter-map.js'
 
 export interface AbuseCheckResult {
   allowed: boolean
@@ -31,7 +31,9 @@ export class AntiAbuse {
     const sameOpponent = history.filter((h) => h.opponent === opponentUuid)
 
     if (sameOpponent.length >= 3) {
-      this.logger?.info(`AntiAbuse: Suspicious forfeit pattern — ${playerUuid} forfeiting to ${opponentUuid} (${sameOpponent.length}x)`)
+      this.logger?.info(
+        `AntiAbuse: Suspicious forfeit pattern — ${playerUuid} forfeiting to ${opponentUuid} (${sameOpponent.length}x)`
+      )
       return { allowed: false, reason: 'FLAGGED: Suspicious forfeit pattern' }
     }
 
@@ -65,7 +67,9 @@ export class AntiAbuse {
    * Cross-references mojang table for shared identifiers.
    */
   async checkAltAccounts(tournamentId: number, playerUuids: string[]): Promise<AbuseCheckResult> {
-    this.logger?.info(`AntiAbuse: Checking alt accounts for tournament ${tournamentId} (${playerUuids.length} player(s))`)
+    this.logger?.info(
+      `AntiAbuse: Checking alt accounts for tournament ${tournamentId} (${playerUuids.length} player(s))`
+    )
     try {
       const rows = await this.databaseManager.queryRows<{ player_uuid: string; ip: string | null }>(
         'SELECT player_uuid, ip FROM mojang WHERE player_uuid = ANY($1)',

@@ -98,7 +98,55 @@ const SubcommandAliases = new Map<string, ArcadeSubcommand>([
 export default class Arcade extends HypixelPlayerCommand {
   constructor() {
     super({
-      triggers: ['arcade', 'arc'],
+      triggers: [
+        'arcade',
+        'arc',
+        'zombies',
+        'zombie',
+        'zb',
+        'pixelparty',
+        'pixel',
+        'pp',
+        'blockingdead',
+        'blocking',
+        'dead',
+        'bd',
+        'bountyhunters',
+        'bounty',
+        'bh',
+        'dragonwars',
+        'dragon',
+        'dw',
+        'enderspleef',
+        'spleef',
+        'es',
+        'farmhunt',
+        'farm',
+        'fh',
+        'football',
+        'soccer',
+        'fb',
+        'galaxywars',
+        'galaxy',
+        'gw',
+        'hideandseek',
+        'hide',
+        'has',
+        'holeinthewall',
+        'hole',
+        'hitw',
+        'hypixelsays',
+        'says',
+        'simonsays',
+        'hs',
+        'miniwalls',
+        'mw',
+        'miniw',
+        'throwout',
+        'throw',
+        'to',
+        'drop'
+      ],
       description: "Returns a player's Arcade games stats with optional game mode filter",
       example: `arcade [mode] %s`
     })
@@ -109,18 +157,28 @@ export default class Arcade extends HypixelPlayerCommand {
   }
 
   private parseArgs(context: ChatCommandContext): { subcommand: ArcadeSubcommand; username: string } {
-    const firstArg = context.args[0]?.toLowerCase()
-    const matchedSubcommand = firstArg ? SubcommandAliases.get(firstArg) : undefined
+    const commandName = context.message.message.slice(context.commandPrefix.length).split(' ')[0].toLowerCase()
 
-    if (matchedSubcommand) {
+    if (commandName === 'arcade' || commandName === 'arc') {
+      const firstArgument = context.args[0]?.toLowerCase()
+      const matchedSubcommand = firstArgument ? SubcommandAliases.get(firstArgument) : undefined
+
+      if (matchedSubcommand) {
+        return {
+          subcommand: matchedSubcommand,
+          username: context.args[1] ?? context.username
+        }
+      }
+
       return {
-        subcommand: matchedSubcommand,
-        username: context.args[1] ?? context.username
+        subcommand: 'summary',
+        username: context.args[0] ?? context.username
       }
     }
 
+    const matchedSubcommand = SubcommandAliases.get(commandName) ?? 'summary'
     return {
-      subcommand: 'summary',
+      subcommand: matchedSubcommand,
       username: context.args[0] ?? context.username
     }
   }
@@ -375,4 +433,3 @@ export default class Arcade extends HypixelPlayerCommand {
     }
   }
 }
-

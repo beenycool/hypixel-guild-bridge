@@ -15,8 +15,8 @@ export default {
       await context.application.chatSummarySchedulerInstance.generateAndPostSummaries(context.interaction.channelId)
       await context.interaction.editReply({ content: 'Chat summary generation triggered successfully!' })
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error)
-      await context.interaction.editReply({ content: `Chat summary generation failed: ${msg}` })
+      const message = error instanceof Error ? error.message : String(error)
+      await context.interaction.editReply({ content: `Chat summary generation failed: ${message}` })
     }
   }
 } satisfies DiscordCommandHandler

@@ -1,5 +1,5 @@
-import { describe, it, mock } from 'node:test'
 import assert from 'node:assert/strict'
+import { describe, it, mock } from 'node:test'
 
 describe('TournamentNotifications', () => {
   it('should send a whisper to a specific player', async () => {
@@ -31,8 +31,8 @@ describe('TournamentNotifications', () => {
   })
 
   it('should format deadline warning message', () => {
-    const deadline = new Date(Date.now() + 24 * 3600_000)
-    const hoursLeft = Math.round((deadline.getTime() - Date.now()) / 3600_000)
+    const deadline = new Date(Date.now() + 24 * 3_600_000)
+    const hoursLeft = Math.round((deadline.getTime() - Date.now()) / 3_600_000)
 
     const message = `⚠️ ${hoursLeft} hours remaining! Higher seed advances if no report.`
     assert.ok(message.includes('24'))

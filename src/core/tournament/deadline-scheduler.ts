@@ -90,7 +90,9 @@ export class DeadlineScheduler {
           // 2. 24h Warning
           const twentyFourHours = 24 * 3600
           if (now >= match.deadlineAt - twentyFourHours && match.warningsSent === 0) {
-            this.logger.info(`Match ${match.id}: Sending 24h warning (deadline=${match.deadlineAt}, ${Math.floor(timeRemaining / 3600)}h remaining)`)
+            this.logger.info(
+              `Match ${match.id}: Sending 24h warning (deadline=${match.deadlineAt}, ${Math.floor(timeRemaining / 3600)}h remaining)`
+            )
 
             // Update warning sent flag
             await this.databaseManager.execute('UPDATE "tournament_matches" SET "warningsSent" = 1 WHERE "id" = $1', [
@@ -125,7 +127,9 @@ export class DeadlineScheduler {
                 })
             }
           } else {
-            this.logger.info(`Match ${match.id}: Deadline OK (${Math.floor(timeRemaining / 3600)}h remaining, warningsSent=${match.warningsSent})`)
+            this.logger.info(
+              `Match ${match.id}: Deadline OK (${Math.floor(timeRemaining / 3600)}h remaining, warningsSent=${match.warningsSent})`
+            )
           }
         }
       }

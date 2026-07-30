@@ -17,9 +17,9 @@ async function apiFetch(path, options = {}) {
   if (!res.ok) {
     let errorMessage = 'HTTP ' + res.status
     try {
-      const errJson = await res.json()
-      if (errJson?.error?.message) errorMessage = errJson.error.message
-      else if (errJson?.error) errorMessage = errJson.error
+      const errorJson = await res.json()
+      if (errorJson?.error?.message) errorMessage = errorJson.error.message
+      else if (errorJson?.error) errorMessage = errorJson.error
     } catch {}
     throw new Error(errorMessage)
   }

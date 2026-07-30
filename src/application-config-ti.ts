@@ -135,6 +135,12 @@ export const TournamentConfig = t.iface([], {
   "reminderHours": t.opt(t.array("number")),
 });
 
+export const LunarClientConfig = t.iface([], {
+  "enabled": t.opt("boolean"),
+  "minecraftInstance": t.opt("string"),
+  "cacheSeconds": t.opt("number"),
+});
+
 export const ApplicationConfig = t.iface([], {
   "version": t.lit(2),
   "general": "GeneralConfig",
@@ -150,6 +156,7 @@ export const ApplicationConfig = t.iface([], {
   "hypixelUpdates": t.opt("HypixelUpdatesConfig"),
   "bridges": t.opt(t.array("BridgeConfig")),
   "tournament": t.opt("TournamentConfig"),
+  "lunarClient": t.opt("LunarClientConfig"),
 });
 
 const exportedTypeSuite: t.ITypeSuite = {
@@ -170,6 +177,7 @@ const exportedTypeSuite: t.ITypeSuite = {
   HypixelUpdatesConfig,
   BridgeConfig,
   TournamentConfig,
+  LunarClientConfig,
   ApplicationConfig,
 };
 export default exportedTypeSuite;

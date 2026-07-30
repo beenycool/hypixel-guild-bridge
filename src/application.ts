@@ -37,8 +37,9 @@ import DiscordInstance from './instance/discord/discord-instance.js'
 import { PluginsManager } from './instance/features/plugins-manager.js'
 import HypixelUpdates from './instance/hypixel-updates.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
+import { LunarService } from './core/lunar/lunar-service.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
-import ApplicationMetrics from './instance/prometheus/application-metrics.js'
+import type ApplicationMetrics from './instance/prometheus/application-metrics.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
 import { RandomChatter } from './instance/random-chatter'
 import { SpontaneousEvents } from './instance/spontaneous-events'
@@ -73,6 +74,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   public readonly hypixelApi: HypixelClient
   public readonly mojangApi: MojangApi
+  public readonly lunarService: LunarService
 
   private commandConfigManagerField: CommandConfigManager | undefined
 
@@ -188,6 +190,13 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.statMonitor = new StatMonitor(this)
     this.autoRestart = new AutoRestart(this)
     this.autoLinker = new AutoLinker(this)
+
+    this.lunarService = new LunarService(
+      this,
+      this.logger,
+      this.config.lunarClient?.minecraftInstance,
+      this.config.lunarClient?.cacheSeconds
+    )
   }
 
   public get auroraApiKey(): string | undefined {

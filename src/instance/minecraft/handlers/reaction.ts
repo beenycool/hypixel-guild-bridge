@@ -110,7 +110,9 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
         const playerUuid = event.user.mojangProfile()?.id
         if (playerUuid !== undefined) {
           const messages = bridgeConfig.getWelcomeOnlineMessages(bridgeId)
-          const playerEntry = messages.find((m) => m.uuid.replace(/-/g, '').toLowerCase() === playerUuid.replace(/-/g, '').toLowerCase())
+          const playerEntry = messages.find(
+            (m) => m.uuid.replaceAll('-', '').toLowerCase() === playerUuid.replaceAll('-', '').toLowerCase()
+          )
           if (playerEntry !== undefined) {
             let message = playerEntry.message
             message = message.replaceAll('{username}', event.user.displayName())

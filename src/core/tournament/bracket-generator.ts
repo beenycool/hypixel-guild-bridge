@@ -42,7 +42,9 @@ export class SingleElimBracketStrategy implements BracketStrategy {
     roundDeadlineHours: number
   ): { totalRounds: number; matches: Partial<TournamentMatch>[] } {
     const playerCount = players.length
-    this.logger?.info(`Tournament ${tournamentId}: SingleElim — generating bracket with ${playerCount} players, deadline=${roundDeadlineHours}h`)
+    this.logger?.info(
+      `Tournament ${tournamentId}: SingleElim — generating bracket with ${playerCount} players, deadline=${roundDeadlineHours}h`
+    )
 
     if (playerCount < 2) {
       throw new Error('Cannot generate bracket with less than 2 players.')
@@ -64,7 +66,9 @@ export class SingleElimBracketStrategy implements BracketStrategy {
       seedToPlayerMap.set(p.seed, p)
     }
 
-    this.logger?.info(`Tournament ${tournamentId}: SingleElim — player seeds: ${[...seedToPlayerMap.keys()].join(', ')}`)
+    this.logger?.info(
+      `Tournament ${tournamentId}: SingleElim — player seeds: ${[...seedToPlayerMap.keys()].join(', ')}`
+    )
 
     const seedOrder = this.getSeedOrder(totalSlots)
     this.logger?.info(`Tournament ${tournamentId}: SingleElim — seed order: ${seedOrder.join(', ')}`)
@@ -122,7 +126,9 @@ export class SingleElimBracketStrategy implements BracketStrategy {
       })
     }
 
-    this.logger?.info(`Tournament ${tournamentId}: SingleElim — round 1: ${activeCount} active, ${byeCount} BYE matches`)
+    this.logger?.info(
+      `Tournament ${tournamentId}: SingleElim — round 1: ${activeCount} active, ${byeCount} BYE matches`
+    )
 
     for (let r = 2; r <= totalRounds; r++) {
       const matchCount = totalSlots / Math.pow(2, r)
@@ -194,11 +200,11 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
 
     const loserCount = Math.floor(n / 2)
     this.logger?.info(`Tournament ${tournamentId}: DoubleElim — adding ${loserCount} losers bracket matches`)
-    for (let i = 0; i < loserCount; i++) {
+    for (let index = 0; index < loserCount; index++) {
       allMatches.push({
         tournamentId,
         round: totalRounds - Math.ceil(Math.log2(n)) + 1,
-        matchIndex: i,
+        matchIndex: index,
         player1Id: undefined,
         player2Id: undefined,
         winnerId: undefined,
@@ -221,7 +227,9 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
       player2Wins: 0
     })
 
-    this.logger?.info(`Tournament ${tournamentId}: DoubleElim — generated ${allMatches.length} total matches across ${totalRounds + 1} rounds`)
+    this.logger?.info(
+      `Tournament ${tournamentId}: DoubleElim — generated ${allMatches.length} total matches across ${totalRounds + 1} rounds`
+    )
     return { totalRounds: totalRounds + 1, matches: allMatches }
   }
 
@@ -261,14 +269,14 @@ export class RoundRobinBracketStrategy implements BracketStrategy {
     const matches: Partial<TournamentMatch>[] = []
     let matchIndex = 0
 
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
+    for (let index = 0; index < n; index++) {
+      for (let index_ = index + 1; index_ < n; index_++) {
         matches.push({
           tournamentId,
           round: 1,
           matchIndex: matchIndex++,
-          player1Id: players[i].id,
-          player2Id: players[j].id,
+          player1Id: players[index].id,
+          player2Id: players[index_].id,
           status: MatchStatus.Pending,
           player1Wins: 0,
           player2Wins: 0

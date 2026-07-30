@@ -16,7 +16,9 @@ export class AuditLogger {
     targetUuid?: string,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    this.logger?.info(`AuditLog: Tournament ${tournamentId} — action="${action}", actor=${actorDiscordId}, matchId=${targetMatchId ?? 'none'}, targetUuid=${targetUuid ?? 'none'}`)
+    this.logger?.info(
+      `AuditLog: Tournament ${tournamentId} — action="${action}", actor=${actorDiscordId}, matchId=${targetMatchId ?? 'none'}, targetUuid=${targetUuid ?? 'none'}`
+    )
     try {
       await this.databaseManager.execute(
         `INSERT INTO "tournament_audit_log" ("tournamentId", "action", "actorDiscordId", "targetMatchId", "targetUuid", "metadata")

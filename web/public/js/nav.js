@@ -24,7 +24,7 @@ const NAV_ITEMS = [
 ]
 
 function getActivePage() {
-  const path = window.location.pathname
+  const path = globalThis.location.pathname
   const filename = path.split('/').pop() || 'index.html'
   for (const section of NAV_ITEMS) {
     for (const item of section.items) {
@@ -97,14 +97,14 @@ export function initNav() {
   statusIndicator.textContent = '\u25CF'
   navRight.append(statusIndicator)
 
-  const disconnectBtn = document.createElement('button')
-  disconnectBtn.className = 'btn btn-secondary btn-sm'
-  disconnectBtn.id = 'app-nav-disconnect'
-  disconnectBtn.textContent = 'Disconnect'
-  disconnectBtn.addEventListener('click', () => {
+  const disconnectButton = document.createElement('button')
+  disconnectButton.className = 'btn btn-secondary btn-sm'
+  disconnectButton.id = 'app-nav-disconnect'
+  disconnectButton.textContent = 'Disconnect'
+  disconnectButton.addEventListener('click', () => {
     Auth.disconnect()
   })
-  navRight.append(disconnectBtn)
+  navRight.append(disconnectButton)
 
   nav.append(navRight)
   navHost.append(nav)

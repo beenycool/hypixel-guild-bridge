@@ -224,6 +224,22 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   }
 
   /**
+   * Expose session credentials for Lunar Client authentication.
+   */
+  public getLunarCredentials(): { accessToken: string; uuid: string; username: string } | undefined {
+    const client = this.clientSession?.client
+    if (client === undefined || client.state !== states.PLAY) return undefined
+
+    const session = client.session as { accessToken?: string } | undefined
+    const accessToken = session?.accessToken
+    const uuid = client.uuid
+    const username = client.username
+
+    if (accessToken === undefined || uuid === undefined || username === undefined) return undefined
+    return { accessToken, uuid, username }
+  }
+
+  /**
    * In-game/tab-list latency (ms) for this bot as reported by Hypixel via `player_info`.
    * Undefined when not in play, disconnected, or before the first tab ping update.
    */
@@ -259,7 +275,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private static generateID(length: number): string {
     let result = ''
     const characters = 'abcde0123456789'
-    for (let i = 0; i < length; i++) {
+    for (let index = 0; index < length; index++) {
       result += characters.charAt(Math.floor(Math.random() * characters.length))
     }
     return result
@@ -301,9 +317,9 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     }
 
     const startTime = Date.now()
-    const maxExecutionTime = 10000
+    const maxExecutionTime = 10_000
 
-    const sendWithRetry = async (msg: string, isRetry: boolean): Promise<void> => {
+    const sendWithRetry = async (message_: string, isRetry: boolean): Promise<void> => {
       if (isRetry) await new Promise((resolve) => setTimeout(resolve, 100))
 
       return new Promise((resolve, reject) => {
@@ -316,18 +332,18 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
         let timeoutId: ReturnType<typeof setTimeout> | undefined
 
         const listener = (data: { formattedMessage?: string } | { message?: string } | string) => {
-          let msgStr: string
+          let messageString: string
           if (typeof data === 'string') {
-            msgStr = data
+            messageString = data
           } else if ('formattedMessage' in data && typeof data.formattedMessage === 'string') {
-            msgStr = this.clientSession?.prismChat.fromNotch(data.formattedMessage).toString() ?? ''
+            messageString = this.clientSession?.prismChat.fromNotch(data.formattedMessage).toString() ?? ''
           } else if ('message' in data && typeof data.message === 'string') {
-            msgStr = data.message
+            messageString = data.message
           } else {
-            msgStr = ''
+            messageString = ''
           }
 
-          if (msgStr.includes('You cannot say the same message twice!')) {
+          if (messageString.includes('You cannot say the same message twice!')) {
             client.removeListener('systemChat', listener)
             client.removeListener('playerChat', listener)
             if (timeoutId !== undefined) clearTimeout(timeoutId)
@@ -336,7 +352,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
         }
 
         this.sendQueue
-          .queue(msg, priority, originEventId)
+          .queue(message_, priority, originEventId)
           .then(() => {
             client.on('systemChat', listener)
             client.on('playerChat', listener)
@@ -347,8 +363,8 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
               resolve()
             }, 500)
           })
-          .catch((err) => {
-            reject(err)
+          .catch((error) => {
+            reject(error)
           })
       })
     }
@@ -367,7 +383,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
         if (error instanceof Error && error.message === 'duplicate-message') {
           const randomId = MinecraftInstance.generateID(24)
           const maxLength = 256 - randomId.length - 3
-          currentMessage = `${currentMessage.substring(0, maxLength)} - ${randomId}`
+          currentMessage = `${currentMessage.slice(0, Math.max(0, maxLength))} - ${randomId}`
           continue
         }
         throw error

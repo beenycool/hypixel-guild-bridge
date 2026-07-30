@@ -224,9 +224,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
       }
       return builder
     })
-    await interaction.message
-      .edit({ components: disabledRows })
-      .catch(() => undefined)
+    await interaction.message.edit({ components: disabledRows }).catch(() => undefined)
 
     if (action === 'accept') {
       const command = `/g accept ${username}`

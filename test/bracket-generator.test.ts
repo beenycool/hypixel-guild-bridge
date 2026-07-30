@@ -49,7 +49,7 @@ describe('BracketGenerator', () => {
 
     it('gives 1 bye for 15 players (top seed 1 gets bye)', () => {
       const gen = new BracketGenerator()
-      const players = Array.from({ length: 15 }, (_, i) => makePlayer(i + 1, i + 1))
+      const players = Array.from({ length: 15 }, (_, index) => makePlayer(index + 1, index + 1))
       const { totalRounds, matches } = gen.generateInitialMatches(1, players, 48)
       assert.strictEqual(totalRounds, 4)
       const round1 = matches.filter((m) => m.round === 1)
@@ -63,7 +63,7 @@ describe('BracketGenerator', () => {
 
     it('gives 2 byes for 6 players (top seeds seeded against bye slots)', () => {
       const gen = new BracketGenerator()
-      const players = Array.from({ length: 6 }, (_, i) => makePlayer(i + 1, i + 1))
+      const players = Array.from({ length: 6 }, (_, index) => makePlayer(index + 1, index + 1))
       const { totalRounds, matches } = gen.generateInitialMatches(1, players, 48)
       assert.strictEqual(totalRounds, 3)
       const round1 = matches.filter((m) => m.round === 1)
@@ -100,7 +100,7 @@ describe('BracketGenerator', () => {
 
     it('round-trip: final match exists and has no nextMatchId', () => {
       const gen = new BracketGenerator()
-      const players = Array.from({ length: 8 }, (_, i) => makePlayer(i + 1, i + 1))
+      const players = Array.from({ length: 8 }, (_, index) => makePlayer(index + 1, index + 1))
       const { totalRounds, matches } = gen.generateInitialMatches(1, players, 48)
       const finals = matches.filter((m) => m.round === totalRounds)
       assert.strictEqual(finals.length, 1)

@@ -2,11 +2,11 @@ import type { Logger } from 'log4js'
 
 import type { DatabaseManager } from '../../common/database-manager.js'
 
+import { validateSeriesScore } from './score-validator.js'
 import type { TournamentChannelManager } from './tournament-channel-manager.js'
 import type { TournamentNotifications } from './tournament-notifications.js'
 import type { Tournament, TournamentMatch, TournamentPlayer, TournamentReport } from './types.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from './types.js'
-import { validateSeriesScore } from './score-validator.js'
 
 export class MatchManager {
   constructor(
@@ -29,7 +29,9 @@ export class MatchManager {
     p1Wins: number,
     p2Wins: number
   ): Promise<{ status: MatchStatus; message: string }> {
-    this.logger?.info(`Match ${matchId}: submitReport — reporterPlayerId=${reporterPlayerId}, claimedWinnerId=${claimedWinnerId}, p1Wins=${p1Wins}, p2Wins=${p2Wins}`)
+    this.logger?.info(
+      `Match ${matchId}: submitReport — reporterPlayerId=${reporterPlayerId}, claimedWinnerId=${claimedWinnerId}, p1Wins=${p1Wins}, p2Wins=${p2Wins}`
+    )
 
     // Proof attachment check - perform before entering transaction to avoid holding DB locks
     let hasProof = false
@@ -78,7 +80,9 @@ export class MatchManager {
       }
 
       // 2. Insert report
-      this.logger?.info(`Match ${matchId}: Inserting report for reporter=${reporterPlayerId}, claimedWinner=${claimedWinnerId}`)
+      this.logger?.info(
+        `Match ${matchId}: Inserting report for reporter=${reporterPlayerId}, claimedWinner=${claimedWinnerId}`
+      )
       await txClient.query(
         `INSERT INTO "tournament_reports" ("matchId", "reporterId", "claimedWinnerId", "player1Wins", "player2Wins")
          VALUES ($1, $2, $3, $4, $5)
@@ -114,7 +118,9 @@ export class MatchManager {
             : MatchStatus.Disputed
       }
 
-      this.logger?.info(`Match ${matchId}: Report comparison — reports=${reports.length}/${expectedReportCount}, newStatus=${newStatus}`)
+      this.logger?.info(
+        `Match ${matchId}: Report comparison — reports=${reports.length}/${expectedReportCount}, newStatus=${newStatus}`
+      )
 
       // 4. Update match status
       await txClient.query('UPDATE "tournament_matches" SET "status" = $1 WHERE "id" = $2', [newStatus, matchId])
@@ -167,7 +173,9 @@ export class MatchManager {
     const newCumulative = match.deadlineExtensionMinutes + hours * 60
     const maxCumulative = maxExtensionHours * 60
     if (newCumulative > maxCumulative) {
-      this.logger?.info(`Match ${matchId}: Extension rejected — cumulative ${newCumulative}m exceeds max ${maxCumulative}m`)
+      this.logger?.info(
+        `Match ${matchId}: Extension rejected — cumulative ${newCumulative}m exceeds max ${maxCumulative}m`
+      )
       throw new Error(`Max cumulative extension (${maxExtensionHours}h) reached for this match.`)
     }
 
@@ -243,7 +251,9 @@ export class MatchManager {
     newPlayerUuid: string,
     newDiscordId: string
   ): Promise<{ success: boolean; message: string }> {
-    this.logger?.info(`Match ${matchId}: substitute — oldPlayerId=${oldPlayerId}, newPlayerUuid=${newPlayerUuid}, newDiscordId=${newDiscordId}`)
+    this.logger?.info(
+      `Match ${matchId}: substitute — oldPlayerId=${oldPlayerId}, newPlayerUuid=${newPlayerUuid}, newDiscordId=${newDiscordId}`
+    )
 
     return await this.databaseManager.transaction(async (txClient) => {
       const matchResult = await txClient.query<TournamentMatch>(
@@ -393,11 +403,11 @@ export class MatchManager {
       }
     }
 
-    if (winnerId !== undefined) {
+    if (winnerId === undefined) {
+      this.logger?.info(`Match ${matchId}: Deadline expiry — could not determine winner`)
+    } else {
       this.logger?.info(`Match ${matchId}: Deadline expiry resolved — winner=${winnerId}`)
       await this.resolveWinner(matchId, winnerId)
-    } else {
-      this.logger?.info(`Match ${matchId}: Deadline expiry — could not determine winner`)
     }
   }
 
@@ -418,7 +428,9 @@ export class MatchManager {
     const tournament = await this.getTournament(match.tournamentId)
     if (tournament === undefined) return
 
-    this.logger?.info(`Tournament ${tournament.id}, Match ${matchId}: Resolving winner, round=${match.round}, matchIndex=${match.matchIndex}`)
+    this.logger?.info(
+      `Tournament ${tournament.id}, Match ${matchId}: Resolving winner, round=${match.round}, matchIndex=${match.matchIndex}`
+    )
 
     // 1. Mark match completed
     this.logger?.info(`Match ${matchId}: Marking as completed`)
@@ -483,10 +495,14 @@ export class MatchManager {
         const winnerName = names.get(winnerId) ?? 'Winner'
         await this.notifications.announceWinner(tournament, winnerName)
       } else {
-        this.logger?.info(`Tournament ${tournament.id}: Match ${matchId} resolved, no next match — waiting for other matches`)
+        this.logger?.info(
+          `Tournament ${tournament.id}: Match ${matchId} resolved, no next match — waiting for other matches`
+        )
       }
     } else {
-      this.logger?.info(`Match ${matchId}: Advancing winner ${winnerId} to next match ${match.nextMatchId} (slot based on matchIndex=${match.matchIndex})`)
+      this.logger?.info(
+        `Match ${matchId}: Advancing winner ${winnerId} to next match ${match.nextMatchId} (slot based on matchIndex=${match.matchIndex})`
+      )
       const nextMatch = await this.databaseManager.queryOne<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "id" = $1',
         [match.nextMatchId]
@@ -564,7 +580,9 @@ export class MatchManager {
             )
           }
         } else {
-          this.logger?.info(`Match ${match.nextMatchId}: Waiting for second player (p1=${updatedNextMatch?.player1Id ?? 'none'}, p2=${updatedNextMatch?.player2Id ?? 'none'})`)
+          this.logger?.info(
+            `Match ${match.nextMatchId}: Waiting for second player (p1=${updatedNextMatch?.player1Id ?? 'none'}, p2=${updatedNextMatch?.player2Id ?? 'none'})`
+          )
         }
       }
     }
@@ -601,7 +619,9 @@ export class MatchManager {
     if (allRoundCompleted && tournament.status === TournamentStatus.Active) {
       // Progress round
       const nextRound = tournament.currentRound + 1
-      this.logger?.info(`Tournament ${tournament.id}: Round ${tournament.currentRound} complete! Progressing to round ${nextRound}`)
+      this.logger?.info(
+        `Tournament ${tournament.id}: Round ${tournament.currentRound} complete! Progressing to round ${nextRound}`
+      )
       await this.databaseManager.execute('UPDATE "tournaments" SET "currentRound" = $1 WHERE "id" = $2', [
         nextRound,
         tournament.id

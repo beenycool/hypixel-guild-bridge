@@ -1,11 +1,11 @@
-import { describe, it, mock } from 'node:test'
 import assert from 'node:assert/strict'
+import { describe, it, mock } from 'node:test'
 
 describe('DeadlineScheduler', () => {
   it('should identify expired deadlines', () => {
     const now = Date.now()
-    const past = new Date(now - 3600_000).toISOString()
-    const future = new Date(now + 3600_000).toISOString()
+    const past = new Date(now - 3_600_000).toISOString()
+    const future = new Date(now + 3_600_000).toISOString()
 
     assert.ok(new Date(past).getTime() < now)
     assert.ok(new Date(future).getTime() > now)
@@ -13,12 +13,12 @@ describe('DeadlineScheduler', () => {
 
   it('should detect 24-hour warning threshold', () => {
     const now = Date.now()
-    const in23Hours = new Date(now + 23 * 3600_000)
-    const in25Hours = new Date(now + 25 * 3600_000)
+    const in23Hours = new Date(now + 23 * 3_600_000)
+    const in25Hours = new Date(now + 25 * 3_600_000)
 
     const withinWarningThreshold = (deadline: Date): boolean => {
       const msUntilDeadline = deadline.getTime() - Date.now()
-      return msUntilDeadline > 0 && msUntilDeadline <= 24 * 3600_000
+      return msUntilDeadline > 0 && msUntilDeadline <= 24 * 3_600_000
     }
 
     assert.equal(withinWarningThreshold(in23Hours), true)

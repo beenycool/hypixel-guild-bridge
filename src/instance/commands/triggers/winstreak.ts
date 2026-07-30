@@ -46,13 +46,10 @@ export default class WinstreakCommand extends ChatCommandHandler {
     if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
     try {
-      const response = await httpClient.get<CoralWinstreakResponse>(
-        `https://api.urchin.gg/v3/player/winstreaks`,
-        {
-          params: { player: uuid },
-          headers: { 'X-API-Key': urchinApiKey }
-        }
-      )
+      const response = await httpClient.get<CoralWinstreakResponse>(`https://api.urchin.gg/v3/player/winstreaks`, {
+        params: { player: uuid },
+        headers: { 'X-API-Key': urchinApiKey }
+      })
 
       const modes = response.data.modes
       if (!modes) {

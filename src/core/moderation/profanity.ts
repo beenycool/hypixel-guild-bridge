@@ -24,7 +24,7 @@ export class Profanity {
   }
 
   private censorWord(word: string): string {
-    return word.replace(/[aeiou]/gi, '*')
+    return word.replaceAll(/[aeiou]/gi, '*')
   }
 
   public filterProfanity(message: string): { filteredMessage: string; changed: boolean } {
@@ -34,7 +34,7 @@ export class Profanity {
     let changed = false
     let filtered: string
     try {
-      filtered = message.replace(/\w+/g, (word) => {
+      filtered = message.replaceAll(/\w+/g, (word) => {
         if (this.profanityFilter.isProfane(word)) {
           changed = true
           return this.censorWord(word)

@@ -344,7 +344,10 @@ export class SettingsApiHandler {
           cfg.setDurationTemporarilyInteractions(bridgeId, Duration.seconds(deleteAfter))
           cfg.setMaxTemporarilyInteractions(bridgeId, number_(body.maxEvents, 10))
           cfg.setPersistGuildJoinLeave(bridgeId, bool(body.persistJoinLeave))
-          const deleteJoinLeaveAfter = Math.max(86400, Math.min(604800, number_(body.deleteJoinLeaveAfterSeconds, 172800))) // 2 days in seconds, clamped to 1-7 days
+          const deleteJoinLeaveAfter = Math.max(
+            86_400,
+            Math.min(604_800, number_(body.deleteJoinLeaveAfterSeconds, 172_800))
+          ) // 2 days in seconds, clamped to 1-7 days
           cfg.setDurationJoinLeaveInteractions(bridgeId, Duration.seconds(deleteJoinLeaveAfter))
           cfg.setRandomChatterEnabled(bridgeId, bool(body.chatterEnabled))
           cfg.setRandomChatterIntervalMinutes(bridgeId, number_(body.chatterIntervalMinutes, 15))
@@ -354,7 +357,10 @@ export class SettingsApiHandler {
           cfg.setRandomChatterAntiRepeatLength(bridgeId, number_(body.chatterAntiRepeatLength, 5))
           cfg.setRandomChatterQuietWindowMinutes(bridgeId, number_(body.chatterQuietWindowMinutes, 2))
           cfg.setWelcomeOnlineEnabled(bridgeId, bool(body.welcomeOnlineEnabled))
-          cfg.setWelcomeOnlineMessages(bridgeId, (body.welcomeOnlineMessages as never as { uuid: string; message: string }[]) || [])
+          cfg.setWelcomeOnlineMessages(
+            bridgeId,
+            (body.welcomeOnlineMessages as never as { uuid: string; message: string }[]) || []
+          )
           break
         }
         case 'qualityOfLife': {

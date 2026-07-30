@@ -302,7 +302,9 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   }
 
   private async handleRewindRound(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
-    this.application.logger.info(`TournamentTestPanel: Rewinding round for panel ${panel.messageId} (step ${panel.currentStep} -> ${panel.currentStep - 1})`)
+    this.application.logger.info(
+      `TournamentTestPanel: Rewinding round for panel ${panel.messageId} (step ${panel.currentStep} -> ${panel.currentStep - 1})`
+    )
     if (panel.currentStep === 0) {
       await interaction.editReply({ content: 'Nothing to rewind.' })
       return
@@ -405,7 +407,9 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
   }
 
   private async handleCleanup(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
-    this.application.logger.info(`TournamentTestPanel: Cleaning up tournament ${panel.tournamentId}, panel ${panel.messageId}`)
+    this.application.logger.info(
+      `TournamentTestPanel: Cleaning up tournament ${panel.tournamentId}, panel ${panel.messageId}`
+    )
     await this.application.core.tournamentManager.cancelTournament(panel.tournamentId).catch(() => undefined)
 
     await this.application.core.databaseManager.execute('DELETE FROM "tournament_players" WHERE "tournamentId" = $1', [

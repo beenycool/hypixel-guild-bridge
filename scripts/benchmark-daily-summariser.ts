@@ -1,4 +1,5 @@
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+
 import { OpenRouterClient } from '../src/utility/openrouter-client.js'
 
 const SYSTEM_PROMPT = `You are a hyper-dramatic, gossipy, high-school-style server chat commentator. Your job is to read Minecraft guild chat logs and write a highly entertaining, cohesive narrative summary of today's events.
@@ -32,11 +33,11 @@ function parseLogs(raw: string): {
     const trimmed = line.trim()
     if (!trimmed) continue
 
-    const discordMatch = trimmed.match(/^(.+?)\s\(Discord:\s<@(\d+)>\):\s(.+)$/)
+    const discordMatch = /^(.+?)\s\(Discord:\s<@(\d+)>\):\s(.+)$/.exec(trimmed)
     if (discordMatch) {
       entries.push({ name: discordMatch[1], discordId: discordMatch[2], message: discordMatch[3] })
     } else {
-      const noDiscordMatch = trimmed.match(/^([a-zA-Z0-9_]+):\s(.+)$/)
+      const noDiscordMatch = /^([a-zA-Z0-9_]+):\s(.+)$/.exec(trimmed)
       if (noDiscordMatch) {
         entries.push({ name: noDiscordMatch[1], discordId: null, message: noDiscordMatch[2] })
       }
@@ -85,20 +86,20 @@ function evaluateResponse(
   results.startsWithTitle = response.startsWith('Server Talk 💬')
 
   const chattiestRegex = /<@(\d+)> was today's chattiest with (\d+) messages!/
-  const chattiestMatch = response.match(chattiestRegex)
+  const chattiestMatch = chattiestRegex.exec(response)
   results.hasChattiestLine = chattiestMatch !== null
   if (chattiestMatch) {
     results.chattiestId = chattiestMatch[1]
-    results.chattiestCount = parseInt(chattiestMatch[2], 10)
+    results.chattiestCount = Number.parseInt(chattiestMatch[2], 10)
     results.chattiestCorrect =
-      chattiestMatch[1] === chattiest.discordId && parseInt(chattiestMatch[2], 10) === chattiest.count
+      chattiestMatch[1] === chattiest.discordId && Number.parseInt(chattiestMatch[2], 10) === chattiest.count
   } else {
     results.chattiestCorrect = false
   }
 
   results.noBulletPoints = !/^[-*]\s/m.test(response)
 
-  results.noCensorAsterisks = !/\*\*\*/m.test(response)
+  results.noCensorAsterisks = !response.includes('***')
 
   const paragraphs = response.split('\n\n').filter((p) => p.trim().length > 0)
   results.paragraphCount = paragraphs.length
@@ -210,11 +211,11 @@ async function main(): Promise<void> {
       )
 
       console.log(`  Done in ${elapsed}s — ALL PASS: ${evalResult.allPassed}`)
-    } catch (err) {
+    } catch (error) {
       const elapsed = ((Date.now() - start) / 1000).toFixed(2)
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error(`  FAILED after ${elapsed}s: ${msg}`)
-      writeFileSync(`outputs/${v.label}.txt`, `=== ${v.label} ===\nERROR after ${elapsed}s:\n${msg}\n`)
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`  FAILED after ${elapsed}s: ${message}`)
+      writeFileSync(`outputs/${v.label}.txt`, `=== ${v.label} ===\nERROR after ${elapsed}s:\n${message}\n`)
       tableRows.push(`| ${v.label} | ${elapsed} | ERROR | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |`)
     }
   }

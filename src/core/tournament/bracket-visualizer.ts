@@ -1,5 +1,7 @@
-import { createCanvas, registerFont } from 'canvas'
 import path from 'node:path'
+
+import { createCanvas, registerFont } from 'canvas'
+
 import { MatchStatus, TournamentStatus } from './types.js'
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 
@@ -33,15 +35,15 @@ export class BracketVisualizer {
       const height = Math.max(Math.pow(2, totalRounds - 1) * matchHeight * 2 + headerHeight + padding * 2, 200)
 
       const canvas = createCanvas(width, height)
-      const ctx = canvas.getContext('2d')
+      const context = canvas.getContext('2d')
 
-      ctx.fillStyle = '#1a1a2e'
-      ctx.fillRect(0, 0, width, height)
+      context.fillStyle = '#1a1a2e'
+      context.fillRect(0, 0, width, height)
 
-      ctx.font = '18px Minecraft, sans-serif'
-      ctx.fillStyle = '#e0e0e0'
-      ctx.textAlign = 'center'
-      ctx.fillText(`${data.tournament.name} — Bracket`, width / 2, 30)
+      context.font = '18px Minecraft, sans-serif'
+      context.fillStyle = '#e0e0e0'
+      context.textAlign = 'center'
+      context.fillText(`${data.tournament.name} — Bracket`, width / 2, 30)
 
       const matchesByRound = new Map<number, TournamentMatch[]>()
       for (const match of data.matches) {
@@ -50,13 +52,13 @@ export class BracketVisualizer {
         matchesByRound.get(round)!.push(match)
       }
 
-      ctx.font = '14px Minecraft, sans-serif'
-      ctx.fillStyle = '#888'
-      ctx.textAlign = 'center'
+      context.font = '14px Minecraft, sans-serif'
+      context.fillStyle = '#888'
+      context.textAlign = 'center'
       for (let r = 1; r <= totalRounds; r++) {
         const x = padding + (r - 1) * columnWidth + columnWidth / 2
         const label = r === totalRounds ? 'Final' : r === totalRounds - 1 ? 'Semifinals' : `Round ${r}`
-        ctx.fillText(label, x, headerHeight + 15)
+        context.fillText(label, x, headerHeight + 15)
       }
 
       for (const [round, roundMatches] of matchesByRound) {
@@ -64,88 +66,91 @@ export class BracketVisualizer {
         const slotsInRound = totalRounds === 1 ? 1 : Math.pow(2, totalRounds - round)
         const slotSpacing = Math.max(80, (height - headerHeight - padding * 2) / (slotsInRound + 1))
 
-        for (let i = 0; i < roundMatches.length; i++) {
-          const match = roundMatches[i]
-          const y = headerHeight + padding + (i + 0.5) * slotSpacing * 2 - matchHeight / 2
+        for (const [index, match] of roundMatches.entries()) {
+          const y = headerHeight + padding + (index + 0.5) * slotSpacing * 2 - matchHeight / 2
 
           let borderColor: string
           let bgColor: string
 
           switch (match.status) {
             case MatchStatus.Completed:
-            case MatchStatus.Bye:
+            case MatchStatus.Bye: {
               borderColor = '#2ecc71'
               bgColor = '#1a3a1a'
               break
-            case MatchStatus.Disputed:
+            }
+            case MatchStatus.Disputed: {
               borderColor = '#e74c3c'
               bgColor = '#3a1a1a'
               break
+            }
             case MatchStatus.Active:
-            case MatchStatus.Reported:
+            case MatchStatus.Reported: {
               borderColor = '#f39c12'
               bgColor = '#3a2a1a'
               break
-            default:
+            }
+            default: {
               borderColor = '#555'
               bgColor = '#222'
+            }
           }
 
-          ctx.fillStyle = bgColor
-          ctx.strokeStyle = borderColor
-          ctx.lineWidth = 2
-          ctx.beginPath()
-          ctx.roundRect(x, y, columnWidth - 40, matchHeight, 6)
-          ctx.fill()
-          ctx.stroke()
+          context.fillStyle = bgColor
+          context.strokeStyle = borderColor
+          context.lineWidth = 2
+          context.beginPath()
+          context.roundRect(x, y, columnWidth - 40, matchHeight, 6)
+          context.fill()
+          context.stroke()
 
           const p1Name = match.player1Id ? (data.playerNames.get(match.player1Id) ?? 'TBD') : '—'
           const p1Score =
             match.player1Wins !== null && match.player1Wins !== undefined ? match.player1Wins.toString() : ''
           const p1IsWinner = match.winnerId !== null && match.player1Id === match.winnerId
 
-          ctx.font = '11px Minecraft, sans-serif'
-          ctx.textAlign = 'left'
-          ctx.fillStyle = p1IsWinner ? '#2ecc71' : match.player1Id ? '#ccc' : '#666'
-          ctx.fillText(p1Name, x + 8, y + 20)
+          context.font = '11px Minecraft, sans-serif'
+          context.textAlign = 'left'
+          context.fillStyle = p1IsWinner ? '#2ecc71' : match.player1Id ? '#ccc' : '#666'
+          context.fillText(p1Name, x + 8, y + 20)
 
           if (p1Score) {
-            ctx.textAlign = 'right'
-            ctx.fillStyle = p1IsWinner ? '#2ecc71' : '#888'
-            ctx.fillText(p1Score, x + columnWidth - 48, y + 20)
+            context.textAlign = 'right'
+            context.fillStyle = p1IsWinner ? '#2ecc71' : '#888'
+            context.fillText(p1Score, x + columnWidth - 48, y + 20)
           }
 
-          ctx.strokeStyle = '#444'
-          ctx.lineWidth = 1
-          ctx.beginPath()
-          ctx.moveTo(x + 8, y + matchHeight / 2)
-          ctx.lineTo(x + columnWidth - 48, y + matchHeight / 2)
-          ctx.stroke()
+          context.strokeStyle = '#444'
+          context.lineWidth = 1
+          context.beginPath()
+          context.moveTo(x + 8, y + matchHeight / 2)
+          context.lineTo(x + columnWidth - 48, y + matchHeight / 2)
+          context.stroke()
 
           const p2Name = match.player2Id ? (data.playerNames.get(match.player2Id) ?? 'TBD') : '—'
           const p2Score =
             match.player2Wins !== null && match.player2Wins !== undefined ? match.player2Wins.toString() : ''
           const p2IsWinner = match.winnerId !== null && match.player2Id === match.winnerId
 
-          ctx.textAlign = 'left'
-          ctx.fillStyle = p2IsWinner ? '#2ecc71' : match.player2Id ? '#ccc' : '#666'
-          ctx.fillText(p2Name, x + 8, y + matchHeight / 2 + 20)
+          context.textAlign = 'left'
+          context.fillStyle = p2IsWinner ? '#2ecc71' : match.player2Id ? '#ccc' : '#666'
+          context.fillText(p2Name, x + 8, y + matchHeight / 2 + 20)
 
           if (p2Score) {
-            ctx.textAlign = 'right'
-            ctx.fillStyle = p2IsWinner ? '#2ecc71' : '#888'
-            ctx.fillText(p2Score, x + columnWidth - 48, y + matchHeight / 2 + 20)
+            context.textAlign = 'right'
+            context.fillStyle = p2IsWinner ? '#2ecc71' : '#888'
+            context.fillText(p2Score, x + columnWidth - 48, y + matchHeight / 2 + 20)
           }
 
           if (round < totalRounds) {
             const nextX = x + columnWidth - 40
             const nextYStart = y + matchHeight / 2
-            ctx.strokeStyle = borderColor
-            ctx.lineWidth = 1
-            ctx.beginPath()
-            ctx.moveTo(nextX, nextYStart)
-            ctx.lineTo(nextX + 10, nextYStart)
-            ctx.stroke()
+            context.strokeStyle = borderColor
+            context.lineWidth = 1
+            context.beginPath()
+            context.moveTo(nextX, nextYStart)
+            context.lineTo(nextX + 10, nextYStart)
+            context.stroke()
           }
         }
       }
@@ -177,18 +182,22 @@ export class BracketVisualizer {
 
         let statusIcon: string
         switch (match.status) {
-          case MatchStatus.Completed:
+          case MatchStatus.Completed: {
             statusIcon = '&a✔'
             break
-          case MatchStatus.Disputed:
+          }
+          case MatchStatus.Disputed: {
             statusIcon = '&c⚠'
             break
+          }
           case MatchStatus.Active:
-          case MatchStatus.Reported:
+          case MatchStatus.Reported: {
             statusIcon = '&6⏳'
             break
-          default:
+          }
+          default: {
             statusIcon = '&7—'
+          }
         }
 
         if (match.status === MatchStatus.Completed && match.winnerId) {

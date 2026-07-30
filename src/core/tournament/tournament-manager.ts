@@ -4,6 +4,8 @@ import type { Logger } from 'log4js'
 import type Application from '../../application.js'
 import type { DatabaseManager } from '../../common/database-manager.js'
 
+import { AntiAbuse } from './anti-abuse.js'
+import { AuditLogger } from './audit-logger.js'
 import { BracketGenerator } from './bracket-generator.js'
 import { DeadlineScheduler } from './deadline-scheduler.js'
 import { MatchManager } from './match-manager.js'
@@ -11,8 +13,6 @@ import { TournamentChannelManager } from './tournament-channel-manager.js'
 import { TournamentNotifications } from './tournament-notifications.js'
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from './types.js'
-import { AuditLogger } from './audit-logger.js'
-import { AntiAbuse } from './anti-abuse.js'
 
 export class TournamentManager {
   public readonly bracketGenerator: BracketGenerator
@@ -69,7 +69,9 @@ export class TournamentManager {
     this.activeTournaments.clear()
     for (const t of active) {
       this.activeTournaments.set(t.id, t)
-      this.logger.info(`Tournament ${t.id} (${t.name}): Loaded active tournament, status=${t.status}, bridgeId=${t.bridgeId}`)
+      this.logger.info(
+        `Tournament ${t.id} (${t.name}): Loaded active tournament, status=${t.status}, bridgeId=${t.bridgeId}`
+      )
     }
     this.logger.info(`Loaded ${this.activeTournaments.size} active tournaments from database.`)
   }
@@ -231,10 +233,12 @@ export class TournamentManager {
 
     const now = Math.floor(Date.now() / 1000)
 
-    const checkinOpensAt = startedAtUnix !== undefined ? startedAtUnix - checkinWindowMinutes * 60 : undefined
-    const checkinClosesAt = startedAtUnix !== undefined ? startedAtUnix : undefined
+    const checkinOpensAt = startedAtUnix === undefined ? undefined : startedAtUnix - checkinWindowMinutes * 60
+    const checkinClosesAt = startedAtUnix === undefined ? undefined : startedAtUnix
 
-    this.logger.info(`createTournament: bridgeId=${bridgeId}, name="${name}", gameType="${gameType}", bestOf=${bestOf}, roundDeadlineHours=${roundDeadlineHours}, bracketFormat="${bracketFormat}", checkinWindowMinutes=${checkinWindowMinutes}`)
+    this.logger.info(
+      `createTournament: bridgeId=${bridgeId}, name="${name}", gameType="${gameType}", bestOf=${bestOf}, roundDeadlineHours=${roundDeadlineHours}, bracketFormat="${bracketFormat}", checkinWindowMinutes=${checkinWindowMinutes}`
+    )
 
     const tournament = await this.databaseManager.queryOne<Tournament>(
       `INSERT INTO "tournaments" ("bridgeId", "name", "gameType", "bestOf", "status", "roundDeadlineHours", "createdBy", "createdAt", "checkinOpensAt", "checkinClosesAt", "startedAtUnix", "bracketFormat")
@@ -260,7 +264,9 @@ export class TournamentManager {
       throw new Error('Failed to insert tournament into database.')
     }
 
-    this.logger.info(`Tournament ${tournament.id} (${name}): Created successfully, checkinOpensAt=${checkinOpensAt ?? 'none'}, checkinClosesAt=${checkinClosesAt ?? 'none'}`)
+    this.logger.info(
+      `Tournament ${tournament.id} (${name}): Created successfully, checkinOpensAt=${checkinOpensAt ?? 'none'}, checkinClosesAt=${checkinClosesAt ?? 'none'}`
+    )
     this.activeTournaments.set(tournament.id, tournament)
     return tournament
   }
@@ -284,7 +290,9 @@ export class TournamentManager {
     const checkinOpensAt = now
     const checkinClosesAt = tournament.startedAtUnix ?? checkinOpensAt + 3600
 
-    this.logger.info(`Tournament ${tournamentId}: Opening check-in manually, checkinOpensAt=${checkinOpensAt}, checkinClosesAt=${checkinClosesAt}`)
+    this.logger.info(
+      `Tournament ${tournamentId}: Opening check-in manually, checkinOpensAt=${checkinOpensAt}, checkinClosesAt=${checkinClosesAt}`
+    )
 
     await this.databaseManager.execute(
       'UPDATE "tournaments" SET "checkinOpensAt" = $1, "checkinClosesAt" = $2 WHERE "id" = $3',
@@ -435,7 +443,9 @@ export class TournamentManager {
       throw new Error('Tournament is already active.')
     }
 
-    this.logger.info(`Tournament ${tournamentId} (${tournament.name}): Starting tournament for guild=${guildId}, categoryId=${categoryId ?? 'default'}`)
+    this.logger.info(
+      `Tournament ${tournamentId} (${tournament.name}): Starting tournament for guild=${guildId}, categoryId=${categoryId ?? 'default'}`
+    )
 
     // Fetch players
     const players = await this.databaseManager.queryRows<TournamentPlayer>(
@@ -559,9 +569,13 @@ export class TournamentManager {
     // Setup Discord channel for bracket
     const configCategoryId = this.application.core.bridgeConfigurations.getTournamentCategoryId(tournament.bridgeId)
     const resolvedCategoryId = categoryId ?? configCategoryId
-    this.logger.info(`Tournament ${tournamentId}: Creating bracket channel (categoryId=${resolvedCategoryId ?? 'none'})`)
+    this.logger.info(
+      `Tournament ${tournamentId}: Creating bracket channel (categoryId=${resolvedCategoryId ?? 'none'})`
+    )
     const channel = await this.channelManager.createBracketChannel(guildId, tournament.name, resolvedCategoryId)
-    if (channel !== undefined) {
+    if (channel === undefined) {
+      this.logger.info(`Tournament ${tournamentId}: Failed to create bracket channel`)
+    } else {
       this.logger.info(`Tournament ${tournamentId}: Bracket channel created: #${channel.name} (${channel.id})`)
       await this.databaseManager.execute('UPDATE "tournaments" SET "discordChannelId" = $1 WHERE "id" = $2', [
         channel.id,
@@ -604,15 +618,15 @@ export class TournamentManager {
           this.logger.info(`Match ${m.id}: Creating thread for ${p1Name} vs ${p2Name}`)
           const threadId = await this.channelManager.createMatchThread(channel.id, m, p1, p2, p1Name, p2Name)
 
-          if (threadId !== undefined) {
+          if (threadId === undefined) {
+            this.logger.info(`Match ${m.id}: Failed to create thread`)
+          } else {
             this.logger.info(`Match ${m.id}: Thread created (threadId=${threadId})`)
             await this.databaseManager.execute(
               'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
               [threadId, m.id]
             )
             m.discordThreadId = threadId
-          } else {
-            this.logger.info(`Match ${m.id}: Failed to create thread`)
           }
 
           // Notify in whispers
@@ -651,8 +665,6 @@ export class TournamentManager {
           })
         }
       }
-    } else {
-      this.logger.info(`Tournament ${tournamentId}: Failed to create bracket channel`)
     }
   }
 
@@ -715,7 +727,9 @@ export class TournamentManager {
       [tournamentId]
     )
 
-    this.logger.info(`Tournament ${tournamentId}: Recording results for ${players.length} players from ${matches.length} matches`)
+    this.logger.info(
+      `Tournament ${tournamentId}: Recording results for ${players.length} players from ${matches.length} matches`
+    )
 
     await this.databaseManager.transaction(async (txClient) => {
       for (const player of players) {
@@ -731,7 +745,9 @@ export class TournamentManager {
           ? (tournament.totalRounds ?? 1)
           : Math.max(...playerMatches.filter((m: any) => m.winnerId !== player.id).map((m: any) => m.round), 1)
 
-        this.logger.info(`Tournament ${tournamentId}: Player ${player.playerUuid} — wins=${wins}, losses=${losses}, roundsReached=${roundsReached}, champion=${isWinner}`)
+        this.logger.info(
+          `Tournament ${tournamentId}: Player ${player.playerUuid} — wins=${wins}, losses=${losses}, roundsReached=${roundsReached}, champion=${isWinner}`
+        )
 
         await txClient.query(
           `INSERT INTO "tournament_results" ("playerUuid", "discordId", "tournamentId", "placement", "roundsReached", "wins", "losses", "champion")

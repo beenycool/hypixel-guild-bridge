@@ -144,6 +144,12 @@ export interface TournamentConfig {
   reminderHours?: number[]
 }
 
+export interface LunarClientConfig {
+  enabled?: boolean
+  minecraftInstance?: string
+  cacheSeconds?: number
+}
+
 export interface ApplicationConfig {
   version: typeof ApplicationConfigVersion
   general: GeneralConfig
@@ -163,4 +169,5 @@ export interface ApplicationConfig {
    */
   bridges?: BridgeConfig[]
   tournament?: TournamentConfig
+  lunarClient?: LunarClientConfig
 }

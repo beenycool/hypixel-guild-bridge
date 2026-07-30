@@ -12,7 +12,7 @@ function updateStatusIndicator(state) {
 async function fetchBotStatus() {
   try {
     const status = await Api.apiGet('/api/status')
-    const mcConnected = status.minecraft ? status.minecraft.some((i) => i.connected) : false
+    const mcConnected = status.minecraft ? status.minecraft.some((index) => index.connected) : false
     const dcConnected = status.discord ? status.discord.connected : false
     const element = document.querySelector('#bot-status')
     if (!element) return
@@ -30,7 +30,7 @@ export function initStatusPolling() {
   updateStatusIndicator('connecting')
   fetchBotStatus()
   if (pollingInterval) clearInterval(pollingInterval)
-  pollingInterval = setInterval(fetchBotStatus, 30000)
+  pollingInterval = setInterval(fetchBotStatus, 30_000)
 }
 
 export function stopStatusPolling() {

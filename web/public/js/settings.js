@@ -1,9 +1,9 @@
-import { Auth } from './auth.js'
 import { Api } from './api.js'
-import { Ws } from './ws.js'
-import { Ui } from './ui.js'
+import { Auth } from './auth.js'
 import { initNav } from './nav.js'
 import { initStatusPolling } from './status.js'
+import { Ui } from './ui.js'
+import { Ws } from './ws.js'
 
 let currentBridgeId = null
 let currentCategory = null
@@ -286,8 +286,8 @@ const CATEGORIES = [
                 t: 'number',
                 label: 'Delete After (seconds)',
                 hint: '86400\u2013604800 (1\u20137 days)',
-                min: 86400,
-                max: 604800
+                min: 86_400,
+                max: 604_800
               }
             ]
           }
@@ -1303,7 +1303,8 @@ function welcomeRowHTML(entry) {
 
 function renderWelcomeTable(data) {
   const entries = Array.isArray(data.welcomeOnlineMessages) ? data.welcomeOnlineMessages : []
-  const rows = entries.length > 0 ? entries.map(welcomeRowHTML).join('') : placeholderRow(3, 'No welcome messages configured.')
+  const rows =
+    entries.length > 0 ? entries.map(welcomeRowHTML).join('') : placeholderRow(3, 'No welcome messages configured.')
   return `<div class="settings-subsection">
       <div class="settings-subsection-title">Player Welcome Messages</div>
       <div class="table-wrap">
@@ -1322,10 +1323,10 @@ function readWelcomeRows() {
   const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
   return rows.map((tr) => {
     const uuidInput = tr.querySelector('[data-uuid]')
-    const msgInput = tr.querySelector('[data-message]')
+    const messageInput = tr.querySelector('[data-message]')
     return {
       uuid: uuidInput ? uuidInput.value.trim() : '',
-      message: msgInput ? msgInput.value.trim() : ''
+      message: messageInput ? messageInput.value.trim() : ''
     }
   })
 }
@@ -1615,21 +1616,24 @@ function createTagInput(initial, placeholder, onChange, labelFor, max, suggestio
       if (onChange) onChange()
     } else
       switch (e.key) {
-        case 'ArrowDown':
+        case 'ArrowDown': {
           e.preventDefault()
           if (filtered.length === 0) return
           highlightedIndex = Math.min(highlightedIndex + 1, filtered.length - 1)
           renderSuggest()
           break
-        case 'ArrowUp':
+        }
+        case 'ArrowUp': {
           e.preventDefault()
           if (filtered.length === 0) return
           highlightedIndex = Math.max(highlightedIndex - 1, -1)
           renderSuggest()
           break
-        case 'Escape':
+        }
+        case 'Escape': {
           closeSuggest()
           break
+        }
       }
   })
 
@@ -2163,20 +2167,20 @@ function attachDelegatedListeners() {
       return
     }
     // UUID lookup for welcome table
-    const lookupBtn = e.target.closest('[data-lookup]')
-    if (lookupBtn) {
-      const id = lookupBtn.dataset.lookup
-      const row = lookupBtn.closest('tr')
+    const lookupButton = e.target.closest('[data-lookup]')
+    if (lookupButton) {
+      const id = lookupButton.dataset.lookup
+      const row = lookupButton.closest('tr')
       const input = row ? row.querySelector(`[data-uuid="${id}"]`) : null
       if (input) {
         const username = globalThis.prompt('Enter the Minecraft username:')
-        if (username && username.trim()) {
-          const btn = lookupBtn
-          btn.disabled = true
-          btn.textContent = '...'
+        if (username?.trim()) {
+          const button_ = lookupButton
+          button_.disabled = true
+          button_.textContent = '...'
           Api.apiGet(`/api/player/${encodeURIComponent(username.trim())}`)
             .then((data) => {
-              if (data && data.uuid) {
+              if (data?.uuid) {
                 input.value = data.uuid
                 markDirty()
               } else {
@@ -2187,8 +2191,8 @@ function attachDelegatedListeners() {
               globalThis.alert('Failed to resolve username. Check the name and try again.')
             })
             .finally(() => {
-              btn.disabled = false
-              btn.textContent = '🔍'
+              button_.disabled = false
+              button_.textContent = '🔍'
             })
         }
       }
@@ -2199,24 +2203,29 @@ function attachDelegatedListeners() {
     if (!button) return
     if (currentCategory === 'rankup') {
       switch (button.dataset.action) {
-        case 'add-promotion':
+        case 'add-promotion': {
           addPromotionRow()
           break
-        case 'add-demotion':
+        }
+        case 'add-demotion': {
           addDemotionRow()
           break
-        case 'delete':
+        }
+        case 'delete': {
           removeRow(button)
           break
+        }
       }
     } else if (currentCategory === 'minecraftEvents') {
       switch (button.dataset.action) {
-        case 'add-welcome':
+        case 'add-welcome': {
           addWelcomeRow()
           break
-        case 'delete':
+        }
+        case 'delete': {
           removeRow(button)
           break
+        }
       }
     }
   })

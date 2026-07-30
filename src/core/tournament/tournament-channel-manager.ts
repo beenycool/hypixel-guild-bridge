@@ -1,4 +1,4 @@
-import { ChannelType, EmbedBuilder, type AnyThreadChannel, type TextChannel, type ThreadChannel } from 'discord.js'
+import { type AnyThreadChannel, ChannelType, EmbedBuilder, type TextChannel, type ThreadChannel } from 'discord.js'
 
 import type Application from '../../application.js'
 import { CircuitBreaker } from '../../utility/circuit-breaker.js'
@@ -24,12 +24,14 @@ export class TournamentChannelManager {
     const client = this.application.discordInstance.getClient()
     const guild = await client.guilds.fetch(guildId).catch(() => {
       this.application.logger.info(`createBracketChannel: Failed to fetch guild ${guildId}`)
-      return undefined
+      return
     })
     if (guild === undefined) return undefined
 
     const channelName = `🏆-${tournamentName.toLowerCase().replaceAll(/\s+/g, '-')}`
-    this.application.logger.info(`createBracketChannel: Creating channel "${channelName}" in guild ${guildId}, category=${parentCategoryId ?? 'none'}`)
+    this.application.logger.info(
+      `createBracketChannel: Creating channel "${channelName}" in guild ${guildId}, category=${parentCategoryId ?? 'none'}`
+    )
     const channel = await guild.channels
       .create({
         name: channelName,
@@ -45,7 +47,7 @@ export class TournamentChannelManager {
       })
       .catch((error) => {
         this.application.logger.info(`createBracketChannel: Failed to create channel: ${error}`)
-        return undefined
+        return
       })
 
     if (channel !== undefined) {
@@ -58,7 +60,7 @@ export class TournamentChannelManager {
     const client = this.application.discordInstance.getClient()
     const guild = await client.guilds.fetch(guildId).catch(() => {
       this.application.logger.info(`createTournamentCategory: Failed to fetch guild ${guildId}`)
-      return undefined
+      return
     })
     if (guild === undefined) return undefined
     this.application.logger.info(`createTournamentCategory: Creating category for "${tournamentName}"`)
@@ -70,7 +72,7 @@ export class TournamentChannelManager {
       })
       .catch((error) => {
         this.application.logger.info(`createTournamentCategory: Failed to create category: ${error}`)
-        return undefined
+        return
       })
     if (category !== undefined) {
       this.application.logger.info(`createTournamentCategory: Category created — ${category.name} (${category.id})`)
@@ -86,7 +88,7 @@ export class TournamentChannelManager {
     const client = this.application.discordInstance.getClient()
     const guild = await client.guilds.fetch(guildId).catch(() => {
       this.application.logger.info(`createLiveChannel: Failed to fetch guild ${guildId}`)
-      return undefined
+      return
     })
     if (guild === undefined) return undefined
     const slug = tournamentName.toLowerCase().replaceAll(/\s+/g, '-')
@@ -106,7 +108,7 @@ export class TournamentChannelManager {
       })
       .catch((error) => {
         this.application.logger.info(`createLiveChannel: Failed to create channel: ${error}`)
-        return undefined
+        return
       })
     if (channel !== undefined) {
       this.application.logger.info(`createLiveChannel: Live channel created — ${channel.name} (${channel.id})`)
@@ -116,10 +118,14 @@ export class TournamentChannelManager {
 
   public async archiveTournamentCategory(tournament: Tournament): Promise<void> {
     if (tournament.categoryChannelId === undefined) return
-    this.application.logger.info(`Tournament ${tournament.id}: Archiving tournament category ${tournament.categoryChannelId}`)
+    this.application.logger.info(
+      `Tournament ${tournament.id}: Archiving tournament category ${tournament.categoryChannelId}`
+    )
     const client = this.application.discordInstance.getClient()
     if (tournament.discordChannelId) {
-      this.application.logger.info(`Tournament ${tournament.id}: Renaming bracket channel ${tournament.discordChannelId}`)
+      this.application.logger.info(
+        `Tournament ${tournament.id}: Renaming bracket channel ${tournament.discordChannelId}`
+      )
       const bracketChannel = await client.channels.fetch(tournament.discordChannelId).catch(() => undefined)
       if (bracketChannel?.type === ChannelType.GuildText) {
         await bracketChannel.setName(`✅-archived-${bracketChannel.name}`).catch(() => undefined)
@@ -176,7 +182,7 @@ export class TournamentChannelManager {
       })
       .catch((error) => {
         this.application.logger.info(`createMatchThread: Failed to create thread: ${error}`)
-        return undefined
+        return
       })
 
     if (thread === undefined) return undefined
@@ -184,12 +190,16 @@ export class TournamentChannelManager {
     this.application.logger.info(`createMatchThread: Thread created — ${thread.id}`)
 
     // Add players to thread if their discord ID is linked
-    if (player1.discordId != null) {
-      this.application.logger.info(`createMatchThread: Adding player1 discord ${player1.discordId} to thread ${thread.id}`)
+    if (player1.discordId != undefined) {
+      this.application.logger.info(
+        `createMatchThread: Adding player1 discord ${player1.discordId} to thread ${thread.id}`
+      )
       await this.addMemberWithRetry(thread, player1.discordId)
     }
-    if (player2.discordId != null) {
-      this.application.logger.info(`createMatchThread: Adding player2 discord ${player2.discordId} to thread ${thread.id}`)
+    if (player2.discordId != undefined) {
+      this.application.logger.info(
+        `createMatchThread: Adding player2 discord ${player2.discordId} to thread ${thread.id}`
+      )
       await this.addMemberWithRetry(thread, player2.discordId)
     }
 
@@ -339,7 +349,9 @@ export class TournamentChannelManager {
     }
     const messages = await thread.messages.fetch({ limit: 50 }).catch(() => undefined)
     if (messages === undefined || messages === null) return false
-    const hasProof = messages.some((m) => m.attachments.size > 0 || m.embeds.some((e) => e.image !== null || e.url !== null))
+    const hasProof = messages.some(
+      (m) => m.attachments.size > 0 || m.embeds.some((e) => e.image !== null || e.url !== null)
+    )
     this.application.logger.info(`checkProofAttachment: Thread ${threadId} — hasProof=${hasProof}`)
     return hasProof
   }
@@ -355,7 +367,9 @@ export class TournamentChannelManager {
     players: TournamentPlayer[],
     playerNamesMap: Map<number, string>
   ): Promise<void> {
-    this.application.logger.info(`updateBracketEmbed: Tournament ${tournament.id} — updating bracket embed (messageId=${messageId})`)
+    this.application.logger.info(
+      `updateBracketEmbed: Tournament ${tournament.id} — updating bracket embed (messageId=${messageId})`
+    )
     const client = this.application.discordInstance.getClient()
     const channel = await client.channels.fetch(parentChannelId).catch(() => undefined)
     if (!channel || channel.type !== ChannelType.GuildText) {
@@ -452,22 +466,22 @@ export class TournamentChannelManager {
       }
 
       if (roundContent) {
-        const maxLen = 1024
-        if (roundContent.length <= maxLen) {
+        const maxLength = 1024
+        if (roundContent.length <= maxLength) {
           embed.addFields({ name: `Round ${r}`, value: roundContent, inline: false })
         } else {
           const chunks: string[] = []
           for (const line of roundContent.trim().split('\n')) {
-            const last = chunks[chunks.length - 1]
-            if (last !== undefined && last.length + line.length + 1 <= maxLen) {
+            const last = chunks.at(-1)
+            if (last !== undefined && last.length + line.length + 1 <= maxLength) {
               chunks[chunks.length - 1] = last + '\n' + line
             } else {
               chunks.push(line)
             }
           }
-          for (let i = 0; i < chunks.length; i++) {
-            const label = chunks.length > 1 ? `Round ${r} (${i + 1}/${chunks.length})` : `Round ${r}`
-            embed.addFields({ name: label, value: chunks[i], inline: false })
+          for (let index = 0; index < chunks.length; index++) {
+            const label = chunks.length > 1 ? `Round ${r} (${index + 1}/${chunks.length})` : `Round ${r}`
+            embed.addFields({ name: label, value: chunks[index], inline: false })
           }
         }
       }

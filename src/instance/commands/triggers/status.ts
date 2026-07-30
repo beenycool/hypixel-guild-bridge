@@ -20,6 +20,14 @@ export default class Status extends ChatCommandHandler {
     const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
     if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
+    const lunarStatus = await context.app.lunarService.checkLunarStatus(uuid).catch(() => undefined)
+    let lunarTag = ''
+    if (lunarStatus === true) {
+      lunarTag = ' [Lunar: Online 🌙]'
+    } else if (lunarStatus === false) {
+      lunarTag = ' [Lunar: Offline]'
+    }
+
     const session = await context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => {
       // eslint-disable-next-line unicorn/no-useless-undefined
       return undefined
@@ -27,11 +35,11 @@ export default class Status extends ChatCommandHandler {
     if (!session?.online) {
       const player = await context.app.hypixelApi.getPlayer(uuid).catch(() => undefined)
       if (player !== undefined) {
-        return `${givenUsername} was last online ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago.`
+        return `${givenUsername} was last online ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago.${lunarTag}`
       }
     }
 
-    return this.formatStatus(givenUsername, session)
+    return this.formatStatus(givenUsername, session) + lunarTag
   }
 
   private formatStatus(username: string, session: Session | undefined): string {

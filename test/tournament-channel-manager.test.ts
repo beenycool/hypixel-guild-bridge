@@ -1,10 +1,10 @@
-import { describe, it, mock } from 'node:test'
 import assert from 'node:assert/strict'
+import { describe, it, mock } from 'node:test'
 
 describe('TournamentChannelManager', () => {
   it('should create a private thread with both players', async () => {
     let threadCreated = false
-    let membersAdded: string[] = []
+    const membersAdded: string[] = []
 
     const mockThread = {
       id: 'thread-1',
@@ -17,10 +17,10 @@ describe('TournamentChannelManager', () => {
 
     const mockChannel = {
       threads: {
-        create: async (opts: any) => {
+        create: async (options: any) => {
           threadCreated = true
-          assert.ok(opts.name.includes('Player1'))
-          assert.ok(opts.name.includes('Player2'))
+          assert.ok(options.name.includes('Player1'))
+          assert.ok(options.name.includes('Player2'))
           return mockThread
         }
       }

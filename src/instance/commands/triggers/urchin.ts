@@ -39,11 +39,11 @@ export default class Urchin extends ChatCommandHandler {
     try {
       const response = await httpClient.get(`https://api.urchin.gg/v3/player/tags`, {
         params: {
-          player: uuid,
+          player: uuid
         },
         headers: {
-          'X-API-Key': urchinApiKey,
-        },
+          'X-API-Key': urchinApiKey
+        }
       })
 
       const { data } = response as { data: unknown }
@@ -54,18 +54,18 @@ export default class Urchin extends ChatCommandHandler {
 
       const tags = urchinData.tags.map((tag) => `${tag.tag_type}: ${tag.reason}`).join(', ')
       return context.app.i18n.t(($) => $['commands.urchin.tags'], { username: givenUsername, tags })
-} catch (error: unknown) {
-       if (isAxiosError(error) && error.response?.status === 404) {
-         return context.app.i18n.t(($) => $['commands.urchin.not-found'], { username: givenUsername })
-       }
-       if (isAxiosError(error) && error.response?.status === 401) {
-         return context.app.i18n.t(($) => $['commands.urchin.invalid-key'])
-       }
-       if (isAxiosError(error) && error.response?.status === 403) {
-         return context.app.i18n.t(($) => $['commands.urchin.locked-key'])
-       }
-       context.logger.error(error)
-       return context.app.i18n.t(($) => $['commands.urchin.error'], { username: givenUsername })
-     }
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 404) {
+        return context.app.i18n.t(($) => $['commands.urchin.not-found'], { username: givenUsername })
+      }
+      if (isAxiosError(error) && error.response?.status === 401) {
+        return context.app.i18n.t(($) => $['commands.urchin.invalid-key'])
+      }
+      if (isAxiosError(error) && error.response?.status === 403) {
+        return context.app.i18n.t(($) => $['commands.urchin.locked-key'])
+      }
+      context.logger.error(error)
+      return context.app.i18n.t(($) => $['commands.urchin.error'], { username: givenUsername })
+    }
   }
 }

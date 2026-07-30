@@ -1,7 +1,22 @@
 import assert from 'node:assert'
 
-import type { MessageMentionOptions, APIEmbed, ApplicationEmoji, Message, TextBasedChannelFields, Webhook } from 'discord.js'
-import { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ChannelType as DiscordChannelType, escapeMarkdown, hyperlink } from 'discord.js'
+import type {
+  APIEmbed,
+  ApplicationEmoji,
+  Message,
+  MessageMentionOptions,
+  TextBasedChannelFields,
+  Webhook
+} from 'discord.js'
+import {
+  ActionRowBuilder,
+  AttachmentBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType as DiscordChannelType,
+  escapeMarkdown,
+  hyperlink
+} from 'discord.js'
 import type { Logger } from 'log4js'
 
 import type { StaticDiscordConfig } from '../../application-config.js'
@@ -299,7 +314,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     try {
       return await resolveDiscordMentionsInMessage(message, channel.guild, async (mcName) => {
         const profile = await this.application.mojangApi.profileByUsername(mcName)
-        if (profile === undefined) return undefined
+        if (profile === undefined) return
         const link = await this.application.core.verification.findByIngame(profile.id)
         return link?.discordId
       })
@@ -373,9 +388,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           let compactedRawMessage = event.rawMessage.replace(pattern, replacement)
 
           if (actionWord === 'demoted') {
-            compactedRawMessage = compactedRawMessage.replace(/§a/g, '§c')
+            compactedRawMessage = compactedRawMessage.replaceAll('§a', '§c')
           } else if (actionWord === 'promoted') {
-            compactedRawMessage = compactedRawMessage.replace(/§c/g, '§a')
+            compactedRawMessage = compactedRawMessage.replaceAll('§c', '§a')
           }
 
           activeEvent = {
@@ -396,14 +411,14 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     if (activeEvent.type === GuildPlayerEventType.Request) {
       const bridgeId = activeEvent.bridgeId
       const roleIds = [
-        ...(bridgeId !== undefined
-          ? [
+        ...(bridgeId === undefined
+          ? []
+          : [
               ...this.application.core.bridgeConfigurations.getJoinRequestRoleIds(bridgeId),
               ...this.application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
               ...this.application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
               ...this.application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
-            ]
-          : []),
+            ]),
         ...this.application.core.discordConfigurations.getJoinRequestRoleIds(),
         ...this.application.core.discordConfigurations.getOfficerRoleIds(),
         ...this.application.core.discordConfigurations.getHelperRoleIds(),
@@ -454,10 +469,13 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           instanceName: activeEvent.instanceName
         })
         for (const channelId of targetChannels) {
-          const channel = await this.clientInstance.getClient().channels.fetch(channelId).catch(() => undefined)
+          const channel = await this.clientInstance
+            .getClient()
+            .channels.fetch(channelId)
+            .catch(() => undefined)
           if (channel?.isSendable()) {
             await channel.send({
-              ...(pingContent !== undefined ? { content: pingContent } : {}),
+              ...(pingContent === undefined ? {} : { content: pingContent }),
               ...(components !== undefined && components.length > 0 ? { components } : {}),
               allowedMentions: allowedMentions ?? { parse: [] }
             })
@@ -557,13 +575,13 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       const parsed = parseRankChange(event.message)
       if (parsed !== undefined) {
         const existing = this.rankCompactTracker.get(rankTrackerKey)
-        const initialRank = existing !== undefined ? existing.initialRank : parsed.fromRank
+        const initialRank = existing === undefined ? parsed.fromRank : existing.initialRank
         const initialType =
-          existing !== undefined
-            ? existing.initialType
-            : event.type === GuildPlayerEventType.Promote
+          existing === undefined
+            ? event.type === GuildPlayerEventType.Promote
               ? GuildPlayerEventType.Promote
               : GuildPlayerEventType.Demote
+            : existing.initialType
 
         const allSent = [...messages, ...promoteImageMessages]
         this.rankCompactTracker.set(rankTrackerKey, {
@@ -576,7 +594,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         })
       }
     }
-
 
     if (activeEvent.type === GuildPlayerEventType.Join || activeEvent.type === GuildPlayerEventType.Leave) {
       const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(activeEvent.instanceName)
@@ -892,7 +909,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
           const embed = preGeneratedEmbed ?? (await this.generateEmbed(event, channel.guildId))
           const message = await channel.send({
-            ...(content !== undefined ? { content } : {}),
+            ...(content === undefined ? {} : { content }),
             embeds: [embed],
             ...(components !== undefined && components.length > 0 ? { components } : {}),
             allowedMentions: allowedMentions ?? { parse: [] }
@@ -965,9 +982,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     const botUsernameOverride =
-      event.bridgeId !== undefined
-        ? this.application.core.bridgeConfigurations.getBotUsernameOverride(event.bridgeId)
-        : undefined
+      event.bridgeId === undefined
+        ? undefined
+        : this.application.core.bridgeConfigurations.getBotUsernameOverride(event.bridgeId)
     const effectiveBotName = botUsernameOverride ?? botName
 
     const botAvatar =
@@ -977,9 +994,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
     const namePart = botRank
-      ? botUsernameOverride !== undefined
-        ? `${botRank.replace(new RegExp(botName, 'i'), botUsernameOverride)}§f`
-        : `${botRank}§f`
+      ? botUsernameOverride === undefined
+        ? `${botRank}§f`
+        : `${botRank.replace(new RegExp(botName, 'i'), botUsernameOverride)}§f`
       : `§a${effectiveBotName}§f`
 
     this.logger.debug(

@@ -1,8 +1,8 @@
 import { ChatCommandHandler } from '../../../common/commands.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
+import { validateSeriesScore } from '../../../core/tournament/score-validator.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from '../../../core/tournament/types.js'
 import type { TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
-import { validateSeriesScore } from '../../../core/tournament/score-validator.js'
 
 export default class Tournament extends ChatCommandHandler {
   constructor() {
@@ -20,7 +20,9 @@ export default class Tournament extends ChatCommandHandler {
       return 'No bridge configured for this chat channel.'
     }
 
-    context.app.logger.info(`MC !tournament ${subcommand} — user=${context.message.user.displayName()}, bridgeId=${bridgeId}`)
+    context.app.logger.info(
+      `MC !tournament ${subcommand} — user=${context.message.user.displayName()}, bridgeId=${bridgeId}`
+    )
 
     const tournamentManager = context.app.core.tournamentManager
     const tournament = tournamentManager.getActiveTournament(bridgeId)
@@ -61,7 +63,9 @@ export default class Tournament extends ChatCommandHandler {
       }
 
       case 'report': {
-        context.app.logger.info(`MC tournament report: tournament=${tournament.id}, player=${playerUuid}, args=${context.args.slice(1).join(',')}`)
+        context.app.logger.info(
+          `MC tournament report: tournament=${tournament.id}, player=${playerUuid}, args=${context.args.slice(1).join(',')}`
+        )
         if (tournament.status !== TournamentStatus.Active) {
           return 'Tournament is not active.'
         }
@@ -157,7 +161,9 @@ export default class Tournament extends ChatCommandHandler {
           'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
           [tournament.id]
         )
-        context.app.logger.info(`MC tournament status: tournament=${tournament.id}, player=${playerUuid} — ${players.length} registered`)
+        context.app.logger.info(
+          `MC tournament status: tournament=${tournament.id}, player=${playerUuid} — ${players.length} registered`
+        )
         return `Tournament: ${tournament.name} | Status: ${tournament.status} | Round: ${tournament.currentRound}/${tournament.totalRounds} | Players: ${players.length} | Best of: ${tournament.bestOf} | Game: ${tournament.gameType}`
       }
     }

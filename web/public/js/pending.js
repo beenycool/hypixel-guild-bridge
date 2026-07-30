@@ -1,9 +1,9 @@
-import { Auth } from './auth.js'
 import { Api } from './api.js'
-import { Ws } from './ws.js'
-import { Ui } from './ui.js'
+import { Auth } from './auth.js'
 import { initNav } from './nav.js'
 import { initStatusPolling } from './status.js'
+import { Ui } from './ui.js'
+import { Ws } from './ws.js'
 
 const summaryElement = document.querySelector('#pending-summary')
 const listElement = document.querySelector('#pending-list')

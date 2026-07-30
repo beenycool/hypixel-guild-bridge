@@ -356,7 +356,7 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     this.messageAssociation.addMessageId(event.eventId, reply)
 
     const response = `${feedback ? '{f} ' : ''}${event.commandResponse}`
-    let sanitizedResponse = await this.application.minecraftManager.sanitizer.sanitizeChatMessage(
+    const sanitizedResponse = await this.application.minecraftManager.sanitizer.sanitizeChatMessage(
       this.clientInstance.instanceName,
       response
     )

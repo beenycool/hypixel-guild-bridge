@@ -97,6 +97,13 @@ const MAX_RESPONSE_LENGTH = 240
 export function parseTargetLanguage(arguments_: string[]): { language: string | undefined; message: string } {
   if (arguments_.length === 0) return { language: undefined, message: '' }
 
+  if (arguments_[0].toLowerCase() === 'to' && arguments_.length > 1) {
+    const candidate = arguments_[1].toLowerCase()
+    if (KNOWN_LANGUAGES.has(candidate)) {
+      return { language: candidate, message: arguments_.slice(2).join(' ') }
+    }
+  }
+
   const first = arguments_[0].toLowerCase()
   if (KNOWN_LANGUAGES.has(first)) {
     return { language: first, message: arguments_.slice(1).join(' ') }
@@ -163,7 +170,8 @@ export default class Translate extends ChatCommandHandler {
       return `Usage: ${commandPrefix}translate [language] <message>`
     }
 
-    const systemContent = 'You are a translator. Respond with ONLY the translated text, nothing else.'
+    const systemContent =
+      'You are a fast, direct translator. Prioritize speed. Do not overthink, analyze, or explain. Respond with ONLY the translated text, nothing else.'
     const userContent =
       targetLanguage === undefined
         ? `Translate the following text to English (auto-detect the source language): ${message}`

@@ -4,7 +4,7 @@ import process from 'node:process'
 import { markdownTable } from 'markdown-table'
 
 import { ChatCommandHandler, type DiscordCommandHandler } from '../src/common/commands.js'
-import PartyManager from '../src/instance/commands/triggers/party.js'
+import type PartyManager from '../src/instance/commands/triggers/party.js'
 
 await generateCommands()
 process.exit(0)
@@ -40,7 +40,9 @@ async function generateChatCommands(): Promise<string> {
     if (loadedModule instanceof ChatCommandHandler) {
       table.push([`\`${loadedModule.triggers[0]}\``, loadedModule.description])
     } else if (typeof (loadedModule as { resolveCommands?: unknown }).resolveCommands === 'function') {
-      for (const resolvedCommand of (loadedModule as { resolveCommands: () => ChatCommandHandler[] }).resolveCommands()) {
+      for (const resolvedCommand of (
+        loadedModule as { resolveCommands: () => ChatCommandHandler[] }
+      ).resolveCommands()) {
         table.push([`\`${resolvedCommand.triggers[0]}\``, resolvedCommand.description])
       }
     } else {

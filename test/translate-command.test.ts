@@ -111,6 +111,24 @@ await describe('parseTargetLanguage', async () => {
     assert.strictEqual(result.language, 'french')
     assert.strictEqual(result.message, 'bonjour')
   })
+
+  await it('detects known language with optional "to" prefix', () => {
+    const result = parseTargetLanguage(['to', 'french', 'hello', 'world'])
+    assert.strictEqual(result.language, 'french')
+    assert.strictEqual(result.message, 'hello world')
+  })
+
+  await it('is case-insensitive with "to" prefix', () => {
+    const result = parseTargetLanguage(['to', 'Spanish', 'hola'])
+    assert.strictEqual(result.language, 'spanish')
+    assert.strictEqual(result.message, 'hola')
+  })
+
+  await it('handles "to" prefix when second word is not a known language', () => {
+    const result = parseTargetLanguage(['to', 'be', 'or', 'not', 'to', 'be'])
+    assert.strictEqual(result.language, undefined)
+    assert.strictEqual(result.message, 'to be or not to be')
+  })
 })
 
 await describe('Translate command handler', async () => {

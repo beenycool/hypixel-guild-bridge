@@ -4,7 +4,13 @@ import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
-import { MatchStatus, TournamentStatus, type Tournament, type TournamentMatch, type TournamentPlayer } from '../../core/tournament/types.js'
+import {
+  MatchStatus,
+  type Tournament,
+  type TournamentMatch,
+  type TournamentPlayer,
+  TournamentStatus
+} from '../../core/tournament/types.js'
 
 import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
@@ -530,7 +536,7 @@ export class TournamentApiHandler {
     if (tournament === undefined) throw new Error('Tournament not found.')
     if (tournament.status !== TournamentStatus.Active) throw new Error('Tournament is not active.')
 
-    const db = this.application.core.databaseManager
+    const database = this.application.core.databaseManager
     const mm = this.application.core.tournamentManager.matchManager
 
     const matchQuery =
@@ -538,12 +544,15 @@ export class TournamentApiHandler {
         ? 'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND "round" = $2 AND "status" = $3 ORDER BY "matchIndex" ASC LIMIT $4'
         : 'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND "round" = $2 AND "status" = $3 ORDER BY "matchIndex" ASC'
 
-    const params: unknown[] = limit > 0 ? [tournamentId, tournament.currentRound, MatchStatus.Active, limit] : [tournamentId, tournament.currentRound, MatchStatus.Active]
+    const parameters: unknown[] =
+      limit > 0
+        ? [tournamentId, tournament.currentRound, MatchStatus.Active, limit]
+        : [tournamentId, tournament.currentRound, MatchStatus.Active]
 
-    const activeMatches = await db.queryRows<TournamentMatch>(matchQuery, params)
+    const activeMatches = await database.queryRows<TournamentMatch>(matchQuery, parameters)
     if (activeMatches.length === 0) throw new Error(`No active matches in round ${tournament.currentRound}.`)
 
-    const players = await db.queryRows<TournamentPlayer>(
+    const players = await database.queryRows<TournamentPlayer>(
       'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
       [tournamentId]
     )
