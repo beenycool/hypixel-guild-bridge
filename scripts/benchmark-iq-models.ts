@@ -15,7 +15,11 @@ const SAMPLE_MESSAGES = [
   'can someone carry me'
 ]
 
-const MODELS = [IQ_DEFAULT_MODEL, 'nvidia/nemotron-3-super-120b-a12b:free']
+const MODELS = [
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'nvidia/nemotron-3-ultra-550b-a55b:free'
+]
 
 async function testModel(client: OpenRouterClient, model: string): Promise<void> {
   const start = Date.now()
@@ -24,7 +28,7 @@ async function testModel(client: OpenRouterClient, model: string): Promise<void>
     model,
     systemPrompt: IQ_SYSTEM_PROMPT,
     userPrompt: `Chat messages from Steve:\n${SAMPLE_MESSAGES.join('\n')}`,
-    reasoningEffort: 'minimal'
+    reasoningEffort: 'high'
   })
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(2)

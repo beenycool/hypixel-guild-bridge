@@ -81,7 +81,7 @@ export default class Iq extends ChatCommandHandler {
       const result = await client.chatCompletion({
         systemPrompt: IQ_SYSTEM_PROMPT,
         userPrompt: `Chat messages from ${givenUsername}:\n${messages.join('\n')}`,
-        reasoningEffort: 'minimal'
+        reasoningEffort: 'high'
       })
 
       const iq = parseIqScore(result.content)

@@ -5,7 +5,7 @@ export const IQ_SYSTEM_PROMPT =
   'Estimate an IQ (0-200) based on the substance of what they are saying, not just surface formatting. ' +
   'Respond with ONLY the number, nothing else.'
 
-export const IQ_DEFAULT_MODEL = 'nvidia/nemotron-3-nano-30b-a3b:free'
+export const IQ_DEFAULT_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free'
 export const IQ_MIN = 0
 export const IQ_MAX = 200
 export const IQ_MIN_MESSAGES = 10
