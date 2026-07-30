@@ -60,6 +60,7 @@ A shorter version can also be used: `!- rtca`
 | `gtop`           | Shows the top 5 GEXP earners in the guild for today                                                                                  |
 | `guild`          | Returns a player's guild, if they're in one                                                                                          |
 | `guildexp`       | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]                                                    |
+| `guildstats`     | Show guild activity stats for a period. Usage: !guildstats [daily|weekly|monthly|yearly]                                             |
 | `help`           | Shows a command description and an example about its usage                                                                           |
 | `hotm`           | Returns a player's hotm and powder                                                                                                   |
 | `hlevel`         | Returns a player's Hypixel common stats                                                                                              |
@@ -108,6 +109,7 @@ A shorter version can also be used: `!- rtca`
 | `sblevel`        | Returns a player's Skyblock level                                                                                                    |
 | `secrets`        | Returns how many secrets a player has done                                                                                           |
 | `select`         | Randomly select an online guild member                                                                                               |
+| `session`        | Show stat changes over custom duration. Usage: !session <duration> [game] [username] Example: !session 48h Bedwars                   |
 | `weekly`         | Show weekly stat changes (or !weekly <game>)                                                                                         |
 | `monthly`        | Show monthly stat changes (or !monthly <game>)                                                                                       |
 | `yearly`         | Show yearly stat changes (or !yearly <game>)                                                                                         |

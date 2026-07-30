@@ -332,6 +332,39 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       }
     }
 
+    // Resolve guild names for each bridge from bot's guild membership
+    try {
+      const bridgeIds = this.core.bridgeConfigurations.getAllBridgeIds()
+      for (const bridgeId of bridgeIds) {
+        const existing = this.core.bridgeConfigurations.getGuildName(bridgeId)
+        if (existing) continue
+
+        const instanceNames = this.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
+        if (instanceNames.length === 0) continue
+
+        const botInstance = this.minecraftManager
+          .getAllInstances()
+          .find((inst) => instanceNames.some((n) => n.toLowerCase() === inst.instanceName.toLowerCase()))
+
+        if (!botInstance) continue
+
+        const botUuid = botInstance.uuid()
+        if (!botUuid) continue
+
+        try {
+          const guild = await this.hypixelApi.getGuild('player', botUuid)
+          if (guild?.name) {
+            this.core.bridgeConfigurations.setGuildName(bridgeId, guild.name)
+            this.logger.info(`Resolved guild for bridge ${bridgeId}: ${guild.name}`)
+          }
+        } catch (error: unknown) {
+          this.logger.warn(`Failed to resolve guild for bridge ${bridgeId}: ${error}`)
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.warn(`Failed to resolve guild names: ${error}`)
+    }
+
     // Start background utilities that require instances/core to be ready
     try {
       this.randomChatter.start()

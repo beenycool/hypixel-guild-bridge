@@ -52,6 +52,7 @@ import Garden from './triggers/garden.js'
 import Gay from './triggers/gay.js'
 import Guild from './triggers/guild.js'
 import GuildExperience from './triggers/guildexp.js'
+import GuildSessions from './triggers/guild-sessions.js'
 import Help from './triggers/help.js'
 import HeartOfTheMountain from './triggers/hotm.js'
 import HypixelLevel from './triggers/hypixel-level'
@@ -90,6 +91,7 @@ import RunsToClassAverage from './triggers/runs-to-class-average.js'
 import Runs from './triggers/runs.js'
 import Secrets from './triggers/secrets.js'
 import Select from './triggers/select'
+import SessionCommands from './triggers/sessions.js'
 import Skills from './triggers/skills.js'
 import Skyblock from './triggers/skyblock.js'
 import Skywars from './triggers/skywars'
@@ -163,6 +165,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Lesbian(),
       new Guild(),
       new GuildExperience(),
+      new GuildSessions(),
       new Help(),
       new HeartOfTheMountain(),
       new HypixelLevel(),
@@ -177,6 +180,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Mute(),
       new Networth(),
       ...new PartyManager().resolveCommands(),
+      ...new SessionCommands().resolveCommands(),
       new PartyGames(),
       new PersonalBest(),
       new Ping(),

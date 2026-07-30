@@ -1,10 +1,11 @@
-import axios, { isAxiosError } from 'axios'
+import { isAxiosError } from 'axios'
+import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 import { getUuidIfExists, usernameNotExists } from '../common/utility.js'
 
-type Period = 'weekly' | 'monthly' | 'yearly'
+type Period = 'weekly' | 'monthly' | 'yearly' | 'custom'
 
 const GAME_ALIASES: Record<string, string> = {
   bw: 'Bedwars',
@@ -281,7 +282,7 @@ function formatAllGames(delta: Record<string, unknown>): string | undefined {
 
       const mag = Object.values(nums).reduce((a, b) => a + Math.abs(b), 0)
       const statsString = Object.entries(nums)
-        .slice(0, 5)
+        .slice(0, 3)
         .map(([k, v]) => `${shortStat(k)}${v > 0 ? '+' : ''}${v}`)
         .join(', ')
       games.push({ text: `${shortGame(game)}: ${statsString}`, mag })
@@ -291,7 +292,7 @@ function formatAllGames(delta: Record<string, unknown>): string | undefined {
     if (games.length > 0) {
       parts.push(
         games
-          .slice(0, 4)
+          .slice(0, 2)
           .map((g) => g.text)
           .join(' | ')
       )
@@ -332,11 +333,26 @@ class SessionCommand extends ChatCommandHandler {
       return context.app.i18n.t(($) => $['commands.sessions.no-key'])
     }
 
+    const isCustom = this.period === 'custom'
+    let duration: string | undefined
+
+    let effectiveArgs = context.args
+    if (isCustom) {
+      if (context.args.length === 0) {
+        return 'Usage: !session <duration> [game] [username]. Example: !session 48h Bedwars PlayerName'
+      }
+      duration = context.args[0].toLowerCase()
+      if (!/^\d+[hdw]$/.test(duration)) {
+        return 'Invalid duration. Use format like 48h, 3d, or 2w.'
+      }
+      effectiveArgs = context.args.slice(1)
+    }
+
     let gameFilter: string | undefined
     let givenUsername: string
 
-    const first = context.args[0]
-    const second = context.args[1]
+    const first = effectiveArgs[0]
+    const second = effectiveArgs[1]
 
     if (first) {
       const resolved = resolveGameKey(first)
@@ -354,15 +370,15 @@ class SessionCommand extends ChatCommandHandler {
     if (uuid === undefined) return usernameNotExists(context, givenUsername)
 
     try {
-      const response = await axios.get<{
+      const response = await httpClient.get<{
         uuid: string
         displayname?: string | null
         from: number
         from_readable: string
         delta: Record<string, unknown>
-      }>(`https://api.urchin.gg/v3/player/sessions/${this.period}`, {
+      }>(`https://api.urchin.gg/v3/player/sessions/${isCustom ? 'custom' : this.period}`, {
         headers: { 'X-API-Key': apiKey },
-        params: { player: uuid }
+        params: { player: uuid, ...(isCustom && duration ? { duration } : {}) }
       })
 
       const delta = response.data.delta
@@ -375,7 +391,7 @@ class SessionCommand extends ChatCommandHandler {
         if (!gameStats) {
           return context.app.i18n.t(($) => $['commands.sessions.game-not-found'], {
             game: gameFilter,
-            period: this.period,
+            period: isCustom ? (duration ?? 'custom') : this.period,
             username: givenUsername
           })
         }
@@ -407,13 +423,13 @@ class SessionCommand extends ChatCommandHandler {
       if (!summary) {
         return context.app.i18n.t(($) => $['commands.sessions.no-changes'], {
           username: givenUsername,
-          period: this.period
+          period: isCustom ? (duration ?? 'custom') : this.period
         })
       }
 
       return context.app.i18n.t(($) => $['commands.sessions.result'], {
         username: givenUsername,
-        period: this.period,
+        period: isCustom ? (duration ?? 'custom') : this.period,
         summary
       })
     } catch (error: unknown) {
@@ -428,7 +444,7 @@ class SessionCommand extends ChatCommandHandler {
       context.logger.error(error)
 
       try {
-        const healthResp = await axios.get('https://api.urchin.gg/health', { timeout: 3000 })
+        const healthResp = await httpClient.get('https://api.urchin.gg/health', { timeout: 3000 })
         if (healthResp.status !== 200 || healthResp.data?.status !== 'healthy') {
           return context.app.i18n.t(($) => $['commands.sessions.api-degraded'])
         }
@@ -445,7 +461,8 @@ export default class SessionCommands {
     return [
       new SessionCommand('weekly', 'weekly', 'Show weekly stat changes (or !weekly <game>)'),
       new SessionCommand('monthly', 'monthly', 'Show monthly stat changes (or !monthly <game>)'),
-      new SessionCommand('yearly', 'yearly', 'Show yearly stat changes (or !yearly <game>)')
+      new SessionCommand('yearly', 'yearly', 'Show yearly stat changes (or !yearly <game>)'),
+      new SessionCommand('session', 'custom', 'Show stat changes over custom duration. Example: !session 48h Bedwars')
     ]
   }
 }

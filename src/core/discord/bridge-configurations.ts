@@ -302,6 +302,22 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.setBridgeString('language', bridgeId, language)
   }
 
+  /**
+   * Get the Hypixel guild name for a specific bridge.
+   * Resolved on startup from the bot's guild membership.
+   */
+  public getGuildName(bridgeId: string): string | undefined {
+    const value = this.getBridgeString('guildName', bridgeId)
+    return value === '' ? undefined : value
+  }
+
+  /**
+   * Set the Hypixel guild name for a specific bridge.
+   */
+  public setGuildName(bridgeId: string, name: string | undefined): void {
+    this.setBridgeString('guildName', bridgeId, name)
+  }
+
   // ========== Role Configurations ==========
 
   /**
