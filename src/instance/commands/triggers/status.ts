@@ -42,9 +42,9 @@ export default class Status extends ChatCommandHandler {
     ])
 
     const activeClients: string[] = []
-    if (lunarStatus === true) activeClients.push('Lunar 🌙')
-    if (featherStatus === true) activeClients.push('Feather 🪶')
-    if (essentialStatus === true) activeClients.push('Essential ✨')
+    if (lunarStatus === true) activeClients.push('Lunar')
+    if (featherStatus === true) activeClients.push('Feather')
+    if (essentialStatus === true) activeClients.push('Essential')
 
     let clientTags = ''
     if (activeClients.length > 0) {
