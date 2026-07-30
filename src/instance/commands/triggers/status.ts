@@ -51,22 +51,28 @@ export default class Status extends ChatCommandHandler {
       `[status] parallel checks for ${givenUsername}: ${Date.now() - startParallel}ms (lunar=${lunarStatus})`
     )
 
-    const clientSuffix = lunarStatus === true ? ' and is on Lunar Client' : ''
-
     if (session?.online) {
+      const suffix = lunarStatus === true ? ' and is on Lunar Client' : ''
       logger.debug(`[status] total for ${givenUsername}: ${Date.now() - startTotal}ms`)
-      return this.formatStatus(givenUsername, session, clientSuffix)
+      return this.formatStatus(givenUsername, session, suffix)
     }
 
     if (player !== undefined) {
+      const lastSeen = formatTime(Date.now() - player.lastLogoutTimestamp)
       logger.debug(
-        `[status] total for ${givenUsername}: ${Date.now() - startTotal}ms (offline, last seen ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago)`
+        `[status] total for ${givenUsername}: ${Date.now() - startTotal}ms (offline, last seen ${lastSeen} ago)`
       )
-      return `${givenUsername} was last online ${formatTime(Date.now() - player.lastLogoutTimestamp)} ago${clientSuffix}.`
+      if (lunarStatus === true) {
+        return `${givenUsername} is currently online with Lunar Client on another server (last seen on Hypixel ${lastSeen} ago).`
+      }
+      return `${givenUsername} was last online ${lastSeen} ago.`
     }
 
     logger.debug(`[status] total for ${givenUsername}: ${Date.now() - startTotal}ms`)
-    return this.formatStatus(givenUsername, session, clientSuffix)
+    if (lunarStatus === true) {
+      return `${givenUsername} is currently online with Lunar Client on another server.`
+    }
+    return this.formatStatus(givenUsername, session, '')
   }
 
   private formatStatus(username: string, session: Session | undefined, clientSuffix: string): string {
