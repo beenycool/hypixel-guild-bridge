@@ -188,7 +188,8 @@ export class FeatherService {
   }
 
   private async queryAccountSearch(uuid: string): Promise<boolean> {
-    const postData = JSON.stringify({ mcID: [uuid] })
+    const uuidNoDashes = uuid.replaceAll('-', '')
+    const postData = JSON.stringify({ mcID: [uuidNoDashes] })
     const responseBody = await this.httpRequest('POST', '/minecraft/account-search', postData, {
       authorization: this.jwt ?? ''
     })
