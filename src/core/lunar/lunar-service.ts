@@ -30,6 +30,8 @@ export class LunarService {
   private heartbeatInterval: NodeJS.Timeout | undefined
   private rpcCounter = 0
   private pendingRpcRequests = new Map<string, (output: Buffer) => void>()
+  private lastAuthFailedAt = 0
+  private authCooldownMs = 5_000
 
   constructor(
     private readonly app: Application,
@@ -89,10 +91,17 @@ export class LunarService {
       return
     }
 
+    const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
+    if (timeSinceLastFail < this.authCooldownMs) {
+      this.logger.debug(`[LunarService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`)
+      return
+    }
+
     try {
       this.logger.info(`[LunarService] Connecting to Lunar Client authenticator using account '${creds.username}' (${creds.uuid})...`)
       this.jwt = await this.authenticateWithLunar(creds.uuid, creds.username, creds.accessToken)
       if (this.jwt) {
+        this.authCooldownMs = 5_000
         this.logger.info('[LunarService] Authenticated with Lunar Client! Connecting to Game WebSocket...')
         await this.connectGameWs(creds.uuid, creds.username, this.jwt)
         this.logger.info('[LunarService] Successfully connected to Lunar Client Game WebSocket!')
@@ -100,6 +109,8 @@ export class LunarService {
         this.logger.warn('[LunarService] Lunar Client authentication failed: No JWT returned.')
       }
     } catch (error: unknown) {
+      this.lastAuthFailedAt = Date.now()
+      this.authCooldownMs = Math.min(this.authCooldownMs * 2, 60_000)
       this.logger.warn('[LunarService] Failed to establish Lunar Client WebSocket session:', error)
     }
   }

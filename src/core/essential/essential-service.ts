@@ -18,6 +18,8 @@ export class EssentialService {
   private packetNameMap = new Map<string, number>()
   private nextOutgoingTypeId = 1
   private pendingStatusRequests = new Map<string, (online: boolean) => void>()
+  private lastAuthFailedAt = 0
+  private authCooldownMs = 5_000
 
   constructor(
     private readonly app: Application,
@@ -68,11 +70,20 @@ export class EssentialService {
       return
     }
 
+    const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
+    if (timeSinceLastFail < this.authCooldownMs) {
+      this.logger.debug(`[EssentialService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`)
+      return
+    }
+
     try {
       this.logger.info(`[EssentialService] Connecting to Essential WebSocket using account '${creds.username}' (${creds.uuid})...`)
       await this.connectWebSocket(creds.accessToken, creds.uuid, creds.username)
+      this.authCooldownMs = 5_000
       this.logger.info('[EssentialService] Successfully connected to Essential WebSocket!')
     } catch (error: unknown) {
+      this.lastAuthFailedAt = Date.now()
+      this.authCooldownMs = Math.min(this.authCooldownMs * 2, 60_000)
       this.logger.warn('[EssentialService] Failed to establish Essential WebSocket session:', error)
     }
   }
