@@ -504,18 +504,25 @@
         border-bottom-color: var(--accent-gold);
       }
 
-      /* Bracket View Redesign */
+      /* Sideways Esports Bracket Tree Layout */
       .bracket-container {
         overflow-x: auto;
-        padding: 20px 8px;
-        white-space: nowrap;
+        padding: 24px 12px;
+        min-height: 480px;
+      }
+
+      .bracket-tree {
+        display: flex;
+        gap: 36px;
+        align-items: stretch;
+        min-width: max-content;
       }
 
       .bracket-round {
-        display: inline-block;
-        vertical-align: top;
-        margin-right: 32px;
-        min-width: 260px;
+        display: flex;
+        flex-direction: column;
+        width: 280px;
+        flex-shrink: 0;
       }
 
       .bracket-round-title {
@@ -525,9 +532,11 @@
         color: var(--accent-gold);
         text-transform: uppercase;
         letter-spacing: 1.2px;
-        margin-bottom: 14px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 16px;
+        padding: 8px 12px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -539,16 +548,32 @@
         font-family: var(--font-mono);
       }
 
+      .bracket-round-matches {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        flex-grow: 1;
+        gap: 16px;
+        position: relative;
+      }
+
+      .match-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
       .match-card-v2 {
+        width: 100%;
         background: var(--bg-surface);
         border: 1px solid var(--border-default);
         border-radius: var(--radius-md);
         padding: 12px;
-        margin-bottom: 16px;
         white-space: normal;
         box-shadow: var(--shadow-sm);
         transition: all 150ms ease;
         position: relative;
+        z-index: 2;
       }
 
       .match-card-v2:hover {
@@ -570,20 +595,47 @@
         box-shadow: var(--shadow-glow-gold);
       }
 
+      .match-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+
       .match-player-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 6px 8px;
+        padding: 8px 10px;
         border-radius: var(--radius-sm);
-        background: rgba(10, 14, 20, 0.4);
-        margin-bottom: 4px;
+        background: rgba(10, 14, 20, 0.5);
+        margin-bottom: 6px;
         gap: 8px;
+        border: 1px solid transparent;
+        transition: all 150ms ease;
       }
 
       .match-player-row.is-winner {
-        background: rgba(52, 211, 153, 0.1);
-        border-left: 3px solid var(--status-success);
+        background: rgba(52, 211, 153, 0.12);
+        border-color: rgba(52, 211, 153, 0.3);
+        border-left: 4px solid var(--status-success);
+      }
+
+      .match-player-row.is-loser {
+        opacity: 0.5;
+        background: rgba(10, 14, 20, 0.2);
+      }
+
+      .match-player-row.is-loser .player-name {
+        color: var(--text-muted);
+        text-decoration: line-through;
+        text-decoration-color: rgba(255, 255, 255, 0.2);
       }
 
       .player-info {
@@ -594,9 +646,9 @@
       }
 
       .player-head-img {
-        width: 20px;
-        height: 20px;
-        border-radius: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
         background: var(--bg-elevated);
         flex-shrink: 0;
         image-rendering: pixelated;
@@ -605,6 +657,7 @@
       .player-name {
         font-family: var(--font-mono);
         font-size: 13px;
+        font-weight: 600;
         color: var(--text-primary);
         white-space: nowrap;
         overflow: hidden;
@@ -616,11 +669,25 @@
         font-weight: 700;
       }
 
+      .winner-crown-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--status-success);
+        background: rgba(52, 211, 153, 0.2);
+        padding: 1px 5px;
+        border-radius: 3px;
+        margin-left: 4px;
+        letter-spacing: 0.5px;
+      }
+
       .score-pill {
         font-family: var(--font-mono);
         font-size: 12px;
         font-weight: 700;
-        padding: 2px 8px;
+        padding: 3px 10px;
         border-radius: var(--radius-sm);
         background: var(--bg-elevated);
         color: var(--text-primary);
@@ -628,7 +695,13 @@
 
       .match-player-row.is-winner .score-pill {
         background: var(--status-success);
-        color: #0b1f17;
+        color: #041a10;
+        font-weight: 800;
+      }
+
+      .match-player-row.is-loser .score-pill {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-muted);
       }
 
       .match-meta-bar {
@@ -1348,6 +1421,15 @@
         }
       }
 
+      function getRoundTitle(round, totalRounds) {
+        const fromFinals = totalRounds - round
+        if (fromFinals === 0) return '🏆 Grand Finals'
+        if (fromFinals === 1) return '⚔️ Semifinals'
+        if (fromFinals === 2) return '🎯 Quarterfinals'
+        if (fromFinals === 3) return 'Round of 16'
+        return `Round ${round}`
+      }
+
       function renderBracket(matches, playerMap, tournamentId) {
         const host = document.querySelector('#bracket-content')
         const rounds = {}
@@ -1358,8 +1440,9 @@
         const roundKeys = Object.keys(rounds)
           .map(Number)
           .sort((a, b) => a - b)
+        const totalRounds = roundKeys.length
 
-        if (roundKeys.length === 0) {
+        if (totalRounds === 0) {
           host.innerHTML = `
             <div class="empty-state">
               <div class="empty-state-icon"><svg class="ui-icon" style="width:2.5em;height:2.5em" viewBox="0 0 24 24"><polygon points="14.5 17.5 3 6 3 3 6 3 17.5 14.5 14.5 17.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polygon points="9.5 6.5 21 18 21 21 18 21 6.5 9.5 9.5 6.5"/><line x1="11" y1="5" x2="5" y2="11"/><line x1="8" y1="8" x2="4" y2="4"/></svg></div>
@@ -1368,67 +1451,85 @@
           return
         }
 
-        let html = ''
+        let html = '<div class="bracket-tree">'
         for (const round of roundKeys) {
           const roundMatches = rounds[round]
+          const roundTitle = getRoundTitle(round, totalRounds)
+
           html += `
             <div class="bracket-round">
               <div class="bracket-round-title">
-                <span>Round ${round}</span>
-                <span class="round-match-count">${roundMatches.length} Matches</span>
-              </div>`
+                <span>${esc(roundTitle)}</span>
+                <span class="round-match-count">${roundMatches.length} ${roundMatches.length === 1 ? 'Match' : 'Matches'}</span>
+              </div>
+              <div class="bracket-round-matches">`
 
-          for (const m of roundMatches) {
+          for (let idx = 0; idx < roundMatches.length; idx++) {
+            const m = roundMatches[idx]
             const p1 = playerMap[m.player1Id]
             const p2 = playerMap[m.player2Id]
-            const p1Name = p1 ? p1.playerUuid : 'TBD'
-            const p2Name = p2 ? p2.playerUuid : 'TBD'
-            const p1Win = m.winnerId === m.player1Id
-            const p2Win = m.winnerId === m.player2Id
+            const p1Name = p1 ? p1.playerUuid : (m.status === 'BYE' ? '—' : 'TBD')
+            const p2Name = p2 ? p2.playerUuid : (m.status === 'BYE' ? 'BYE' : 'TBD')
+
+            const p1Win = m.winnerId && m.winnerId === m.player1Id
+            const p2Win = m.winnerId && m.winnerId === m.player2Id
+            const isDone = m.status === 'COMPLETED' || m.status === 'BYE' || m.status === 'BOTH_CONFIRMED'
+
+            const p1RowCls = p1Win ? 'is-winner' : (p2Win ? 'is-loser' : '')
+            const p2RowCls = p2Win ? 'is-winner' : (p1Win ? 'is-loser' : '')
 
             const p1Avatar = playerAvatarUrl(p1 ? p1.playerUuid : null)
             const p2Avatar = playerAvatarUrl(p2 ? p2.playerUuid : null)
 
-            const statusCls = m.status === 'COMPLETED' || m.status === 'BYE' || m.status === 'BOTH_CONFIRMED' ? 'is-completed' : (m.status === 'DISPUTED' ? 'is-disputed' : (m.status === 'ACTIVE' || m.status === 'REPORTED' ? 'is-active' : ''))
+            const statusCls = isDone ? 'is-completed' : (m.status === 'DISPUTED' ? 'is-disputed' : (m.status === 'ACTIVE' || m.status === 'REPORTED' ? 'is-active' : ''))
 
             html += `
-              <div class="match-card-v2 ${statusCls}">
-                <div class="match-player-row ${p1Win ? 'is-winner' : ''}">
-                  <div class="player-info">
-                    ${p1Avatar ? `<img src="${esc(p1Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
-                    <span class="player-name">${esc(p1Name)}</span>
+              <div class="match-wrapper">
+                <div class="match-card-v2 ${statusCls}">
+                  <div class="match-card-header">
+                    <span>Match #${m.matchIndex != null ? m.matchIndex + 1 : idx + 1}</span>
+                    <span class="match-badge-status ${esc(m.status || '')}">${esc(m.status === 'BOTH_CONFIRMED' ? 'COMPLETED' : (m.status || 'PENDING'))}</span>
                   </div>
-                  <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player1Wins ?? 0))}</span>
-                </div>
 
-                <div class="match-player-row ${p2Win ? 'is-winner' : ''}">
-                  <div class="player-info">
-                    ${p2Avatar ? `<img src="${esc(p2Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
-                    <span class="player-name">${esc(p2Name)}</span>
+                  <div class="match-player-row ${p1RowCls}">
+                    <div class="player-info">
+                      ${p1Avatar ? `<img src="${esc(p1Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
+                      <span class="player-name">${esc(p1Name)}</span>
+                      ${p1Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+                    </div>
+                    <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player1Wins ?? 0))}</span>
                   </div>
-                  <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player2Wins ?? 0))}</span>
-                </div>
 
-                <div class="match-meta-bar">
-                  <span class="match-badge-status ${esc(m.status || '')}">${esc(m.status || '—')}</span>
-                  ${m.deadlineAt && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED') ? `<span class="text-sm text-muted">due ${fmtRel(m.deadlineAt)}</span>` : ''}
+                  <div class="match-player-row ${p2RowCls}">
+                    <div class="player-info">
+                      ${p2Avatar ? `<img src="${esc(p2Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
+                      <span class="player-name">${esc(p2Name)}</span>
+                      ${p2Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+                    </div>
+                    <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player2Wins ?? 0))}</span>
+                  </div>
 
-                  <div class="flex gap-xs" style="margin-left: auto;">
-                    ${canManage() && m.status === 'DISPUTED' ? `<button class="btn btn-secondary btn-sm" data-act="confirm" data-mid="${m.id}">Confirm</button>` : ''}
-                    ${
-                      canManage() && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')
-                        ? `
-                      <button class="btn btn-secondary btn-sm" data-act="forfeit" data-mid="${m.id}" title="Record Forfeit">Forfeit</button>
-                      <button class="btn btn-secondary btn-sm" data-act="extend" data-mid="${m.id}" title="Extend Deadline">Extend</button>
-                      <button class="btn btn-secondary btn-sm" data-act="sub" data-mid="${m.id}" title="Substitute Player">Sub</button>`
-                        : ''
-                    }
+                  <div class="match-meta-bar">
+                    ${m.deadlineAt && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED') ? `<span class="text-sm text-muted">due ${fmtRel(m.deadlineAt)}</span>` : ''}
+
+                    <div class="flex gap-xs" style="margin-left: auto;">
+                      ${canManage() && m.status === 'DISPUTED' ? `<button class="btn btn-secondary btn-sm" data-act="confirm" data-mid="${m.id}">Confirm</button>` : ''}
+                      ${
+                        canManage() && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')
+                          ? `
+                        <button class="btn btn-secondary btn-sm" data-act="forfeit" data-mid="${m.id}" title="Record Forfeit">Forfeit</button>
+                        <button class="btn btn-secondary btn-sm" data-act="extend" data-mid="${m.id}" title="Extend Deadline">Extend</button>
+                        <button class="btn btn-secondary btn-sm" data-act="sub" data-mid="${m.id}" title="Substitute Player">Sub</button>`
+                          : ''
+                      }
+                    </div>
                   </div>
                 </div>
               </div>`
           }
-          html += `</div>`
+          html += `</div></div>`
         }
+        html += '</div>'
 
         host.innerHTML = html
 
