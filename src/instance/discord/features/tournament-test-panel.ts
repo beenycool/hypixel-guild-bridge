@@ -62,6 +62,10 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
         await this.handleResolveMatch(interaction, panel)
         break
       }
+      case 'simulate-dispute': {
+        await this.handleSimulateDispute(interaction, panel)
+        break
+      }
       case 'rewind-round': {
         await this.handleRewindRound(interaction, panel)
         break
@@ -85,7 +89,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     matches: TournamentMatch[],
     players: TournamentPlayer[],
     panel: TournamentTestPanelEntry
-  ): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder> } {
+  ): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
     const statusEmoji: Record<string, string> = {
       [MatchStatus.Completed]: '✅',
       [MatchStatus.Active]: '🟢',
@@ -123,7 +127,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     const isCompleted = tournament.status === TournamentStatus.Completed
     const canRewind = panel.currentStep > 0
 
-    const components = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    const row1 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`${TournamentTestPanel.Prefix}:resolve-round:${panel.messageId}`)
         .setLabel('Resolve Round')
@@ -137,6 +141,12 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
         .setEmoji('⏭')
         .setDisabled(isCompleted),
       new ButtonBuilder()
+        .setCustomId(`${TournamentTestPanel.Prefix}:simulate-dispute:${panel.messageId}`)
+        .setLabel('Dispute Match')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('⚡')
+        .setDisabled(isCompleted),
+      new ButtonBuilder()
         .setCustomId(`${TournamentTestPanel.Prefix}:rewind-round:${panel.messageId}`)
         .setLabel('Rewind Round')
         .setStyle(ButtonStyle.Secondary)
@@ -147,7 +157,10 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
         .setLabel('Rewind All')
         .setStyle(ButtonStyle.Secondary)
         .setEmoji('⏮')
-        .setDisabled(!canRewind),
+        .setDisabled(!canRewind)
+    )
+
+    const row2 = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`${TournamentTestPanel.Prefix}:cleanup:${panel.messageId}`)
         .setLabel('Cleanup')
@@ -155,7 +168,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
         .setEmoji('🗑')
     )
 
-    return { embed, components }
+    return { embed, components: [row1, row2] }
   }
 
   private async refreshPanel(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
@@ -176,7 +189,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
     const { embed, components } = this.buildControlPanelEmbed(tournament, matches, players, panel)
 
-    await interaction.editReply({ embeds: [embed], components: [components] })
+    await interaction.editReply({ embeds: [embed], components })
   }
 
   private async handleResolveRound(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
@@ -215,12 +228,29 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
       const winnerId = player1.seed < player2.seed ? player1.id : player2.id
       previousStatuses.push({ matchId: match.id, status: match.status })
 
+      const targetWins = Math.ceil(tournament.bestOf / 2)
+      const p1Wins = winnerId === player1.id ? targetWins : 0
+      const p2Wins = winnerId === player2.id ? targetWins : 0
+
       await this.application.core.tournamentManager.matchManager
-        .submitReport(match.id, match.player1Id, winnerId, 1, 0)
-        .catch(() => undefined)
+        .submitReport(match.id, match.player1Id, winnerId, p1Wins, p2Wins)
+        .catch((err) => {
+          this.application.logger.error(`TournamentTestPanel: submitReport player1 failed for match ${match.id}`, err)
+        })
       await this.application.core.tournamentManager.matchManager
-        .submitReport(match.id, match.player2Id, winnerId, 0, 1)
-        .catch(() => undefined)
+        .submitReport(match.id, match.player2Id, winnerId, p1Wins, p2Wins)
+        .catch((err) => {
+          this.application.logger.error(`TournamentTestPanel: submitReport player2 failed for match ${match.id}`, err)
+        })
+
+      await this.application.core.tournamentManager.auditLogger.log(
+        tournament.id,
+        'test_resolve_match',
+        interaction.user.id,
+        match.id,
+        undefined,
+        { winnerId, p1Wins, p2Wins }
+      )
     }
 
     const history: HistoryEntry[] = JSON.parse(panel.historyJson) as HistoryEntry[]
@@ -278,12 +308,29 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
     const winnerId = player1.seed < player2.seed ? player1.id : player2.id
 
+    const targetWins = Math.ceil(tournament.bestOf / 2)
+    const p1Wins = winnerId === player1.id ? targetWins : 0
+    const p2Wins = winnerId === player2.id ? targetWins : 0
+
     await this.application.core.tournamentManager.matchManager
-      .submitReport(activeMatch.id, activeMatch.player1Id, winnerId, 1, 0)
-      .catch(() => undefined)
+      .submitReport(activeMatch.id, activeMatch.player1Id, winnerId, p1Wins, p2Wins)
+      .catch((err) => {
+        this.application.logger.error(`TournamentTestPanel: submitReport player1 failed for match ${activeMatch.id}`, err)
+      })
     await this.application.core.tournamentManager.matchManager
-      .submitReport(activeMatch.id, activeMatch.player2Id, winnerId, 0, 1)
-      .catch(() => undefined)
+      .submitReport(activeMatch.id, activeMatch.player2Id, winnerId, p1Wins, p2Wins)
+      .catch((err) => {
+        this.application.logger.error(`TournamentTestPanel: submitReport player2 failed for match ${activeMatch.id}`, err)
+      })
+
+    await this.application.core.tournamentManager.auditLogger.log(
+      tournament.id,
+      'test_resolve_match',
+      interaction.user.id,
+      activeMatch.id,
+      undefined,
+      { winnerId, p1Wins, p2Wins }
+    )
 
     const history: HistoryEntry[] = JSON.parse(panel.historyJson) as HistoryEntry[]
     history.push({
@@ -294,6 +341,56 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
     const newStep = panel.currentStep + 1
     this.application.core.tournamentTestPanels.updateStep(panel.messageId, newStep, JSON.stringify(history))
+
+    const updatedPanel = this.application.core.tournamentTestPanels.get(panel.messageId)
+    if (updatedPanel !== undefined) {
+      await this.refreshPanel(interaction, updatedPanel)
+    }
+  }
+
+  private async handleSimulateDispute(
+    interaction: ButtonInteraction,
+    panel: TournamentTestPanelEntry
+  ): Promise<void> {
+    this.application.logger.info(`TournamentTestPanel: Simulating dispute for tournament ${panel.tournamentId}`)
+    const tournament = await this.application.core.tournamentManager.getTournament(panel.tournamentId)
+    if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
+      await interaction.editReply({ content: 'Tournament is not active.' })
+      return
+    }
+
+    const activeMatch = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+      'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND "round" = $2 AND "status" = $3 ORDER BY "matchIndex" ASC LIMIT 1',
+      [tournament.id, tournament.currentRound, MatchStatus.Active]
+    )
+
+    if (activeMatch === undefined || activeMatch.player1Id === undefined || activeMatch.player2Id === undefined) {
+      await interaction.editReply({ content: 'No active match in current round available to dispute.' })
+      return
+    }
+
+    const targetWins = Math.ceil(tournament.bestOf / 2)
+
+    // Player 1 claims Player 1 won
+    await this.application.core.tournamentManager.matchManager
+      .submitReport(activeMatch.id, activeMatch.player1Id, activeMatch.player1Id, targetWins, 0)
+      .catch((err) => {
+        this.application.logger.error(`TournamentTestPanel: dispute submitReport p1 failed`, err)
+      })
+
+    // Player 2 claims Player 2 won
+    await this.application.core.tournamentManager.matchManager
+      .submitReport(activeMatch.id, activeMatch.player2Id, activeMatch.player2Id, 0, targetWins)
+      .catch((err) => {
+        this.application.logger.error(`TournamentTestPanel: dispute submitReport p2 failed`, err)
+      })
+
+    await this.application.core.tournamentManager.auditLogger.log(
+      tournament.id,
+      'test_simulate_dispute',
+      interaction.user.id,
+      activeMatch.id
+    )
 
     const updatedPanel = this.application.core.tournamentTestPanels.get(panel.messageId)
     if (updatedPanel !== undefined) {
@@ -382,6 +479,15 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     const newStep = panel.currentStep - 1
     this.application.core.tournamentTestPanels.updateStep(panel.messageId, newStep, JSON.stringify(history))
 
+    await this.application.core.tournamentManager.auditLogger.log(
+      panel.tournamentId,
+      'test_rewind_round',
+      interaction.user.id,
+      undefined,
+      undefined,
+      { round: entry.round }
+    )
+
     const updatedPanel = this.application.core.tournamentTestPanels.get(panel.messageId)
     if (updatedPanel !== undefined) {
       const refreshed = await this.application.core.tournamentManager.getTournament(panel.tournamentId)
@@ -401,6 +507,12 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
       currentPanel = this.application.core.tournamentTestPanels.get(panel.messageId)
     }
 
+    await this.application.core.tournamentManager.auditLogger.log(
+      panel.tournamentId,
+      'test_rewind_all',
+      interaction.user.id
+    )
+
     if (currentPanel !== undefined) {
       await this.refreshPanel(interaction, currentPanel)
     }
@@ -410,6 +522,12 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     this.application.logger.info(
       `TournamentTestPanel: Cleaning up tournament ${panel.tournamentId}, panel ${panel.messageId}`
     )
+    await this.application.core.tournamentManager.auditLogger.log(
+      panel.tournamentId,
+      'test_cleanup',
+      interaction.user.id
+    )
+
     await this.application.core.tournamentManager.cancelTournament(panel.tournamentId).catch(() => undefined)
 
     await this.application.core.databaseManager.execute('DELETE FROM "tournament_players" WHERE "tournamentId" = $1', [

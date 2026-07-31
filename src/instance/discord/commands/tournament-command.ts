@@ -143,7 +143,16 @@ export default {
             opt.setName('best_of').setDescription('Best of X series (odd numbers)').setRequired(false)
           )
           .addIntegerOption((opt) =>
-            opt.setName('players').setDescription('Number of fake players (default 8)').setRequired(false)
+            opt.setName('deadline_hours').setDescription('Hours allowed per round').setRequired(false)
+          )
+          .addUserOption((opt) =>
+            opt
+              .setName('bind_user')
+              .setDescription('Bind fake players to a Discord user to test pings and permissions')
+              .setRequired(false)
+          )
+          .addBooleanOption((opt) =>
+            opt.setName('auto_start').setDescription('Auto check-in players and start bracket immediately (default true)').setRequired(false)
           )
           .addChannelOption((opt) =>
             opt
@@ -829,11 +838,23 @@ export default {
       try {
         const name = context.interaction.options.getString('name') ?? 'Test Tournament'
         const gameType = context.interaction.options.getString('game_type') ?? 'Bridge'
-        const bestOf = context.interaction.options.getInteger('best_of') ?? 1
+        const bestOf =
+          context.interaction.options.getInteger('best_of') ??
+          context.application.core.bridgeConfigurations.getTournamentDefaultBestOf(bridgeId)
+        const deadline =
+          context.interaction.options.getInteger('deadline_hours') ??
+          context.application.core.bridgeConfigurations.getTournamentDefaultDeadlineHours(bridgeId)
         const playerCount = context.interaction.options.getInteger('players') ?? 8
+        const bindUser = context.interaction.options.getUser('bind_user')
+        const autoStart = context.interaction.options.getBoolean('auto_start') ?? true
 
         if (playerCount < 2 || playerCount > 32) {
           await context.interaction.editReply('Player count must be between 2 and 32.')
+          return
+        }
+
+        if (bestOf % 2 === 0 || bestOf <= 0) {
+          await context.interaction.editReply('Best of X series must be a positive odd number (e.g. 1, 3, 5).')
           return
         }
 
@@ -843,7 +864,17 @@ export default {
           name,
           gameType,
           bestOf,
-          context.interaction.user.id
+          context.interaction.user.id,
+          deadline
+        )
+
+        await context.application.core.tournamentManager.auditLogger.log(
+          tournament.id,
+          'create_test_tournament',
+          context.interaction.user.id,
+          undefined,
+          undefined,
+          { name, gameType, bestOf, playerCount, deadline, bindUser: bindUser?.id, autoStart }
         )
 
         // Seed fake players
@@ -851,18 +882,40 @@ export default {
         for (let index = 0; index < playerCount; index++) {
           const fakeUuid = `00000000-0000-0000-0000-${String(index + 1).padStart(12, '0')}`
           const now = Math.floor(Date.now() / 1000)
+          const discordId = bindUser !== null ? bindUser.id : null
+          const status = autoStart ? PlayerStatus.CheckedIn : PlayerStatus.Registered
+          const checkedInAt = autoStart ? now : null
+
           const result = await context.application.core.databaseManager.queryOne<{
             id: number
             playerUuid: string
           }>(
             `INSERT INTO "tournament_players" ("tournamentId", "playerUuid", "discordId", "seed", "status", "checkedInAt")
-             VALUES ($1, $2, NULL, $3, $4, $5)
+             VALUES ($1, $2, $3, $4, $5, $6)
              RETURNING "id", "playerUuid"`,
-            [tournament.id, fakeUuid, index + 1, PlayerStatus.CheckedIn, now]
+            [tournament.id, fakeUuid, discordId, index + 1, status, checkedInAt]
           )
           if (result !== undefined) {
             fakePlayers.push({ id: result.id, playerUuid: result.playerUuid, seed: index + 1 })
           }
+        }
+
+        if (!autoStart) {
+          const embed = new EmbedBuilder()
+            .setTitle(`🏆 Test Tournament Created: ${tournament.name}`)
+            .setColor('#00FF00')
+            .setDescription(
+              `Test tournament created in **Signup** phase with ${playerCount} fake players.\n\n` +
+                `• **Game:** ${tournament.gameType}\n` +
+                `• **Best Of:** ${tournament.bestOf}\n` +
+                `• **Deadline per round:** ${tournament.roundDeadlineHours} hours\n` +
+                `• **Status:** \`${tournament.status}\`\n\n` +
+                `You can test \`/tournament open-checkin\`, \`/tournament checkin\`, or \`/tournament start\`!`
+            )
+            .setTimestamp()
+
+          await context.interaction.editReply({ embeds: [embed] })
+          return
         }
 
         const guildId = context.interaction.guildId
@@ -953,6 +1006,7 @@ export default {
             `• **Game:** ${tournament.gameType}\n` +
               `• **Best Of:** ${tournament.bestOf}\n` +
               `• **Players:** ${playerCount} (fake)\n` +
+              `• **Deadline per round:** ${tournament.roundDeadlineHours}h\n` +
               `• **Status:** \`${startedTournament.status}\`\n` +
               `• **Round:** ${startedTournament.currentRound} / ${startedTournament.totalRounds}`
           )
@@ -1001,10 +1055,14 @@ export default {
               components: [
                 { type: 2, style: 3, customId: `tournament-test:resolve-round:`, label: '▶ Resolve Round' },
                 { type: 2, style: 1, customId: `tournament-test:resolve-match:`, label: '⏭ Resolve Match' },
+                { type: 2, style: 4, customId: `tournament-test:simulate-dispute:`, label: '⚡ Dispute Match' },
                 { type: 2, style: 2, customId: `tournament-test:rewind-round:`, label: '⏮ Rewind Round' },
-                { type: 2, style: 2, customId: `tournament-test:rewind-all:`, label: '⏮ Rewind All' },
-                { type: 2, style: 4, customId: `tournament-test:cleanup:`, label: '🗑 Cleanup' }
+                { type: 2, style: 2, customId: `tournament-test:rewind-all:`, label: '⏮ Rewind All' }
               ]
+            },
+            {
+              type: 1,
+              components: [{ type: 2, style: 4, customId: `tournament-test:cleanup:`, label: '🗑 Cleanup' }]
             }
           ]
         })
@@ -1041,6 +1099,12 @@ export default {
                 },
                 {
                   type: 2 as const,
+                  style: 4,
+                  customId: `tournament-test:simulate-dispute:${panelMessage.id}`,
+                  label: '⚡ Dispute Match'
+                },
+                {
+                  type: 2 as const,
                   style: 2,
                   customId: `tournament-test:rewind-round:${panelMessage.id}`,
                   label: '⏮ Rewind Round'
@@ -1050,7 +1114,12 @@ export default {
                   style: 2,
                   customId: `tournament-test:rewind-all:${panelMessage.id}`,
                   label: '⏮ Rewind All'
-                },
+                }
+              ]
+            },
+            {
+              type: 1 as const,
+              components: [
                 {
                   type: 2 as const,
                   style: 4,

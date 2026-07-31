@@ -84,7 +84,7 @@ Or set `tournament.notificationChannelId` in `application-config.yml`.
 | `/tournament extend match_id: hours:`                              | Admin/Officer | Extend match deadline                                          |
 | `/tournament forfeit`                                              | Participants  | Forfeit your active match                                      |
 | `/tournament schedule time:`                                       | Participants  | Post availability in match thread                              |
-| `/tournament test [name:] [game_type:] [best_of:] [players:]`      | Admin/Officer | Create test tournament with fake players and interactive panel |
+| `/tournament test [name:] [game_type:] [best_of:] [players:] [deadline_hours:] [bind_user:] [auto_start:]` | Admin/Officer | Create test tournament with fake players and interactive panel |
 
 ### Minecraft Chat Commands
 
@@ -133,7 +133,6 @@ On restart, `TournamentManager.load()` re-fetches all active tournaments from th
 - Default: auto-checkin on join (configurable via `tournamentAutoCheckin`)
 - Admin can manually open a check-in window: `/tournament open-checkin`
 - Players who don't check in before bracket generation are excluded
-- Tournament is cancelled if checked-in count is below minimum (default: 4)
 
 ### Test Tournament Panel
 
@@ -143,6 +142,7 @@ On restart, `TournamentManager.load()` re-fetches all active tournaments from th
 | ---------------- | --------------------------------------- |
 | ▶ Resolve Round  | Resolve all matches in current round    |
 | ⏭ Resolve Match | Resolve one match at a time             |
+| ⚡ Dispute Match | Simulate a disputed match               |
 | ⏮ Rewind Round  | Undo the current round                  |
 | ⏮ Rewind All    | Undo all matches                        |
 | 🗑 Cleanup       | Delete the test tournament and channels |
