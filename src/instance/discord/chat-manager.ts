@@ -4,18 +4,16 @@ import type { Client, Message } from 'discord.js'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
-import { ChannelType, InstanceType, MinecraftSendChatPriority, PunishmentType } from '../../common/application-event.js'
+import { ChannelType, InstanceType, MinecraftSendChatPriority } from '../../common/application-event.js'
 import type EventHelper from '../../common/event-helper.js'
 import SubInstance from '../../common/sub-instance'
 import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.js'
-import type { DiscordUser } from '../../common/user'
 
-import { FilteredReaction, MutedReaction, UnverifiedReaction } from './common/discord-config.js'
+import { FilteredReaction, UnverifiedReaction } from './common/discord-config.js'
 import type MessageAssociation from './common/message-association.js'
 import type DiscordInstance from './discord-instance.js'
 
 export default class ChatManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
-  private static readonly WarnMuteEvery = 10 * 60 * 1000
   private static readonly WarnVerificationEvery = 10 * 60 * 1000
   private readonly lastVerificationWarn = new Map<string, number>()
   // Throttle repeated warnings for unmapped channels to reduce log spam
@@ -23,7 +21,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private readonly unmappedChannelSuppressed = new Map<string, number>()
 
   private readonly messageAssociation: MessageAssociation
-  private readonly lastMuteWarn = new Map<string, number>()
   private readonly sweepInterval: NodeJS.Timeout
 
   constructor(clientInstance: DiscordInstance, messageAssociation: MessageAssociation) {
@@ -124,9 +121,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       return
     }
 
-    if (channelType === ChannelType.Public && (await this.hasBeenPunished(event, user))) {
-      return
-    }
     const readableReplyUsername = await this.getReplyUsername(event)
 
     const content = this.cleanMessage(event)
@@ -171,41 +165,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       replyUsername: readableReplyUsername,
       message: filteredMessage
     })
-  }
-
-  private async hasBeenPunished(message: Message, user: DiscordUser): Promise<boolean> {
-    const punishments = user.punishments()
-    const mutedTill = punishments.punishedTill(PunishmentType.Mute)
-    if (mutedTill != undefined) {
-      const emoji = this.clientInstance.emojiHandler.emojiByName.get(MutedReaction.name)
-      if (emoji !== undefined) await message.react(emoji)
-
-      const currentTimestamp = Date.now()
-      if ((this.lastMuteWarn.get(message.author.id) ?? 0) + ChatManager.WarnMuteEvery < currentTimestamp) {
-        this.lastMuteWarn.set(message.author.id, currentTimestamp)
-        await message.reply({
-          content:
-            '*Looks like you are muted on the chat-bridge.*\n' +
-            "*All messages you send won't reach any guild in-game or any other discord server.*\n" +
-            `*Your mute expires <t:${Math.floor(mutedTill / 1000)}:R>!*`
-        })
-      }
-
-      return true
-    }
-
-    const bannedTill = punishments.punishedTill(PunishmentType.Ban)
-    if (bannedTill != undefined) {
-      await message.reply({
-        content:
-          '*Looks like you are banned on the chat-bridge.*\n' +
-          "*All messages you send won't reach any guild in-game or any other discord server.*\n" +
-          `*Your ban expires <t:${Math.floor(bannedTill / 1000)}:R>!*`
-      })
-      return true
-    }
-
-    return false
   }
 
   private async getReplyUsername(messageEvent: Message): Promise<string | undefined> {
@@ -259,12 +218,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private sweepWarningMaps(): void {
     const now = Date.now()
     const maxAge = 24 * 60 * 60 * 1000
-    for (const map of [
-      this.lastVerificationWarn,
-      this.lastUnmappedChannelWarn,
-      this.unmappedChannelSuppressed,
-      this.lastMuteWarn
-    ]) {
+    for (const map of [this.lastVerificationWarn, this.lastUnmappedChannelWarn, this.unmappedChannelSuppressed]) {
       for (const [key, timestamp] of map) {
         if (now - timestamp > maxAge) map.delete(key)
       }
