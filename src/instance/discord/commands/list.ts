@@ -2,7 +2,7 @@ import assert from 'node:assert'
 import { performance } from 'node:perf_hooks'
 
 import type { APIEmbed } from 'discord.js'
-import { escapeMarkdown, SlashCommandBuilder, userMention } from 'discord.js'
+import { escapeMarkdown, MessageFlags, SlashCommandBuilder, userMention } from 'discord.js'
 import type { Client, Status } from 'hypixel-api-reborn'
 
 import type Application from '../../../application.js'
@@ -87,11 +87,59 @@ export default {
 
   handler: async function (context) {
     const t0 = performance.now()
+
+    const onlyOnline = context.interaction.options.getSubcommand() === 'online'
+
+    // When used in a non-bridge channel, try to infer the bridge from the Discord guild's channels
+    let bridgeId = context.bridgeId
+    if (bridgeId === undefined && context.application.bridgeResolver.isMultiBridgeEnabled()) {
+      const guild = context.interaction.guild ?? (context.interaction.guildId !== null
+        ? await context.interaction.client.guilds.fetch(context.interaction.guildId).catch(() => undefined)
+        : undefined)
+      if (guild !== undefined) {
+        const channels = guild.channels.cache
+        const guildBridgeIds = new Set<string>()
+        for (const [, channel] of channels) {
+          const bid = context.application.bridgeResolver.getBridgeIdForChannel(channel.id)
+          if (bid !== undefined) guildBridgeIds.add(bid)
+        }
+        if (guildBridgeIds.size === 1) {
+          bridgeId = [...guildBridgeIds][0]
+          context.application.logger.info(
+            '[list] resolved bridgeId=%s from guild=%s',
+            bridgeId,
+            guild.id
+          )
+        }
+      }
+      // If we still couldn't resolve a bridge, show an ephemeral error
+      if (bridgeId === undefined) {
+        await context.interaction.reply({
+          embeds: [
+            {
+              description:
+                'This command must be used in a configured bridge channel.\n' +
+                'Please run this command in a channel that is linked to a bridge.',
+              color: Color.Info,
+              footer: {
+                text: DefaultCommandFooter
+              }
+            }
+          ],
+          flags: MessageFlags.Ephemeral
+        })
+        context.application.logger.info(
+          '[list] no bridge context, total %dms',
+          Math.round(performance.now() - t0)
+        )
+        return
+      }
+    }
+
     context.application.logger.info('[list] deferring reply...')
     await context.interaction.deferReply()
     context.application.logger.info('[list] deferred reply in %dms', Math.round(performance.now() - t0))
 
-    const onlyOnline = context.interaction.options.getSubcommand() === 'online'
     const t1 = performance.now()
     const lists: Map<string, string[]> = await listMembers(
       context.application,
@@ -99,7 +147,7 @@ export default {
       context.application.mojangApi,
       context.application.hypixelApi,
       onlyOnline,
-      context.bridgeId
+      bridgeId
     )
     context.application.logger.info('[list] listMembers took %dms', Math.round(performance.now() - t1))
 

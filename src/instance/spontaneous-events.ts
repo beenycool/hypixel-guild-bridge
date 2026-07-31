@@ -291,12 +291,6 @@ class CountingChain extends SpontaneousEventHandler {
         Color.Good,
         bridgeId
       )
-      await beforeLast.mute(
-        this.eventHelper.fillBaseEvent(),
-        PunishmentPurpose.Game,
-        Duration.minutes(5),
-        'Did not continue chain counting'
-      )
     }
   }
 }

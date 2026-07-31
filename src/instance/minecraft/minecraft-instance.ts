@@ -7,7 +7,6 @@ import type Application from '../../application.js'
 import type { ChannelType } from '../../common/application-event.js'
 import {
   InstanceMessageType,
-  InstanceReactiveType,
   InstanceSignalType,
   InstanceType,
   MinecraftSendChatPriority
@@ -281,9 +280,48 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return result
   }
 
+  private static readonly MAX_MINECRAFT_MESSAGE_LENGTH = 256
+
+  /**
+   * Split a message into at most 2 parts at a word boundary near the max length.
+   * If the second part still exceeds the limit after splitting, it is truncated.
+   * Returns the original message wrapped in an array if it fits in one part.
+   */
+  private static splitMessage(message: string): string[] {
+    if (message.length <= MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH) return [message]
+
+    const maxLen = MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH
+
+    // Try to split at the last space before or at the limit
+    const breakIndex = message.lastIndexOf(' ', maxLen)
+
+    if (breakIndex > 0) {
+      const part1 = message.slice(0, breakIndex)
+      let part2 = message.slice(breakIndex + 1).trim()
+
+      if (part2.length > maxLen) {
+        part2 = part2.slice(0, maxLen - 3) + '...'
+      }
+
+      return [part1, part2]
+    }
+
+    // No word boundary found — hard split at the limit
+    const part1 = message.slice(0, maxLen)
+    let part2 = message.slice(maxLen).trim()
+
+    if (part2.length > maxLen) {
+      part2 = part2.slice(0, maxLen - 3) + '...'
+    }
+
+    return [part1, part2]
+  }
+
   /**
    * Send a message/command via minecraft client.
    * The command will be queued to be sent in the future.
+   * If the message exceeds 256 characters it is split into at most 2 parts
+   * at a word boundary and each part is sent separately.
    * If Hypixel responds with "You cannot say the same message twice!",
    * a random suffix is appended and the message is resent (up to 5 retries).
    *
@@ -302,20 +340,22 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       .map((chunk) => chunk.trim())
       .join(' ')
 
-    if (message.length > 256) {
-      message = message.slice(0, 253) + '...'
+    const parts = MinecraftInstance.splitMessage(message)
 
-      if (originEventId !== undefined) {
-        await this.application.emit('instanceReactive', {
-          ...this.eventHelper.fillBaseEvent(),
-
-          originEventId: originEventId,
-          type: InstanceReactiveType.MessageTruncated,
-          message: `Message is too long! It has been shortened to fit minecraft message`
-        })
-      }
+    for (const part of parts) {
+      await this.sendSingle(part, priority, originEventId, maxRetries)
     }
+  }
 
+  /**
+   * Send a single message (≤ 256 chars) with duplicate-message retry logic.
+   */
+  private async sendSingle(
+    message: string,
+    priority: MinecraftSendChatPriority,
+    originEventId: string | undefined,
+    maxRetries: number
+  ): Promise<void> {
     const startTime = Date.now()
     const maxExecutionTime = 10_000
 
@@ -382,7 +422,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       } catch (error: unknown) {
         if (error instanceof Error && error.message === 'duplicate-message') {
           const randomId = MinecraftInstance.generateID(24)
-          const maxLength = 256 - randomId.length - 3
+          const maxLength = MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH - randomId.length - 3
           currentMessage = `${currentMessage.slice(0, Math.max(0, maxLength))} - ${randomId}`
           continue
         }

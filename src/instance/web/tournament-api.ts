@@ -210,6 +210,32 @@ export class TournamentApiHandler {
       return true
     }
 
+    if (subRoute === 'add-player') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Officer) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleAddPlayer(request, response, tournamentId)
+      return true
+    }
+
+    if (subRoute === 'remove-player') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Officer) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleRemovePlayer(request, response, tournamentId)
+      return true
+    }
+
     if (subRoute === 'test') {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -496,6 +522,58 @@ export class TournamentApiHandler {
       sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to open check-in:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleAddPlayer(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const playerUuid = body.playerUuid
+    const discordId = body.discordId
+
+    if (typeof playerUuid !== 'string' || playerUuid.trim().length === 0) {
+      sendError(response, 'VALIDATION_ERROR', 'playerUuid is required', 400)
+      return
+    }
+
+    try {
+      const player = await this.application.core.tournamentManager.addPlayer(
+        tournamentId,
+        playerUuid.trim(),
+        typeof discordId === 'string' && discordId.trim().length > 0 ? discordId.trim() : undefined
+      )
+      sendSuccess(response, player)
+    } catch (error: unknown) {
+      this.logger.error('Failed to add player:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleRemovePlayer(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const playerUuid = body.playerUuid
+    if (typeof playerUuid !== 'string' || playerUuid.trim().length === 0) {
+      sendError(response, 'VALIDATION_ERROR', 'playerUuid is required', 400)
+      return
+    }
+
+    try {
+      await this.application.core.tournamentManager.removePlayer(tournamentId, playerUuid.trim())
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to remove player:', error)
       sendError(response, 'INTERNAL_ERROR', String(error), 500)
     }
   }

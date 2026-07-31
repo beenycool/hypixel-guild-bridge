@@ -63,7 +63,7 @@ export default class PunishmentsEnforcer extends SubInstance<Core, InstanceType.
     switch (event.type) {
       case GuildPlayerEventType.Unmute:
       case GuildPlayerEventType.Join: {
-        await this.checkAndEnforce(event.user, [PunishmentType.Ban, PunishmentType.Mute])
+        await this.checkAndEnforce(event.user, [PunishmentType.Ban])
         break
       }
       case GuildPlayerEventType.Mute:
