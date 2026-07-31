@@ -1,8 +1,7 @@
 import { EmbedBuilder } from 'discord.js'
 
 import type Application from '../../application.js'
-import { ChannelType, Color, MinecraftSendChatPriority } from '../../common/application-event.js'
-import type { BroadcastEvent } from '../../common/application-event.js'
+import { MinecraftSendChatPriority } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 
 import type { Tournament, TournamentMatch } from './types.js'
@@ -19,39 +18,6 @@ export class TournamentNotifications {
       return translator(key, parameters)
     } catch {
       return key // fallback
-    }
-  }
-
-  /**
-   * Broadcast a tournament milestone event to all relevant channels.
-   */
-  broadcastMilestone(tournament: any, message: string): void {
-    const bridgeId = tournament?.bridgeId
-    if (bridgeId) {
-      const announceMc = this.application.core.bridgeConfigurations.getTournamentAnnounceMc(bridgeId)
-      if (!announceMc) {
-        this.application.logger.info(
-          `Tournament ${tournament?.id}: Milestone broadcast skipped (tournament MC announcements disabled)`
-        )
-        return
-      }
-    }
-
-    this.application.logger.info(`Tournament ${tournament?.id}: Broadcasting milestone — "${message}"`)
-    try {
-      const event: BroadcastEvent = {
-        eventId: `tournament:${tournament?.name}:${Date.now()}`,
-        createdAt: Date.now(),
-        instanceName: this.application.instanceName,
-        instanceType: this.application.instanceType,
-        message,
-        color: Color.Good,
-        user: undefined,
-        channels: [ChannelType.Public, ChannelType.Officer]
-      }
-      this.application.emit('broadcast', event)
-    } catch (error) {
-      this.application.logger.error('Failed to broadcast tournament milestone', error)
     }
   }
 
@@ -300,7 +266,6 @@ export class TournamentNotifications {
       tournament.bridgeId,
       `🏆 Round ${round} of tournament ${tournament.name} is complete! Starting next round...`
     )
-    this.broadcastMilestone(tournament, `Round ${round} of ${tournament.name} is complete!`)
   }
 
   /**
@@ -320,7 +285,6 @@ export class TournamentNotifications {
       tournament.bridgeId,
       `🏆 Congratulations to ${winnerName} for winning the ${tournament.name} tournament! 🎉`
     )
-    this.broadcastMilestone(tournament, `${winnerName} wins ${tournament.name}!`)
   }
 
   public async announceLiveUpdate(
