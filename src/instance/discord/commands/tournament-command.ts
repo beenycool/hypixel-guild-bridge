@@ -96,11 +96,15 @@ export default {
         sub
           .setName('confirm')
           .setDescription('Resolve a disputed match (Admin/Officer only)')
-          .addIntegerOption((opt) =>
-            opt.setName('match_id').setDescription('Disputed match ID').setRequired(true).setAutocomplete(true)
-          )
           .addStringOption((opt) =>
             opt.setName('winner').setDescription('Forced winner username').setRequired(true).setAutocomplete(true)
+          )
+          .addIntegerOption((opt) =>
+            opt
+              .setName('match_id')
+              .setDescription('Disputed match ID (optional if inside match thread)')
+              .setRequired(false)
+              .setAutocomplete(true)
           )
       )
       .addSubcommand((sub) =>
@@ -111,9 +115,14 @@ export default {
         sub
           .setName('extend')
           .setDescription('Extend a match deadline (Admin/Officer only)')
-          .addIntegerOption((opt) => opt.setName('match_id').setDescription('Match ID to extend').setRequired(true))
           .addIntegerOption((opt) =>
             opt.setName('hours').setDescription('Hours to extend the deadline by').setRequired(true)
+          )
+          .addIntegerOption((opt) =>
+            opt
+              .setName('match_id')
+              .setDescription('Match ID to extend (optional if inside match thread)')
+              .setRequired(false)
           )
       )
       .addSubcommand((sub) => sub.setName('forfeit').setDescription('Forfeit your current match'))
@@ -186,9 +195,14 @@ export default {
         sub
           .setName('proof')
           .setDescription('Add a proof/replay URL to your match')
-          .addIntegerOption((opt) => opt.setName('match_id').setDescription('Match ID').setRequired(true))
           .addStringOption((opt) =>
             opt.setName('url').setDescription('URL to proof (YouTube, Imgur, Twitch VOD, etc.)').setRequired(true)
+          )
+          .addIntegerOption((opt) =>
+            opt
+              .setName('match_id')
+              .setDescription('Match ID (optional if inside match thread)')
+              .setRequired(false)
           )
       ),
 
@@ -585,8 +599,20 @@ export default {
       }
 
       await context.interaction.deferReply()
-      const matchId = context.interaction.options.getInteger('match_id', true)
+      let matchId = context.interaction.options.getInteger('match_id')
       const winnerName = context.interaction.options.getString('winner', true)
+
+      if (matchId === null) {
+        const matchByChannel = await context.application.core.databaseManager.queryOne<TournamentMatch>(
+          'SELECT * FROM "tournament_matches" WHERE "discordThreadId" = $1',
+          [context.interaction.channelId]
+        )
+        if (matchByChannel === undefined) {
+          await context.interaction.editReply('Could not auto-detect match ID in this channel. Please specify `match_id`.')
+          return
+        }
+        matchId = matchByChannel.id
+      }
 
       const match = await context.application.core.databaseManager.queryOne<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "id" = $1',
@@ -717,8 +743,20 @@ export default {
       }
 
       await context.interaction.deferReply()
-      const matchId = context.interaction.options.getInteger('match_id', true)
+      let matchId = context.interaction.options.getInteger('match_id')
       const hours = context.interaction.options.getInteger('hours', true)
+
+      if (matchId === null) {
+        const matchByChannel = await context.application.core.databaseManager.queryOne<TournamentMatch>(
+          'SELECT * FROM "tournament_matches" WHERE "discordThreadId" = $1',
+          [context.interaction.channelId]
+        )
+        if (matchByChannel === undefined) {
+          await context.interaction.editReply('Could not auto-detect match ID in this channel. Please specify `match_id`.')
+          return
+        }
+        matchId = matchByChannel.id
+      }
 
       context.application.logger.info(`Discord /tournament extend: match=${matchId}, hours=${hours}`)
       try {
@@ -1288,8 +1326,23 @@ export default {
 
     // 18. Proof Attachment
     if (subcommand === 'proof') {
-      const matchId = context.interaction.options.getInteger('match_id', true)
+      let matchId = context.interaction.options.getInteger('match_id')
       const url = context.interaction.options.getString('url', true)
+
+      if (matchId === null) {
+        const matchByChannel = await context.application.core.databaseManager.queryOne<TournamentMatch>(
+          'SELECT * FROM "tournament_matches" WHERE "discordThreadId" = $1',
+          [context.interaction.channelId]
+        )
+        if (matchByChannel === undefined) {
+          await context.interaction.reply({
+            content: 'Could not auto-detect match ID in this channel. Please specify `match_id`.',
+            flags: MessageFlags.Ephemeral
+          })
+          return
+        }
+        matchId = matchByChannel.id
+      }
 
       context.application.logger.info(`Discord /tournament proof: matchId=${matchId}, url="${url}"`)
       try {

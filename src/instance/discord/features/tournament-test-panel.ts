@@ -116,7 +116,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
         const emoji = statusEmoji[m.status] ?? '❓'
         const p1Name = players.find((p) => p.id === m.player1Id)?.playerUuid.slice(0, 8) ?? 'TBD'
         const p2Name = players.find((p) => p.id === m.player2Id)?.playerUuid.slice(0, 8) ?? 'TBD'
-        return `${emoji} ${p1Name} vs ${p2Name}`
+        return `${emoji} **#${m.id}**: ${p1Name} vs ${p2Name}`
       })
 
       embed.addFields({ name: `Round ${round}`, value: lines.join('\n') || '—', inline: false })
