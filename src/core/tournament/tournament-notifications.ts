@@ -26,10 +26,21 @@ export class TournamentNotifications {
    * Broadcast a tournament milestone event to all relevant channels.
    */
   broadcastMilestone(tournament: any, message: string): void {
-    this.application.logger.info(`Tournament ${tournament.id}: Broadcasting milestone — "${message}"`)
+    const bridgeId = tournament?.bridgeId
+    if (bridgeId) {
+      const announceMc = this.application.core.bridgeConfigurations.getTournamentAnnounceMc(bridgeId)
+      if (!announceMc) {
+        this.application.logger.info(
+          `Tournament ${tournament?.id}: Milestone broadcast skipped (tournament MC announcements disabled)`
+        )
+        return
+      }
+    }
+
+    this.application.logger.info(`Tournament ${tournament?.id}: Broadcasting milestone — "${message}"`)
     try {
       const event: BroadcastEvent = {
-        eventId: `tournament:${tournament.name}:${Date.now()}`,
+        eventId: `tournament:${tournament?.name}:${Date.now()}`,
         createdAt: Date.now(),
         instanceName: this.application.instanceName,
         instanceType: this.application.instanceType,

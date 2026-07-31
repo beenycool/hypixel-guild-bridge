@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
-import { describe, it, mock } from 'node:test'
+import { describe, it } from 'node:test'
+
+import { TournamentNotifications } from '../src/core/tournament/tournament-notifications.js'
 
 describe('TournamentNotifications', () => {
   it('should send a whisper to a specific player', async () => {
@@ -49,4 +51,30 @@ describe('TournamentNotifications', () => {
     const message = `[Tournament] Round ${round}: ${p1} vs ${p2}. Bo${bestOf} ${mode}.`
     assert.equal(message, '[Tournament] Round 2: Alice vs Bob. Bo5 bedwars.')
   })
+
+  it('should skip broadcastMilestone if tournament announcements are disabled', () => {
+    let emitted = false
+    const mockApp = {
+      logger: { info: () => {}, error: () => {} },
+      instanceName: 'test',
+      instanceType: 'test',
+      core: {
+        bridgeConfigurations: {
+          getTournamentAnnounceMc: (bridgeId: string) => bridgeId !== 'disabled-bridge'
+        }
+      },
+      emit: (event: string) => {
+        if (event === 'broadcast') emitted = true
+      }
+    }
+
+    const notifications = new TournamentNotifications(mockApp as any)
+
+    notifications.broadcastMilestone({ id: 1, name: 'Test', bridgeId: 'disabled-bridge' }, 'Round 1 complete')
+    assert.equal(emitted, false)
+
+    notifications.broadcastMilestone({ id: 1, name: 'Test', bridgeId: 'enabled-bridge' }, 'Round 1 complete')
+    assert.equal(emitted, true)
+  })
 })
+

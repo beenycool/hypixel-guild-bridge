@@ -135,4 +135,38 @@ describe('BracketVisualizer', () => {
     assert.equal(buffer[2], 0x4e) // N
     assert.equal(buffer[3], 0x47) // G
   })
+
+  it('should build a valid bracket PNG for multi-round tournaments', () => {
+    const visualizer = new BracketVisualizer()
+    const buffer = visualizer.buildBracketImage({
+      tournament: { name: '8 Player Championship', totalRounds: 3, status: TournamentStatus.Active } as Tournament,
+      matches: [
+        { id: 1, tournamentId: 1, round: 1, matchIndex: 0, player1Id: 1, player2Id: 2, status: MatchStatus.Completed, winnerId: 1 },
+        { id: 2, tournamentId: 1, round: 1, matchIndex: 1, player1Id: 3, player2Id: 4, status: MatchStatus.Completed, winnerId: 3 },
+        { id: 3, tournamentId: 1, round: 1, matchIndex: 2, player1Id: 5, player2Id: 6, status: MatchStatus.Completed, winnerId: 5 },
+        { id: 4, tournamentId: 1, round: 1, matchIndex: 3, player1Id: 7, player2Id: 8, status: MatchStatus.Completed, winnerId: 7 },
+        { id: 5, tournamentId: 1, round: 2, matchIndex: 0, player1Id: 1, player2Id: 3, status: MatchStatus.Completed, winnerId: 1 },
+        { id: 6, tournamentId: 1, round: 2, matchIndex: 1, player1Id: 5, player2Id: 7, status: MatchStatus.Completed, winnerId: 7 },
+        { id: 7, tournamentId: 1, round: 3, matchIndex: 0, player1Id: 1, player2Id: 7, status: MatchStatus.Active, winnerId: undefined }
+      ] as TournamentMatch[],
+      players: Array.from({ length: 8 }, (_, index) => ({ id: index + 1 })) as TournamentPlayer[],
+      playerNames: new Map([
+        [1, 'Player1_VeryLongUsernameSample'],
+        [2, 'Player2'],
+        [3, 'Player3'],
+        [4, 'Player4'],
+        [5, 'Player5'],
+        [6, 'Player6'],
+        [7, 'Player7'],
+        [8, 'Player8']
+      ])
+    })
+
+    assert.ok(buffer instanceof Buffer)
+    assert.ok(buffer.length > 0)
+    assert.equal(buffer[0], 0x89)
+    assert.equal(buffer[1], 0x50)
+    assert.equal(buffer[2], 0x4e)
+    assert.equal(buffer[3], 0x47)
+  })
 })

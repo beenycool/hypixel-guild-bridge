@@ -25,26 +25,33 @@ export class BracketVisualizer {
     try {
       if (data.matches.length === 0) return null
 
-      const totalRounds = data.tournament.totalRounds ?? 1
+      const totalRounds = Math.max(1, data.tournament.totalRounds ?? 1)
+      const maxMatchesRound1 = Math.pow(2, totalRounds - 1)
+
       const matchHeight = 60
+      const matchSpacing = 20
+      const slotHeight = matchHeight + matchSpacing
       const columnWidth = 220
       const padding = 20
-      const headerHeight = 40
+      const headerHeight = 50
 
-      const width = totalRounds * columnWidth + padding * 2 + 40
-      const height = Math.max(Math.pow(2, totalRounds - 1) * matchHeight * 2 + headerHeight + padding * 2, 200)
+      const width = totalRounds * columnWidth + padding * 2
+      const height = Math.max(headerHeight + padding * 2 + maxMatchesRound1 * slotHeight, 200)
 
       const canvas = createCanvas(width, height)
       const context = canvas.getContext('2d')
 
+      // Dark background
       context.fillStyle = '#1a1a2e'
       context.fillRect(0, 0, width, height)
 
+      // Header title
       context.font = '18px Minecraft, sans-serif'
-      context.fillStyle = '#e0e0e0'
+      context.fillStyle = '#ffffff'
       context.textAlign = 'center'
-      context.fillText(`${data.tournament.name} — Bracket`, width / 2, 30)
+      context.fillText(`${data.tournament.name} — Bracket`, width / 2, 28, width - 40)
 
+      // Group matches by round
       const matchesByRound = new Map<number, TournamentMatch[]>()
       for (const match of data.matches) {
         const round = match.round
@@ -52,22 +59,33 @@ export class BracketVisualizer {
         matchesByRound.get(round)!.push(match)
       }
 
+      // Render round header labels
       context.font = '14px Minecraft, sans-serif'
-      context.fillStyle = '#888'
+      context.fillStyle = '#888888'
       context.textAlign = 'center'
       for (let r = 1; r <= totalRounds; r++) {
-        const x = padding + (r - 1) * columnWidth + columnWidth / 2
-        const label = r === totalRounds ? 'Final' : r === totalRounds - 1 ? 'Semifinals' : `Round ${r}`
-        context.fillText(label, x, headerHeight + 15)
+        const headerX = padding + (r - 1) * columnWidth + columnWidth / 2
+        const label = r === totalRounds ? 'Finals' : r === totalRounds - 1 ? 'Semifinals' : `Round ${r}`
+        context.fillText(label, headerX, headerHeight + 5, columnWidth - 20)
       }
 
-      for (const [round, roundMatches] of matchesByRound) {
-        const x = padding + (round - 1) * columnWidth + 20
-        const slotsInRound = totalRounds === 1 ? 1 : Math.pow(2, totalRounds - round)
-        const slotSpacing = Math.max(80, (height - headerHeight - padding * 2) / (slotsInRound + 1))
+      // Map to store center Y coordinates for matches
+      const centerYMap = new Map<number, number>()
+
+      for (let round = 1; round <= totalRounds; round++) {
+        const roundMatches = matchesByRound.get(round) ?? []
+        const colX = padding + (round - 1) * columnWidth
+        const boxX = colX + 15
+        const boxWidth = columnWidth - 30
 
         for (const [index, match] of roundMatches.entries()) {
-          const y = headerHeight + padding + (index + 0.5) * slotSpacing * 2 - matchHeight / 2
+          const matchIdx = match.matchIndex ?? index
+          const slotsInRound = Math.pow(2, round - 1)
+          const centerSlotIndex = matchIdx * slotsInRound + (slotsInRound - 1) / 2
+          const centerY = headerHeight + padding + (centerSlotIndex + 0.5) * slotHeight
+          const y = centerY - matchHeight / 2
+
+          centerYMap.set(match.id, centerY)
 
           let borderColor: string
           let bgColor: string
@@ -91,65 +109,79 @@ export class BracketVisualizer {
               break
             }
             default: {
-              borderColor = '#555'
-              bgColor = '#222'
+              borderColor = '#555555'
+              bgColor = '#222222'
             }
           }
 
+          // Draw match card container
           context.fillStyle = bgColor
           context.strokeStyle = borderColor
           context.lineWidth = 2
           context.beginPath()
-          context.roundRect(x, y, columnWidth - 40, matchHeight, 6)
+          context.roundRect(boxX, y, boxWidth, matchHeight, 6)
           context.fill()
           context.stroke()
 
+          // Draw player 1 info
           const p1Name = match.player1Id ? (data.playerNames.get(match.player1Id) ?? 'TBD') : '—'
           const p1Score =
             match.player1Wins !== null && match.player1Wins !== undefined ? match.player1Wins.toString() : ''
           const p1IsWinner = match.winnerId !== null && match.player1Id === match.winnerId
 
-          context.font = '11px Minecraft, sans-serif'
+          context.font = '12px Minecraft, sans-serif'
           context.textAlign = 'left'
-          context.fillStyle = p1IsWinner ? '#2ecc71' : match.player1Id ? '#ccc' : '#666'
-          context.fillText(p1Name, x + 8, y + 20)
+          context.fillStyle = p1IsWinner ? '#2ecc71' : match.player1Id ? '#cccccc' : '#666666'
+          context.fillText(p1Name, boxX + 8, y + 20, boxWidth - 45)
 
           if (p1Score) {
             context.textAlign = 'right'
-            context.fillStyle = p1IsWinner ? '#2ecc71' : '#888'
-            context.fillText(p1Score, x + columnWidth - 48, y + 20)
+            context.fillStyle = p1IsWinner ? '#2ecc71' : '#888888'
+            context.fillText(p1Score, boxX + boxWidth - 8, y + 20)
           }
 
-          context.strokeStyle = '#444'
+          // Divider line between players
+          context.strokeStyle = '#444444'
           context.lineWidth = 1
           context.beginPath()
-          context.moveTo(x + 8, y + matchHeight / 2)
-          context.lineTo(x + columnWidth - 48, y + matchHeight / 2)
+          context.moveTo(boxX + 6, y + matchHeight / 2)
+          context.lineTo(boxX + boxWidth - 6, y + matchHeight / 2)
           context.stroke()
 
+          // Draw player 2 info
           const p2Name = match.player2Id ? (data.playerNames.get(match.player2Id) ?? 'TBD') : '—'
           const p2Score =
             match.player2Wins !== null && match.player2Wins !== undefined ? match.player2Wins.toString() : ''
           const p2IsWinner = match.winnerId !== null && match.player2Id === match.winnerId
 
           context.textAlign = 'left'
-          context.fillStyle = p2IsWinner ? '#2ecc71' : match.player2Id ? '#ccc' : '#666'
-          context.fillText(p2Name, x + 8, y + matchHeight / 2 + 20)
+          context.fillStyle = p2IsWinner ? '#2ecc71' : match.player2Id ? '#cccccc' : '#666666'
+          context.fillText(p2Name, boxX + 8, y + matchHeight / 2 + 20, boxWidth - 45)
 
           if (p2Score) {
             context.textAlign = 'right'
-            context.fillStyle = p2IsWinner ? '#2ecc71' : '#888'
-            context.fillText(p2Score, x + columnWidth - 48, y + matchHeight / 2 + 20)
+            context.fillStyle = p2IsWinner ? '#2ecc71' : '#888888'
+            context.fillText(p2Score, boxX + boxWidth - 8, y + matchHeight / 2 + 20)
           }
 
+          // Draw connector line to next round if available
           if (round < totalRounds) {
-            const nextX = x + columnWidth - 40
-            const nextYStart = y + matchHeight / 2
+            const nextColX = padding + round * columnWidth
+            const nextBoxX = nextColX + 15
+            const midX = (boxX + boxWidth + nextBoxX) / 2
+
+            const nextMatchIdx = Math.floor(matchIdx / 2)
+            const nextSlotsInRound = Math.pow(2, round)
+            const nextCenterSlotIndex = nextMatchIdx * nextSlotsInRound + (nextSlotsInRound - 1) / 2
+            const nextCenterY = headerHeight + padding + (nextCenterSlotIndex + 0.5) * slotHeight
+
             context.strokeStyle = borderColor
-            context.lineWidth = 1
+            context.lineWidth = 1.5
             context.beginPath()
-            context.moveTo(nextX, nextYStart)
-            context.lineTo(nextX + 10, nextYStart)
+            context.moveTo(boxX + boxWidth, centerY)
+            context.lineTo(midX, centerY)
+            context.lineTo(midX, nextCenterY)
+            context.lineTo(nextBoxX, nextCenterY)
             context.stroke()
           }
         }
