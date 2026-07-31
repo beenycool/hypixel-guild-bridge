@@ -290,28 +290,28 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private static splitMessage(message: string): string[] {
     if (message.length <= MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH) return [message]
 
-    const maxLen = MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH
+    const maxLength = MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH
 
     // Try to split at the last space before or at the limit
-    const breakIndex = message.lastIndexOf(' ', maxLen)
+    const breakIndex = message.lastIndexOf(' ', maxLength)
 
     if (breakIndex > 0) {
       const part1 = message.slice(0, breakIndex)
       let part2 = message.slice(breakIndex + 1).trim()
 
-      if (part2.length > maxLen) {
-        part2 = part2.slice(0, maxLen - 3) + '...'
+      if (part2.length > maxLength) {
+        part2 = part2.slice(0, maxLength - 3) + '...'
       }
 
       return [part1, part2]
     }
 
     // No word boundary found — hard split at the limit
-    const part1 = message.slice(0, maxLen)
-    let part2 = message.slice(maxLen).trim()
+    const part1 = message.slice(0, maxLength)
+    let part2 = message.slice(maxLength).trim()
 
-    if (part2.length > maxLen) {
-      part2 = part2.slice(0, maxLen - 3) + '...'
+    if (part2.length > maxLength) {
+      part2 = part2.slice(0, maxLength - 3) + '...'
     }
 
     return [part1, part2]

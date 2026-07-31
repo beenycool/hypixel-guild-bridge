@@ -277,21 +277,19 @@ class CountingChain extends SpontaneousEventHandler {
     await timeout.wait()
     this.application.off('chat', listener)
 
-    if (beforeLast === undefined) {
-      await this.broadcastMessage(
-        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.counting.fail'),
-        Color.Info,
-        bridgeId
-      )
-    } else {
-      await this.broadcastMessage(
-        this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.counting.blame', {
-          user: beforeLast.displayName()
-        }),
-        Color.Good,
-        bridgeId
-      )
-    }
+    await (beforeLast === undefined
+      ? this.broadcastMessage(
+          this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.counting.fail'),
+          Color.Info,
+          bridgeId
+        )
+      : this.broadcastMessage(
+          this.application.getTranslatorForBridge(bridgeId)('instance.spontaneous.counting.blame', {
+            user: beforeLast.displayName()
+          }),
+          Color.Good,
+          bridgeId
+        ))
   }
 }
 

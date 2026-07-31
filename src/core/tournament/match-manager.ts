@@ -1,6 +1,6 @@
 import type { Logger } from 'log4js'
 
-import type { DatabaseManager } from '../../common/database-manager.js'
+import type { DatabaseManager, Queryable } from '../../common/database-manager.js'
 
 import { validateSeriesScore } from './score-validator.js'
 import type { TournamentChannelManager } from './tournament-channel-manager.js'
@@ -129,7 +129,7 @@ export class MatchManager {
       // 5. Take action based on status
       if (newStatus === MatchStatus.BothConfirmed) {
         this.logger?.info(`Match ${matchId}: Both reports agree, resolving with winner ${claimedWinnerId}`)
-        await this.resolveWinner(matchId, claimedWinnerId)
+        await this.resolveWinner(matchId, claimedWinnerId, txClient)
         return { status: MatchStatus.Completed, message: 'Match successfully resolved!' }
       } else if (newStatus === MatchStatus.Disputed) {
         this.logger?.info(`Match ${matchId}: Reports conflict — match is disputed`)
@@ -414,14 +414,15 @@ export class MatchManager {
   /**
    * Internal routine to resolve match winner and advance them.
    */
-  private async resolveWinner(matchId: number, winnerId: number): Promise<void> {
+  private async resolveWinner(matchId: number, winnerId: number, db?: Queryable): Promise<void> {
     const now = Math.floor(Date.now() / 1000)
 
     this.logger?.info(`Match ${matchId}: resolveWinner — winnerId=${winnerId}`)
 
     const match = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
-      [matchId]
+      [matchId],
+      db
     )
     if (match === undefined) return
 
@@ -436,17 +437,19 @@ export class MatchManager {
     this.logger?.info(`Match ${matchId}: Marking as completed`)
     await this.databaseManager.execute(
       'UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
-      [MatchStatus.Completed, winnerId, now, matchId]
+      [MatchStatus.Completed, winnerId, now, matchId],
+      db
     )
 
     // 2. Update players statuses
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
     if (loserId !== undefined) {
       this.logger?.info(`Tournament ${tournament.id}, Match ${matchId}: Eliminating player ${loserId}`)
-      await this.databaseManager.execute('UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2', [
-        PlayerStatus.Eliminated,
-        loserId
-      ])
+      await this.databaseManager.execute(
+        'UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2',
+        [PlayerStatus.Eliminated, loserId],
+        db
+      )
     }
 
     // Live update notification
@@ -475,7 +478,8 @@ export class MatchManager {
       // No next match -> check whether ALL matches are complete (for round-robin and other non-elimination formats)
       const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
-        [tournament.id]
+        [tournament.id],
+        db
       )
       const allComplete = allMatches.every((m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye)
 
@@ -484,12 +488,14 @@ export class MatchManager {
         // All matches finished -> Tournament complete!
         await this.databaseManager.execute(
           'UPDATE "tournaments" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
-          [TournamentStatus.Completed, winnerId, now, tournament.id]
+          [TournamentStatus.Completed, winnerId, now, tournament.id],
+          db
         )
-        await this.databaseManager.execute('UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2', [
-          PlayerStatus.Winner,
-          winnerId
-        ])
+        await this.databaseManager.execute(
+          'UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2',
+          [PlayerStatus.Winner, winnerId],
+          db
+        )
 
         const names = await this.getPlayerNames(tournament.id)
         const winnerName = names.get(winnerId) ?? 'Winner'
@@ -505,7 +511,8 @@ export class MatchManager {
       )
       const nextMatch = await this.databaseManager.queryOne<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "id" = $1',
-        [match.nextMatchId]
+        [match.nextMatchId],
+        db
       )
 
       if (nextMatch !== undefined) {
@@ -516,15 +523,17 @@ export class MatchManager {
         }
 
         this.logger?.info(`Match ${matchId}: Placing winner into next match ${match.nextMatchId} field ${playerField}`)
-        await this.databaseManager.execute(`UPDATE "tournament_matches" SET "${playerField}" = $1 WHERE "id" = $2`, [
-          winnerId,
-          match.nextMatchId
-        ])
+        await this.databaseManager.execute(
+          `UPDATE "tournament_matches" SET "${playerField}" = $1 WHERE "id" = $2`,
+          [winnerId, match.nextMatchId],
+          db
+        )
 
         // Refresh next match to check if it's now ready
         const updatedNextMatch = await this.databaseManager.queryOne<TournamentMatch>(
           'SELECT * FROM "tournament_matches" WHERE "id" = $1',
-          [match.nextMatchId]
+          [match.nextMatchId],
+          db
         )
 
         if (updatedNextMatch?.player1Id !== undefined && updatedNextMatch.player2Id !== undefined) {
@@ -533,17 +542,20 @@ export class MatchManager {
           const deadlineAt = now + tournament.roundDeadlineHours * 3600
           await this.databaseManager.execute(
             'UPDATE "tournament_matches" SET "status" = $1, "deadlineAt" = $2 WHERE "id" = $3',
-            [MatchStatus.Active, deadlineAt, updatedNextMatch.id]
+            [MatchStatus.Active, deadlineAt, updatedNextMatch.id],
+            db
           )
 
           // Spawn new thread
           const p1 = await this.databaseManager.queryOne<TournamentPlayer>(
             'SELECT * FROM "tournament_players" WHERE "id" = $1',
-            [updatedNextMatch.player1Id]
+            [updatedNextMatch.player1Id],
+            db
           )
           const p2 = await this.databaseManager.queryOne<TournamentPlayer>(
             'SELECT * FROM "tournament_players" WHERE "id" = $1',
-            [updatedNextMatch.player2Id]
+            [updatedNextMatch.player2Id],
+            db
           )
 
           if (p1 !== undefined && p2 !== undefined && tournament.discordChannelId !== undefined) {
@@ -565,7 +577,8 @@ export class MatchManager {
               this.logger?.info(`Match ${updatedNextMatch.id}: Thread created (threadId=${threadId})`)
               await this.databaseManager.execute(
                 'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
-                [threadId, updatedNextMatch.id]
+                [threadId, updatedNextMatch.id],
+                db
               )
               updatedNextMatch.discordThreadId = threadId
             }
@@ -591,11 +604,13 @@ export class MatchManager {
     this.logger?.info(`Tournament ${tournament.id}: Updating bracket embed after match ${matchId} resolution`)
     const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
-      [tournament.id]
+      [tournament.id],
+      db
     )
     const allPlayers = await this.databaseManager.queryRows<TournamentPlayer>(
       'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
-      [tournament.id]
+      [tournament.id],
+      db
     )
     const names = await this.getPlayerNames(tournament.id)
 
@@ -622,10 +637,11 @@ export class MatchManager {
       this.logger?.info(
         `Tournament ${tournament.id}: Round ${tournament.currentRound} complete! Progressing to round ${nextRound}`
       )
-      await this.databaseManager.execute('UPDATE "tournaments" SET "currentRound" = $1 WHERE "id" = $2', [
-        nextRound,
-        tournament.id
-      ])
+      await this.databaseManager.execute(
+        'UPDATE "tournaments" SET "currentRound" = $1 WHERE "id" = $2',
+        [nextRound, tournament.id],
+        db
+      )
       tournament.currentRound = nextRound
 
       await this.notifications.announceRoundComplete(tournament, nextRound - 1)

@@ -1,11 +1,13 @@
 import https from 'node:https'
+
 import type { Logger } from 'log4js'
 import NodeCache from 'node-cache'
 import WebSocket from 'ws'
 
 import type Application from '../../application.js'
 import { Status } from '../../common/connectable-instance.js'
-import { generateAesKey, formatServerId, sha1Hex } from './lunar-crypto.js'
+
+import { formatServerId, generateAesKey, sha1Hex } from './lunar-crypto.js'
 import {
   decodeAuthMessage,
   decodeSubscribeV2Response,
@@ -31,7 +33,7 @@ export class LunarService {
   private rpcCounter = 0
   private pendingRpcRequests = new Map<string, (output: Buffer) => void>()
   private lastAuthFailedAt = 0
-  private authCooldownMs = 5_000
+  private authCooldownMs = 5000
 
   constructor(
     private readonly app: Application,
@@ -50,10 +52,12 @@ export class LunarService {
     const targetName = this.instanceName?.toLowerCase()
 
     let instance = targetName
-      ? instances.find((i) => i.instanceName.toLowerCase() === targetName && i.currentStatus() === Status.Connected)
+      ? instances.find(
+          (index) => index.instanceName.toLowerCase() === targetName && index.currentStatus() === Status.Connected
+        )
       : undefined
 
-    instance ??= instances.find((i) => i.currentStatus() === Status.Connected)
+    instance ??= instances.find((index) => index.currentStatus() === Status.Connected)
 
     return instance?.getLunarCredentials()
   }
@@ -87,21 +91,27 @@ export class LunarService {
   public async ensureConnected(): Promise<void> {
     const creds = this.getCredentials()
     if (!creds) {
-      this.logger.info('[LunarService] Cannot connect: No connected Minecraft instance available for Lunar Client authentication.')
+      this.logger.info(
+        '[LunarService] Cannot connect: No connected Minecraft instance available for Lunar Client authentication.'
+      )
       return
     }
 
     const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
     if (timeSinceLastFail < this.authCooldownMs) {
-      this.logger.debug(`[LunarService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`)
+      this.logger.debug(
+        `[LunarService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`
+      )
       return
     }
 
     try {
-      this.logger.info(`[LunarService] Connecting to Lunar Client authenticator using account '${creds.username}' (${creds.uuid})...`)
+      this.logger.info(
+        `[LunarService] Connecting to Lunar Client authenticator using account '${creds.username}' (${creds.uuid})...`
+      )
       this.jwt = await this.authenticateWithLunar(creds.uuid, creds.username, creds.accessToken)
       if (this.jwt) {
-        this.authCooldownMs = 5_000
+        this.authCooldownMs = 5000
         this.logger.info('[LunarService] Authenticated with Lunar Client! Connecting to Game WebSocket...')
         await this.connectGameWs(creds.uuid, creds.username, this.jwt)
         this.logger.info('[LunarService] Successfully connected to Lunar Client Game WebSocket!')
@@ -115,7 +125,11 @@ export class LunarService {
     }
   }
 
-  private async authenticateWithLunar(uuid: string, username: string, accessToken: string): Promise<string | undefined> {
+  private async authenticateWithLunar(
+    uuid: string,
+    username: string,
+    accessToken: string
+  ): Promise<string | undefined> {
     return new Promise<string | undefined>((resolve, reject) => {
       const ws = new WebSocket(AUTHENTICATOR_URL, {
         headers: { 'User-Agent': USER_AGENT }
@@ -133,9 +147,9 @@ export class LunarService {
 
       ws.on('message', async (data: Buffer) => {
         try {
-          const msg = await decodeAuthMessage(data)
-          if (msg.encryptionRequest) {
-            const { publicKey: serverPubKeyDer, randomBytes: nonce } = msg.encryptionRequest
+          const message = await decodeAuthMessage(data)
+          if (message.encryptionRequest) {
+            const { publicKey: serverPubKeyDer, randomBytes: nonce } = message.encryptionRequest
             const aesKey = generateAesKey()
             const serverId = formatServerId(sha1Hex(aesKey, serverPubKeyDer))
 
@@ -143,11 +157,11 @@ export class LunarService {
 
             const encResp = await encodeAuthEncryptionResponse(aesKey, nonce, serverPubKeyDer)
             ws.send(encResp)
-          } else if (msg.authSuccess) {
-            const jwtToken = msg.authSuccess.jwt as string
+          } else if (message.authSuccess) {
+            const jwtToken = message.authSuccess.jwt as string
             ws.close()
             resolve(jwtToken)
-          } else if (msg.encryptionFail) {
+          } else if (message.encryptionFail) {
             ws.close()
             resolve(undefined)
           }
@@ -157,8 +171,8 @@ export class LunarService {
         }
       })
 
-      ws.on('error', (err: Error) => {
-        reject(err)
+      ws.on('error', (error: Error) => {
+        reject(error)
       })
     })
   }
@@ -173,7 +187,7 @@ export class LunarService {
 
     return new Promise<void>((resolve, reject) => {
       const parsed = new URL(JOIN_SERVER_URL)
-      const req = https.request(
+      const request = https.request(
         {
           hostname: parsed.hostname,
           path: parsed.pathname,
@@ -185,16 +199,19 @@ export class LunarService {
           }
         },
         (res) => {
-          if (res.statusCode === 204 || (res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300)) {
+          if (
+            res.statusCode === 204 ||
+            (res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300)
+          ) {
             resolve()
           } else {
             reject(new Error(`Mojang joinServer returned HTTP ${res.statusCode}`))
           }
         }
       )
-      req.on('error', reject)
-      req.write(postData)
-      req.end()
+      request.on('error', reject)
+      request.write(postData)
+      request.end()
     })
   }
 
@@ -222,13 +239,13 @@ export class LunarService {
 
       ws.on('message', async (data: Buffer) => {
         try {
-          const msg = await decodeWsMessage(data)
-          if (msg.rpcResponse) {
-            const reqId = msg.rpcResponse.requestId.toString()
-            const callback = this.pendingRpcRequests.get(reqId)
+          const message = await decodeWsMessage(data)
+          if (message.rpcResponse) {
+            const requestId = message.rpcResponse.requestId.toString()
+            const callback = this.pendingRpcRequests.get(requestId)
             if (callback) {
-              this.pendingRpcRequests.delete(reqId)
-              callback(msg.rpcResponse.output as Buffer)
+              this.pendingRpcRequests.delete(requestId)
+              callback(message.rpcResponse.output as Buffer)
             }
           }
         } catch {
@@ -237,16 +254,18 @@ export class LunarService {
       })
 
       ws.on('close', (code, reason) => {
-        this.logger.warn(`[LunarService] Lunar Client Game WebSocket closed (code: ${code}, reason: ${reason.toString() || 'none'}).`)
+        this.logger.warn(
+          `[LunarService] Lunar Client Game WebSocket closed (code: ${code}, reason: ${reason.toString() || 'none'}).`
+        )
         this.stopHeartbeat()
         this.gameWs = undefined
       })
 
-      ws.on('error', (err: Error) => {
-        this.logger.warn(`[LunarService] Lunar Client Game WebSocket error:`, err)
+      ws.on('error', (error: Error) => {
+        this.logger.warn(`[LunarService] Lunar Client Game WebSocket error:`, error)
         this.stopHeartbeat()
         this.gameWs = undefined
-        reject(err)
+        reject(error)
       })
     })
   }
@@ -256,16 +275,16 @@ export class LunarService {
       throw new Error('Lunar Game WebSocket not connected')
     }
 
-    const reqId = (++this.rpcCounter).toString()
-    const rpcBytes = await encodeRpcMessage(reqId, service, method, inputBytes)
+    const requestId = (++this.rpcCounter).toString()
+    const rpcBytes = await encodeRpcMessage(requestId, service, method, inputBytes)
 
     return new Promise<Buffer>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pendingRpcRequests.delete(reqId)
+        this.pendingRpcRequests.delete(requestId)
         reject(new Error(`RPC timeout for ${service}.${method}`))
       }, 10_000)
 
-      this.pendingRpcRequests.set(reqId, (output: Buffer) => {
+      this.pendingRpcRequests.set(requestId, (output: Buffer) => {
         clearTimeout(timer)
         resolve(output)
       })
@@ -296,9 +315,11 @@ export class LunarService {
     this.stopHeartbeat()
     this.heartbeatInterval = setInterval(() => {
       if (this.gameWs && this.gameWs.readyState === WebSocket.OPEN) {
-        void this.sendRpc('lunarclient.websocket.heartbeat.v1.HeartbeatService', 'GameHeartbeat', Buffer.alloc(0)).catch(
-          () => undefined
-        )
+        void this.sendRpc(
+          'lunarclient.websocket.heartbeat.v1.HeartbeatService',
+          'GameHeartbeat',
+          Buffer.alloc(0)
+        ).catch(() => undefined)
       } else {
         this.stopHeartbeat()
       }

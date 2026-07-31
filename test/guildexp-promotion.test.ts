@@ -7,7 +7,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
   const command = new GuildExperience()
 
   await it('formats standard weekly GEXP when no context or bridge is provided', () => {
-    const member = { uuid: 'uuid-1', rank: 'Member', joinedAt: Date.now(), weeklyExperience: 50000 }
+    const member = { uuid: 'uuid-1', rank: 'Member', joinedAt: Date.now(), weeklyExperience: 50_000 }
     const result = (command as any).formatResponse('Steve', 'weekly', member)
     assert.strictEqual(result, "Steve's Weekly Guild Experience: 50,000.")
   })
@@ -17,7 +17,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
       uuid: 'uuid-1',
       rank: 'Member',
       joinedAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
-      weeklyExperience: 100000
+      weeklyExperience: 100_000
     }
     const guild = {
       ranks: [
@@ -34,7 +34,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
         core: {
           bridgeConfigurations: {
             getRankupRules: () => [
-              { targetRank: 'Officer', minWeeklyGexp: 80000, minDaysInGuild: 7, minOnlineHours: 0 }
+              { targetRank: 'Officer', minWeeklyGexp: 80_000, minDaysInGuild: 7, minOnlineHours: 0 }
             ],
             getRankupDemotionRules: () => [],
             getRankupExcludedRanks: () => [],
@@ -62,7 +62,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
       uuid: 'uuid-1',
       rank: 'Member',
       joinedAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
-      weeklyExperience: 45000
+      weeklyExperience: 45_000
     }
     const guild = {
       ranks: [
@@ -79,7 +79,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
         core: {
           bridgeConfigurations: {
             getRankupRules: () => [
-              { targetRank: 'Officer', minWeeklyGexp: 80000, minDaysInGuild: 7, minOnlineHours: 0 }
+              { targetRank: 'Officer', minWeeklyGexp: 80_000, minDaysInGuild: 7, minOnlineHours: 0 }
             ],
             getRankupDemotionRules: () => [],
             getRankupExcludedRanks: () => [],
@@ -103,7 +103,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
       uuid: 'uuid-1',
       rank: 'Member',
       joinedAt: Date.now() - 3 * 24 * 60 * 60 * 1000, // 3 days in guild
-      weeklyExperience: 90000
+      weeklyExperience: 90_000
     }
     const guild = {
       ranks: [
@@ -120,7 +120,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
         core: {
           bridgeConfigurations: {
             getRankupRules: () => [
-              { targetRank: 'Officer', minWeeklyGexp: 80000, minDaysInGuild: 7, minOnlineHours: 0 }
+              { targetRank: 'Officer', minWeeklyGexp: 80_000, minDaysInGuild: 7, minOnlineHours: 0 }
             ],
             getRankupDemotionRules: () => [],
             getRankupExcludedRanks: () => [],

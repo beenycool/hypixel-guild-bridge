@@ -14,7 +14,7 @@ export class FeatherService {
   private cache: NodeCache
   private jwt: string | undefined
   private lastAuthFailedAt = 0
-  private authCooldownMs = 5_000
+  private authCooldownMs = 5000
 
   constructor(
     private readonly app: Application,
@@ -73,21 +73,27 @@ export class FeatherService {
 
     const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
     if (timeSinceLastFail < this.authCooldownMs) {
-      this.logger.debug(`[FeatherService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`)
+      this.logger.debug(
+        `[FeatherService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`
+      )
       return
     }
 
     const creds = this.getCredentials()
     if (!creds) {
-      this.logger.info('[FeatherService] Cannot connect: No connected Minecraft instance available for Feather Client authentication.')
+      this.logger.info(
+        '[FeatherService] Cannot connect: No connected Minecraft instance available for Feather Client authentication.'
+      )
       return
     }
 
     try {
-      this.logger.info(`[FeatherService] Authenticating with Feather Client API using account '${creds.username}' (${creds.uuid})...`)
+      this.logger.info(
+        `[FeatherService] Authenticating with Feather Client API using account '${creds.username}' (${creds.uuid})...`
+      )
       this.jwt = await this.authenticateWithFeather(creds.uuid, creds.username, creds.accessToken)
       if (this.jwt) {
-        this.authCooldownMs = 5_000
+        this.authCooldownMs = 5000
         this.logger.info('[FeatherService] Successfully authenticated with Feather Client API!')
       } else {
         this.logger.warn('[FeatherService] Feather Client authentication failed: No JWT returned.')

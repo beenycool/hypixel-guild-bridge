@@ -119,11 +119,7 @@ export default class GuildExperience extends ChatCommandHandler {
     const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
     const weeklyExp = member.weeklyExperience ?? 0
     const joinedAtTime =
-      typeof member.joinedAt === 'number'
-        ? member.joinedAt
-        : member.joinedAt
-          ? member.joinedAt.getTime()
-          : Date.now()
+      typeof member.joinedAt === 'number' ? member.joinedAt : member.joinedAt ? member.joinedAt.getTime() : Date.now()
     const daysInGuild = (Date.now() - joinedAtTime) / (1000 * 60 * 60 * 24)
 
     const stats: MemberStats = {
@@ -195,4 +191,3 @@ export default class GuildExperience extends ChatCommandHandler {
     return sorted[0]?.exp ?? 0
   }
 }
-

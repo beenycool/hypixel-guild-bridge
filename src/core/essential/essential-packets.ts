@@ -6,14 +6,14 @@ export function decodePacket(data: Buffer): { typeId: number; packetId: string; 
   let offset = 0
   const typeId = data.readInt32BE(offset)
   offset += 4
-  const packetIdLen = data.readInt32BE(offset)
+  const packetIdLength = data.readInt32BE(offset)
   offset += 4
-  const packetId = data.subarray(offset, offset + packetIdLen).toString('utf8')
-  offset += packetIdLen
-  const jsonLen = data.readInt32BE(offset)
+  const packetId = data.subarray(offset, offset + packetIdLength).toString('utf8')
+  offset += packetIdLength
+  const jsonLength = data.readInt32BE(offset)
   offset += 4
-  const jsonStr = data.subarray(offset, offset + jsonLen).toString('utf8')
-  const json = jsonStr.length > 0 ? JSON.parse(jsonStr) : {}
+  const jsonString = data.subarray(offset, offset + jsonLength).toString('utf8')
+  const json = jsonString.length > 0 ? JSON.parse(jsonString) : {}
   return { typeId, packetId, json }
 }
 

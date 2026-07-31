@@ -17,12 +17,12 @@ const PERIOD_NAMES: Record<Period, string> = {
 
 function fmtCompact(n: number): string {
   if (n >= 1_000_000) {
-    const val = n / 1_000_000
-    return val < 10 ? val.toFixed(1) + 'M' : Math.round(val) + 'M'
+    const value = n / 1_000_000
+    return value < 10 ? value.toFixed(1) + 'M' : Math.round(value) + 'M'
   }
-  if (n >= 1_000) {
-    const val = n / 1_000
-    return val < 10 ? val.toFixed(1) + 'K' : Math.round(val) + 'K'
+  if (n >= 1000) {
+    const value = n / 1000
+    return value < 10 ? value.toFixed(1) + 'K' : Math.round(value) + 'K'
   }
   return n.toString()
 }
@@ -44,9 +44,9 @@ export default class GuildSessions extends ChatCommandHandler {
 
     let period: Period = 'weekly'
     if (context.args.length > 0) {
-      const arg = context.args[0].toLowerCase()
-      if (ValidPeriods.has(arg as Period)) {
-        period = arg as Period
+      const argument = context.args[0].toLowerCase()
+      if (ValidPeriods.has(argument as Period)) {
+        period = argument as Period
       }
     }
 
@@ -77,7 +77,7 @@ export default class GuildSessions extends ChatCommandHandler {
       }
 
       const totalGexp = Object.values(members).reduce((sum, m) => sum + (m.gexp?.total ?? 0), 0)
-      const activeCount = Object.values(members).filter(m => (m.gexp?.total ?? 0) > 0).length
+      const activeCount = Object.values(members).filter((m) => (m.gexp?.total ?? 0) > 0).length
 
       return context.app.i18n.t(($) => $['commands.guild-stats.result'], {
         period: PERIOD_NAMES[period],

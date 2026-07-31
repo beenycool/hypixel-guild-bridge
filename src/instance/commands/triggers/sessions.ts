@@ -1,8 +1,8 @@
 import { isAxiosError } from 'axios'
-import { httpClient } from '../../../common/http.js'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { httpClient } from '../../../common/http.js'
 import { getUuidIfExists, usernameNotExists } from '../common/utility.js'
 
 type Period = 'weekly' | 'monthly' | 'yearly' | 'custom'
@@ -179,8 +179,26 @@ const BEDWARS_MODE_LABELS: Record<string, string> = {
   castle: 'Castle'
 }
 
-function extractBedwarsSubmodes(stats: Record<string, unknown>): { name: string; wins: number; losses: number; kills: number; deaths: number; finalKills: number; finalDeaths: number; gamesPlayed: number }[] {
-  const result: { name: string; wins: number; losses: number; kills: number; deaths: number; finalKills: number; finalDeaths: number; gamesPlayed: number }[] = []
+function extractBedwarsSubmodes(stats: Record<string, unknown>): {
+  name: string
+  wins: number
+  losses: number
+  kills: number
+  deaths: number
+  finalKills: number
+  finalDeaths: number
+  gamesPlayed: number
+}[] {
+  const result: {
+    name: string
+    wins: number
+    losses: number
+    kills: number
+    deaths: number
+    finalKills: number
+    finalDeaths: number
+    gamesPlayed: number
+  }[] = []
   for (const suffix of BEDWARS_MODE_SUFFIXES) {
     const wins = (stats[`wins_bedwars_${suffix}`] as number) ?? 0
     if (wins === 0) continue
@@ -190,13 +208,31 @@ function extractBedwarsSubmodes(stats: Record<string, unknown>): { name: string;
     const finalKills = (stats[`final_kills_bedwars_${suffix}`] as number) ?? 0
     const finalDeaths = (stats[`final_deaths_bedwars_${suffix}`] as number) ?? 0
     const gamesPlayed = (stats[`games_played_bedwars_${suffix}`] as number) ?? 0
-    result.push({ name: BEDWARS_MODE_LABELS[suffix], wins, losses, kills, deaths, finalKills, finalDeaths, gamesPlayed })
+    result.push({
+      name: BEDWARS_MODE_LABELS[suffix],
+      wins,
+      losses,
+      kills,
+      deaths,
+      finalKills,
+      finalDeaths,
+      gamesPlayed
+    })
   }
   result.sort((a, b) => b.gamesPlayed - a.gamesPlayed)
   return result.slice(0, 3)
 }
 
-function formatBedwarsSubmode(s: { name: string; wins: number; losses: number; kills: number; deaths: number; finalKills: number; finalDeaths: number; gamesPlayed: number }): string {
+function formatBedwarsSubmode(s: {
+  name: string
+  wins: number
+  losses: number
+  kills: number
+  deaths: number
+  finalKills: number
+  finalDeaths: number
+  gamesPlayed: number
+}): string {
   const parts: string[] = []
   const wlr = ratio(s.wins, s.losses)
   parts.push(wlr ? `${s.wins}W/${s.losses}L(${wlr})` : `${s.wins}W/${s.losses}L`)
@@ -246,7 +282,16 @@ function formatBedwars(stats: Record<string, unknown>): string {
 
 // ---- SkyWars submodes ----
 
-const SKYWARS_MODE_IDS = ['solo_normal', 'team_normal', 'mega', 'ranked', 'labs', 'solo_insane', 'team_insane', 'mega_doubles']
+const SKYWARS_MODE_IDS = [
+  'solo_normal',
+  'team_normal',
+  'mega',
+  'ranked',
+  'labs',
+  'solo_insane',
+  'team_insane',
+  'mega_doubles'
+]
 const SKYWARS_MODE_LABELS: Record<string, string> = {
   solo_normal: 'Solo',
   team_normal: 'Team',
@@ -258,8 +303,11 @@ const SKYWARS_MODE_LABELS: Record<string, string> = {
   mega_doubles: 'MegaD'
 }
 
-function extractSkywarsSubmodes(stats: Record<string, unknown>): { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }[] {
-  const result: { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }[] = []
+function extractSkywarsSubmodes(
+  stats: Record<string, unknown>
+): { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }[] {
+  const result: { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }[] =
+    []
   for (const id of SKYWARS_MODE_IDS) {
     const wins = (stats[`wins_${id}`] as number) ?? 0
     if (wins === 0) continue
@@ -273,7 +321,14 @@ function extractSkywarsSubmodes(stats: Record<string, unknown>): { name: string;
   return result.slice(0, 3)
 }
 
-function formatSkywarsSubmode(s: { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }): string {
+function formatSkywarsSubmode(s: {
+  name: string
+  wins: number
+  losses: number
+  kills: number
+  deaths: number
+  gamesPlayed: number
+}): string {
   const parts: string[] = []
   const kdr = ratio(s.kills, s.deaths)
   parts.push(kdr ? `${s.kills}K/${s.deaths}D(${kdr})` : `${s.kills}K/${s.deaths}D`)
@@ -435,7 +490,7 @@ class SessionCommand extends ChatCommandHandler {
     const isCustom = this.period === 'custom'
     let duration: string | undefined
 
-    let effectiveArgs = context.args
+    let effectiveArguments = context.args
     if (isCustom) {
       if (context.args.length === 0) {
         return 'Usage: !session <duration> [game] [username]. Example: !session 48h Bedwars PlayerName'
@@ -444,14 +499,14 @@ class SessionCommand extends ChatCommandHandler {
       if (!/^\d+[hdw]$/.test(duration)) {
         return 'Invalid duration. Use format like 48h, 3d, or 2w.'
       }
-      effectiveArgs = context.args.slice(1)
+      effectiveArguments = context.args.slice(1)
     }
 
     let gameFilter: string | undefined
     let givenUsername: string
 
-    const first = effectiveArgs[0]
-    const second = effectiveArgs[1]
+    const first = effectiveArguments[0]
+    const second = effectiveArguments[1]
 
     if (first) {
       const resolved = resolveGameKey(first)

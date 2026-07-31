@@ -1,11 +1,13 @@
 import https from 'node:https'
+
 import type { Logger } from 'log4js'
 import NodeCache from 'node-cache'
 import WebSocket from 'ws'
 
 import type Application from '../../application.js'
 import { Status } from '../../common/connectable-instance.js'
-import { generateSharedSecret, computeEssentialSessionHash } from './essential-crypto.js'
+
+import { computeEssentialSessionHash, generateSharedSecret } from './essential-crypto.js'
 import { decodePacket, encodePacket } from './essential-packets.js'
 
 const ESSENTIAL_WS_URL = 'wss://connect.essential.gg/v1'
@@ -19,7 +21,7 @@ export class EssentialService {
   private nextOutgoingTypeId = 1
   private pendingStatusRequests = new Map<string, (online: boolean) => void>()
   private lastAuthFailedAt = 0
-  private authCooldownMs = 5_000
+  private authCooldownMs = 5000
 
   constructor(
     private readonly app: Application,
@@ -35,10 +37,12 @@ export class EssentialService {
     const targetName = this.instanceName?.toLowerCase()
 
     let instance = targetName
-      ? instances.find((i) => i.instanceName.toLowerCase() === targetName && i.currentStatus() === Status.Connected)
+      ? instances.find(
+          (index) => index.instanceName.toLowerCase() === targetName && index.currentStatus() === Status.Connected
+        )
       : undefined
 
-    instance ??= instances.find((i) => i.currentStatus() === Status.Connected)
+    instance ??= instances.find((index) => index.currentStatus() === Status.Connected)
     return instance?.getLunarCredentials()
   }
 
@@ -66,20 +70,26 @@ export class EssentialService {
   public async ensureConnected(): Promise<void> {
     const creds = this.getCredentials()
     if (!creds) {
-      this.logger.info('[EssentialService] Cannot connect: No connected Minecraft instance available for Essential authentication.')
+      this.logger.info(
+        '[EssentialService] Cannot connect: No connected Minecraft instance available for Essential authentication.'
+      )
       return
     }
 
     const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
     if (timeSinceLastFail < this.authCooldownMs) {
-      this.logger.debug(`[EssentialService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`)
+      this.logger.debug(
+        `[EssentialService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`
+      )
       return
     }
 
     try {
-      this.logger.info(`[EssentialService] Connecting to Essential WebSocket using account '${creds.username}' (${creds.uuid})...`)
+      this.logger.info(
+        `[EssentialService] Connecting to Essential WebSocket using account '${creds.username}' (${creds.uuid})...`
+      )
       await this.connectWebSocket(creds.accessToken, creds.uuid, creds.username)
-      this.authCooldownMs = 5_000
+      this.authCooldownMs = 5000
       this.logger.info('[EssentialService] Successfully connected to Essential WebSocket!')
     } catch (error: unknown) {
       this.lastAuthFailedAt = Date.now()
@@ -134,10 +144,10 @@ export class EssentialService {
         this.rejectAllPending()
       })
 
-      ws.on('error', (err: Error) => {
+      ws.on('error', (error: Error) => {
         this.ws = undefined
         this.rejectAllPending()
-        if (!resolved) reject(err)
+        if (!resolved) reject(error)
       })
     })
   }
@@ -237,7 +247,7 @@ export class EssentialService {
 
     return new Promise<void>((resolve, reject) => {
       const parsed = new URL(JOIN_SERVER_URL)
-      const req = https.request(
+      const request = https.request(
         {
           hostname: parsed.hostname,
           path: parsed.pathname,
@@ -249,16 +259,19 @@ export class EssentialService {
           }
         },
         (res) => {
-          if (res.statusCode === 204 || (res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300)) {
+          if (
+            res.statusCode === 204 ||
+            (res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300)
+          ) {
             resolve()
           } else {
             reject(new Error(`Mojang joinServer returned HTTP ${res.statusCode}`))
           }
         }
       )
-      req.on('error', reject)
-      req.write(postData)
-      req.end()
+      request.on('error', reject)
+      request.write(postData)
+      request.end()
     })
   }
 }

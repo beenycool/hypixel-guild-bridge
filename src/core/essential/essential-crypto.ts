@@ -29,10 +29,10 @@ export function computeEssentialSessionHash(sharedSecret: Buffer): string {
  */
 function formatServerId(digest: Buffer): string {
   const hex = digest.toString('hex')
-  let num = BigInt('0x' + hex)
+  let number_ = BigInt('0x' + hex)
   const mask = 1n << 159n
-  if (num & mask) {
-    num = num - (1n << 160n)
+  if (number_ & mask) {
+    number_ = number_ - (1n << 160n)
   }
-  return num.toString(16)
+  return number_.toString(16)
 }

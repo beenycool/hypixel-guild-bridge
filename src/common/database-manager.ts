@@ -12,7 +12,7 @@ export interface QueryInterface {
   execute(text: string, values?: readonly unknown[]): Promise<number>
 }
 
-interface Queryable {
+export interface Queryable {
   query<T extends QueryResultRow = QueryResultRow>(text: string, values?: QueryValues): Promise<QueryResult<T>>
 }
 
@@ -60,22 +60,24 @@ export class DatabaseManager {
 
   public async queryRows<T extends QueryResultRow = QueryResultRow>(
     text: string,
-    values: QueryValues = []
+    values: QueryValues = [],
+    db?: Queryable
   ): Promise<T[]> {
-    const result = await this.query(text, values)
+    const result = db ? await db.query<T>(text, values) : await this.query<T>(text, values)
     return result.rows as T[]
   }
 
   public async queryOne<T extends QueryResultRow = QueryResultRow>(
     text: string,
-    values: QueryValues = []
+    values: QueryValues = [],
+    db?: Queryable
   ): Promise<T | undefined> {
-    const rows = await this.queryRows<T>(text, values)
+    const rows = await this.queryRows<T>(text, values, db)
     return rows[0]
   }
 
-  public async execute(text: string, values: QueryValues = []): Promise<number> {
-    const result = await this.query(text, values)
+  public async execute(text: string, values: QueryValues = [], db?: Queryable): Promise<number> {
+    const result = db ? await db.query(text, values) : await this.query(text, values)
     return result.rowCount ?? 0
   }
 

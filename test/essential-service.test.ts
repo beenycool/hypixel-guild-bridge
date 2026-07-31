@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+
 import type Application from '../src/application.js'
 import { EssentialService } from '../src/core/essential/essential-service.js'
 

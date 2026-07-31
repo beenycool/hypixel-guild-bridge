@@ -7,11 +7,13 @@ import { getUuidIfExists, usernameNotExists } from '../common/utility'
 
 const withTimeout = async <T>(promise: Promise<T>, ms = 2000): Promise<T | undefined> => {
   return new Promise<T | undefined>((resolve) => {
-    const timer = setTimeout(() => resolve(undefined), ms)
+    const timer = setTimeout(() => {
+      resolve(undefined)
+    }, ms)
     promise
-      .then((val) => {
+      .then((value) => {
         clearTimeout(timer)
-        resolve(val)
+        resolve(value)
       })
       .catch(() => {
         clearTimeout(timer)
@@ -44,8 +46,10 @@ export default class Status extends ChatCommandHandler {
     const startParallel = Date.now()
     const [lunarStatus, session, player] = await Promise.all([
       withTimeout(context.app.lunarService.checkLunarStatus(uuid)),
-      context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => undefined) as Promise<Session | undefined>,
-      context.app.hypixelApi.getPlayer(uuid).catch(() => undefined) as Promise<{ lastLogoutTimestamp: number } | undefined>
+      context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => undefined),
+      context.app.hypixelApi.getPlayer(uuid).catch(() => undefined) as Promise<
+        { lastLogoutTimestamp: number } | undefined
+      >
     ])
     logger.debug(
       `[status] parallel checks for ${givenUsername}: ${Date.now() - startParallel}ms (lunar=${lunarStatus})`

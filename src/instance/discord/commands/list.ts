@@ -93,9 +93,11 @@ export default {
     // When used in a non-bridge channel, try to infer the bridge from the Discord guild's channels
     let bridgeId = context.bridgeId
     if (bridgeId === undefined && context.application.bridgeResolver.isMultiBridgeEnabled()) {
-      const guild = context.interaction.guild ?? (context.interaction.guildId !== null
-        ? await context.interaction.client.guilds.fetch(context.interaction.guildId).catch(() => undefined)
-        : undefined)
+      const guild =
+        context.interaction.guild ??
+        (context.interaction.guildId === null
+          ? undefined
+          : await context.interaction.client.guilds.fetch(context.interaction.guildId).catch(() => undefined))
       if (guild !== undefined) {
         const channels = guild.channels.cache
         const guildBridgeIds = new Set<string>()
@@ -105,11 +107,7 @@ export default {
         }
         if (guildBridgeIds.size === 1) {
           bridgeId = [...guildBridgeIds][0]
-          context.application.logger.info(
-            '[list] resolved bridgeId=%s from guild=%s',
-            bridgeId,
-            guild.id
-          )
+          context.application.logger.info('[list] resolved bridgeId=%s from guild=%s', bridgeId, guild.id)
         }
       }
       // If we still couldn't resolve a bridge, show an ephemeral error
@@ -128,10 +126,7 @@ export default {
           ],
           flags: MessageFlags.Ephemeral
         })
-        context.application.logger.info(
-          '[list] no bridge context, total %dms',
-          Math.round(performance.now() - t0)
-        )
+        context.application.logger.info('[list] no bridge context, total %dms', Math.round(performance.now() - t0))
         return
       }
     }
