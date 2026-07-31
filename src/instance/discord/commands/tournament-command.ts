@@ -152,7 +152,10 @@ export default {
               .setRequired(false)
           )
           .addBooleanOption((opt) =>
-            opt.setName('auto_start').setDescription('Auto check-in players and start bracket immediately (default true)').setRequired(false)
+            opt
+              .setName('auto_start')
+              .setDescription('Auto check-in players and start bracket immediately (default true)')
+              .setRequired(false)
           )
           .addChannelOption((opt) =>
             opt
@@ -882,7 +885,7 @@ export default {
         for (let index = 0; index < playerCount; index++) {
           const fakeUuid = `00000000-0000-0000-0000-${String(index + 1).padStart(12, '0')}`
           const now = Math.floor(Date.now() / 1000)
-          const discordId = bindUser !== null ? bindUser.id : null
+          const discordId = bindUser === null ? null : bindUser.id
           const status = autoStart ? PlayerStatus.CheckedIn : PlayerStatus.Registered
           const checkedInAt = autoStart ? now : null
 
@@ -984,6 +987,16 @@ export default {
                   })
                   .catch(() => undefined)
               }
+            }
+
+            // Simulate evidence posting
+            if (randomInt(0, 1) === 1) {
+              await new Promise((resolve) => setTimeout(resolve, 500))
+              void thread
+                .send({
+                  content: `📷 **Match Evidence** — https://imgur.com/a/test-match-${match.id}`
+                })
+                .catch(() => undefined)
             }
           } catch {
             // Thread may not exist, ignore

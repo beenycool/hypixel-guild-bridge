@@ -234,13 +234,13 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
       await this.application.core.tournamentManager.matchManager
         .submitReport(match.id, match.player1Id, winnerId, p1Wins, p2Wins)
-        .catch((err) => {
-          this.application.logger.error(`TournamentTestPanel: submitReport player1 failed for match ${match.id}`, err)
+        .catch((error) => {
+          this.application.logger.error(`TournamentTestPanel: submitReport player1 failed for match ${match.id}`, error)
         })
       await this.application.core.tournamentManager.matchManager
         .submitReport(match.id, match.player2Id, winnerId, p1Wins, p2Wins)
-        .catch((err) => {
-          this.application.logger.error(`TournamentTestPanel: submitReport player2 failed for match ${match.id}`, err)
+        .catch((error) => {
+          this.application.logger.error(`TournamentTestPanel: submitReport player2 failed for match ${match.id}`, error)
         })
 
       await this.application.core.tournamentManager.auditLogger.log(
@@ -314,13 +314,19 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player1Id, winnerId, p1Wins, p2Wins)
-      .catch((err) => {
-        this.application.logger.error(`TournamentTestPanel: submitReport player1 failed for match ${activeMatch.id}`, err)
+      .catch((error) => {
+        this.application.logger.error(
+          `TournamentTestPanel: submitReport player1 failed for match ${activeMatch.id}`,
+          error
+        )
       })
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player2Id, winnerId, p1Wins, p2Wins)
-      .catch((err) => {
-        this.application.logger.error(`TournamentTestPanel: submitReport player2 failed for match ${activeMatch.id}`, err)
+      .catch((error) => {
+        this.application.logger.error(
+          `TournamentTestPanel: submitReport player2 failed for match ${activeMatch.id}`,
+          error
+        )
       })
 
     await this.application.core.tournamentManager.auditLogger.log(
@@ -348,10 +354,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     }
   }
 
-  private async handleSimulateDispute(
-    interaction: ButtonInteraction,
-    panel: TournamentTestPanelEntry
-  ): Promise<void> {
+  private async handleSimulateDispute(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<void> {
     this.application.logger.info(`TournamentTestPanel: Simulating dispute for tournament ${panel.tournamentId}`)
     const tournament = await this.application.core.tournamentManager.getTournament(panel.tournamentId)
     if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
@@ -364,9 +367,26 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
       [tournament.id, tournament.currentRound, MatchStatus.Active]
     )
 
-    if (activeMatch === undefined || activeMatch.player1Id === undefined || activeMatch.player2Id === undefined) {
+    if (activeMatch?.player1Id === undefined || activeMatch.player2Id === undefined) {
       await interaction.editReply({ content: 'No active match in current round available to dispute.' })
       return
+    }
+
+    // Automatically post evidence into the thread if thread exists
+    if (activeMatch.discordThreadId !== undefined) {
+      try {
+        const client = this.clientInstance.getClient()
+        const thread = await client.channels.fetch(activeMatch.discordThreadId).catch(() => undefined)
+        if (thread?.isTextBased() && 'send' in thread) {
+          void thread
+            .send({
+              content: `📷 **Dispute Evidence Submitted:** https://imgur.com/a/dispute-proof-match-${activeMatch.id}`
+            })
+            .catch(() => undefined)
+        }
+      } catch {
+        // Thread fetch fail, ignore
+      }
     }
 
     const targetWins = Math.ceil(tournament.bestOf / 2)
@@ -374,15 +394,15 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     // Player 1 claims Player 1 won
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player1Id, activeMatch.player1Id, targetWins, 0)
-      .catch((err) => {
-        this.application.logger.error(`TournamentTestPanel: dispute submitReport p1 failed`, err)
+      .catch((error) => {
+        this.application.logger.error(`TournamentTestPanel: dispute submitReport p1 failed`, error)
       })
 
     // Player 2 claims Player 2 won
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player2Id, activeMatch.player2Id, 0, targetWins)
-      .catch((err) => {
-        this.application.logger.error(`TournamentTestPanel: dispute submitReport p2 failed`, err)
+      .catch((error) => {
+        this.application.logger.error(`TournamentTestPanel: dispute submitReport p2 failed`, error)
       })
 
     await this.application.core.tournamentManager.auditLogger.log(
