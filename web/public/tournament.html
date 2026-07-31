@@ -553,14 +553,73 @@
         flex-direction: column;
         justify-content: space-around;
         flex-grow: 1;
-        gap: 16px;
+        gap: 24px;
         position: relative;
+      }
+
+      .bracket-match-pair {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        gap: 20px;
+        flex-grow: 1;
+      }
+
+      /* Vertical connector line joining paired matches in the bracket tree */
+      .bracket-round:not(:last-child) .bracket-match-pair::after {
+        content: '';
+        position: absolute;
+        right: -18px;
+        top: 25%;
+        bottom: 25%;
+        width: 2px;
+        background: var(--border-strong);
+        z-index: 1;
+      }
+
+      .bracket-round:not(:last-child) .bracket-match-pair.single-match::after {
+        display: none;
       }
 
       .match-wrapper {
         position: relative;
         display: flex;
         align-items: center;
+        width: 100%;
+      }
+
+      /* Outgoing horizontal connector line from match card to vertical trunk */
+      .bracket-round:not(:last-child) .match-card-v2::after {
+        content: '';
+        position: absolute;
+        right: -18px;
+        top: 50%;
+        width: 18px;
+        height: 2px;
+        background: var(--border-strong);
+        z-index: 1;
+      }
+
+      .bracket-round:not(:last-child) .match-card-v2.is-completed::after {
+        background: var(--status-success);
+        box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+      }
+
+      /* Incoming horizontal connector line from previous round */
+      .bracket-round:not(:first-child) .match-card-v2::before {
+        content: '';
+        position: absolute;
+        left: -18px;
+        top: 50%;
+        width: 18px;
+        height: 2px;
+        background: var(--border-strong);
+        z-index: 1;
+      }
+
+      .bracket-round:not(:first-child) .match-card-v2.is-completed::before {
+        background: var(--status-success);
       }
 
       .match-card-v2 {
@@ -1464,68 +1523,77 @@
               </div>
               <div class="bracket-round-matches">`
 
-          for (let idx = 0; idx < roundMatches.length; idx++) {
-            const m = roundMatches[idx]
-            const p1 = playerMap[m.player1Id]
-            const p2 = playerMap[m.player2Id]
-            const p1Name = p1 ? p1.playerUuid : (m.status === 'BYE' ? '—' : 'TBD')
-            const p2Name = p2 ? p2.playerUuid : (m.status === 'BYE' ? 'BYE' : 'TBD')
+          for (let i = 0; i < roundMatches.length; i += 2) {
+            const isSingle = i + 1 >= roundMatches.length
+            const pairMatches = isSingle ? [roundMatches[i]] : [roundMatches[i], roundMatches[i + 1]]
 
-            const p1Win = m.winnerId && m.winnerId === m.player1Id
-            const p2Win = m.winnerId && m.winnerId === m.player2Id
-            const isDone = m.status === 'COMPLETED' || m.status === 'BYE' || m.status === 'BOTH_CONFIRMED'
+            html += `<div class="bracket-match-pair ${isSingle ? 'single-match' : ''}">`
 
-            const p1RowCls = p1Win ? 'is-winner' : (p2Win ? 'is-loser' : '')
-            const p2RowCls = p2Win ? 'is-winner' : (p1Win ? 'is-loser' : '')
+            for (let idxInPair = 0; idxInPair < pairMatches.length; idxInPair++) {
+              const m = pairMatches[idxInPair]
+              const globalIdx = i + idxInPair
+              const p1 = playerMap[m.player1Id]
+              const p2 = playerMap[m.player2Id]
+              const p1Name = p1 ? p1.playerUuid : (m.status === 'BYE' ? '—' : 'TBD')
+              const p2Name = p2 ? p2.playerUuid : (m.status === 'BYE' ? 'BYE' : 'TBD')
 
-            const p1Avatar = playerAvatarUrl(p1 ? p1.playerUuid : null)
-            const p2Avatar = playerAvatarUrl(p2 ? p2.playerUuid : null)
+              const p1Win = m.winnerId && m.winnerId === m.player1Id
+              const p2Win = m.winnerId && m.winnerId === m.player2Id
+              const isDone = m.status === 'COMPLETED' || m.status === 'BYE' || m.status === 'BOTH_CONFIRMED'
 
-            const statusCls = isDone ? 'is-completed' : (m.status === 'DISPUTED' ? 'is-disputed' : (m.status === 'ACTIVE' || m.status === 'REPORTED' ? 'is-active' : ''))
+              const p1RowCls = p1Win ? 'is-winner' : (p2Win ? 'is-loser' : '')
+              const p2RowCls = p2Win ? 'is-winner' : (p1Win ? 'is-loser' : '')
 
-            html += `
-              <div class="match-wrapper">
-                <div class="match-card-v2 ${statusCls}">
-                  <div class="match-card-header">
-                    <span>Match #${m.matchIndex != null ? m.matchIndex + 1 : idx + 1}</span>
-                    <span class="match-badge-status ${esc(m.status || '')}">${esc(m.status === 'BOTH_CONFIRMED' ? 'COMPLETED' : (m.status || 'PENDING'))}</span>
-                  </div>
+              const p1Avatar = playerAvatarUrl(p1 ? p1.playerUuid : null)
+              const p2Avatar = playerAvatarUrl(p2 ? p2.playerUuid : null)
 
-                  <div class="match-player-row ${p1RowCls}">
-                    <div class="player-info">
-                      ${p1Avatar ? `<img src="${esc(p1Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
-                      <span class="player-name">${esc(p1Name)}</span>
-                      ${p1Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+              const statusCls = isDone ? 'is-completed' : (m.status === 'DISPUTED' ? 'is-disputed' : (m.status === 'ACTIVE' || m.status === 'REPORTED' ? 'is-active' : ''))
+
+              html += `
+                <div class="match-wrapper">
+                  <div class="match-card-v2 ${statusCls}">
+                    <div class="match-card-header">
+                      <span>Match #${m.matchIndex != null ? m.matchIndex + 1 : globalIdx + 1}</span>
+                      <span class="match-badge-status ${esc(m.status || '')}">${esc(m.status === 'BOTH_CONFIRMED' ? 'COMPLETED' : (m.status || 'PENDING'))}</span>
                     </div>
-                    <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player1Wins ?? 0))}</span>
-                  </div>
 
-                  <div class="match-player-row ${p2RowCls}">
-                    <div class="player-info">
-                      ${p2Avatar ? `<img src="${esc(p2Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
-                      <span class="player-name">${esc(p2Name)}</span>
-                      ${p2Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+                    <div class="match-player-row ${p1RowCls}">
+                      <div class="player-info">
+                        ${p1Avatar ? `<img src="${esc(p1Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
+                        <span class="player-name">${esc(p1Name)}</span>
+                        ${p1Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+                      </div>
+                      <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player1Wins ?? 0))}</span>
                     </div>
-                    <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player2Wins ?? 0))}</span>
-                  </div>
 
-                  <div class="match-meta-bar">
-                    ${m.deadlineAt && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED') ? `<span class="text-sm text-muted">due ${fmtRel(m.deadlineAt)}</span>` : ''}
+                    <div class="match-player-row ${p2RowCls}">
+                      <div class="player-info">
+                        ${p2Avatar ? `<img src="${esc(p2Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
+                        <span class="player-name">${esc(p2Name)}</span>
+                        ${p2Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+                      </div>
+                      <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player2Wins ?? 0))}</span>
+                    </div>
 
-                    <div class="flex gap-xs" style="margin-left: auto;">
-                      ${canManage() && m.status === 'DISPUTED' ? `<button class="btn btn-secondary btn-sm" data-act="confirm" data-mid="${m.id}">Confirm</button>` : ''}
-                      ${
-                        canManage() && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')
-                          ? `
-                        <button class="btn btn-secondary btn-sm" data-act="forfeit" data-mid="${m.id}" title="Record Forfeit">Forfeit</button>
-                        <button class="btn btn-secondary btn-sm" data-act="extend" data-mid="${m.id}" title="Extend Deadline">Extend</button>
-                        <button class="btn btn-secondary btn-sm" data-act="sub" data-mid="${m.id}" title="Substitute Player">Sub</button>`
-                          : ''
-                      }
+                    <div class="match-meta-bar">
+                      ${m.deadlineAt && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED') ? `<span class="text-sm text-muted">due ${fmtRel(m.deadlineAt)}</span>` : ''}
+
+                      <div class="flex gap-xs" style="margin-left: auto;">
+                        ${canManage() && m.status === 'DISPUTED' ? `<button class="btn btn-secondary btn-sm" data-act="confirm" data-mid="${m.id}">Confirm</button>` : ''}
+                        ${
+                          canManage() && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')
+                            ? `
+                          <button class="btn btn-secondary btn-sm" data-act="forfeit" data-mid="${m.id}" title="Record Forfeit">Forfeit</button>
+                          <button class="btn btn-secondary btn-sm" data-act="extend" data-mid="${m.id}" title="Extend Deadline">Extend</button>
+                          <button class="btn btn-secondary btn-sm" data-act="sub" data-mid="${m.id}" title="Substitute Player">Sub</button>`
+                            : ''
+                        }
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>`
+                </div>`
+            }
+            html += `</div>`
           }
           html += `</div></div>`
         }
