@@ -4,12 +4,14 @@ import type Application from '../../application.js'
 import { CircuitBreaker } from '../../utility/circuit-breaker.js'
 import RateLimiter from '../../utility/rate-limiter.js'
 
+import { BracketVisualizer } from './bracket-visualizer.js'
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 import { MatchStatus, TournamentStatus } from './types.js'
 
 export class TournamentChannelManager {
   private readonly threadCreationLimiter = new RateLimiter(5, 10_000)
   private readonly circuitBreaker = new CircuitBreaker(3, 15_000)
+  private readonly visualizer = new BracketVisualizer()
 
   constructor(private readonly application: Application) {}
 
@@ -497,10 +499,25 @@ export class TournamentChannelManager {
       })
     }
 
+    // Render bracket visual image if possible
+    const bracketImage = this.visualizer.buildBracketImage({
+      tournament,
+      matches,
+      players,
+      playerNames: playerNamesMap
+    })
+
+    if (bracketImage !== null) {
+      embed.setImage('attachment://bracket.png')
+    }
+
     // Post or edit message
+    const files = bracketImage !== null ? [{ attachment: bracketImage, name: 'bracket.png' }] : []
     try {
       const message = await textChannel.messages.fetch(messageId).catch(() => undefined)
-      await (message === undefined ? textChannel.send({ embeds: [embed] }) : message.edit({ embeds: [embed] }))
+      await (message === undefined
+        ? textChannel.send({ embeds: [embed], files })
+        : message.edit({ embeds: [embed], files }))
     } catch {
       // ignore message edit/send errors
     }

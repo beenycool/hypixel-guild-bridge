@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { BracketVisualizer } from '../src/core/tournament/bracket-visualizer.js'
+import { MatchStatus, TournamentStatus } from '../src/core/tournament/types.js'
+import type { Tournament, TournamentMatch, TournamentPlayer } from '../src/core/tournament/types.js'
+
 describe('BracketVisualizer', () => {
   it('should generate MC bracket summary text', () => {
     const data = {
@@ -103,5 +107,32 @@ describe('BracketVisualizer', () => {
 
     assert.ok(lines[0].includes('Disputed'))
     assert.ok(lines[0].includes('2-2'))
+  })
+
+  it('should build a non-empty bracket PNG image Buffer', () => {
+    const visualizer = new BracketVisualizer()
+    const buffer = visualizer.buildBracketImage({
+      tournament: { name: 'PNG Test', totalRounds: 2, status: TournamentStatus.Active } as Tournament,
+      matches: [
+        { id: 1, tournamentId: 1, round: 1, matchIndex: 0, player1Id: 1, player2Id: 2, player1Wins: 2, player2Wins: 0, status: MatchStatus.Completed, winnerId: 1 },
+        { id: 2, tournamentId: 1, round: 1, matchIndex: 1, player1Id: 3, player2Id: 4, player1Wins: 1, player2Wins: 2, status: MatchStatus.Completed, winnerId: 4 },
+        { id: 3, tournamentId: 1, round: 2, matchIndex: 0, player1Id: 1, player2Id: 4, player1Wins: 0, player2Wins: 0, status: MatchStatus.Active, winnerId: undefined }
+      ] as TournamentMatch[],
+      players: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }] as TournamentPlayer[],
+      playerNames: new Map([
+        [1, 'Alice'],
+        [2, 'Bob'],
+        [3, 'Charlie'],
+        [4, 'Dave']
+      ])
+    })
+
+    assert.ok(buffer instanceof Buffer)
+    assert.ok(buffer.length > 0)
+    // Check PNG signature header (\x89PNG)
+    assert.equal(buffer[0], 0x89)
+    assert.equal(buffer[1], 0x50) // P
+    assert.equal(buffer[2], 0x4e) // N
+    assert.equal(buffer[3], 0x47) // G
   })
 })
