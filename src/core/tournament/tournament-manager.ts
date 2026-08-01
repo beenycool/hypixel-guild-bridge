@@ -154,6 +154,15 @@ export class TournamentManager {
           }
         }
 
+        if (match.status === MatchStatus.Bye && match.winnerId !== undefined) {
+          this.logger.info(
+            `Match ${match.id}: Rehydrating unadvanced BYE match, advancing winner ${match.winnerId}`
+          )
+          await this.matchManager.resolveByeMatch(match.id, match.winnerId).catch((error: unknown) => {
+            this.logger.error(`Match ${match.id}: Failed to advance BYE winner during rehydration:`, error)
+          })
+        }
+
         if (match.status === MatchStatus.Disputed && match.deadlineAt) {
           const now = Math.floor(Date.now() / 1000)
           if (now > match.deadlineAt) {
@@ -779,7 +788,7 @@ export class TournamentManager {
         names
       )
 
-      // Auto-resolve any BYE matches in Round 1 (this will recursively advance players)
+      // Auto-resolve any BYE matches in Round 1 (this will advance winners into round 2)
       const byeRound1 = createdMatches.filter((m) => m.round === 1 && m.status === MatchStatus.Bye)
       if (byeRound1.length > 0) {
         this.logger.info(`Tournament ${tournamentId}: Auto-resolving ${byeRound1.length} BYE match(es) in round 1`)
@@ -787,7 +796,7 @@ export class TournamentManager {
       for (const m of byeRound1) {
         if (m.winnerId !== undefined) {
           this.logger.info(`Match ${m.id}: Resolving BYE match, winnerId=${m.winnerId}`)
-          await this.matchManager.adminConfirm(m.id, m.winnerId).catch((error: unknown) => {
+          await this.matchManager.resolveByeMatch(m.id, m.winnerId).catch((error: unknown) => {
             this.logger.error(`Error resolving BYE match ${m.id}:`, error)
           })
         }

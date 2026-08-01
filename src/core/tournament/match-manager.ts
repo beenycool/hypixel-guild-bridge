@@ -296,6 +296,28 @@ export class MatchManager {
     }
   }
 
+  /**
+   * Resolve a BYE match (no opponent) and advance its winner into the next round.
+   * Unlike adminConfirm, BYE matches are accepted: they already have a winner set
+   * but that winner still needs to be placed into the next match.
+   */
+  public async resolveByeMatch(matchId: number, winnerId: number): Promise<void> {
+    this.logger?.info(`Match ${matchId}: resolveByeMatch — winnerId=${winnerId}`)
+
+    const match = await this.databaseManager.queryOne<TournamentMatch>(
+      'SELECT * FROM "tournament_matches" WHERE "id" = $1',
+      [matchId]
+    )
+    if (match === undefined) {
+      throw new Error('Match not found.')
+    }
+    if (match.status !== MatchStatus.Bye) {
+      throw new Error('Match is not a BYE match.')
+    }
+
+    await this.resolveWinner(matchId, winnerId)
+  }
+
   public async substitute(
     matchId: number,
     oldPlayerId: number,

@@ -508,4 +508,88 @@ describe('MatchManager score & forfeit validation (pure logic)', () => {
       )
     })
   })
+
+  describe('BYE match resolution', () => {
+    it('advances BYE winners into the next match and activates it when full', async () => {
+      const tournament = buildTournament({ discordChannelId: 'channel-1', bracketMessageId: 'message-1' })
+      const players = [buildPlayer(100, 'uuid-100', 'discord-100'), buildPlayer(200, 'uuid-200', 'discord-200')]
+      const matches = [
+        buildMatch({
+          id: 1,
+          round: 1,
+          matchIndex: 0,
+          player1Id: 100,
+          player2Id: undefined,
+          winnerId: 100,
+          nextMatchId: 5,
+          status: MatchStatus.Bye,
+          completedAt: 0
+        }),
+        buildMatch({
+          id: 2,
+          round: 1,
+          matchIndex: 1,
+          player1Id: 200,
+          player2Id: undefined,
+          winnerId: 200,
+          nextMatchId: 5,
+          status: MatchStatus.Bye,
+          completedAt: 0
+        }),
+        buildMatch({
+          id: 5,
+          round: 2,
+          matchIndex: 0,
+          status: MatchStatus.Pending,
+          discordThreadId: undefined
+        })
+      ]
+      const { manager, executed } = buildHarness(tournament, matches, players, 'channel-1')
+
+      await manager.resolveByeMatch(1, 100)
+      await manager.resolveByeMatch(2, 200)
+
+      const completed = executed.filter((entry) =>
+        entry.sql.includes('UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3')
+      )
+      assert.strictEqual(completed.length, 2, 'both BYE matches should be marked completed')
+      assert.ok(
+        completed.every((entry) => entry.values[0] === MatchStatus.Completed),
+        'BYE matches should resolve to completed status'
+      )
+      assert.ok(
+        executed.some(
+          (entry) => entry.sql.includes('UPDATE "tournament_matches" SET "player1Id"') && entry.values[0] === 100
+        ),
+        'first BYE winner should fill the player1 slot of round 2 (even source matchIndex)'
+      )
+      assert.ok(
+        executed.some(
+          (entry) => entry.sql.includes('UPDATE "tournament_matches" SET "player2Id"') && entry.values[0] === 200
+        ),
+        'second BYE winner should fill the player2 slot of round 2 (odd source matchIndex)'
+      )
+      const activation = executed.find(
+        (entry) =>
+          entry.sql.includes('UPDATE "tournament_matches" SET "status" = $1, "deadlineAt" = $2') &&
+          entry.values[2] === 5
+      )
+      assert.ok(activation !== undefined, 'round 2 match should activate once both slots fill')
+      assert.ok(
+        !executed.some((entry) => entry.sql.includes('UPDATE "tournament_players"')),
+        'BYE matches have no loser to eliminate'
+      )
+    })
+
+    it('rejects non-BYE matches', async () => {
+      const tournament = buildTournament()
+      const players = [buildPlayer(100, 'uuid-100', 'discord-100'), buildPlayer(200, 'uuid-200', 'discord-200')]
+      const matches = [buildMatch({ id: 1, status: MatchStatus.Active })]
+      const { manager } = buildHarness(tournament, matches, players)
+
+      await assert.rejects(async () => {
+        await manager.resolveByeMatch(1, 100)
+      }, /not a BYE match/)
+    })
+  })
 })
