@@ -920,7 +920,81 @@
         gap: 10px;
       }
 
-      /* Create Tournament modal: warning banner & defaults summary */
+      /* Create Tournament modal */
+      #create-modal .custom-modal-dialog {
+        max-width: 560px;
+        max-height: calc(100vh - 40px);
+        display: flex;
+        flex-direction: column;
+      }
+
+      #create-modal .modal-body-v2 {
+        overflow-y: auto;
+      }
+
+      .create-form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .create-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .create-field-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        letter-spacing: 0.01em;
+      }
+
+      .create-field-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+
+      .create-field-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+
+      @media (max-width: 640px) {
+        .create-field-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .cf-defaults-panel {
+        background: rgba(10, 14, 20, 0.5);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+      }
+
+      .cf-defaults-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--accent-cyan);
+        margin-bottom: 6px;
+      }
+
+      #cf-defaults-summary {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin: 0;
+      }
+
       .cf-warning {
         background: rgba(244, 63, 94, 0.1);
         border: 1px solid rgba(244, 63, 94, 0.35);
@@ -929,18 +1003,18 @@
         padding: 10px 14px;
         font-size: 13px;
         line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .cf-warning .ui-icon {
+        flex-shrink: 0;
+        margin-top: 2px;
       }
 
       .cf-warning strong {
         color: var(--status-danger);
-      }
-
-      #cf-defaults-summary {
-        background: rgba(10, 14, 20, 0.5);
-        border: 1px dashed var(--border-subtle);
-        border-radius: var(--radius-sm);
-        padding: 8px 10px;
-        margin-top: 0;
       }
     </style>
   </head>
@@ -1155,74 +1229,135 @@
       </div>
 
       <!-- ===== Create Tournament Modal ===== -->
-      <div id="create-modal" class="modal-overlay" style="display: none">
-        <div class="modal-card">
-          <h2>Create Tournament</h2>
-          <div class="modal-sub">Spin up a new bracket. Defaults are pulled from bridge settings.</div>
-          <form id="create-form">
-            <div class="form-row">
-              <label class="form-label">Bridge</label>
-              <select class="select" id="cf-bridge" required></select>
-              <div class="form-hint">Which bridge this tournament belongs to.</div>
+      <div id="create-modal" class="custom-modal-backdrop" style="display: none">
+        <div class="custom-modal-dialog">
+          <div class="modal-header-v2">
+            <div>
+              <h3>
+                <svg class="ui-icon" style="color: var(--accent-gold); width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Create Tournament
+              </h3>
+              <p class="text-muted" style="font-size: 13px; margin: 4px 0 0">
+                Spin up a new bracket. Defaults are pulled from bridge settings.
+              </p>
             </div>
-            <div class="form-row">
-              <label class="form-label">Name</label>
-              <input
-                type="text"
-                class="input"
-                id="cf-name"
-                maxlength="80"
-                placeholder="Weekly Bedwars Cup #4"
-                required
-              />
-            </div>
-            <div class="form-row">
-              <label class="form-label">Game Type</label>
-              <input type="text" class="input" id="cf-gametype" list="cf-gametypes" placeholder="Bedwars" required />
-              <datalist id="cf-gametypes"></datalist>
-              <div class="form-hint">Free text, or pick from configured whitelist.</div>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Bracket Format</label>
-              <select class="select" id="cf-format">
-                <option value="single-elim" selected>Single Elimination</option>
-                <option value="double-elim">Double Elimination</option>
-                <option value="round-robin">Round Robin</option>
-              </select>
-            </div>
-            <div class="flex gap-md">
-              <div class="form-row" style="flex: 1">
-                <label class="form-label">Best-of</label>
-                <input type="number" class="input" id="cf-bestof" min="1" max="9" step="2" value="1" required />
-                <div class="form-hint">Odd numbers only (1, 3, 5, 7, 9).</div>
+            <button type="button" class="btn btn-secondary btn-sm" id="cf-close">✕</button>
+          </div>
+          <div class="modal-body-v2">
+            <form id="create-form" class="create-form">
+              <div class="create-field">
+                <label class="create-field-label" for="cf-bridge">Bridge</label>
+                <select class="select" id="cf-bridge" required></select>
+                <span class="create-field-hint">Which bridge this tournament belongs to.</span>
               </div>
-              <div class="form-row" style="flex: 1">
-                <label class="form-label">Round Deadline (hours)</label>
-                <input type="number" class="input" id="cf-deadline" min="1" max="720" value="48" required />
+              <div id="cf-active-row" style="display: none">
+                <div class="cf-warning" id="cf-active-warning">
+                  <svg class="ui-icon" viewBox="0 0 24 24">
+                    <path
+                      d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  <span id="cf-active-warning-text"></span>
+                </div>
               </div>
-              <div class="form-row" style="flex: 1">
-                <label class="form-label">Check-in Window (min)</label>
-                <input type="number" class="input" id="cf-checkin" min="0" max="1440" value="60" />
+              <div class="create-field">
+                <label class="create-field-label" for="cf-name">Name</label>
+                <input
+                  type="text"
+                  class="input"
+                  id="cf-name"
+                  maxlength="80"
+                  placeholder="Weekly Bedwars Cup #4"
+                  required
+                />
               </div>
-            </div>
-            <div class="form-row">
-              <label class="form-label">Scheduled Start (optional)</label>
-              <input type="datetime-local" class="input" id="cf-start" />
-              <div class="form-hint">Leave blank for manual start. Sets check-in windows relative to start.</div>
-            </div>
-            <div class="form-row">
-              <div class="form-hint" id="cf-defaults-summary" style="margin-top: 4px; font-size: 12px">
-                Loading bridge defaults…
+              <div class="create-field">
+                <label class="create-field-label" for="cf-gametype">Game Type</label>
+                <input type="text" class="input" id="cf-gametype" list="cf-gametypes" placeholder="Bedwars" required />
+                <datalist id="cf-gametypes"></datalist>
+                <span class="create-field-hint">Free text, or pick from configured whitelist.</span>
               </div>
-            </div>
-            <div class="form-row" id="cf-active-row" style="display: none">
-              <div class="cf-warning" id="cf-active-warning"></div>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" id="cf-cancel">Cancel</button>
-              <button type="submit" class="btn btn-primary" id="cf-create-submit">Create</button>
-            </div>
-          </form>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-format">Bracket Format</label>
+                <select class="select" id="cf-format">
+                  <option value="single-elim" selected>Single Elimination</option>
+                  <option value="double-elim">Double Elimination</option>
+                  <option value="round-robin">Round Robin</option>
+                </select>
+              </div>
+              <div class="create-field-grid">
+                <div class="create-field">
+                  <label class="create-field-label" for="cf-bestof">Best-of</label>
+                  <input
+                    type="number"
+                    class="input"
+                    id="cf-bestof"
+                    min="1"
+                    max="9"
+                    step="2"
+                    value="1"
+                    inputmode="numeric"
+                    required
+                  />
+                  <span class="create-field-hint">Odd numbers only (1, 3, 5, 7, 9).</span>
+                </div>
+                <div class="create-field">
+                  <label class="create-field-label" for="cf-deadline">Round Deadline (hours)</label>
+                  <input
+                    type="number"
+                    class="input"
+                    id="cf-deadline"
+                    min="1"
+                    max="720"
+                    value="48"
+                    inputmode="numeric"
+                    required
+                  />
+                </div>
+                <div class="create-field">
+                  <label class="create-field-label" for="cf-checkin">Check-in Window (min)</label>
+                  <input
+                    type="number"
+                    class="input"
+                    id="cf-checkin"
+                    min="0"
+                    max="1440"
+                    value="60"
+                    inputmode="numeric"
+                  />
+                  <span class="create-field-hint">0 disables check-in.</span>
+                </div>
+              </div>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-start">Scheduled Start (optional)</label>
+                <input type="datetime-local" class="input" id="cf-start" />
+                <span class="create-field-hint"
+                  >Leave blank for manual start. Sets check-in windows relative to start.</span
+                >
+              </div>
+              <div class="cf-defaults-panel">
+                <div class="cf-defaults-title">
+                  <svg class="ui-icon" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                  Bridge Defaults
+                </div>
+                <p id="cf-defaults-summary">Loading bridge defaults…</p>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer-v2">
+            <button type="button" class="btn btn-secondary" id="cf-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="cf-create-submit" form="create-form">Create</button>
+          </div>
         </div>
       </div>
 
@@ -1291,6 +1426,7 @@
       let activeTab = 'bracket'
       let createDefaultsLoading = false
       let createBlockedByActive = false
+      let bridgeLoadToken = 0
       const LAST_BRIDGE_KEY = 'tournament_create_bridge'
 
       function perm() {
@@ -1301,7 +1437,8 @@
         return p === 'owner' || p === 'admin'
       }
       function isAdmin() {
-        return perm() === 'admin'
+        const p = perm()
+        return p === 'owner' || p === 'admin'
       }
 
       function showLoading(msg) {
@@ -2260,6 +2397,7 @@
       async function loadSettingsForBridge(bridgeId) {
         const summaryEl = document.querySelector('#cf-defaults-summary')
         const gametypesEl = document.querySelector('#cf-gametypes')
+        const myToken = bridgeLoadToken
         if (!bridgeId) {
           gametypesEl.innerHTML = ''
           applyCreateDefaults({ bestOf: 1, deadline: 48, checkin: 60, format: 'single-elim' })
@@ -2268,6 +2406,7 @@
         }
         try {
           const res = await Api.apiGet('/api/bridges/' + encodeURIComponent(bridgeId) + '/settings')
+          if (myToken !== bridgeLoadToken) return null
           const t = (res && res.categories && res.categories.tournament) || {}
           const defaults = {
             bestOf: Number(t.defaultBestOf) > 0 ? Number(t.defaultBestOf) : 1,
@@ -2282,7 +2421,7 @@
           gametypesEl.innerHTML = validGames.map((g) => '<option value="' + esc(g) + '">').join('')
 
           let summary =
-            'Bridge defaults: Best of ' +
+            'Best of ' +
             defaults.bestOf +
             ' · ' +
             defaults.deadline +
@@ -2292,21 +2431,23 @@
             formatLabel(defaults.format)
           if (t.minParticipants != null) summary += ' · Min ' + t.minParticipants + ' players'
           if (t.autoCheckin === false) summary += ' · Auto check-in Off'
-          summary += '. You can override any value below.'
+          summary += ' — override any value below.'
           summaryEl.textContent = summary
           return t
         } catch {
+          if (myToken !== bridgeLoadToken) return null
           gametypesEl.innerHTML = ''
           applyCreateDefaults({ bestOf: 1, deadline: 48, checkin: 60, format: 'single-elim' })
-          summaryEl.textContent =
-            'Could not load bridge defaults — using built-in defaults. You can override any value below.'
+          summaryEl.textContent = 'Could not load bridge defaults — using built-in defaults. Override any value below.'
           return null
         }
       }
 
       async function checkActiveTournament(bridgeId) {
         const warnEl = document.querySelector('#cf-active-warning')
+        const warnTextEl = document.querySelector('#cf-active-warning-text')
         const rowEl = document.querySelector('#cf-active-row')
+        const myToken = bridgeLoadToken
         if (!bridgeId) {
           createBlockedByActive = false
           if (rowEl) rowEl.style.display = 'none'
@@ -2315,15 +2456,18 @@
         }
         try {
           const res = await Api.apiGet('/api/tournament/active?bridgeId=' + encodeURIComponent(bridgeId))
+          if (myToken !== bridgeLoadToken) return
           const active = res && res.tournament
           if (active) {
             const phase = active.status === 'ACTIVE' ? 'active' : 'in the signup phase'
-            warnEl.innerHTML =
-              '<strong>' +
-              esc(active.name || 'A tournament') +
-              '</strong> is already ' +
-              phase +
-              ' on this bridge. Only one tournament can run at a time — complete or cancel it first.'
+            if (warnTextEl) {
+              warnTextEl.innerHTML =
+                '<strong>' +
+                esc(active.name || 'A tournament') +
+                '</strong> is already ' +
+                phase +
+                ' on this bridge. Only one tournament can run at a time — complete or cancel it first.'
+            }
             createBlockedByActive = true
             if (rowEl) rowEl.style.display = ''
           } else {
@@ -2331,6 +2475,7 @@
             if (rowEl) rowEl.style.display = 'none'
           }
         } catch {
+          if (myToken !== bridgeLoadToken) return
           createBlockedByActive = false
           if (rowEl) rowEl.style.display = 'none'
         }
@@ -2338,6 +2483,7 @@
       }
 
       async function applyBridgeDefaults(bridgeId) {
+        const myToken = ++bridgeLoadToken
         const select = document.querySelector('#cf-bridge')
         if (select) select.value = bridgeId
         if (bridgeId) {
@@ -2348,15 +2494,18 @@
         setCreateLoading(true)
         await loadSettingsForBridge(bridgeId)
         await checkActiveTournament(bridgeId)
-        setCreateLoading(false)
+        if (myToken === bridgeLoadToken) setCreateLoading(false)
       }
 
       async function openCreateModal() {
         createModal.style.display = ''
         createForm.reset()
-        document.querySelector('#cf-start').value = ''
+        const startInput = document.querySelector('#cf-start')
+        startInput.value = ''
+        startInput.min = new Date(Date.now() + 60000).toISOString().slice(0, 16)
         document.querySelector('#cf-gametypes').innerHTML = ''
         document.querySelector('#cf-defaults-summary').textContent = 'Loading bridge defaults…'
+        document.querySelector('#cf-active-warning-text').textContent = ''
         setCreateLoading(true)
 
         const bridges = await loadBridges()
@@ -2397,8 +2546,8 @@
         if (!name) return Ui.showToast('Name is required', 'error')
         if (!gameType) return Ui.showToast('Game type is required', 'error')
         if (!SUPPORTED_FORMATS.includes(bracketFormat)) return Ui.showToast('Pick a valid bracket format', 'error')
-        if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0)
-          return Ui.showToast('Best-of must be a positive odd number (e.g. 1, 3, 5).', 'error')
+        if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9)
+          return Ui.showToast('Best-of must be an odd number between 1 and 9 (e.g. 1, 3, 5).', 'error')
         if (!Number.isInteger(deadline) || deadline < 1 || deadline > 720)
           return Ui.showToast('Round deadline must be between 1 and 720 hours.', 'error')
         if (!Number.isInteger(checkin) || checkin < 0 || checkin > 1440)
@@ -2449,7 +2598,14 @@
           if (e.target === createModal) closeCreateModal()
         })
         document.querySelector('#cf-cancel').addEventListener('click', closeCreateModal)
+        document.querySelector('#cf-close').addEventListener('click', closeCreateModal)
         createForm.addEventListener('submit', submitCreate)
+
+        globalThis.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return
+          if (createModal.style.display !== 'none') closeCreateModal()
+          else if (actionModal.style.display !== 'none') actionModal.style.display = 'none'
+        })
 
         document.querySelector('#cf-bridge').addEventListener('change', (e) => {
           void applyBridgeDefaults(e.target.value)
