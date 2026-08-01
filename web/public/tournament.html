@@ -2179,7 +2179,8 @@
         }
       }
 
-      function init() {
+      async function init() {
+        await Auth.fetchPermission()
         if (isAdmin()) {
           createBtn.style.display = ''
           createBtn.addEventListener('click', openCreateModal)

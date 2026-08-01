@@ -85,14 +85,14 @@ function showAuthOverlay(title) {
   const errorElement = overlay.querySelector('#app-auth-error')
   input.focus()
 
-  const submit = () => {
+  const submit = async () => {
     const value = input.value.trim()
     if (!value) {
       errorElement.textContent = 'Token cannot be empty.'
       return
     }
     setToken(value)
-    fetchPermission()
+    await fetchPermission()
     hideAuthOverlay()
     globalThis.dispatchEvent(new CustomEvent('authsuccess', { detail: { token: value } }))
   }
