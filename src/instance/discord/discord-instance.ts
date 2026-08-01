@@ -16,6 +16,7 @@ import DiscordBridge from './discord-bridge.js'
 import GuildRequirements from './features/guild-requirements.js'
 import LoggerManager from './features/logger-manager.js'
 import StatsChannels from './features/stats-channels.js'
+import TournamentButtons from './features/tournament-buttons.js'
 import TournamentSignup from './features/tournament-signup.js'
 import TournamentTestPanel from './features/tournament-test-panel.js'
 import VerificationRoleManager from './features/verification-role-manager.js'
@@ -30,6 +31,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
   readonly guildRequirements: GuildRequirements
   readonly statsChannels: StatsChannels
   readonly verificationRoleManager: VerificationRoleManager
+  readonly tournamentButtons: TournamentButtons
   readonly tournamentTestPanel: TournamentTestPanel
   readonly tournamentSignup: TournamentSignup
 
@@ -110,6 +112,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.statsChannels = new StatsChannels(this)
     this.verificationRoleManager = new VerificationRoleManager(this)
     this.tournamentTestPanel = new TournamentTestPanel(this)
+    this.tournamentButtons = new TournamentButtons(this)
     this.tournamentSignup = new TournamentSignup(this)
 
     this.bridge = new DiscordBridge(

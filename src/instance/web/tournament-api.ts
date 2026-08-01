@@ -17,6 +17,19 @@ import { buildTokenSet, verifyToken } from './auth.js'
 
 const TournamentPrefix = '/api/tournament'
 
+interface TournamentResult {
+  id: number
+  playerUuid: string
+  discordId: string | undefined
+  tournamentId: number
+  placement: number
+  roundsReached: number
+  wins: number
+  losses: number
+  champion: number
+  createdAt: number
+}
+
 export class TournamentApiHandler {
   constructor(
     private readonly application: Application,
@@ -194,6 +207,28 @@ export class TournamentApiHandler {
         return true
       }
       await this.handleExtend(request, response)
+      return true
+    }
+
+    if (subRoute === 'undo') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Officer) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleUndo(request, response, tournamentId, auth)
+      return true
+    }
+
+    if (subRoute === 'results') {
+      if (method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return true
+      }
+      await this.handleResults(response, tournamentId)
       return true
     }
 
@@ -513,6 +548,53 @@ export class TournamentApiHandler {
     } catch (error: unknown) {
       this.logger.error('Failed to extend deadline:', error)
       sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleUndo(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const matchId = body.matchId
+    if (typeof matchId !== 'number') {
+      sendError(response, 'VALIDATION_ERROR', 'matchId is required', 400)
+      return
+    }
+
+    try {
+      const match = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 AND "tournamentId" = $2',
+        [matchId, tournamentId]
+      )
+      if (match === undefined) {
+        sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
+        return
+      }
+
+      await this.application.core.tournamentManager.rewindMatch(matchId, auth.userId)
+      this.logger.info(`API /api/tournament/${tournamentId}/undo: Rewound match ${matchId}`)
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to undo match:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleResults(response: http.ServerResponse, tournamentId: number): Promise<void> {
+    try {
+      const results = await this.application.core.databaseManager.queryRows<TournamentResult>(
+        'SELECT * FROM "tournament_results" WHERE "tournamentId" = $1 ORDER BY "placement" ASC, "wins" DESC',
+        [tournamentId]
+      )
+      sendSuccess(response, results)
+    } catch (error: unknown) {
+      this.logger.error('Failed to get tournament results:', error)
+      sendError(response, 'INTERNAL_ERROR', 'Failed to get tournament results', 500)
     }
   }
 

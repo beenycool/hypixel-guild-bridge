@@ -1020,6 +1020,7 @@
 
         <div id="tab-participants" class="tab-content" style="display: none">
           <div id="participants-content"></div>
+          <div id="results-content"></div>
         </div>
 
         <div id="tab-audit" class="tab-content" style="display: none">
@@ -1112,6 +1113,7 @@
       import { Auth } from './js/auth.js'
       import { Api } from './js/api.js'
       import { Ui } from './js/ui.js'
+      import { Ws } from './js/ws.js'
       import { initNav } from './js/nav.js'
       import { initStatusPolling } from './js/status.js'
 
@@ -1474,6 +1476,14 @@
         // 3. Render Participants Tab
         renderParticipants(players, t.status, id)
 
+        // 3b. Render Final Standings if tournament completed
+        if (t.status === 'COMPLETED') {
+          void loadResults(id)
+        } else {
+          const resultsHost = document.querySelector('#results-content')
+          if (resultsHost) resultsHost.innerHTML = ''
+        }
+
         // 4. Render Audit Log if admin
         if (canManage()) {
           loadAudit(id)
@@ -1588,6 +1598,7 @@
                           <button class="btn btn-secondary btn-sm" data-act="sub" data-mid="${m.id}" title="Substitute Player">Sub</button>`
                             : ''
                         }
+                        ${canManage() && m.status === 'COMPLETED' ? `<button class="btn btn-secondary btn-sm" data-act="undo" data-mid="${m.id}" title="Undo Result">Undo</button>` : ''}
                       </div>
                     </div>
                   </div>
@@ -1662,6 +1673,56 @@
 
         for (const btn of host.querySelectorAll('.kick-btn')) {
           btn.addEventListener('click', () => removePlayer(tournamentId, btn.dataset.uuid))
+        }
+      }
+
+      async function loadResults(id) {
+        const host = document.querySelector('#results-content')
+        if (!host) return
+        try {
+          const results = await Api.apiGet('/api/tournament/' + id + '/results')
+          if (!Array.isArray(results) || results.length === 0) {
+            host.innerHTML = ''
+            return
+          }
+          let html = `
+            <div class="admin-toolbar-box" style="margin-top: 24px;">
+              <div class="admin-toolbar-title">
+                <span class="flex align-center gap-xs"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Final Standings</span>
+              </div>
+              <table class="participants-table">
+                <thead>
+                  <tr>
+                    <th>Placement</th>
+                    <th>Player</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Rounds Reached</th>
+                  </tr>
+                </thead>
+                <tbody>`
+          for (const r of results) {
+            const avatar = playerAvatarUrl(r.playerUuid)
+            const isChampion = Number(r.champion) === 1
+            html += `
+              <tr>
+                <td><strong>#${esc(String(r.placement))}</strong></td>
+                <td>
+                  <div class="flex align-center gap-sm">
+                    ${avatar ? `<img src="${esc(avatar)}" class="player-head-img" style="width:24px;height:24px" alt="">` : ''}
+                    <span class="font-mono">${esc(r.playerUuid || 'Unknown')}</span>
+                    ${isChampion ? '<span class="badge badge-success">Champion</span>' : ''}
+                  </div>
+                </td>
+                <td>${esc(String(r.wins ?? 0))}</td>
+                <td>${esc(String(r.losses ?? 0))}</td>
+                <td>${esc(String(r.roundsReached ?? 0))}</td>
+              </tr>`
+          }
+          html += `</tbody></table></div>`
+          host.innerHTML = html
+        } catch {
+          host.innerHTML = ''
         }
       }
 
@@ -1955,6 +2016,25 @@
           })
           return
         }
+
+        if (act === 'undo') {
+          openActionModal({
+            title: 'Undo Match',
+            bodyHtml: `
+              <p class="text-secondary" style="margin: 0 0 12px;">Revert this match result? The winner will be un-crowned, the loser restored, and the next round slot will be cleared. Any reports for this match will be deleted.</p>`,
+            onConfirm: async () => {
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/undo', { matchId })
+                Ui.showToast('Match result undone', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+          return
+        }
       }
 
       async function startTournament(id) {
@@ -2152,6 +2232,21 @@
             const target = document.querySelector('#tab-' + activeTab)
             if (target) target.style.display = 'block'
           })
+        })
+
+        // Live updates via WebSocket
+        const wsRefreshTypes = new Set([
+          'tournament.created',
+          'tournament.started',
+          'tournament.match_resolved',
+          'tournament.undo',
+          'tournament.cancelled',
+          'tournament.completed'
+        ])
+        Ws.connectWS('subscribeTournament', 'tournament.', (type) => {
+          if (!wsRefreshTypes.has(type)) return
+          if (currentId != null) void renderDetail(currentId)
+          else void loadTournaments()
         })
 
         void loadTournaments()

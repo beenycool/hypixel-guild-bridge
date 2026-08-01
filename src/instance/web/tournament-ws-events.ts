@@ -2,6 +2,7 @@ import type { Logger } from 'log4js'
 import { WebSocket } from 'ws'
 
 import type Application from '../../application.js'
+import type { TournamentManager } from '../../core/tournament/tournament-manager.js'
 
 export class TournamentWsEvents {
   private readonly subscribers = new Set<WebSocket>()
@@ -9,7 +10,14 @@ export class TournamentWsEvents {
   constructor(
     private readonly application: Application,
     private readonly logger: Logger
-  ) {}
+  ) {
+    // Core pushes lifecycle events; forward them to WS subscribers.
+    // Shallow-mocked applications (tests) may omit core.tournamentManager.
+    const tournamentManager = (this.application.core as { tournamentManager?: TournamentManager }).tournamentManager
+    tournamentManager?.onEvent((event) => {
+      this.broadcast(event)
+    })
+  }
 
   public subscribe(socket: WebSocket): void {
     this.logger.info(`TournamentWsEvents: Subscriber added (total: ${this.subscribers.size + 1})`)

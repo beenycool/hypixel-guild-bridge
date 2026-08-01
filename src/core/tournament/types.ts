@@ -43,6 +43,7 @@ export interface Tournament {
   startedAtUnix: number | undefined
   currentRound: number
   totalRounds: number
+  bracketFormat?: string
   createdAt: number
   startedAt: number | undefined
   completedAt: number | undefined
@@ -68,6 +69,7 @@ export interface TournamentMatch {
   player2Id: number | undefined
   winnerId: number | undefined
   nextMatchId: number | undefined
+  loserNextMatchId?: number
   status: MatchStatus
   player1Wins: number
   player2Wins: number

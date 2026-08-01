@@ -1,7 +1,11 @@
+import { setImmediate } from 'node:timers'
+
 import type { Logger } from 'log4js'
 
 import type { DatabaseManager, Queryable } from '../../common/database-manager.js'
 
+import type { AntiAbuse } from './anti-abuse.js'
+import type { BracketGenerator } from './bracket-generator.js'
 import { validateSeriesScore } from './score-validator.js'
 import type { TournamentChannelManager } from './tournament-channel-manager.js'
 import type { TournamentNotifications } from './tournament-notifications.js'
@@ -16,6 +20,10 @@ export class MatchManager {
     private readonly getTournament: (id: number) => Promise<Tournament | undefined>,
     private readonly getPlayerNames: (tournamentId: number) => Promise<Map<number, string>>,
     private readonly checkProofAttachment?: (threadId: string) => Promise<boolean>,
+    private readonly antiAbuse?: AntiAbuse,
+    private readonly emitEvent?: (type: string, data: unknown) => void,
+    private readonly notifyTournamentCompleted?: (tournamentId: number) => Promise<void>,
+    private readonly bracketGenerator?: BracketGenerator,
     private readonly logger?: Logger
   ) {}
 
@@ -217,16 +225,47 @@ export class MatchManager {
       throw new Error('Forfeiting player is not a participant in this match.')
     }
 
+    // Anti-abuse: flag suspicious repeated forfeits against the same opponent
+    let forfeiterUuid: string | undefined
+    let opponentUuid: string | undefined
+    if (this.antiAbuse !== undefined) {
+      const forfeitingPlayer = await this.databaseManager.queryOne<TournamentPlayer>(
+        'SELECT * FROM "tournament_players" WHERE "id" = $1',
+        [forfeitingPlayerId]
+      )
+      const opponentId = match.player1Id === forfeitingPlayerId ? match.player2Id : match.player1Id
+      const opponent =
+        opponentId === undefined
+          ? undefined
+          : await this.databaseManager.queryOne<TournamentPlayer>(
+              'SELECT * FROM "tournament_players" WHERE "id" = $1',
+              [opponentId]
+            )
+
+      if (forfeitingPlayer !== undefined && opponent !== undefined) {
+        const check = await this.antiAbuse.checkForfeitPattern(forfeitingPlayer.playerUuid, opponent.playerUuid)
+        if (!check.allowed) {
+          throw new Error(check.reason ?? 'FLAGGED: Suspicious forfeit pattern')
+        }
+        forfeiterUuid = forfeitingPlayer.playerUuid
+        opponentUuid = opponent.playerUuid
+      }
+    }
+
     const winnerId = match.player1Id === forfeitingPlayerId ? match.player2Id! : match.player1Id!
     this.logger?.info(`Match ${matchId}: Forfeit accepted, winner=${winnerId}`)
     await this.resolveWinner(matchId, winnerId)
+
+    if (this.antiAbuse !== undefined && forfeiterUuid !== undefined && opponentUuid !== undefined) {
+      this.antiAbuse.recordForfeit(forfeiterUuid, opponentUuid)
+    }
     return { status: MatchStatus.Completed, message: 'Forfeit accepted.' }
   }
 
   /**
    * Admin forces winner for a disputed match.
    */
-  public async adminConfirm(matchId: number, winnerId: number): Promise<void> {
+  public async adminConfirm(matchId: number, winnerId: number, actorDiscordId?: string): Promise<void> {
     this.logger?.info(`Match ${matchId}: adminConfirm — winnerId=${winnerId}`)
 
     const match = await this.databaseManager.queryOne<TournamentMatch>(
@@ -241,8 +280,20 @@ export class MatchManager {
       throw new Error('Match is already completed.')
     }
 
+    // Anti-abuse: flag admins repeatedly overriding results
+    if (this.antiAbuse !== undefined && actorDiscordId !== undefined) {
+      const check = await this.antiAbuse.checkFalseReporting(actorDiscordId)
+      if (!check.allowed) {
+        throw new Error(check.reason ?? 'FLAGGED: High admin override rate')
+      }
+    }
+
     this.logger?.info(`Match ${matchId}: Admin confirmed winner ${winnerId}`)
     await this.resolveWinner(matchId, winnerId)
+
+    if (this.antiAbuse !== undefined && actorDiscordId !== undefined) {
+      this.antiAbuse.recordAdminOverride(actorDiscordId)
+    }
   }
 
   public async substitute(
@@ -414,7 +465,7 @@ export class MatchManager {
   /**
    * Internal routine to resolve match winner and advance them.
    */
-  private async resolveWinner(matchId: number, winnerId: number, db?: Queryable): Promise<void> {
+  private async resolveWinner(matchId: number, winnerId: number, database?: Queryable): Promise<void> {
     const now = Math.floor(Date.now() / 1000)
 
     this.logger?.info(`Match ${matchId}: resolveWinner — winnerId=${winnerId}`)
@@ -422,7 +473,7 @@ export class MatchManager {
     const match = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
       [matchId],
-      db
+      database
     )
     if (match === undefined) return
 
@@ -438,17 +489,23 @@ export class MatchManager {
     await this.databaseManager.execute(
       'UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
       [MatchStatus.Completed, winnerId, now, matchId],
-      db
+      database
     )
 
-    // 2. Update players statuses
+    // 2. Handle loser (eliminate or advance into the loser bracket)
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
-    if (loserId !== undefined) {
+    const strategy = this.bracketGenerator?.getStrategy(tournament.bracketFormat ?? 'single-elim')
+    if (loserId !== undefined && match.loserNextMatchId !== undefined) {
+      this.logger?.info(
+        `Tournament ${tournament.id}, Match ${matchId}: Advancing loser ${loserId} to match ${match.loserNextMatchId}`
+      )
+      await this.placePlayerIntoNextMatch(loserId, match.loserNextMatchId, match.matchIndex, tournament, now, database)
+    } else if (loserId !== undefined && (strategy?.eliminatesLoser() ?? true)) {
       this.logger?.info(`Tournament ${tournament.id}, Match ${matchId}: Eliminating player ${loserId}`)
       await this.databaseManager.execute(
         'UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2',
         [PlayerStatus.Eliminated, loserId],
-        db
+        database
       )
     }
 
@@ -479,27 +536,39 @@ export class MatchManager {
       const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
         [tournament.id],
-        db
+        database
       )
       const allComplete = allMatches.every((m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye)
 
       if (allComplete) {
-        this.logger?.info(`Tournament ${tournament.id}: All matches complete! Crowning champion player ${winnerId}`)
+        const championId = strategy?.championId(allMatches) ?? winnerId
+        this.logger?.info(`Tournament ${tournament.id}: All matches complete! Crowning champion player ${championId}`)
         // All matches finished -> Tournament complete!
         await this.databaseManager.execute(
           'UPDATE "tournaments" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
-          [TournamentStatus.Completed, winnerId, now, tournament.id],
-          db
+          [TournamentStatus.Completed, championId, now, tournament.id],
+          database
         )
         await this.databaseManager.execute(
           'UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2',
-          [PlayerStatus.Winner, winnerId],
-          db
+          [PlayerStatus.Winner, championId],
+          database
         )
 
         const names = await this.getPlayerNames(tournament.id)
-        const winnerName = names.get(winnerId) ?? 'Winner'
+        const winnerName = names.get(championId) ?? 'Winner'
         await this.notifications.announceWinner(tournament, winnerName)
+
+        // Finalize after the enclosing transaction (if any) has committed so
+        // recordResults observes the completed state.
+        const completeTournament = this.notifyTournamentCompleted
+        setImmediate(() => {
+          if (completeTournament !== undefined) {
+            void completeTournament(tournament.id).catch((error: unknown) => {
+              this.logger?.error(`Tournament ${tournament.id}: Failed to finalize tournament completion`, error)
+            })
+          }
+        })
       } else {
         this.logger?.info(
           `Tournament ${tournament.id}: Match ${matchId} resolved, no next match — waiting for other matches`
@@ -509,95 +578,7 @@ export class MatchManager {
       this.logger?.info(
         `Match ${matchId}: Advancing winner ${winnerId} to next match ${match.nextMatchId} (slot based on matchIndex=${match.matchIndex})`
       )
-      const nextMatch = await this.databaseManager.queryOne<TournamentMatch>(
-        'SELECT * FROM "tournament_matches" WHERE "id" = $1',
-        [match.nextMatchId],
-        db
-      )
-
-      if (nextMatch !== undefined) {
-        let playerField = 'player1Id'
-        // If matchIndex is odd, this winner goes to player2Id of the next match
-        if (match.matchIndex % 2 === 1) {
-          playerField = 'player2Id'
-        }
-
-        this.logger?.info(`Match ${matchId}: Placing winner into next match ${match.nextMatchId} field ${playerField}`)
-        await this.databaseManager.execute(
-          `UPDATE "tournament_matches" SET "${playerField}" = $1 WHERE "id" = $2`,
-          [winnerId, match.nextMatchId],
-          db
-        )
-
-        // Refresh next match to check if it's now ready
-        const updatedNextMatch = await this.databaseManager.queryOne<TournamentMatch>(
-          'SELECT * FROM "tournament_matches" WHERE "id" = $1',
-          [match.nextMatchId],
-          db
-        )
-
-        if (updatedNextMatch?.player1Id !== undefined && updatedNextMatch.player2Id !== undefined) {
-          this.logger?.info(`Match ${match.nextMatchId}: Both players present! Activating match`)
-          // Both players present! Activate match
-          const deadlineAt = now + tournament.roundDeadlineHours * 3600
-          await this.databaseManager.execute(
-            'UPDATE "tournament_matches" SET "status" = $1, "deadlineAt" = $2 WHERE "id" = $3',
-            [MatchStatus.Active, deadlineAt, updatedNextMatch.id],
-            db
-          )
-
-          // Spawn new thread
-          const p1 = await this.databaseManager.queryOne<TournamentPlayer>(
-            'SELECT * FROM "tournament_players" WHERE "id" = $1',
-            [updatedNextMatch.player1Id],
-            db
-          )
-          const p2 = await this.databaseManager.queryOne<TournamentPlayer>(
-            'SELECT * FROM "tournament_players" WHERE "id" = $1',
-            [updatedNextMatch.player2Id],
-            db
-          )
-
-          if (p1 !== undefined && p2 !== undefined && tournament.discordChannelId !== undefined) {
-            this.logger?.info(`Match ${updatedNextMatch.id}: Spawning new match thread`)
-            const names = await this.getPlayerNames(tournament.id)
-            const p1Name = names.get(p1.id) ?? 'Player 1'
-            const p2Name = names.get(p2.id) ?? 'Player 2'
-
-            const threadId = await this.channelManager.createMatchThread(
-              tournament.discordChannelId,
-              updatedNextMatch,
-              p1,
-              p2,
-              p1Name,
-              p2Name
-            )
-
-            if (threadId !== undefined) {
-              this.logger?.info(`Match ${updatedNextMatch.id}: Thread created (threadId=${threadId})`)
-              await this.databaseManager.execute(
-                'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
-                [threadId, updatedNextMatch.id],
-                db
-              )
-              updatedNextMatch.discordThreadId = threadId
-            }
-
-            await this.notifications.notifyMatchStart(
-              tournament.bridgeId,
-              updatedNextMatch,
-              p1.playerUuid,
-              p2.playerUuid,
-              p1Name,
-              p2Name
-            )
-          }
-        } else {
-          this.logger?.info(
-            `Match ${match.nextMatchId}: Waiting for second player (p1=${updatedNextMatch?.player1Id ?? 'none'}, p2=${updatedNextMatch?.player2Id ?? 'none'})`
-          )
-        }
-      }
+      await this.placePlayerIntoNextMatch(winnerId, match.nextMatchId, match.matchIndex, tournament, now, database)
     }
 
     // 5. Update live bracket message
@@ -605,12 +586,12 @@ export class MatchManager {
     const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
       [tournament.id],
-      db
+      database
     )
     const allPlayers = await this.databaseManager.queryRows<TournamentPlayer>(
       'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
       [tournament.id],
-      db
+      database
     )
     const names = await this.getPlayerNames(tournament.id)
 
@@ -631,7 +612,7 @@ export class MatchManager {
       (m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye
     )
 
-    if (allRoundCompleted && tournament.status === TournamentStatus.Active) {
+    if (allRoundCompleted && tournament.status === TournamentStatus.Active && (strategy?.progressesRounds() ?? true)) {
       // Progress round
       const nextRound = tournament.currentRound + 1
       this.logger?.info(
@@ -640,7 +621,7 @@ export class MatchManager {
       await this.databaseManager.execute(
         'UPDATE "tournaments" SET "currentRound" = $1 WHERE "id" = $2',
         [nextRound, tournament.id],
-        db
+        database
       )
       tournament.currentRound = nextRound
 
@@ -657,6 +638,117 @@ export class MatchManager {
           names
         )
       }
+    }
+
+    this.emitEvent?.('tournament.match_resolved', { tournamentId: tournament.id, matchId, winnerId })
+  }
+
+  /**
+   * Place a player into a destination match slot (parity of the source match index),
+   * activating the destination and spawning its thread when both slots are filled.
+   */
+  private async placePlayerIntoNextMatch(
+    playerId: number,
+    nextMatchId: number,
+    sourceMatchIndex: number,
+    tournament: Tournament,
+    now: number,
+    database?: Queryable
+  ): Promise<void> {
+    const nextMatch = await this.databaseManager.queryOne<TournamentMatch>(
+      'SELECT * FROM "tournament_matches" WHERE "id" = $1',
+      [nextMatchId],
+      database
+    )
+    if (nextMatch === undefined) return
+
+    let playerField = sourceMatchIndex % 2 === 1 ? 'player2Id' : 'player1Id'
+    const parityOccupant = playerField === 'player1Id' ? nextMatch.player1Id : nextMatch.player2Id
+    if (parityOccupant !== undefined && parityOccupant !== playerId) {
+      const alternateField = playerField === 'player1Id' ? 'player2Id' : 'player1Id'
+      const alternateOccupant = alternateField === 'player1Id' ? nextMatch.player1Id : nextMatch.player2Id
+      if (alternateOccupant !== undefined && alternateOccupant !== playerId) {
+        this.logger?.warn(`Match ${nextMatchId}: Both slots occupied — refusing to place player ${playerId}`)
+        return
+      }
+      playerField = alternateField
+    }
+
+    this.logger?.info(`Match ${nextMatchId}: Placing player ${playerId} into field ${playerField}`)
+    await this.databaseManager.execute(
+      `UPDATE "tournament_matches" SET "${playerField}" = $1 WHERE "id" = $2`,
+      [playerId, nextMatchId],
+      database
+    )
+
+    // Refresh next match to check if it's now ready
+    const updatedNextMatch = await this.databaseManager.queryOne<TournamentMatch>(
+      'SELECT * FROM "tournament_matches" WHERE "id" = $1',
+      [nextMatchId],
+      database
+    )
+
+    if (updatedNextMatch?.player1Id !== undefined && updatedNextMatch.player2Id !== undefined) {
+      this.logger?.info(`Match ${nextMatchId}: Both players present! Activating match`)
+      // Both players present! Activate match
+      const deadlineAt = now + tournament.roundDeadlineHours * 3600
+      await this.databaseManager.execute(
+        'UPDATE "tournament_matches" SET "status" = $1, "deadlineAt" = $2 WHERE "id" = $3',
+        [MatchStatus.Active, deadlineAt, updatedNextMatch.id],
+        database
+      )
+
+      // Spawn new thread
+      const p1 = await this.databaseManager.queryOne<TournamentPlayer>(
+        'SELECT * FROM "tournament_players" WHERE "id" = $1',
+        [updatedNextMatch.player1Id],
+        database
+      )
+      const p2 = await this.databaseManager.queryOne<TournamentPlayer>(
+        'SELECT * FROM "tournament_players" WHERE "id" = $1',
+        [updatedNextMatch.player2Id],
+        database
+      )
+
+      if (p1 !== undefined && p2 !== undefined && tournament.discordChannelId !== undefined) {
+        this.logger?.info(`Match ${updatedNextMatch.id}: Spawning new match thread`)
+        const names = await this.getPlayerNames(tournament.id)
+        const p1Name = names.get(p1.id) ?? 'Player 1'
+        const p2Name = names.get(p2.id) ?? 'Player 2'
+
+        const threadId = await this.channelManager.createMatchThread(
+          tournament.discordChannelId,
+          updatedNextMatch,
+          p1,
+          p2,
+          p1Name,
+          p2Name
+        )
+
+        if (threadId !== undefined) {
+          this.logger?.info(`Match ${updatedNextMatch.id}: Thread created (threadId=${threadId})`)
+          await this.databaseManager.execute(
+            'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
+            [threadId, updatedNextMatch.id],
+            database
+          )
+          updatedNextMatch.discordThreadId = threadId
+          await this.notifications.notifyMatchReady(threadId, p1, p2, p1Name, p2Name)
+        }
+
+        await this.notifications.notifyMatchStart(
+          tournament.bridgeId,
+          updatedNextMatch,
+          p1.playerUuid,
+          p2.playerUuid,
+          p1Name,
+          p2Name
+        )
+      }
+    } else {
+      this.logger?.info(
+        `Match ${nextMatchId}: Waiting for second player (p1=${updatedNextMatch?.player1Id ?? 'none'}, p2=${updatedNextMatch?.player2Id ?? 'none'})`
+      )
     }
   }
 }

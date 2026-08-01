@@ -1,6 +1,7 @@
 import { type AnyThreadChannel, ChannelType, EmbedBuilder, type TextChannel, type ThreadChannel } from 'discord.js'
 
 import type Application from '../../application.js'
+import { buildThreadComponents } from '../../instance/discord/features/tournament-buttons.js'
 import { CircuitBreaker } from '../../utility/circuit-breaker.js'
 import RateLimiter from '../../utility/rate-limiter.js'
 
@@ -225,7 +226,8 @@ export class TournamentChannelManager {
     await thread
       .send({
         content: `${player1.discordId === undefined ? p1Name : `<@${player1.discordId}>`} vs ${player2.discordId === undefined ? p2Name : `<@${player2.discordId}>`}`,
-        embeds: [embed]
+        embeds: [embed],
+        components: buildThreadComponents(match.id)
       })
       .catch(() => undefined)
 
@@ -512,7 +514,7 @@ export class TournamentChannelManager {
     }
 
     // Post or edit message
-    const files = bracketImage !== null ? [{ attachment: bracketImage, name: 'bracket.png' }] : []
+    const files = bracketImage === null ? [] : [{ attachment: bracketImage, name: 'bracket.png' }]
     try {
       const message = await textChannel.messages.fetch(messageId).catch(() => undefined)
       await (message === undefined

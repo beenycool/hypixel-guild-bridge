@@ -1,13 +1,28 @@
 import { randomInt } from 'node:crypto'
 
 import * as chrono from 'chrono-node'
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js'
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType,
+  EmbedBuilder,
+  MessageFlags,
+  SlashCommandBuilder
+} from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
 import { validateSeriesScore } from '../../../core/tournament/score-validator.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from '../../../core/tournament/types.js'
 import type { TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
+import {
+  buildCheckinAnnouncementEmbed,
+  buildCheckinComponents,
+  buildSignupComponents,
+  buildSignupEmbed,
+  fetchParticipantCount
+} from '../features/tournament-buttons.js'
 
 const TestChatMessages = [
   'gg everyone lets play soon',
@@ -121,6 +136,17 @@ export default {
           )
           .addIntegerOption((opt) =>
             opt.setName('deadline_hours').setDescription('Hours allowed per round').setRequired(false)
+          )
+          .addStringOption((opt) =>
+            opt
+              .setName('bracket_format')
+              .setDescription('Bracket format (default: single-elim)')
+              .setRequired(false)
+              .addChoices(
+                { name: 'Single Elimination', value: 'single-elim' },
+                { name: 'Double Elimination', value: 'double-elim' },
+                { name: 'Round Robin', value: 'round-robin' }
+              )
           )
       )
       .addSubcommand((sub) => sub.setName('join').setDescription('Join the tournament'))
@@ -250,10 +276,7 @@ export default {
             opt.setName('url').setDescription('URL to proof (YouTube, Imgur, Twitch VOD, etc.)').setRequired(true)
           )
           .addIntegerOption((opt) =>
-            opt
-              .setName('match_id')
-              .setDescription('Match ID (optional if inside match thread)')
-              .setRequired(false)
+            opt.setName('match_id').setDescription('Match ID (optional if inside match thread)').setRequired(false)
           )
       ),
 
@@ -333,6 +356,9 @@ export default {
       const deadline =
         context.interaction.options.getInteger('deadline_hours') ??
         context.application.core.bridgeConfigurations.getTournamentDefaultDeadlineHours(bridgeId)
+      const bracketFormat =
+        context.interaction.options.getString('bracket_format') ??
+        context.application.core.bridgeConfigurations.getTournamentDefaultBracketFormat(bridgeId)
 
       if (bestOf % 2 === 0 || bestOf <= 0) {
         await context.interaction.editReply('Best of X series must be a positive odd number (e.g. 1, 3, 5).')
@@ -340,7 +366,7 @@ export default {
       }
 
       context.application.logger.info(
-        `Discord /tournament create: bridgeId=${bridgeId}, name="${name}", gameType="${gameType}", bestOf=${bestOf}, deadline=${deadline}`
+        `Discord /tournament create: bridgeId=${bridgeId}, name="${name}", gameType="${gameType}", bestOf=${bestOf}, deadline=${deadline}, bracketFormat=${bracketFormat}`
       )
       try {
         const tournament = await context.application.core.tournamentManager.createTournament(
@@ -349,7 +375,10 @@ export default {
           gameType,
           bestOf,
           context.interaction.user.id,
-          deadline
+          deadline,
+          undefined,
+          undefined,
+          bracketFormat
         )
         const embed = new EmbedBuilder()
           .setTitle('🏆 Tournament Created')
@@ -358,6 +387,7 @@ export default {
             `Tournament **${tournament.name}** has been successfully created!\n\n` +
               `• **Game:** ${tournament.gameType}\n` +
               `• **Best Of:** ${tournament.bestOf}\n` +
+              `• **Format:** ${tournament.bracketFormat ?? 'single-elim'}\n` +
               `• **Deadline per round:** ${tournament.roundDeadlineHours} hours\n\n` +
               `Players can now join using \`/tournament join\`!`
           )
@@ -376,35 +406,16 @@ export default {
         if (notificationChannelId) {
           const channel = await context.interaction.guild?.channels.fetch(notificationChannelId).catch(() => null)
           if (channel?.isTextBased()) {
-            const signupEmbed = new EmbedBuilder()
-              .setTitle(`🏆 ${name}`)
-              .setDescription(
-                `**Sign-ups are open!**\n\n` +
-                  `Click **Join** to sign up or **Leave** to drop out.\n\n` +
-                  `**Game:** ${gameType}\n` +
-                  `**Best of:** ${bestOf}\n` +
-                  `**Format:** single-elimination\n` +
-                  `**Round deadline:** ${tournament.roundDeadlineHours} hours\n\n` +
-                  `You can also join anytime with \`/tournament join\`.`
-              )
-              .setColor(0x34_98_db)
-              .setFooter({ text: `Tournament ID: ${tournament.id}` })
-              .setTimestamp()
-
-            const signupButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-              new ButtonBuilder()
-                .setCustomId(`tournament-signup:${bridgeId}:join:${tournament.id}`)
-                .setLabel('Join')
-                .setStyle(ButtonStyle.Success)
-                .setEmoji('✅'),
-              new ButtonBuilder()
-                .setCustomId(`tournament-signup:${bridgeId}:leave:${tournament.id}`)
-                .setLabel('Leave')
-                .setStyle(ButtonStyle.Danger)
-                .setEmoji('❌')
+            const participantCount = await fetchParticipantCount(
+              context.application.core.databaseManager,
+              tournament.id
             )
-
-            await channel.send({ embeds: [signupEmbed], components: [signupButtons] })
+            const signupMessage = await channel.send({
+              embeds: [buildSignupEmbed(tournament, participantCount)]
+            })
+            await signupMessage.edit({
+              components: buildSignupComponents(tournament.id, signupMessage.id)
+            })
           }
         }
       } catch (error: unknown) {
@@ -705,7 +716,9 @@ export default {
           [context.interaction.channelId]
         )
         if (matchByChannel === undefined) {
-          await context.interaction.editReply('Could not auto-detect match ID in this channel. Please specify `match_id`.')
+          await context.interaction.editReply(
+            'Could not auto-detect match ID in this channel. Please specify `match_id`.'
+          )
           return
         }
         matchId = matchByChannel.id
@@ -791,6 +804,27 @@ export default {
         await context.interaction.editReply('✅ Check-in has been opened for the tournament!')
       } catch (error: unknown) {
         await context.interaction.editReply(error instanceof Error ? error.message : String(error))
+        return
+      }
+
+      // Post a check-in announcement with a Check In button in the notification channel
+      const updatedTournament = await context.application.core.tournamentManager.getTournament(tournament.id)
+      if (updatedTournament !== undefined) {
+        const notificationChannelId =
+          context.application.core.bridgeConfigurations.getTournamentNotificationChannelId(bridgeId)
+        if (notificationChannelId) {
+          const channel = await context.interaction.guild?.channels.fetch(notificationChannelId).catch(() => null)
+          if (channel?.isTextBased()) {
+            const checkinMessage = await channel
+              .send({ embeds: [buildCheckinAnnouncementEmbed(updatedTournament)] })
+              .catch(() => undefined)
+            if (checkinMessage !== undefined) {
+              await checkinMessage
+                .edit({ components: buildCheckinComponents(updatedTournament.id, checkinMessage.id) })
+                .catch(() => undefined)
+            }
+          }
+        }
       }
       return
     }
@@ -854,7 +888,9 @@ export default {
           [context.interaction.channelId]
         )
         if (matchByChannel === undefined) {
-          await context.interaction.editReply('Could not auto-detect match ID in this channel. Please specify `match_id`.')
+          await context.interaction.editReply(
+            'Could not auto-detect match ID in this channel. Please specify `match_id`.'
+          )
           return
         }
         matchId = matchByChannel.id

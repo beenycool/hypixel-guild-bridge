@@ -4,7 +4,20 @@ import type Application from '../../application.js'
 import { MinecraftSendChatPriority } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 
-import type { Tournament, TournamentMatch } from './types.js'
+import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
+
+export interface TournamentResultRow {
+  id: number
+  playerUuid: string
+  discordId: string | undefined
+  tournamentId: number
+  placement: number
+  roundsReached: number
+  wins: number
+  losses: number
+  champion: boolean
+  createdAt: number
+}
 
 export class TournamentNotifications {
   constructor(private readonly application: Application) {}
@@ -159,6 +172,59 @@ export class TournamentNotifications {
     }
 
     this.application.logger.info(`Match ${match.id}: Notifications sent to both players`)
+  }
+
+  /**
+   * Sends a "match ready" ping message into the match thread, mentioning both players.
+   */
+  public async notifyMatchReady(
+    threadId: string,
+    player1: TournamentPlayer,
+    player2: TournamentPlayer,
+    p1Name: string,
+    p2Name: string
+  ): Promise<void> {
+    const client = this.application.discordInstance.getClient()
+    const thread = await client.channels.fetch(threadId).catch(() => undefined)
+    if (!thread?.isSendable()) {
+      this.application.logger.info(`notifyMatchReady: Thread ${threadId} not available for sending`)
+      return
+    }
+    const p1Mention = player1.discordId === undefined ? p1Name : `<@${player1.discordId}>`
+    const p2Mention = player2.discordId === undefined ? p2Name : `<@${player2.discordId}>`
+    this.application.logger.info(`notifyMatchReady: Pinging players in thread ${threadId}`)
+    await thread.send({ content: `Your match is ready! ${p1Mention} vs ${p2Mention}` }).catch(() => undefined)
+  }
+
+  /**
+   * Posts a final standings embed (top-3 medals + placement table) to the bracket and notification channels.
+   */
+  public async announceResults(tournament: Tournament, results: TournamentResultRow[]): Promise<void> {
+    this.application.logger.info(`Tournament ${tournament.id}: Announcing results (${results.length} rows)`)
+
+    const medals = ['🥇', '🥈', '🥉']
+    const sorted = [...results].toSorted((a, b) => a.placement - b.placement)
+    const lines = sorted.slice(0, 10).map((r) => {
+      const medal = r.placement <= 3 ? `${medals[r.placement - 1] ?? ''} ` : `**${r.placement}.** `
+      const name = r.discordId === undefined ? `\`${r.playerUuid.slice(0, 8)}\`` : `<@${r.discordId}>`
+      return `${medal}${name} — ${r.wins}W ${r.losses}L (${r.roundsReached} round${r.roundsReached === 1 ? '' : 's'})`
+    })
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🏆 Tournament Results: ${tournament.name}`)
+      .setColor('#FFD700')
+      .setDescription(lines.join('\n') || 'No results recorded yet.')
+      .setTimestamp()
+
+    if (tournament.discordChannelId !== undefined) {
+      const client = this.application.discordInstance.getClient()
+      const channel = await client.channels.fetch(tournament.discordChannelId).catch(() => undefined)
+      if (channel?.isSendable()) {
+        await channel.send({ embeds: [embed] }).catch(() => undefined)
+      }
+    }
+
+    await this.announceToDiscord(tournament.bridgeId, embed)
   }
 
   /**

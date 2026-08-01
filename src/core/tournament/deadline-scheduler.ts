@@ -158,7 +158,7 @@ export class DeadlineScheduler {
               .sendWhisper(
                 tournament.bridgeId,
                 player.playerUuid,
-                `⚠️ Tournament "${tournament.name}" check-in closes soon! Use !tournament checkin to confirm participation.`
+                `⚠️ Tournament "${tournament.name}" check-in closes soon! Use \`!tournament checkin\` to confirm participation.`
               )
               .catch(() => undefined)
           }
