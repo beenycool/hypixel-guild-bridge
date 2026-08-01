@@ -1,5 +1,6 @@
 import type http from 'node:http'
 
+import { ChannelType } from 'discord.js'
 import type { Logger } from 'log4js'
 
 import type Application from '../../application.js'
@@ -89,6 +90,16 @@ export class TournamentApiHandler {
         return true
       }
       this.handleActive(request, response)
+      return true
+    }
+
+    // GET /api/tournament/categories (Discord category channels for the guild)
+    if (pathPart === `${TournamentPrefix}/categories`) {
+      if (method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return true
+      }
+      this.handleCategories(response)
       return true
     }
 
@@ -481,6 +492,9 @@ export class TournamentApiHandler {
       return
     }
 
+    const categoryId = typeof body.categoryId === 'string' ? body.categoryId.trim() : ''
+    config.setTournamentCategoryId(bridgeId, categoryId === '' ? undefined : categoryId)
+
     let startedAtUnix: number | undefined
     if (body.startedAtUnix !== undefined) {
       if (typeof body.startedAtUnix !== 'number' || !Number.isFinite(body.startedAtUnix)) {
@@ -534,6 +548,25 @@ export class TournamentApiHandler {
     } catch (error: unknown) {
       this.logger.error('Failed to get active tournament:', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to get active tournament', 500)
+    }
+  }
+
+  private handleCategories(response: http.ServerResponse): void {
+    try {
+      const client = this.application.discordInstance.getClient()
+      const guild = client.guilds.cache.first()
+      if (guild === undefined) {
+        sendSuccess(response, [])
+        return
+      }
+      const categories = guild.channels.cache
+        .filter((channel) => channel.type === ChannelType.GuildCategory)
+        .map((channel) => ({ id: channel.id, name: channel.name }))
+        .toSorted((a, b) => a.name.localeCompare(b.name))
+      sendSuccess(response, categories)
+    } catch (error: unknown) {
+      this.logger.warn('Failed to fetch Discord categories:', error)
+      sendSuccess(response, [])
     }
   }
 

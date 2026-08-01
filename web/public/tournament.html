@@ -1290,6 +1290,15 @@
                   <option value="round-robin">Round Robin</option>
                 </select>
               </div>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-category">Discord Category</label>
+                <select class="select" id="cf-category">
+                  <option value="">(Auto — create a new category)</option>
+                </select>
+                <span class="create-field-hint"
+                  >Where tournament channels are created. Auto creates a fresh category on start.</span
+                >
+              </div>
               <div class="create-field-grid">
                 <div class="create-field">
                   <label class="create-field-label" for="cf-bestof">Best-of</label>
@@ -1423,6 +1432,7 @@
       let currentId = null
       let cachedDetail = null
       let createBridges = []
+      let createCategories = []
       let activeTab = 'bracket'
       let createDefaultsLoading = false
       let createBlockedByActive = false
@@ -2368,6 +2378,31 @@
 
       const SUPPORTED_FORMATS = ['single-elim', 'double-elim', 'round-robin']
 
+      async function loadCategories() {
+        const sel = document.querySelector('#cf-category')
+        if (!sel) return
+        const current = sel.value
+        try {
+          const data = await Api.apiGet('/api/tournament/categories')
+          createCategories = Array.isArray(data) ? data : []
+        } catch {
+          createCategories = []
+        }
+        sel.innerHTML =
+          '<option value="">(Auto — create a new category)</option>' +
+          createCategories.map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('')
+        if (current) {
+          const exists = createCategories.some((c) => c.id === current)
+          if (!exists) {
+            const opt = document.createElement('option')
+            opt.value = current
+            opt.textContent = 'Configured category (' + current + ')'
+            sel.appendChild(opt)
+          }
+          sel.value = current
+        }
+      }
+
       function setCreateLoading(loading) {
         createDefaultsLoading = loading
         updateCreateSubmit()
@@ -2431,8 +2466,15 @@
             formatLabel(defaults.format)
           if (t.minParticipants != null) summary += ' · Min ' + t.minParticipants + ' players'
           if (t.autoCheckin === false) summary += ' · Auto check-in Off'
+          if (t.categoryId) {
+            const catName = createCategories.find((c) => c.id === t.categoryId)?.name
+            summary += catName ? ' · Category: ' + catName : ' · Category set'
+          }
           summary += ' — override any value below.'
           summaryEl.textContent = summary
+
+          const catSel = document.querySelector('#cf-category')
+          if (catSel) catSel.value = t.categoryId || ''
           return t
         } catch {
           if (myToken !== bridgeLoadToken) return null
@@ -2507,6 +2549,7 @@
         document.querySelector('#cf-defaults-summary').textContent = 'Loading bridge defaults…'
         document.querySelector('#cf-active-warning-text').textContent = ''
         setCreateLoading(true)
+        void loadCategories()
 
         const bridges = await loadBridges()
         if (bridges.length === 0) {
@@ -2541,6 +2584,7 @@
         const checkinRaw = document.querySelector('#cf-checkin').value
         const checkin = checkinRaw === '' ? 0 : Number(checkinRaw) || 0
         const startRaw = document.querySelector('#cf-start').value
+        const categoryId = document.querySelector('#cf-category').value
 
         if (!bridgeId) return Ui.showToast('Select a bridge first', 'error')
         if (!name) return Ui.showToast('Name is required', 'error')
@@ -2575,7 +2619,8 @@
             bestOf,
             roundDeadlineHours: deadline,
             checkinWindowMinutes: checkin,
-            startedAtUnix
+            startedAtUnix,
+            categoryId
           })
           Ui.showToast('Tournament created', 'success')
           closeCreateModal()
