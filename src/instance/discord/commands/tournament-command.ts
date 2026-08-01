@@ -215,10 +215,28 @@ export default {
     )
     let bridgeId = context.bridgeId
 
-    if ((subcommand === 'test' || subcommand === 'set-category' || subcommand === 'cancel') && bridgeId === undefined) {
+    // Allow tournament commands from any Discord channel: infer the bridge
+    // from the guild when it maps to exactly one bridge.
+    if (bridgeId === undefined) {
       if (context.application.bridgeResolver.isMultiBridgeEnabled()) {
-        const bridges = context.application.bridgeResolver.getAllBridges()
-        bridgeId = bridges.length > 0 ? bridges[0].id : 'default'
+        const guild =
+          context.interaction.guild ??
+          (context.interaction.guildId === null
+            ? undefined
+            : await context.interaction.client.guilds.fetch(context.interaction.guildId).catch(() => undefined))
+        if (guild !== undefined) {
+          const guildBridgeIds = new Set<string>()
+          for (const [, channel] of guild.channels.cache) {
+            const bid = context.application.bridgeResolver.getBridgeIdForChannel(channel.id)
+            if (bid !== undefined) guildBridgeIds.add(bid)
+          }
+          if (guildBridgeIds.size === 1) {
+            bridgeId = [...guildBridgeIds][0]
+            context.application.logger.info(
+              `Discord /tournament ${subcommand}: resolved bridgeId=${bridgeId} from guild=${guild.id}`
+            )
+          }
+        }
       } else {
         bridgeId = 'default'
       }
