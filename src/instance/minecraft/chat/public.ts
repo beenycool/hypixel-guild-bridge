@@ -17,9 +17,6 @@ export default {
 
       const user = await context.application.core.initializeMinecraftUser({ name: username, id: uuid }, {})
 
-      const punishments = user.punishments()
-      // if any other punishments active
-      if (punishments.all().length > 0) return
       if (context.application.minecraftManager.isMinecraftBot(username)) {
         context.logger.debug(`[public] suppressing bot message from "${username}": ${playerMessage}`)
         context.clientInstance.notifyChatEvent(ChannelType.Public, playerMessage)
