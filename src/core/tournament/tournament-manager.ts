@@ -368,6 +368,16 @@ export class TournamentManager {
       throw new Error('Tournament signups are closed.')
     }
 
+    // Anti-abuse: rate-limit rapid signup attempts from the same Discord user
+    // (covers /tournament join, the signup buttons and the web API; MC chat
+    // joins have no discordId and are not limited)
+    if (discordId !== undefined) {
+      const abuseCheck = this.antiAbuse.checkSignupRate(discordId)
+      if (!abuseCheck.allowed) {
+        throw new Error(abuseCheck.reason ?? 'Please slow down.')
+      }
+    }
+
     const now = Math.floor(Date.now() / 1000)
 
     this.logger.info(`Tournament ${tournamentId}: Adding player ${playerUuid} (discordId=${discordId ?? 'none'})`)

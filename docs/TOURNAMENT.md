@@ -64,6 +64,8 @@ Match: `PENDING` → `ACTIVE` → `REPORTED` / `DISPUTED` → `BOTH_CONFIRMED` �
 
 Or set `tournament.notificationChannelId` in `application-config.yml`.
 
+When a tournament is created, the signup announcement is posted in the notification channel with **Join** / **Leave** buttons, so members can sign up or drop out with one click instead of typing commands. The announcement is a regular bot message (buttons are not supported on webhook messages). Each button is tied to the tournament via its custom ID, and the replies are ephemeral, so the channel stays clean.
+
 ## Commands
 
 ### Discord Slash Commands

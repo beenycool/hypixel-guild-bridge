@@ -1,10 +1,10 @@
 import { randomInt } from 'node:crypto'
 
 import * as chrono from 'chrono-node'
-import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js'
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
-import type { DiscordCommandHandler } from '../../../common/commands.js'
+import type { DiscordCommandContext, DiscordCommandHandler } from '../../../common/commands.js'
 import { validateSeriesScore } from '../../../core/tournament/score-validator.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from '../../../core/tournament/types.js'
 import type { TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
@@ -51,6 +51,57 @@ const SchedulingOptions = [
   'this weekend anytime',
   'Friday evening EST'
 ]
+
+/**
+ * Notifies staff (officer/helper/owner roles) when a user cannot be resolved
+ * from Minecraft to Discord and needs manual help with verification.
+ * Falls back to the tournament notification channel, then the command channel.
+ */
+async function notifyStaffForUnlinkedUser(
+  context: Readonly<DiscordCommandContext>,
+  bridgeId: string,
+  description: string
+): Promise<void> {
+  try {
+    const { bridgeConfigurations, discordConfigurations } = context.application.core
+    const roleIds = [
+      ...bridgeConfigurations.getOfficerRoleIds(bridgeId),
+      ...bridgeConfigurations.getHelperRoleIds(bridgeId),
+      ...bridgeConfigurations.getOwnerRoleIds(bridgeId),
+      ...discordConfigurations.getOfficerRoleIds(),
+      ...discordConfigurations.getHelperRoleIds(),
+      ...discordConfigurations.getOwnerRoleIds()
+    ]
+    const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
+
+    const notificationChannelId = bridgeConfigurations.getTournamentNotificationChannelId(bridgeId)
+    const client = context.application.discordInstance.getClient()
+    const notificationChannel = notificationChannelId
+      ? await client.channels.fetch(notificationChannelId).catch(() => undefined)
+      : undefined
+    const target = notificationChannel?.isSendable()
+      ? notificationChannel
+      : context.interaction.channel?.isSendable()
+        ? context.interaction.channel
+        : undefined
+
+    if (target === undefined) {
+      context.application.logger.warn(
+        `Cannot notify staff for unlinked user: no sendable channel available (bridgeId=${bridgeId})`
+      )
+      return
+    }
+
+    const pingContent = uniqueRoleIds.map((id) => `<@&${id}>`).join(' ')
+    await target.send({
+      content: `${pingContent.length > 0 ? `${pingContent} ` : ''}${description}`,
+      allowedMentions: { parse: [], roles: uniqueRoleIds }
+    })
+    context.application.logger.info(`Notified staff about unlinked user (bridgeId=${bridgeId})`)
+  } catch (error: unknown) {
+    context.application.logger.warn('Failed to notify staff about unlinked user', error)
+  }
+}
 
 export default {
   getCommandBuilder: () =>
@@ -312,25 +363,48 @@ export default {
           )
           .setTimestamp()
 
+        const botAvatar = context.application.discordInstance.getClient().user?.avatarURL()
+        if (botAvatar !== undefined) embed.setThumbnail(botAvatar)
+
         await context.interaction.editReply({ embeds: [embed] })
 
-        // Try to post signup embed in notification channel
+        // Try to post signup announcement in the notification channel with
+        // Join/Leave buttons (buttons require a regular bot message — they are
+        // not supported on webhook messages)
         const notificationChannelId =
           await context.application.core.bridgeConfigurations.getTournamentNotificationChannelId(bridgeId)
         if (notificationChannelId) {
           const channel = await context.interaction.guild?.channels.fetch(notificationChannelId).catch(() => null)
           if (channel?.isTextBased()) {
             const signupEmbed = new EmbedBuilder()
-              .setTitle(`Sign up for ${name}`)
+              .setTitle(`🏆 ${name}`)
               .setDescription(
-                `React with ✅ to join or ❌ to leave.\n\n**Game:** ${gameType}\n**Best of:** ${bestOf}\n**Format:** single-elim`
+                `**Sign-ups are open!**\n\n` +
+                  `Click **Join** to sign up or **Leave** to drop out.\n\n` +
+                  `**Game:** ${gameType}\n` +
+                  `**Best of:** ${bestOf}\n` +
+                  `**Format:** single-elimination\n` +
+                  `**Round deadline:** ${tournament.roundDeadlineHours} hours\n\n` +
+                  `You can also join anytime with \`/tournament join\`.`
               )
               .setColor(0x34_98_db)
-              .setFooter({ text: `React to join! Tournament ID: ${tournament.id}` })
+              .setFooter({ text: `Tournament ID: ${tournament.id}` })
+              .setTimestamp()
 
-            const signupMessage = await channel.send({ embeds: [signupEmbed] })
-            await signupMessage.react('✅')
-            await signupMessage.react('❌')
+            const signupButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`tournament-signup:${bridgeId}:join:${tournament.id}`)
+                .setLabel('Join')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('✅'),
+              new ButtonBuilder()
+                .setCustomId(`tournament-signup:${bridgeId}:leave:${tournament.id}`)
+                .setLabel('Leave')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('❌')
+            )
+
+            await channel.send({ embeds: [signupEmbed], components: [signupButtons] })
           }
         }
       } catch (error: unknown) {
@@ -354,7 +428,12 @@ export default {
       const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
       if (link === undefined) {
         await context.interaction.editReply(
-          'You must link your Minecraft account first! Use `/verify` or contact an officer.'
+          'You must link your Minecraft account first. Staff have been notified to help you verify.'
+        )
+        await notifyStaffForUnlinkedUser(
+          context,
+          bridgeId,
+          `<@${context.interaction.user.id}> tried to join the tournament, but their Minecraft account could not be resolved to a Discord link. Please help them get verified.`
         )
         return
       }
@@ -729,7 +808,12 @@ export default {
       const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
       if (link === undefined) {
         await context.interaction.editReply(
-          'You must link your Minecraft account first! Use `/verify` or contact an officer.'
+          'You must link your Minecraft account first. Staff have been notified to help you verify.'
+        )
+        await notifyStaffForUnlinkedUser(
+          context,
+          bridgeId,
+          `<@${context.interaction.user.id}> tried to check in for the tournament, but their Minecraft account could not be resolved to a Discord link. Please help them get verified.`
         )
         return
       }
