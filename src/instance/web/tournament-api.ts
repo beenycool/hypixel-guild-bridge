@@ -17,6 +17,8 @@ import { buildTokenSet, verifyToken } from './auth.js'
 
 const TournamentPrefix = '/api/tournament'
 
+const SupportedBracketFormats = new Set(['single-elim', 'double-elim', 'round-robin'])
+
 interface TournamentResult {
   id: number
   playerUuid: string
@@ -77,6 +79,16 @@ export class TournamentApiHandler {
         return true
       }
       await this.handleList(response)
+      return true
+    }
+
+    // GET /api/tournament/active?bridgeId=<id> (active tournament for a bridge)
+    if (pathPart === `${TournamentPrefix}/active`) {
+      if (method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return true
+      }
+      this.handleActive(request, response)
       return true
     }
 
@@ -420,19 +432,66 @@ export class TournamentApiHandler {
     const bridgeId = body.bridgeId
     const name = body.name
     const gameType = body.gameType
-    const bestOf = body.bestOf
-    const bracketFormat = body.bracketFormat
-    const roundDeadlineHours = body.roundDeadlineHours
-    const checkinWindowMinutes = body.checkinWindowMinutes
-    const startedAtUnix = body.startedAtUnix
 
     if (typeof bridgeId !== 'string' || typeof name !== 'string' || typeof gameType !== 'string') {
       sendError(response, 'VALIDATION_ERROR', 'bridgeId, name, and gameType are required', 400)
       return
     }
-    if (typeof bestOf !== 'number' || bestOf < 1) {
-      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive number', 400)
+    if (name.trim().length === 0 || gameType.trim().length === 0) {
+      sendError(response, 'VALIDATION_ERROR', 'name and gameType must not be empty', 400)
       return
+    }
+
+    const config = this.application.core.bridgeConfigurations
+
+    // Omitted values fall back to bridge settings, mirroring /tournament create
+    const bestOf = typeof body.bestOf === 'number' ? body.bestOf : config.getTournamentDefaultBestOf(bridgeId)
+    if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0) {
+      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive odd integer (e.g. 1, 3, 5)', 400)
+      return
+    }
+
+    const roundDeadlineHours =
+      typeof body.roundDeadlineHours === 'number'
+        ? body.roundDeadlineHours
+        : config.getTournamentDefaultDeadlineHours(bridgeId)
+    if (!Number.isInteger(roundDeadlineHours) || roundDeadlineHours < 1 || roundDeadlineHours > 720) {
+      sendError(response, 'VALIDATION_ERROR', 'roundDeadlineHours must be an integer between 1 and 720', 400)
+      return
+    }
+
+    const checkinWindowMinutes =
+      typeof body.checkinWindowMinutes === 'number'
+        ? body.checkinWindowMinutes
+        : config.getTournamentCheckinWindowMinutes(bridgeId)
+    if (!Number.isInteger(checkinWindowMinutes) || checkinWindowMinutes < 0 || checkinWindowMinutes > 1440) {
+      sendError(response, 'VALIDATION_ERROR', 'checkinWindowMinutes must be an integer between 0 and 1440', 400)
+      return
+    }
+
+    const bracketFormat =
+      typeof body.bracketFormat === 'string' ? body.bracketFormat : config.getTournamentDefaultBracketFormat(bridgeId)
+    if (!SupportedBracketFormats.has(bracketFormat)) {
+      sendError(
+        response,
+        'VALIDATION_ERROR',
+        `Unsupported bracketFormat "${bracketFormat}". Use single-elim, double-elim, or round-robin.`,
+        400
+      )
+      return
+    }
+
+    let startedAtUnix: number | undefined
+    if (body.startedAtUnix !== undefined) {
+      if (typeof body.startedAtUnix !== 'number' || !Number.isFinite(body.startedAtUnix)) {
+        sendError(response, 'VALIDATION_ERROR', 'startedAtUnix must be a unix timestamp', 400)
+        return
+      }
+      if (body.startedAtUnix < Math.floor(Date.now() / 1000) - 60) {
+        sendError(response, 'VALIDATION_ERROR', 'startedAtUnix must be in the future', 400)
+        return
+      }
+      startedAtUnix = body.startedAtUnix
     }
 
     const createdBy = auth.userId ?? 'web-ui'
@@ -444,15 +503,37 @@ export class TournamentApiHandler {
         gameType,
         bestOf,
         createdBy,
-        typeof roundDeadlineHours === 'number' ? roundDeadlineHours : 48,
-        typeof startedAtUnix === 'number' ? startedAtUnix : undefined,
-        typeof checkinWindowMinutes === 'number' ? checkinWindowMinutes : 60,
-        typeof bracketFormat === 'string' ? bracketFormat : 'single-elim'
+        roundDeadlineHours,
+        startedAtUnix,
+        checkinWindowMinutes,
+        bracketFormat
       )
       sendSuccess(response, tournament)
     } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        sendError(response, 'CONFLICT', error.message, 409)
+        return
+      }
       this.logger.error('Failed to create tournament:', error)
       sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private handleActive(request: http.IncomingMessage, response: http.ServerResponse): void {
+    const rawUrl = request.url ?? ''
+    const query = new URLSearchParams(rawUrl.split('?')[1] ?? '')
+    const bridgeId = query.get('bridgeId')
+    if (bridgeId === null || bridgeId.length === 0) {
+      sendError(response, 'VALIDATION_ERROR', 'bridgeId query parameter is required', 400)
+      return
+    }
+
+    try {
+      const tournament = this.application.core.tournamentManager.getActiveTournament(bridgeId)
+      sendSuccess(response, { tournament })
+    } catch (error: unknown) {
+      this.logger.error('Failed to get active tournament:', error)
+      sendError(response, 'INTERNAL_ERROR', 'Failed to get active tournament', 500)
     }
   }
 

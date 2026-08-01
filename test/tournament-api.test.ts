@@ -7,7 +7,8 @@ import type { Logger } from 'log4js'
 
 import type Application from '../src/application.js'
 import { Permission } from '../src/common/application-event.js'
-import { MatchStatus, type TournamentMatch } from '../src/core/tournament/types.js'
+import { MatchStatus, TournamentStatus } from '../src/core/tournament/types.js'
+import type { Tournament, TournamentMatch } from '../src/core/tournament/types.js'
 import { signToken } from '../src/instance/web/signed-token.js'
 import { TournamentApiHandler } from '../src/instance/web/tournament-api.js'
 
@@ -87,12 +88,44 @@ interface FakeHarness {
     queryOne: (sql: string, parameters: unknown[]) => Promise<unknown>
   }
   rewindCalls: { matchId: number; actorDiscordId?: string }[]
-  request: FakeRequest
-  response: FakeResponse
+  createCalls: unknown[][]
+  activeByBridge: Record<string, Tournament | undefined>
+  defaults: { bestOf: number; deadlineHours: number; checkinMinutes: number; bracketFormat: string }
 }
 
-function setupTest(): Omit<FakeHarness, 'request' | 'response'> {
+function makeTournament(overrides: Partial<Tournament> = {}): Tournament {
+  return {
+    id: 1,
+    bridgeId: 'bridge-a',
+    name: 'Test Cup',
+    gameType: 'Bridge',
+    bestOf: 1,
+    status: TournamentStatus.Signup,
+    roundDeadlineHours: 48,
+    createdBy: 'web-ui',
+    winnerId: undefined,
+    discordChannelId: undefined,
+    bracketMessageId: undefined,
+    categoryChannelId: undefined,
+    liveChannelId: undefined,
+    checkinOpensAt: undefined,
+    checkinClosesAt: undefined,
+    startedAtUnix: undefined,
+    currentRound: 0,
+    totalRounds: 0,
+    bracketFormat: 'single-elim',
+    createdAt: 123,
+    startedAt: undefined,
+    completedAt: undefined,
+    ...overrides
+  }
+}
+
+function setupTest(): FakeHarness {
   const rewindCalls: { matchId: number; actorDiscordId?: string }[] = []
+  const createCalls: unknown[][] = []
+  const activeByBridge: Record<string, Tournament | undefined> = {}
+  const defaults = { bestOf: 1, deadlineHours: 48, checkinMinutes: 60, bracketFormat: 'single-elim' }
   const database: FakeHarness['db'] = {
     queryRows: async (_sql: string, _parameters: unknown[]) => [],
     queryOne: async (_sql: string, _parameters: unknown[]) => undefined
@@ -105,10 +138,36 @@ function setupTest(): Omit<FakeHarness, 'request' | 'response'> {
     config: { web: { signingSecret: SIGNING_SECRET } },
     core: {
       databaseManager,
+      bridgeConfigurations: {
+        getTournamentDefaultBestOf: (): number => defaults.bestOf,
+        getTournamentDefaultDeadlineHours: (): number => defaults.deadlineHours,
+        getTournamentCheckinWindowMinutes: (): number => defaults.checkinMinutes,
+        getTournamentDefaultBracketFormat: (): string => defaults.bracketFormat
+      },
       tournamentManager: {
         rewindMatch: async (matchId: number, actorDiscordId?: string): Promise<void> => {
           rewindCalls.push({ matchId, actorDiscordId })
-        }
+        },
+        createTournament: async (...arguments_: unknown[]): Promise<Tournament> => {
+          createCalls.push(arguments_)
+          const bridgeId = String(arguments_[0])
+          const existing = activeByBridge[bridgeId]
+          if (
+            existing !== undefined &&
+            (existing.status === TournamentStatus.Signup || existing.status === TournamentStatus.Active)
+          ) {
+            throw new Error(`An active tournament already exists for this bridge: "${existing.name}"`)
+          }
+          return makeTournament({
+            bridgeId,
+            name: String(arguments_[1]),
+            gameType: String(arguments_[2]),
+            bestOf: Number(arguments_[3]),
+            roundDeadlineHours: Number(arguments_[5]),
+            bracketFormat: (arguments_[8] as string | undefined) ?? 'single-elim'
+          })
+        },
+        getActiveTournament: (bridgeId: string): Tournament | undefined => activeByBridge[bridgeId]
       }
     }
   } as unknown as Application
@@ -126,13 +185,13 @@ function setupTest(): Omit<FakeHarness, 'request' | 'response'> {
     getLevel: () => 'off'
   } as unknown as Logger
   const handler = new TournamentApiHandler(app, logger)
-  return { handler, db: database, rewindCalls }
+  return { handler, db: database, rewindCalls, createCalls, activeByBridge, defaults }
 }
 
 async function runHandler(
   method: string,
   url: string,
-  harness: Omit<FakeHarness, 'request' | 'response'>,
+  harness: FakeHarness,
   token: string,
   body?: string
 ): Promise<{ request: FakeRequest; response: FakeResponse; handled: boolean }> {
@@ -307,5 +366,190 @@ await describe('TournamentApiHandler', async () => {
     const body = JSON.parse(response.body) as { success: boolean; data: unknown[] }
     assert.strictEqual(body.success, true)
     assert.deepStrictEqual(body.data, [])
+  })
+
+  await it('POST /api/tournament applies bridge settings defaults when fields are omitted', async () => {
+    const harness = setupTest()
+    harness.defaults.bestOf = 3
+    harness.defaults.deadlineHours = 24
+    harness.defaults.checkinMinutes = 30
+    harness.defaults.bracketFormat = 'double-elim'
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({ bridgeId: 'bridge-a', name: 'Cup #1', gameType: 'Bridge' })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 200)
+    const body = JSON.parse(response.body) as { success: boolean; data: Tournament }
+    assert.strictEqual(body.success, true)
+    assert.deepStrictEqual(harness.createCalls[0], [
+      'bridge-a',
+      'Cup #1',
+      'Bridge',
+      3,
+      'admin-1',
+      24,
+      undefined,
+      30,
+      'double-elim'
+    ])
+    assert.strictEqual(body.data.bestOf, 3)
+    assert.strictEqual(body.data.roundDeadlineHours, 24)
+    assert.strictEqual(body.data.bracketFormat, 'double-elim')
+  })
+
+  await it('POST /api/tournament honors explicitly provided fields over bridge defaults', async () => {
+    const harness = setupTest()
+    harness.defaults.bestOf = 5
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({
+        bridgeId: 'bridge-a',
+        name: 'Cup #2',
+        gameType: 'BedWars',
+        bestOf: 3,
+        roundDeadlineHours: 12,
+        checkinWindowMinutes: 15,
+        bracketFormat: 'round-robin',
+        startedAtUnix: Math.floor(Date.now() / 1000) + 3600
+      })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 200)
+    assert.deepStrictEqual(harness.createCalls[0]?.slice(0, 4), ['bridge-a', 'Cup #2', 'BedWars', 3])
+    assert.strictEqual(harness.createCalls[0]?.[5], 12)
+    assert.strictEqual(harness.createCalls[0]?.[7], 15)
+    assert.strictEqual(harness.createCalls[0]?.[8], 'round-robin')
+  })
+
+  await it('POST /api/tournament rejects even bestOf', async () => {
+    const harness = setupTest()
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({ bridgeId: 'bridge-a', name: 'Cup #3', gameType: 'Bridge', bestOf: 4 })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 400)
+    const body = JSON.parse(response.body) as { success: boolean; error: { code: string } }
+    assert.strictEqual(body.success, false)
+    assert.strictEqual(body.error.code, 'VALIDATION_ERROR')
+    assert.strictEqual(harness.createCalls.length, 0)
+  })
+
+  await it('POST /api/tournament rejects a scheduled start in the past', async () => {
+    const harness = setupTest()
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({
+        bridgeId: 'bridge-a',
+        name: 'Cup #4',
+        gameType: 'Bridge',
+        startedAtUnix: Math.floor(Date.now() / 1000) - 3600
+      })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 400)
+    const body = JSON.parse(response.body) as { success: boolean; error: { code: string; message: string } }
+    assert.strictEqual(body.error.code, 'VALIDATION_ERROR')
+    assert.match(body.error.message, /future/)
+    assert.strictEqual(harness.createCalls.length, 0)
+  })
+
+  await it('POST /api/tournament rejects an unknown bracket format', async () => {
+    const harness = setupTest()
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({ bridgeId: 'bridge-a', name: 'Cup #5', gameType: 'Bridge', bracketFormat: 'ladder' })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 400)
+    const body = JSON.parse(response.body) as { success: boolean; error: { code: string } }
+    assert.strictEqual(body.error.code, 'VALIDATION_ERROR')
+    assert.strictEqual(harness.createCalls.length, 0)
+  })
+
+  await it('POST /api/tournament returns 409 when the bridge already has an active tournament', async () => {
+    const harness = setupTest()
+    harness.activeByBridge['bridge-a'] = makeTournament({
+      id: 7,
+      bridgeId: 'bridge-a',
+      name: 'Existing Cup',
+      status: TournamentStatus.Active
+    })
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({ bridgeId: 'bridge-a', name: 'Cup #6', gameType: 'Bridge' })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 409)
+    const body = JSON.parse(response.body) as { success: boolean; error: { code: string } }
+    assert.strictEqual(body.success, false)
+    assert.strictEqual(body.error.code, 'CONFLICT')
+    assert.strictEqual(harness.createCalls.length, 1)
+  })
+
+  await it('GET /api/tournament/active returns the active tournament for a bridge', async () => {
+    const harness = setupTest()
+    harness.activeByBridge['bridge-a'] = makeTournament({ id: 9, name: 'Live Cup', status: TournamentStatus.Active })
+    const { response, handled } = await runHandler(
+      'GET',
+      '/api/tournament/active?bridgeId=bridge-a',
+      harness,
+      makeToken(Permission.Helper, 'helper-1')
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 200)
+    const body = JSON.parse(response.body) as { success: boolean; data: { tournament: Tournament } }
+    assert.strictEqual(body.success, true)
+    assert.strictEqual(body.data.tournament.id, 9)
+    assert.strictEqual(body.data.tournament.name, 'Live Cup')
+  })
+
+  await it('GET /api/tournament/active returns null when the bridge has no active tournament', async () => {
+    const harness = setupTest()
+    const { response, handled } = await runHandler(
+      'GET',
+      '/api/tournament/active?bridgeId=bridge-a',
+      harness,
+      makeToken(Permission.Helper, 'helper-1')
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 200)
+    const body = JSON.parse(response.body) as { success: boolean; data: { tournament: Tournament | undefined } }
+    assert.strictEqual(body.success, true)
+    assert.strictEqual(body.data.tournament, undefined)
+  })
+
+  await it('GET /api/tournament/active requires the bridgeId query parameter', async () => {
+    const harness = setupTest()
+    const { response, handled } = await runHandler(
+      'GET',
+      '/api/tournament/active',
+      harness,
+      makeToken(Permission.Helper, 'helper-1')
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 400)
+    const body = JSON.parse(response.body) as { success: boolean; error: { code: string } }
+    assert.strictEqual(body.success, false)
+    assert.strictEqual(body.error.code, 'VALIDATION_ERROR')
   })
 })

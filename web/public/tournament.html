@@ -11,7 +11,8 @@
     <style>
       /* ===== Tournament Hub Custom Styles ===== */
       .hub-hero {
-        background: linear-gradient(135deg, rgba(17, 23, 32, 0.9) 0%, rgba(26, 36, 48, 0.95) 100%),
+        background:
+          linear-gradient(135deg, rgba(17, 23, 32, 0.9) 0%, rgba(26, 36, 48, 0.95) 100%),
           radial-gradient(circle at 80% 20%, rgba(251, 191, 36, 0.08) 0%, transparent 50%),
           radial-gradient(circle at 20% 80%, rgba(34, 211, 238, 0.08) 0%, transparent 50%);
         border: 1px solid var(--border-default);
@@ -225,19 +226,19 @@
         transition: background 200ms ease;
       }
 
-      .tournament-card-v2[data-status="ACTIVE"]::after {
+      .tournament-card-v2[data-status='ACTIVE']::after {
         background: var(--accent-gold);
       }
 
-      .tournament-card-v2[data-status="SIGNUP"]::after {
+      .tournament-card-v2[data-status='SIGNUP']::after {
         background: var(--status-success);
       }
 
-      .tournament-card-v2[data-status="COMPLETED"]::after {
+      .tournament-card-v2[data-status='COMPLETED']::after {
         background: var(--accent-cyan);
       }
 
-      .tournament-card-v2[data-status="CANCELLED"]::after {
+      .tournament-card-v2[data-status='CANCELLED']::after {
         background: var(--status-danger);
       }
 
@@ -918,6 +919,29 @@
         justify-content: flex-end;
         gap: 10px;
       }
+
+      /* Create Tournament modal: warning banner & defaults summary */
+      .cf-warning {
+        background: rgba(244, 63, 94, 0.1);
+        border: 1px solid rgba(244, 63, 94, 0.35);
+        color: var(--status-danger);
+        border-radius: var(--radius-md);
+        padding: 10px 14px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .cf-warning strong {
+        color: var(--status-danger);
+      }
+
+      #cf-defaults-summary {
+        background: rgba(10, 14, 20, 0.5);
+        border: 1px dashed var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: 8px 10px;
+        margin-top: 0;
+      }
     </style>
   </head>
   <body>
@@ -929,45 +953,92 @@
         <div class="hero-top-row">
           <div class="hero-title-group">
             <h1 class="flex align-center gap-sm">
-              <svg class="ui-icon" style="color:var(--gold-light);width:1.2em;height:1.2em" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+              <svg class="ui-icon" style="color: var(--gold-light); width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+              </svg>
               Esports Tournaments
             </h1>
             <p>Organize, seed, track bracket progress, and manage live match results seamlessly.</p>
           </div>
           <div class="flex gap-sm">
             <button class="btn btn-secondary btn-sm" id="refresh-btn">
-              <svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9c-2.39 0-4.68.94-6.4 2.6L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9c2.39 0 4.68-.94 6.4-2.6L21 16"/><path d="M16 16h5v5"/></svg> Refresh
+              <svg class="ui-icon" viewBox="0 0 24 24">
+                <path d="M21 12a9 9 0 0 0-9-9c-2.39 0-4.68.94-6.4 2.6L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9c2.39 0 4.68-.94 6.4-2.6L21 16" />
+                <path d="M16 16h5v5" />
+              </svg>
+              Refresh
             </button>
             <button class="btn btn-primary btn-sm" id="create-btn" style="display: none">
-              <svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Create Tournament
+              <svg class="ui-icon" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create Tournament
             </button>
           </div>
         </div>
 
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon gold"><svg class="ui-icon" style="width:1.2em;height:1.2em" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+            <div class="stat-icon gold">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+              </svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="stat-active">0</div>
               <div class="stat-label">Active Tournaments</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon green"><svg class="ui-icon" style="width:1.2em;height:1.2em" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg></div>
+            <div class="stat-icon green">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
+              </svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="stat-signups">0</div>
               <div class="stat-label">Registration Open</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon cyan"><svg class="ui-icon" style="width:1.2em;height:1.2em" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg></div>
+            <div class="stat-icon cyan">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                <line x1="4" x2="4" y1="22" y2="15" />
+              </svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="stat-completed">0</div>
               <div class="stat-label">Completed</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon purple"><svg class="ui-icon" style="width:1.2em;height:1.2em" viewBox="0 0 24 24"><polygon points="14.5 17.5 3 6 3 3 6 3 17.5 14.5 14.5 17.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polygon points="9.5 6.5 21 18 21 21 18 21 6.5 9.5 9.5 6.5"/><line x1="11" y1="5" x2="5" y2="11"/><line x1="8" y1="8" x2="4" y2="4"/></svg></div>
+            <div class="stat-icon purple">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <polygon points="14.5 17.5 3 6 3 3 6 3 17.5 14.5 14.5 17.5" />
+                <line x1="13" y1="19" x2="19" y2="13" />
+                <line x1="16" y1="16" x2="20" y2="20" />
+                <polygon points="9.5 6.5 21 18 21 21 18 21 6.5 9.5 9.5 6.5" />
+                <line x1="11" y1="5" x2="5" y2="11" />
+                <line x1="8" y1="8" x2="4" y2="4" />
+              </svg>
+            </div>
             <div class="stat-info">
               <div class="stat-value" id="stat-total">0</div>
               <div class="stat-label">Total Events</div>
@@ -979,15 +1050,43 @@
       <!-- ===== Control & Filter Toolbar ===== -->
       <div class="toolbar" id="list-toolbar">
         <div class="search-box">
-          <span class="search-icon"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <span class="search-icon"
+            ><svg class="ui-icon" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
+          ></span>
           <input type="text" class="input" id="search-input" placeholder="Search by name or game..." />
         </div>
         <div class="filter-pills" id="status-filters">
           <button class="filter-pill active" data-filter="ALL">All</button>
-          <button class="filter-pill" data-filter="ACTIVE"><svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Active</button>
-          <button class="filter-pill" data-filter="SIGNUP"><svg class="ui-icon" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg> Signups</button>
-          <button class="filter-pill" data-filter="COMPLETED"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Completed</button>
-          <button class="filter-pill" data-filter="CANCELLED"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Cancelled</button>
+          <button class="filter-pill" data-filter="ACTIVE">
+            <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+            Active
+          </button>
+          <button class="filter-pill" data-filter="SIGNUP">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              <path d="M9 12h6" />
+              <path d="M9 16h6" />
+            </svg>
+            Signups
+          </button>
+          <button class="filter-pill" data-filter="COMPLETED">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            Completed
+          </button>
+          <button class="filter-pill" data-filter="CANCELLED">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+            Cancelled
+          </button>
         </div>
       </div>
 
@@ -1009,9 +1108,36 @@
         <div id="detail-hero" class="detail-hero-banner"></div>
 
         <div class="detail-tabs">
-          <button class="tab-btn active" data-tab="bracket"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> Bracket</button>
-          <button class="tab-btn" data-tab="participants"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Participants</button>
-          <button class="tab-btn" data-tab="audit" id="tab-audit-btn" style="display: none"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Audit Log</button>
+          <button class="tab-btn active" data-tab="bracket">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+              <path d="M4 22h16" />
+              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+              <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+            </svg>
+            Bracket
+          </button>
+          <button class="tab-btn" data-tab="participants">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Participants
+          </button>
+          <button class="tab-btn" data-tab="audit" id="tab-audit-btn" style="display: none">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            Audit Log
+          </button>
         </div>
 
         <div id="tab-bracket" class="tab-content">
@@ -1067,7 +1193,8 @@
             <div class="flex gap-md">
               <div class="form-row" style="flex: 1">
                 <label class="form-label">Best-of</label>
-                <input type="number" class="input" id="cf-bestof" min="1" max="9" value="3" required />
+                <input type="number" class="input" id="cf-bestof" min="1" max="9" step="2" value="1" required />
+                <div class="form-hint">Odd numbers only (1, 3, 5, 7, 9).</div>
               </div>
               <div class="form-row" style="flex: 1">
                 <label class="form-label">Round Deadline (hours)</label>
@@ -1081,9 +1208,15 @@
             <div class="form-row">
               <label class="form-label">Scheduled Start (optional)</label>
               <input type="datetime-local" class="input" id="cf-start" />
-              <div class="form-hint">
-                Leave blank for manual start. Sets check-in windows relative to start.
+              <div class="form-hint">Leave blank for manual start. Sets check-in windows relative to start.</div>
+            </div>
+            <div class="form-row">
+              <div class="form-hint" id="cf-defaults-summary" style="margin-top: 4px; font-size: 12px">
+                Loading bridge defaults…
               </div>
+            </div>
+            <div class="form-row" id="cf-active-row" style="display: none">
+              <div class="cf-warning" id="cf-active-warning"></div>
             </div>
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" id="cf-cancel">Cancel</button>
@@ -1156,6 +1289,9 @@
       let cachedDetail = null
       let createBridges = []
       let activeTab = 'bracket'
+      let createDefaultsLoading = false
+      let createBlockedByActive = false
+      const LAST_BRIDGE_KEY = 'tournament_create_bridge'
 
       function perm() {
         return Auth.getPermission()
@@ -1544,27 +1680,33 @@
               const globalIdx = i + idxInPair
               const p1 = playerMap[m.player1Id]
               const p2 = playerMap[m.player2Id]
-              const p1Name = p1 ? p1.playerUuid : (m.status === 'BYE' ? '—' : 'TBD')
-              const p2Name = p2 ? p2.playerUuid : (m.status === 'BYE' ? 'BYE' : 'TBD')
+              const p1Name = p1 ? p1.playerUuid : m.status === 'BYE' ? '—' : 'TBD'
+              const p2Name = p2 ? p2.playerUuid : m.status === 'BYE' ? 'BYE' : 'TBD'
 
               const p1Win = m.winnerId && m.winnerId === m.player1Id
               const p2Win = m.winnerId && m.winnerId === m.player2Id
               const isDone = m.status === 'COMPLETED' || m.status === 'BYE' || m.status === 'BOTH_CONFIRMED'
 
-              const p1RowCls = p1Win ? 'is-winner' : (p2Win ? 'is-loser' : '')
-              const p2RowCls = p2Win ? 'is-winner' : (p1Win ? 'is-loser' : '')
+              const p1RowCls = p1Win ? 'is-winner' : p2Win ? 'is-loser' : ''
+              const p2RowCls = p2Win ? 'is-winner' : p1Win ? 'is-loser' : ''
 
               const p1Avatar = playerAvatarUrl(p1 ? p1.playerUuid : null)
               const p2Avatar = playerAvatarUrl(p2 ? p2.playerUuid : null)
 
-              const statusCls = isDone ? 'is-completed' : (m.status === 'DISPUTED' ? 'is-disputed' : (m.status === 'ACTIVE' || m.status === 'REPORTED' ? 'is-active' : ''))
+              const statusCls = isDone
+                ? 'is-completed'
+                : m.status === 'DISPUTED'
+                  ? 'is-disputed'
+                  : m.status === 'ACTIVE' || m.status === 'REPORTED'
+                    ? 'is-active'
+                    : ''
 
               html += `
                 <div class="match-wrapper">
                   <div class="match-card-v2 ${statusCls}">
                     <div class="match-card-header">
                       <span>Match #${m.matchIndex != null ? m.matchIndex + 1 : globalIdx + 1}</span>
-                      <span class="match-badge-status ${esc(m.status || '')}">${esc(m.status === 'BOTH_CONFIRMED' ? 'COMPLETED' : (m.status || 'PENDING'))}</span>
+                      <span class="match-badge-status ${esc(m.status || '')}">${esc(m.status === 'BOTH_CONFIRMED' ? 'COMPLETED' : m.status || 'PENDING')}</span>
                     </div>
 
                     <div class="match-player-row ${p1RowCls}">
@@ -1732,7 +1874,8 @@
         try {
           const logs = await Api.apiGet('/api/tournament/' + id + '/audit')
           if (!Array.isArray(logs) || logs.length === 0) {
-            host.innerHTML = '<div class="empty-state"><div class="empty-state-text">No audit entries logged yet.</div></div>'
+            host.innerHTML =
+              '<div class="empty-state"><div class="empty-state-text">No audit entries logged yet.</div></div>'
             return
           }
           let html = ''
@@ -2086,47 +2229,151 @@
         }
       }
 
+      const SUPPORTED_FORMATS = ['single-elim', 'double-elim', 'round-robin']
+
+      function setCreateLoading(loading) {
+        createDefaultsLoading = loading
+        updateCreateSubmit()
+      }
+
+      function updateCreateSubmit() {
+        const submitBtn = document.querySelector('#cf-create-submit')
+        if (!submitBtn) return
+        submitBtn.disabled = createDefaultsLoading || createBlockedByActive
+        submitBtn.textContent = createDefaultsLoading ? 'Loading…' : 'Create'
+      }
+
+      function applyCreateDefaults({ bestOf, deadline, checkin, format }) {
+        document.querySelector('#cf-bestof').value = String(bestOf)
+        document.querySelector('#cf-deadline').value = String(deadline)
+        document.querySelector('#cf-checkin').value = String(checkin)
+        const formatSel = document.querySelector('#cf-format')
+        if (formatSel && SUPPORTED_FORMATS.includes(format)) formatSel.value = format
+      }
+
+      function formatLabel(format) {
+        if (format === 'double-elim') return 'Double Elimination'
+        if (format === 'round-robin') return 'Round Robin'
+        return 'Single Elimination'
+      }
+
       async function loadSettingsForBridge(bridgeId) {
+        const summaryEl = document.querySelector('#cf-defaults-summary')
+        const gametypesEl = document.querySelector('#cf-gametypes')
         if (!bridgeId) {
-          document.querySelector('#cf-gametypes').innerHTML = ''
-          document.querySelector('#cf-bestof').value = 3
-          document.querySelector('#cf-deadline').value = 48
-          document.querySelector('#cf-checkin').value = 60
-          document.querySelector('#cf-format').value = 'single-elim'
-          return
+          gametypesEl.innerHTML = ''
+          applyCreateDefaults({ bestOf: 1, deadline: 48, checkin: 60, format: 'single-elim' })
+          summaryEl.textContent = 'No bridge selected — using built-in defaults.'
+          return null
         }
         try {
           const res = await Api.apiGet('/api/bridges/' + encodeURIComponent(bridgeId) + '/settings')
           const t = (res && res.categories && res.categories.tournament) || {}
-          if (Array.isArray(t.validGameTypes) && t.validGameTypes.length > 0) {
-            document.querySelector('#cf-gametypes').innerHTML = t.validGameTypes
-              .map((g) => '<option value="' + esc(g) + '">')
-              .join('')
-          } else {
-            document.querySelector('#cf-gametypes').innerHTML = ''
+          const defaults = {
+            bestOf: Number(t.defaultBestOf) > 0 ? Number(t.defaultBestOf) : 1,
+            deadline: Number(t.defaultDeadlineHours) > 0 ? Number(t.defaultDeadlineHours) : 48,
+            checkin:
+              t.checkinWindowMinutes != null && t.checkinWindowMinutes !== '' ? Number(t.checkinWindowMinutes) : 60,
+            format: SUPPORTED_FORMATS.includes(t.bracketFormat) ? t.bracketFormat : 'single-elim'
           }
-          if (t.defaultBestOf) document.querySelector('#cf-bestof').value = t.defaultBestOf
-          if (t.defaultDeadlineHours) document.querySelector('#cf-deadline').value = t.defaultDeadlineHours
-          if (t.checkinWindowMinutes != null) document.querySelector('#cf-checkin').value = t.checkinWindowMinutes
-          if (t.bracketFormat) {
-            const sel = document.querySelector('#cf-format')
-            if (sel && [...sel.options].some((o) => o.value === t.bracketFormat)) sel.value = t.bracketFormat
-          }
-        } catch {}
+          applyCreateDefaults(defaults)
+
+          const validGames = Array.isArray(t.validGameTypes) ? t.validGameTypes : []
+          gametypesEl.innerHTML = validGames.map((g) => '<option value="' + esc(g) + '">').join('')
+
+          let summary =
+            'Bridge defaults: Best of ' +
+            defaults.bestOf +
+            ' · ' +
+            defaults.deadline +
+            'h per round · ' +
+            defaults.checkin +
+            ' min check-in · ' +
+            formatLabel(defaults.format)
+          if (t.minParticipants != null) summary += ' · Min ' + t.minParticipants + ' players'
+          if (t.autoCheckin === false) summary += ' · Auto check-in Off'
+          summary += '. You can override any value below.'
+          summaryEl.textContent = summary
+          return t
+        } catch {
+          gametypesEl.innerHTML = ''
+          applyCreateDefaults({ bestOf: 1, deadline: 48, checkin: 60, format: 'single-elim' })
+          summaryEl.textContent =
+            'Could not load bridge defaults — using built-in defaults. You can override any value below.'
+          return null
+        }
       }
 
-      function openCreateModal() {
+      async function checkActiveTournament(bridgeId) {
+        const warnEl = document.querySelector('#cf-active-warning')
+        const rowEl = document.querySelector('#cf-active-row')
+        if (!bridgeId) {
+          createBlockedByActive = false
+          if (rowEl) rowEl.style.display = 'none'
+          updateCreateSubmit()
+          return
+        }
+        try {
+          const res = await Api.apiGet('/api/tournament/active?bridgeId=' + encodeURIComponent(bridgeId))
+          const active = res && res.tournament
+          if (active) {
+            const phase = active.status === 'ACTIVE' ? 'active' : 'in the signup phase'
+            warnEl.innerHTML =
+              '<strong>' +
+              esc(active.name || 'A tournament') +
+              '</strong> is already ' +
+              phase +
+              ' on this bridge. Only one tournament can run at a time — complete or cancel it first.'
+            createBlockedByActive = true
+            if (rowEl) rowEl.style.display = ''
+          } else {
+            createBlockedByActive = false
+            if (rowEl) rowEl.style.display = 'none'
+          }
+        } catch {
+          createBlockedByActive = false
+          if (rowEl) rowEl.style.display = 'none'
+        }
+        updateCreateSubmit()
+      }
+
+      async function applyBridgeDefaults(bridgeId) {
+        const select = document.querySelector('#cf-bridge')
+        if (select) select.value = bridgeId
+        if (bridgeId) {
+          try {
+            localStorage.setItem(LAST_BRIDGE_KEY, bridgeId)
+          } catch {}
+        }
+        setCreateLoading(true)
+        await loadSettingsForBridge(bridgeId)
+        await checkActiveTournament(bridgeId)
+        setCreateLoading(false)
+      }
+
+      async function openCreateModal() {
         createModal.style.display = ''
         createForm.reset()
-        document.querySelector('#cf-bestof').value = 3
-        document.querySelector('#cf-deadline').value = 48
-        document.querySelector('#cf-checkin').value = 60
-        document.querySelector('#cf-format').value = 'single-elim'
         document.querySelector('#cf-start').value = ''
-        void loadBridges().then(() => {
-          const select = document.querySelector('#cf-bridge')
-          if (select && select.value) void loadSettingsForBridge(select.value)
-        })
+        document.querySelector('#cf-gametypes').innerHTML = ''
+        document.querySelector('#cf-defaults-summary').textContent = 'Loading bridge defaults…'
+        setCreateLoading(true)
+
+        const bridges = await loadBridges()
+        if (bridges.length === 0) {
+          document.querySelector('#cf-defaults-summary').textContent =
+            'No bridges configured — create a bridge in Settings first.'
+          createBlockedByActive = false
+          setCreateLoading(false)
+          return
+        }
+
+        let preferred = null
+        try {
+          preferred = localStorage.getItem(LAST_BRIDGE_KEY)
+        } catch {}
+        const target = bridges.includes(preferred) ? preferred : bridges[0]
+        await applyBridgeDefaults(target)
         setTimeout(() => document.querySelector('#cf-name').focus(), 50)
       }
 
@@ -2140,15 +2387,30 @@
         const name = document.querySelector('#cf-name').value.trim()
         const gameType = document.querySelector('#cf-gametype').value.trim()
         const bracketFormat = document.querySelector('#cf-format').value
-        const bestOf = Number(document.querySelector('#cf-bestof').value) || 1
-        const deadline = Number(document.querySelector('#cf-deadline').value) || 48
-        const checkin = Number(document.querySelector('#cf-checkin').value) || 0
+        const bestOf = Number(document.querySelector('#cf-bestof').value) || 0
+        const deadline = Number(document.querySelector('#cf-deadline').value) || 0
+        const checkinRaw = document.querySelector('#cf-checkin').value
+        const checkin = checkinRaw === '' ? 0 : Number(checkinRaw) || 0
         const startRaw = document.querySelector('#cf-start').value
-        const startedAtUnix = startRaw ? Math.floor(new Date(startRaw).getTime() / 1000) : undefined
 
         if (!bridgeId) return Ui.showToast('Select a bridge first', 'error')
         if (!name) return Ui.showToast('Name is required', 'error')
         if (!gameType) return Ui.showToast('Game type is required', 'error')
+        if (!SUPPORTED_FORMATS.includes(bracketFormat)) return Ui.showToast('Pick a valid bracket format', 'error')
+        if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0)
+          return Ui.showToast('Best-of must be a positive odd number (e.g. 1, 3, 5).', 'error')
+        if (!Number.isInteger(deadline) || deadline < 1 || deadline > 720)
+          return Ui.showToast('Round deadline must be between 1 and 720 hours.', 'error')
+        if (!Number.isInteger(checkin) || checkin < 0 || checkin > 1440)
+          return Ui.showToast('Check-in window must be between 0 and 1440 minutes.', 'error')
+
+        let startedAtUnix
+        if (startRaw) {
+          const startTime = new Date(startRaw).getTime()
+          if (!Number.isFinite(startTime) || startTime <= Date.now())
+            return Ui.showToast('Scheduled start must be in the future.', 'error')
+          startedAtUnix = Math.floor(startTime / 1000)
+        }
 
         const submitBtn = document.querySelector('#cf-create-submit') || e.submitter
         if (submitBtn) {
@@ -2172,10 +2434,7 @@
         } catch (err) {
           Ui.showToast('Failed to create: ' + (err.message || String(err)), 'error')
         } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false
-            submitBtn.textContent = 'Create'
-          }
+          if (submitBtn) updateCreateSubmit()
         }
       }
 
@@ -2193,7 +2452,7 @@
         createForm.addEventListener('submit', submitCreate)
 
         document.querySelector('#cf-bridge').addEventListener('change', (e) => {
-          void loadSettingsForBridge(e.target.value)
+          void applyBridgeDefaults(e.target.value)
         })
 
         refreshBtn.addEventListener('click', () => {
