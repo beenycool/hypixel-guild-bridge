@@ -1470,6 +1470,26 @@
         return `https://mc-heads.net/avatar/${encodeURIComponent(uuid)}/20`
       }
 
+      function resolveDiscordIds(scope) {
+        const hosts = scope ? scope.querySelectorAll('[data-discord]') : document.querySelectorAll('[data-discord]')
+        const ids = [...new Set([...hosts].map((el) => el.dataset.discord).filter(Boolean))]
+        if (ids.length === 0) return
+        Api.apiGet('/api/tournament/users?ids=' + encodeURIComponent(ids.join(',')))
+          .then((res) => {
+            for (const host of hosts) {
+              const profile = res ? res[host.dataset.discord] : undefined
+              if (!profile) continue
+              const name = profile.displayName || profile.username || host.dataset.discord
+              const avatar = profile.avatar || null
+              host.title = host.dataset.discord
+              host.innerHTML = avatar
+                ? `<img src="${esc(avatar)}" class="player-head-img" style="width:18px;height:18px;border-radius:50%;vertical-align:-4px;margin-right:5px" alt="">${esc(name)}`
+                : esc(name)
+            }
+          })
+          .catch(() => {})
+      }
+
       function statusBadgeHtml(status) {
         const hasPulse = status === 'ACTIVE' || status === 'SIGNUP'
         return `
@@ -1974,7 +1994,7 @@
                   <span class="font-mono">${esc(p.playerUuid || 'Unknown')}</span>
                 </div>
               </td>
-              <td class="font-mono text-muted">${esc(p.discordId || '—')}</td>
+              <td class="font-mono text-muted" data-discord="${esc(p.discordId || '')}">${esc(p.discordId || '—')}</td>
               <td>
                 <span class="badge ${p.checkedIn ? 'badge-success' : 'badge-muted'}">
                   ${p.checkedIn ? 'Checked In' : 'Pending'}
@@ -1998,6 +2018,7 @@
         }
         const saveSeedsBtn = host.querySelector('#save-seeds-btn')
         if (saveSeedsBtn) saveSeedsBtn.addEventListener('click', () => saveSeeds(tournamentId, host))
+        resolveDiscordIds(host)
       }
 
       async function loadResults(id) {
@@ -2077,7 +2098,7 @@
                 <div class="flex align-center gap-md">
                   <span class="audit-action-tag">${esc(e.action || 'ACTION')}</span>
                   <div>
-                    <strong class="font-mono">${esc(e.actorDiscordId || 'System')}</strong>
+                    <strong class="font-mono" data-discord="${esc(e.actorDiscordId || '')}">${esc(e.actorDiscordId || 'System')}</strong>
                     ${metaStr ? `<span class="text-secondary text-sm ml-2">${metaStr}</span>` : ''}
                   </div>
                 </div>
@@ -2085,6 +2106,7 @@
               </div>`
           }
           host.innerHTML = html
+          resolveDiscordIds(host)
         } catch (err) {
           host.innerHTML = `<div class="text-danger">Failed to load audit log: ${esc(err.message || String(err))}</div>`
         }

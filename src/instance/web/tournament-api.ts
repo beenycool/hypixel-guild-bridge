@@ -34,6 +34,8 @@ interface TournamentResult {
 }
 
 export class TournamentApiHandler {
+  private readonly userProfileCache = new Map<string, { expiresAt: number; profile: unknown }>()
+
   constructor(
     private readonly application: Application,
     private readonly logger: Logger
@@ -90,6 +92,16 @@ export class TournamentApiHandler {
         return true
       }
       this.handleActive(request, response)
+      return true
+    }
+
+    // GET /api/tournament/users?ids=<id1>,<id2> (resolve Discord IDs to usernames/avatars)
+    if (pathPart === `${TournamentPrefix}/users`) {
+      if (method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return true
+      }
+      await this.handleResolveUsers(request, response)
       return true
     }
 
@@ -630,6 +642,50 @@ export class TournamentApiHandler {
       this.logger.error('Failed to get active tournament:', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to get active tournament', 500)
     }
+  }
+
+  private async handleResolveUsers(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+    const rawUrl = request.url ?? ''
+    const query = new URLSearchParams(rawUrl.split('?')[1] ?? '')
+    const idsRaw = query.get('ids') ?? ''
+    const ids = idsRaw
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+
+    if (ids.length === 0) {
+      sendSuccess(response, {})
+      return
+    }
+    if (ids.length > 100) {
+      sendError(response, 'VALIDATION_ERROR', 'Too many ids. Maximum of 100.', 400)
+      return
+    }
+
+    const discordInstance = this.application.discordInstance
+    const guild = discordInstance.getClient().guilds.cache.first()
+    const now = Date.now()
+    const resolved: Record<string, unknown> = {}
+    const pending: string[] = []
+
+    for (const id of ids) {
+      const cached = this.userProfileCache.get(id)
+      if (cached !== undefined && cached.expiresAt > now) {
+        resolved[id] = cached.profile
+      } else {
+        pending.push(id)
+      }
+    }
+
+    for (const id of pending) {
+      const profile = await discordInstance.profileById(id, guild).catch(() => undefined)
+      if (profile === undefined) continue
+      this.userProfileCache.set(id, { expiresAt: now + 10 * 60 * 1000, profile })
+      resolved[id] = profile
+    }
+
+    this.logger.info(`Resolved ${Object.keys(resolved).length}/${ids.length} Discord user profile(s)`)
+    sendSuccess(response, resolved)
   }
 
   private handleCategories(response: http.ServerResponse): void {
