@@ -9,7 +9,6 @@ import Logger4js from 'log4js'
 
 import PackageJson from './package.json' with { type: 'json' }
 import Application from './src/application.js'
-import { Instance } from './src/common/instance'
 import { loadApplicationConfig, parseApplicationConfig } from './src/configuration-parser.js'
 import { loadI18 } from './src/i18next'
 import { gracefullyExitProcess } from './src/utility/shared-utility'
@@ -264,135 +263,8 @@ if (process.env.CONFIG_B64) {
   config = loadApplicationConfig(ConfigPath)
 }
 
-interface EventSummaryData {
-  instanceName?: string
-  bridge?: string
-  bridgeId?: string
-  timestamp?: number
-  createdAt?: string
-  totalMembers?: number
-  memberCount?: number
-  message?: string
-  rawMessage?: string
-  text?: string
-  content?: string
-}
-
 try {
   app = new Application(config, RootDirectory, ConfigsDirectory, I18n.cloneInstance())
-
-  const loggers = new Map<string, Logger4js.Logger>()
-
-  // Environment toggle to enable full JSON event dumps for debugging
-  const EventTrace = Boolean(process.env.EVENT_TRACE ?? process.env.LOG_EVENT_JSON)
-
-  // Events considered "noisy" (high-volume chat-like events) — emit concise summaries instead
-  const NoisyEvents = new Set([
-    'minecraftChat',
-    'chat',
-    'guildPlayer',
-    'guildGeneral',
-    'minecraftChatEvent',
-    'minecraftSelfBroadcast'
-  ])
-
-  // Events that should always be fully logged with JSON payload
-  const LoggedEvents = new Set(['error', 'instanceStatus', 'bridgeConfigChanged'])
-
-  function stripColorCodesAndNormalize(s: unknown): string {
-    if (s == undefined) return ''
-    if (typeof s !== 'string' && typeof s !== 'number' && typeof s !== 'boolean') return ''
-    const inputString = String(s)
-    // Strip common Minecraft color codes (e.g. §a) and collapse whitespace
-    return inputString
-      .replaceAll(/\u00A7[0-9a-fk-or]/gi, '')
-      .replaceAll(/\s+/g, ' ')
-      .trim()
-  }
-
-  function truncate(s: string, n = 120): string {
-    if (s.length <= n) return s
-    return s.slice(0, n - 1) + '…'
-  }
-
-  function isGuildListLine(message: string): boolean {
-    const trimmed = message.trim()
-    if (trimmed.startsWith('Guild Name:')) return true
-    if (trimmed.startsWith('--') && trimmed.endsWith('--')) return true
-    if (trimmed.startsWith('Total Members:')) return true
-    if (trimmed.startsWith('Online Members:')) return true
-    return false
-  }
-
-  function formatEventSummary(name: string, event: unknown): string {
-    try {
-      const eventData = event as EventSummaryData
-      const instanceName = eventData.instanceName ?? 'unknown'
-      const bridgeId = eventData.bridgeId ?? eventData.bridge ?? 'n/a'
-      const createdAt = eventData.createdAt ?? eventData.timestamp
-      const totalMembers = eventData.totalMembers ?? eventData.memberCount
-
-      // Prefer commonly used message fields
-      const rawMessage = eventData.message ?? eventData.rawMessage ?? eventData.text ?? eventData.content ?? ''
-      const clean = truncate(stripColorCodesAndNormalize(rawMessage), 120)
-
-      const parts = [`[${name}]`, `instance=${instanceName}`, `bridge=${bridgeId}`]
-      if (clean.length > 0) parts.push(`msg="${clean.replaceAll('"', "'")}"`)
-      if (totalMembers !== undefined) parts.push(`totalMembers=${totalMembers}`)
-      if (createdAt !== undefined) parts.push(`createdAt="${createdAt}"`)
-      return parts.join(' ')
-    } catch (error) {
-      Logger.debug('formatEventSummary error:', error)
-      // Fallback to safe JSON if something unexpected happens
-      try {
-        return `[${name}] ${JSON.stringify(event)}`
-      } catch {
-        return `[${name}] (unserializable event)`
-      }
-    }
-  }
-
-  app.onAny((name, event) => {
-    const eventData = event as EventSummaryData
-    const instanceName = eventData.instanceName ?? 'unknown'
-
-    // Skip guild list parsing lines (they're just /guild list output, not game chat)
-    if (name === 'minecraftChat') {
-      const message = eventData.message ?? eventData.rawMessage ?? ''
-      if (isGuildListLine(message)) return
-    }
-
-    // Skip events that are neither in the whitelist nor in the noisy set
-    if (!LoggedEvents.has(name) && !NoisyEvents.has(name)) return
-
-    let instanceLogger = loggers.get(instanceName)
-    if (instanceLogger === undefined) {
-      instanceLogger = Instance.createLogger(instanceName)
-      loggers.set(instanceName, instanceLogger)
-    }
-
-    // If EventTrace is enabled, keep the previous full-JSON behaviour for debugging
-    if (EventTrace) {
-      // try to stringify safely
-      try {
-        instanceLogger.info(`[${name}] ${JSON.stringify(event)}`)
-      } catch {
-        instanceLogger.info(`[${name}] (unserializable event)`)
-      }
-      return
-    }
-
-    // For noisy events, emit a short, human-friendly summary. Whitelisted events get full JSON.
-    if (NoisyEvents.has(name)) {
-      instanceLogger.info(formatEventSummary(name, event))
-    } else if (LoggedEvents.has(name)) {
-      try {
-        instanceLogger.info(`[${name}] ${JSON.stringify(event)}`)
-      } catch {
-        instanceLogger.info(`[${name}] (unserializable event)`)
-      }
-    }
-  })
 
   await app.start()
   Logger.info('App is connected')
