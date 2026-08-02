@@ -255,6 +255,71 @@ export class TournamentApiHandler {
       return true
     }
 
+    if (subRoute === 'seeds') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleSeeds(request, response, tournamentId, auth)
+      return true
+    }
+
+    if (subRoute === 'edit') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleEdit(request, response, tournamentId, auth)
+      return true
+    }
+
+    if (subRoute === 'reopen') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleReopen(response, tournamentId, auth)
+      return true
+    }
+
+    if (subRoute === 'bye') {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Officer) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleAdvanceBye(request, response, tournamentId, auth)
+      return true
+    }
+
+    if (subRoute === 'proof') {
+      if (method !== 'GET') {
+        this.sendMethodNotAllowed(response, ['GET'])
+        return true
+      }
+      if (permission < Permission.Officer) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleProof(response, tournamentId, segments[2])
+      return true
+    }
+
     if (subRoute === 'open-checkin') {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -340,7 +405,7 @@ export class TournamentApiHandler {
         return
       }
 
-      const [matches, players] = await Promise.all([
+      const [matches, players, reports] = await Promise.all([
         this.application.core.databaseManager.queryRows<TournamentMatch>(
           'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 ORDER BY "round", "matchIndex"',
           [tournamentId]
@@ -348,10 +413,14 @@ export class TournamentApiHandler {
         this.application.core.databaseManager.queryRows<TournamentPlayer>(
           'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
           [tournamentId]
+        ),
+        this.application.core.databaseManager.queryRows(
+          'SELECT r.* FROM "tournament_reports" r JOIN "tournament_matches" m ON m."id" = r."matchId" WHERE m."tournamentId" = $1',
+          [tournamentId]
         )
       ])
 
-      sendSuccess(response, { tournament, matches, players })
+      sendSuccess(response, { tournament, matches, players, reports })
     } catch (error: unknown) {
       this.logger.error('Failed to get tournament:', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to get tournament', 500)
@@ -381,9 +450,21 @@ export class TournamentApiHandler {
       sendError(response, 'VALIDATION_ERROR', 'matchId and winnerId are required', 400)
       return
     }
+    const p1Wins = body.p1Wins
+    const p2Wins = body.p2Wins
+    if ((p1Wins !== undefined && typeof p1Wins !== 'number') || (p2Wins !== undefined && typeof p2Wins !== 'number')) {
+      sendError(response, 'VALIDATION_ERROR', 'p1Wins and p2Wins must be numbers', 400)
+      return
+    }
 
     try {
-      await this.application.core.tournamentManager.matchManager.adminConfirm(matchId, winnerId)
+      await this.application.core.tournamentManager.matchManager.adminConfirm(
+        matchId,
+        winnerId,
+        undefined,
+        p1Wins,
+        p2Wins
+      )
       sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to confirm match:', error)
@@ -772,6 +853,219 @@ export class TournamentApiHandler {
       this.logger.error('Failed to remove player:', error)
       sendError(response, 'INTERNAL_ERROR', String(error), 500)
     }
+  }
+
+  private async handleSeeds(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const seeds = body.seeds
+    if (!Array.isArray(seeds)) {
+      sendError(response, 'VALIDATION_ERROR', 'seeds array is required', 400)
+      return
+    }
+    for (const entry of seeds) {
+      if (
+        typeof entry !== 'object' ||
+        entry === null ||
+        typeof (entry as { playerId?: unknown }).playerId !== 'number' ||
+        typeof (entry as { seed?: unknown }).seed !== 'number'
+      ) {
+        sendError(response, 'VALIDATION_ERROR', 'Each seed entry must be { playerId, seed }', 400)
+        return
+      }
+    }
+
+    try {
+      await this.application.core.tournamentManager.setSeeds(
+        tournamentId,
+        seeds as { playerId: number; seed: number }[],
+        auth.userId ?? 'web-ui'
+      )
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to update seeds:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleEdit(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const updates: {
+      name?: string
+      gameType?: string
+      bestOf?: number
+      roundDeadlineHours?: number
+      checkinWindowMinutes?: number
+      bracketFormat?: string
+    } = {}
+    if (body.name !== undefined) {
+      if (typeof body.name !== 'string') {
+        this.sendValidation(response, 'name must be a string')
+        return
+      }
+      updates.name = body.name
+    }
+    if (body.gameType !== undefined) {
+      if (typeof body.gameType !== 'string') {
+        this.sendValidation(response, 'gameType must be a string')
+        return
+      }
+      updates.gameType = body.gameType
+    }
+    if (body.bestOf !== undefined) {
+      if (typeof body.bestOf !== 'number') {
+        this.sendValidation(response, 'bestOf must be a number')
+        return
+      }
+      updates.bestOf = body.bestOf
+    }
+    if (body.roundDeadlineHours !== undefined) {
+      if (typeof body.roundDeadlineHours !== 'number') {
+        this.sendValidation(response, 'roundDeadlineHours must be a number')
+        return
+      }
+      updates.roundDeadlineHours = body.roundDeadlineHours
+    }
+    if (body.checkinWindowMinutes !== undefined) {
+      if (typeof body.checkinWindowMinutes !== 'number') {
+        this.sendValidation(response, 'checkinWindowMinutes must be a number')
+        return
+      }
+      updates.checkinWindowMinutes = body.checkinWindowMinutes
+    }
+    if (body.bracketFormat !== undefined) {
+      if (typeof body.bracketFormat !== 'string') {
+        this.sendValidation(response, 'bracketFormat must be a string')
+        return
+      }
+      updates.bracketFormat = body.bracketFormat
+    }
+
+    try {
+      const tournament = await this.application.core.tournamentManager.updateTournament(
+        tournamentId,
+        updates,
+        auth.userId ?? 'web-ui'
+      )
+      sendSuccess(response, tournament)
+    } catch (error: unknown) {
+      this.logger.error('Failed to update tournament:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleReopen(
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
+    try {
+      const tournament = await this.application.core.tournamentManager.reopenTournament(
+        tournamentId,
+        auth.userId ?? 'web-ui'
+      )
+      sendSuccess(response, tournament)
+    } catch (error: unknown) {
+      this.logger.error('Failed to reopen tournament:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleAdvanceBye(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const matchId = body.matchId
+    if (typeof matchId !== 'number') {
+      sendError(response, 'VALIDATION_ERROR', 'matchId is required', 400)
+      return
+    }
+
+    try {
+      const match = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 AND "tournamentId" = $2',
+        [matchId, tournamentId]
+      )
+      if (match === undefined) {
+        sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
+        return
+      }
+      if (match.status !== MatchStatus.Bye) {
+        sendError(response, 'VALIDATION_ERROR', 'Match is not a BYE match', 400)
+        return
+      }
+      if (match.winnerId === undefined) {
+        sendError(response, 'VALIDATION_ERROR', 'BYE match has no winner set', 400)
+        return
+      }
+      await this.application.core.tournamentManager.matchManager.resolveByeMatch(matchId, match.winnerId)
+      await this.application.core.tournamentManager.auditLogger.log(
+        tournamentId,
+        'bye_advanced',
+        auth.userId ?? 'web-ui',
+        matchId,
+        undefined,
+        { round: match.round }
+      )
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to advance BYE match:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private async handleProof(
+    response: http.ServerResponse,
+    tournamentId: number,
+    rawMatchId: string | undefined
+  ): Promise<void> {
+    const matchId = Number(rawMatchId)
+    if (!Number.isInteger(matchId) || matchId <= 0) {
+      sendError(response, 'VALIDATION_ERROR', 'Valid matchId is required', 400)
+      return
+    }
+
+    try {
+      const match = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 AND "tournamentId" = $2',
+        [matchId, tournamentId]
+      )
+      if (match === undefined) {
+        sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
+        return
+      }
+      if (match.discordThreadId === undefined) {
+        sendSuccess(response, { matchId, proof: [] })
+        return
+      }
+      const proof = await this.application.core.tournamentManager.channelManager.getProofUrls(match.discordThreadId)
+      sendSuccess(response, { matchId, proof })
+    } catch (error: unknown) {
+      this.logger.error('Failed to fetch match proof:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
+  }
+
+  private sendValidation(response: http.ServerResponse, message: string): void {
+    sendError(response, 'VALIDATION_ERROR', message, 400)
   }
 
   private async handleTestResolveMatch(

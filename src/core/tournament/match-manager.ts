@@ -137,7 +137,7 @@ export class MatchManager {
       // 5. Take action based on status
       if (newStatus === MatchStatus.BothConfirmed) {
         this.logger?.info(`Match ${matchId}: Both reports agree, resolving with winner ${claimedWinnerId}`)
-        await this.resolveWinner(matchId, claimedWinnerId, txClient)
+        await this.resolveWinner(matchId, claimedWinnerId, txClient, p1Wins, p2Wins)
         return { status: MatchStatus.Completed, message: 'Match successfully resolved!' }
       } else if (newStatus === MatchStatus.Disputed) {
         this.logger?.info(`Match ${matchId}: Reports conflict — match is disputed`)
@@ -254,7 +254,9 @@ export class MatchManager {
 
     const winnerId = match.player1Id === forfeitingPlayerId ? match.player2Id! : match.player1Id!
     this.logger?.info(`Match ${matchId}: Forfeit accepted, winner=${winnerId}`)
-    await this.resolveWinner(matchId, winnerId)
+    const target = Math.ceil(tournament.bestOf / 2)
+    const winnerIsPlayer1 = match.player1Id === winnerId
+    await this.resolveWinner(matchId, winnerId, undefined, winnerIsPlayer1 ? target : 0, winnerIsPlayer1 ? 0 : target)
 
     if (this.antiAbuse !== undefined && forfeiterUuid !== undefined && opponentUuid !== undefined) {
       this.antiAbuse.recordForfeit(forfeiterUuid, opponentUuid)
@@ -265,8 +267,16 @@ export class MatchManager {
   /**
    * Admin forces winner for a disputed match.
    */
-  public async adminConfirm(matchId: number, winnerId: number, actorDiscordId?: string): Promise<void> {
-    this.logger?.info(`Match ${matchId}: adminConfirm — winnerId=${winnerId}`)
+  public async adminConfirm(
+    matchId: number,
+    winnerId: number,
+    actorDiscordId?: string,
+    p1Wins?: number,
+    p2Wins?: number
+  ): Promise<void> {
+    this.logger?.info(
+      `Match ${matchId}: adminConfirm — winnerId=${winnerId}, p1Wins=${p1Wins ?? 'default'}, p2Wins=${p2Wins ?? 'default'}`
+    )
 
     const match = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
@@ -280,6 +290,30 @@ export class MatchManager {
       throw new Error('Match is already completed.')
     }
 
+    const tournament = await this.getTournament(match.tournamentId)
+    if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
+      throw new Error('Tournament is not active.')
+    }
+
+    // Resolve the series score: default to a clean win (target-0) when omitted,
+    // otherwise validate the admin-supplied score against the series rules.
+    let score1 = p1Wins
+    let score2 = p2Wins
+    if (score1 === undefined && score2 === undefined) {
+      const target = Math.ceil(tournament.bestOf / 2)
+      const winnerIsPlayer1 = match.player1Id === winnerId
+      score1 = winnerIsPlayer1 ? target : 0
+      score2 = winnerIsPlayer1 ? 0 : target
+    } else {
+      score1 = score1 ?? 0
+      score2 = score2 ?? 0
+    }
+    const scoreCheck = validateSeriesScore(tournament.bestOf, score1, score2)
+    if (!scoreCheck.valid) {
+      this.logger?.info(`Match ${matchId}: Admin confirm score validation failed — ${scoreCheck.message}`)
+      throw new Error(scoreCheck.message)
+    }
+
     // Anti-abuse: flag admins repeatedly overriding results
     if (this.antiAbuse !== undefined && actorDiscordId !== undefined) {
       const check = await this.antiAbuse.checkFalseReporting(actorDiscordId)
@@ -288,8 +322,8 @@ export class MatchManager {
       }
     }
 
-    this.logger?.info(`Match ${matchId}: Admin confirmed winner ${winnerId}`)
-    await this.resolveWinner(matchId, winnerId)
+    this.logger?.info(`Match ${matchId}: Admin confirmed winner ${winnerId} (${score1}-${score2})`)
+    await this.resolveWinner(matchId, winnerId, undefined, score1, score2)
 
     if (this.antiAbuse !== undefined && actorDiscordId !== undefined) {
       this.antiAbuse.recordAdminOverride(actorDiscordId)
@@ -480,14 +514,26 @@ export class MatchManager {
       this.logger?.info(`Match ${matchId}: Deadline expiry — could not determine winner`)
     } else {
       this.logger?.info(`Match ${matchId}: Deadline expiry resolved — winner=${winnerId}`)
-      await this.resolveWinner(matchId, winnerId)
+      await this.resolveWinner(
+        matchId,
+        winnerId,
+        undefined,
+        reports.length === 1 ? reports[0].player1Wins : undefined,
+        reports.length === 1 ? reports[0].player2Wins : undefined
+      )
     }
   }
 
   /**
    * Internal routine to resolve match winner and advance them.
    */
-  private async resolveWinner(matchId: number, winnerId: number, database?: Queryable): Promise<void> {
+  private async resolveWinner(
+    matchId: number,
+    winnerId: number,
+    database?: Queryable,
+    p1Wins?: number,
+    p2Wins?: number
+  ): Promise<void> {
     const now = Math.floor(Date.now() / 1000)
 
     this.logger?.info(`Match ${matchId}: resolveWinner — winnerId=${winnerId}`)
@@ -509,8 +555,8 @@ export class MatchManager {
     // 1. Mark match completed
     this.logger?.info(`Match ${matchId}: Marking as completed`)
     await this.databaseManager.execute(
-      'UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
-      [MatchStatus.Completed, winnerId, now, matchId],
+      'UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3, "player1Wins" = COALESCE($4, "player1Wins"), "player2Wins" = COALESCE($5, "player2Wins") WHERE "id" = $6',
+      [MatchStatus.Completed, winnerId, now, p1Wins ?? undefined, p2Wins ?? undefined, matchId],
       database
     )
 
@@ -546,9 +592,10 @@ export class MatchManager {
       const names = await this.getPlayerNames(match.tournamentId)
       const winnerName = names.get(winnerId) ?? 'Winner'
       const loserName = loserId === undefined ? 'BYE' : (names.get(loserId) ?? 'Loser')
+      const scoreSuffix = p1Wins !== undefined && p2Wins !== undefined ? ` (${p1Wins}-${p2Wins})` : ''
       await this.channelManager.archiveMatchThread(
         match.discordThreadId,
-        `Winner: **${winnerName}** (defeated **${loserName}**)`
+        `Winner: **${winnerName}** (defeated **${loserName}**)${scoreSuffix}`
       )
     }
 

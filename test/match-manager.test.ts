@@ -113,7 +113,7 @@ function buildHarness(
   execute.mock.mockImplementation(async (sql: string, values: unknown[]) => {
     executed.push({ sql, values })
     if (sql.includes('UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3')) {
-      const match = matches.find((m) => m.id === values[3])
+      const match = matches.find((m) => m.id === values[values.length - 1])
       if (match !== undefined) {
         match.status = values[0] as MatchStatus
         match.winnerId = values[1] as number

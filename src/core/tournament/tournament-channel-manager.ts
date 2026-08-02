@@ -361,6 +361,36 @@ export class TournamentChannelManager {
   }
 
   /**
+   * Collects attachment / embed image URLs from a match thread, for dispute review in the web UI.
+   */
+  public async getProofUrls(
+    threadId: string
+  ): Promise<{ url: string; width?: number | null; height?: number | null }[]> {
+    const client = this.application.discordInstance.getClient()
+    const thread = await client.channels.fetch(threadId).catch(() => undefined)
+    if (!thread?.isTextBased()) return []
+
+    const messages = await thread.messages.fetch({ limit: 50 }).catch(() => undefined)
+    if (messages === undefined) return []
+
+    const urls: { url: string; width?: number | null; height?: number | null }[] = []
+    for (const message of messages.values()) {
+      for (const attachment of message.attachments.values()) {
+        urls.push({ url: attachment.url, width: attachment.width, height: attachment.height })
+      }
+      for (const embed of message.embeds) {
+        if (embed.image !== null) {
+          urls.push({ url: embed.image.url, width: embed.image.width, height: embed.image.height })
+        } else if (embed.url !== null) {
+          urls.push({ url: embed.url })
+        }
+      }
+    }
+    this.application.logger.info(`getProofUrls: Thread ${threadId} — collected ${urls.length} proof URL(s)`)
+    return urls
+  }
+
+  /**
    * Re-renders the bracket embed in the parent bracket channel.
    */
   public async updateBracketEmbed(

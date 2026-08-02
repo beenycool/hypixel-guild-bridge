@@ -479,13 +479,12 @@ export class TournamentManager {
     if (tournament === undefined) {
       throw new Error('Tournament not found or not active.')
     }
-    if (tournament.status !== TournamentStatus.Signup) {
-      throw new Error('Tournament has already started.')
+    if (tournament.status !== TournamentStatus.Signup && tournament.status !== TournamentStatus.Active) {
+      throw new Error('Tournament cannot be edited in this state.')
     }
 
     this.logger.info(`Tournament ${tournamentId}: Removing player ${playerUuid}`)
 
-    // Anti-abuse: rate-limit rapid join/leave cycles
     const player = await this.databaseManager.queryOne<TournamentPlayer>(
       'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND "playerUuid" = $2',
       [tournamentId, playerUuid]
@@ -493,11 +492,35 @@ export class TournamentManager {
     if (player === undefined) {
       throw new Error('Player is not registered for this tournament.')
     }
-    if (player.discordId !== undefined) {
+    if (tournament.status === TournamentStatus.Signup && player.discordId !== undefined) {
       const signupCheck = this.antiAbuse.checkSignupRate(player.discordId)
       if (!signupCheck.allowed) {
         throw new Error(signupCheck.reason ?? 'Please slow down. You are joining/leaving too fast.')
       }
+    }
+
+    // During ACTIVE, only allow removal when the player is not in a live match —
+    // otherwise they must be forfeited or substituted out first.
+    if (tournament.status === TournamentStatus.Active) {
+      const liveMatches = await this.databaseManager.queryRows<TournamentMatch>(
+        `SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND ("player1Id" = $2 OR "player2Id" = $3) AND "status" IN ($4, $5, $6, $7)`,
+        [
+          tournamentId,
+          player.id,
+          player.id,
+          MatchStatus.Active,
+          MatchStatus.Reported,
+          MatchStatus.Disputed,
+          MatchStatus.BothConfirmed
+        ]
+      )
+      if (liveMatches.length > 0) {
+        throw new Error('Player is in a live match. Forfeit or substitute them out first.')
+      }
+      await this.databaseManager.execute(
+        'DELETE FROM "tournament_results" WHERE "tournamentId" = $1 AND "playerUuid" = $2',
+        [tournamentId, playerUuid]
+      )
     }
 
     const affected = await this.databaseManager.execute(
@@ -508,7 +531,236 @@ export class TournamentManager {
     if (affected === 0) {
       throw new Error('Player is not registered for this tournament.')
     }
+    await this.auditLogger.log(tournamentId, 'player_removed', 'web-ui', undefined, playerUuid, {
+      phase: tournament.status
+    })
     this.logger.info(`Tournament ${tournamentId}: Player ${playerUuid} removed successfully`)
+  }
+
+  /**
+   * Manually assign seeds during the signup phase.
+   */
+  public async setSeeds(
+    tournamentId: number,
+    seeds: { playerId: number; seed: number }[],
+    actorDiscordId = 'web-ui'
+  ): Promise<void> {
+    const tournament = await this.getTournament(tournamentId)
+    if (tournament === undefined) {
+      throw new Error('Tournament not found or not active.')
+    }
+    if (tournament.status !== TournamentStatus.Signup) {
+      throw new Error('Seeds can only be edited during the signup phase.')
+    }
+
+    const players = await this.databaseManager.queryRows<TournamentPlayer>(
+      'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
+      [tournamentId]
+    )
+    const playerIds = new Set(players.map((p) => p.id))
+
+    if (!Array.isArray(seeds) || seeds.length === 0) {
+      throw new Error('seeds array is required.')
+    }
+    const seenSeeds = new Set<number>()
+    for (const entry of seeds) {
+      if (
+        !Number.isInteger(entry.playerId) ||
+        !Number.isInteger(entry.seed) ||
+        entry.seed < 1 ||
+        entry.seed > players.length
+      ) {
+        throw new Error(`Invalid seed entry for player ${entry.playerId}: seed must be 1-${players.length}.`)
+      }
+      if (!playerIds.has(entry.playerId)) {
+        throw new Error(`Player ${entry.playerId} is not registered in this tournament.`)
+      }
+      if (seenSeeds.has(entry.seed)) {
+        throw new Error(`Duplicate seed value ${entry.seed}.`)
+      }
+      seenSeeds.add(entry.seed)
+    }
+
+    await this.databaseManager.transaction(async (txClient) => {
+      for (const entry of seeds) {
+        await txClient.query('UPDATE "tournament_players" SET "seed" = $1 WHERE "id" = $2', [
+          entry.seed,
+          entry.playerId
+        ])
+      }
+    })
+
+    this.logger.info(
+      `Tournament ${tournamentId}: Updated seeds for ${seeds.length} player(s) (actor=${actorDiscordId})`
+    )
+    await this.auditLogger.log(tournamentId, 'seeds_updated', actorDiscordId, undefined, undefined, {
+      count: seeds.length
+    })
+    this.emitEvent('tournament.seeds_updated', { tournamentId })
+  }
+
+  /**
+   * Edit signup-phase tournament settings.
+   */
+  public async updateTournament(
+    tournamentId: number,
+    updates: {
+      name?: string
+      gameType?: string
+      bestOf?: number
+      roundDeadlineHours?: number
+      checkinWindowMinutes?: number
+      bracketFormat?: string
+    },
+    actorDiscordId = 'web-ui'
+  ): Promise<Tournament> {
+    const tournament = await this.getTournament(tournamentId)
+    if (tournament === undefined) {
+      throw new Error('Tournament not found or not active.')
+    }
+    if (tournament.status !== TournamentStatus.Signup) {
+      throw new Error('Tournament settings can only be edited during the signup phase.')
+    }
+
+    const columnMap: Record<string, string> = {
+      name: 'name',
+      gameType: 'gameType',
+      bestOf: 'bestOf',
+      roundDeadlineHours: 'roundDeadlineHours',
+      checkinWindowMinutes: 'checkinWindowMinutes',
+      bracketFormat: 'bracketFormat'
+    }
+
+    const allowedBracketFormats = new Set(['single-elim', 'double-elim', 'round-robin'])
+    const sets: string[] = []
+    const parameters: unknown[] = []
+    let index = 1
+
+    if (updates.name !== undefined) {
+      const name = updates.name.trim()
+      if (name.length === 0 || name.length > 80) {
+        throw new Error('name must be 1-80 characters.')
+      }
+      sets.push(`"${columnMap.name}" = $${index++}`)
+      parameters.push(name)
+    }
+    if (updates.gameType !== undefined) {
+      const gameType = updates.gameType.trim()
+      if (gameType.length === 0) {
+        throw new Error('gameType must not be empty.')
+      }
+      sets.push(`"${columnMap.gameType}" = $${index++}`)
+      parameters.push(gameType)
+    }
+    if (updates.bestOf !== undefined) {
+      if (!Number.isInteger(updates.bestOf) || updates.bestOf < 1 || updates.bestOf % 2 === 0 || updates.bestOf > 9) {
+        throw new Error('bestOf must be an odd integer between 1 and 9.')
+      }
+      sets.push(`"${columnMap.bestOf}" = $${index++}`)
+      parameters.push(updates.bestOf)
+    }
+    if (updates.roundDeadlineHours !== undefined) {
+      if (
+        !Number.isInteger(updates.roundDeadlineHours) ||
+        updates.roundDeadlineHours < 1 ||
+        updates.roundDeadlineHours > 720
+      ) {
+        throw new Error('roundDeadlineHours must be an integer between 1 and 720.')
+      }
+      sets.push(`"${columnMap.roundDeadlineHours}" = $${index++}`)
+      parameters.push(updates.roundDeadlineHours)
+    }
+    if (updates.checkinWindowMinutes !== undefined) {
+      if (
+        !Number.isInteger(updates.checkinWindowMinutes) ||
+        updates.checkinWindowMinutes < 0 ||
+        updates.checkinWindowMinutes > 1440
+      ) {
+        throw new Error('checkinWindowMinutes must be an integer between 0 and 1440.')
+      }
+      sets.push(`"${columnMap.checkinWindowMinutes}" = $${index++}`)
+      parameters.push(updates.checkinWindowMinutes)
+    }
+    if (updates.bracketFormat !== undefined) {
+      if (!allowedBracketFormats.has(updates.bracketFormat)) {
+        throw new Error('Unsupported bracketFormat. Use single-elim, double-elim, or round-robin.')
+      }
+      sets.push(`"${columnMap.bracketFormat}" = $${index++}`)
+      parameters.push(updates.bracketFormat)
+    }
+
+    if (sets.length === 0) {
+      throw new Error('No settings to update.')
+    }
+    parameters.push(tournamentId)
+
+    const updated = await this.databaseManager.queryOne<Tournament>(
+      `UPDATE "tournaments" SET ${sets.join(', ')} WHERE "id" = $${index} RETURNING *`,
+      parameters
+    )
+    if (updated === undefined) {
+      throw new Error('Failed to update tournament.')
+    }
+
+    this.activeTournaments.set(updated.id, updated)
+    await this.auditLogger.log(tournamentId, 'settings_updated', actorDiscordId, undefined, undefined, {
+      fields: sets.map((s) => s.split('"')[1])
+    })
+    this.logger.info(`Tournament ${tournamentId}: Settings updated (actor=${actorDiscordId})`)
+    this.emitEvent('tournament.edited', { tournamentId, tournament: updated })
+    return updated
+  }
+
+  /**
+   * Reopen a cancelled tournament back into the signup phase.
+   * Clears the generated bracket, results and channel references; registered players are kept.
+   */
+  public async reopenTournament(tournamentId: number, actorDiscordId = 'web-ui'): Promise<Tournament> {
+    const tournament = await this.databaseManager.queryOne<Tournament>('SELECT * FROM "tournaments" WHERE "id" = $1', [
+      tournamentId
+    ])
+    if (tournament === undefined) {
+      throw new Error('Tournament not found.')
+    }
+    if (tournament.status !== TournamentStatus.Cancelled) {
+      throw new Error('Only cancelled tournaments can be reopened.')
+    }
+
+    this.logger.info(`Tournament ${tournamentId} (${tournament.name}): Reopening into signup phase`)
+
+    await this.databaseManager.transaction(async (txClient) => {
+      await txClient.query(
+        'DELETE FROM "tournament_reports" WHERE "matchId" IN (SELECT "id" FROM "tournament_matches" WHERE "tournamentId" = $1)',
+        [tournamentId]
+      )
+      await txClient.query('DELETE FROM "tournament_matches" WHERE "tournamentId" = $1', [tournamentId])
+      await txClient.query('DELETE FROM "tournament_results" WHERE "tournamentId" = $1', [tournamentId])
+      await txClient.query(
+        `UPDATE "tournaments" SET "status" = $1, "winnerId" = NULL, "currentRound" = 0, "totalRounds" = 0,
+           "startedAt" = NULL, "completedAt" = NULL, "startedAtUnix" = NULL,
+           "checkinOpensAt" = NULL, "checkinClosesAt" = NULL,
+           "discordChannelId" = NULL, "bracketMessageId" = NULL, "categoryChannelId" = NULL, "liveChannelId" = NULL
+         WHERE "id" = $2`,
+        [TournamentStatus.Signup, tournamentId]
+      )
+      await txClient.query(
+        'UPDATE "tournament_players" SET "status" = $1, "seed" = 0, "checkedInAt" = NULL WHERE "tournamentId" = $2',
+        [PlayerStatus.Registered, tournamentId]
+      )
+    })
+
+    const reopened = await this.databaseManager.queryOne<Tournament>('SELECT * FROM "tournaments" WHERE "id" = $1', [
+      tournamentId
+    ])
+    if (reopened === undefined) {
+      throw new Error('Failed to reopen tournament.')
+    }
+
+    this.activeTournaments.set(reopened.id, reopened)
+    await this.auditLogger.log(tournamentId, 'tournament_reopened', actorDiscordId)
+    this.updateMetrics()
+    this.emitEvent('tournament.reopened', { tournamentId, tournament: reopened })
+    return reopened
   }
 
   /**

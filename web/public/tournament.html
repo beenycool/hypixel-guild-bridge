@@ -1674,7 +1674,8 @@
                     ? `
                   <button class="btn btn-primary btn-sm" id="d-start"><svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Start Tournament</button>
                   <button class="btn btn-secondary btn-sm" id="d-checkin"><svg class="ui-icon" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg> Open Check-in</button>
-                  <button class="btn btn-secondary btn-sm" id="d-add-player"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Player</button>`
+                  <button class="btn btn-secondary btn-sm" id="d-add-player"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Player</button>
+                  <button class="btn btn-secondary btn-sm" id="d-edit" title="Edit tournament settings"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Edit Settings</button>`
                     : ''
                 }
                 ${
@@ -1682,6 +1683,12 @@
                     ? `
                   <button class="btn btn-secondary btn-sm" id="d-test-match" title="Auto-resolve 1 match for test"><svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Auto-Resolve Match</button>
                   <button class="btn btn-secondary btn-sm" id="d-test-round" title="Auto-resolve round for test"><svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 19 22 12 13 5 13 19"/><polygon points="2 19 11 12 2 5 2 19"/></svg> Auto-Advance Round</button>`
+                    : ''
+                }
+                ${
+                  t.status === 'CANCELLED'
+                    ? `
+                  <button class="btn btn-primary btn-sm" id="d-reopen" title="Reopen into signup phase"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg> Reopen Tournament</button>`
                     : ''
                 }
                 <button class="btn btn-secondary btn-sm" id="d-export-json" title="Export tournament data"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export JSON</button>
@@ -1743,6 +1750,12 @@
 
         const addPlayerBtn = document.querySelector('#d-add-player')
         if (addPlayerBtn) addPlayerBtn.addEventListener('click', () => openAddPlayerModal(id))
+
+        const editBtn = document.querySelector('#d-edit')
+        if (editBtn) editBtn.addEventListener('click', () => openEditModal(id))
+
+        const reopenBtn = document.querySelector('#d-reopen')
+        if (reopenBtn) reopenBtn.addEventListener('click', () => reopenTournament(id))
 
         const testMatchBtn = document.querySelector('#d-test-match')
         if (testMatchBtn) testMatchBtn.addEventListener('click', () => testResolveMatch(id))
@@ -1878,7 +1891,7 @@
                       ${m.deadlineAt && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED') ? `<span class="text-sm text-muted">due ${fmtRel(m.deadlineAt)}</span>` : ''}
 
                       <div class="flex gap-xs" style="margin-left: auto;">
-                        ${canManage() && m.status === 'DISPUTED' ? `<button class="btn btn-secondary btn-sm" data-act="confirm" data-mid="${m.id}">Confirm</button>` : ''}
+                        ${canManage() && m.status === 'DISPUTED' ? `<button class="btn btn-secondary btn-sm" data-act="dispute" data-mid="${m.id}">Resolve Dispute</button>` : ''}
                         ${
                           canManage() && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')
                             ? `
@@ -1887,6 +1900,7 @@
                           <button class="btn btn-secondary btn-sm" data-act="sub" data-mid="${m.id}" title="Substitute Player">Sub</button>`
                             : ''
                         }
+                        ${canManage() && m.status === 'BYE' ? `<button class="btn btn-secondary btn-sm" data-act="bye" data-mid="${m.id}" title="Advance BYE winner">Advance</button>` : ''}
                         ${canManage() && m.status === 'COMPLETED' ? `<button class="btn btn-secondary btn-sm" data-act="undo" data-mid="${m.id}" title="Undo Result">Undo</button>` : ''}
                       </div>
                     </div>
@@ -1917,7 +1931,23 @@
           return
         }
 
-        let html = `
+        const seedEditing = canManage() && tournamentStatus === 'SIGNUP'
+        const canRemove = canManage() && (tournamentStatus === 'SIGNUP' || tournamentStatus === 'ACTIVE')
+
+        let html = seedEditing
+          ? `
+            <div class="admin-toolbar-box" style="margin-bottom: 16px;">
+              <div class="admin-toolbar-title">
+                <span class="flex align-center gap-xs"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Seeds</span>
+              </div>
+              <div class="flex gap-sm align-center flex-wrap">
+                <span class="text-sm text-secondary">Edit seeds to control the bracket draw. Leave blank to auto-seed.</span>
+                <button class="btn btn-primary btn-sm" id="save-seeds-btn"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Seeds</button>
+              </div>
+            </div>`
+          : ''
+
+        html += `
           <table class="participants-table">
             <thead>
               <tr>
@@ -1925,16 +1955,19 @@
                 <th>Player</th>
                 <th>Discord ID</th>
                 <th>Check-in Status</th>
-                ${canManage() && tournamentStatus === 'SIGNUP' ? '<th style="text-align:right">Admin Actions</th>' : ''}
+                ${canRemove ? '<th style="text-align:right">Admin Actions</th>' : ''}
               </tr>
             </thead>
             <tbody>`
 
         players.forEach((p, idx) => {
           const avatar = playerAvatarUrl(p.playerUuid)
+          const seedCell = seedEditing
+            ? `<input type="number" class="input seed-input" style="width: 70px; padding: 4px 8px;" data-pid="${p.id}" data-uuid="${esc(p.playerUuid)}" value="${p.seed > 0 ? p.seed : ''}" min="1" max="${players.length}" placeholder="auto" />`
+            : `<strong>#${p.seed != null && p.seed > 0 ? p.seed : idx + 1}</strong>`
           html += `
             <tr>
-              <td><strong>#${p.seed != null ? p.seed : idx + 1}</strong></td>
+              <td>${seedCell}</td>
               <td>
                 <div class="flex align-center gap-sm">
                   ${avatar ? `<img src="${esc(avatar)}" class="player-head-img" style="width:24px;height:24px" alt="">` : ''}
@@ -1948,7 +1981,7 @@
                 </span>
               </td>
               ${
-                canManage() && tournamentStatus === 'SIGNUP'
+                canRemove
                   ? `<td style="text-align:right">
                       <button class="btn btn-danger btn-sm kick-btn" data-uuid="${esc(p.playerUuid)}">Remove</button>
                     </td>`
@@ -1963,6 +1996,8 @@
         for (const btn of host.querySelectorAll('.kick-btn')) {
           btn.addEventListener('click', () => removePlayer(tournamentId, btn.dataset.uuid))
         }
+        const saveSeedsBtn = host.querySelector('#save-seeds-btn')
+        if (saveSeedsBtn) saveSeedsBtn.addEventListener('click', () => saveSeeds(tournamentId, host))
       }
 
       async function loadResults(id) {
@@ -2170,17 +2205,55 @@
         const p1 = match ? playerMap[match.player1Id] : null
         const p2 = match ? playerMap[match.player2Id] : null
 
-        if (act === 'confirm') {
+        if (act === 'confirm' || act === 'dispute') {
+          const isDispute = act === 'dispute'
+          const reports = isDispute ? (cachedDetail?.reports || []).filter((r) => r.matchId === matchId) : []
+          const playerById = {}
+          players.forEach((p) => (playerById[p.id] = p))
+          const reportRows = reports
+            .map((r) => {
+              const reporter = playerById[r.reporterId]
+              const claimed = playerById[r.claimedWinnerId]
+              return `
+                <div class="audit-card" style="margin-bottom: 8px;">
+                  <div class="flex align-center gap-sm">
+                    <span class="audit-action-tag">REPORT</span>
+                    <div>
+                      <strong class="font-mono">${esc(reporter ? reporter.playerUuid : 'Unknown')}</strong>
+                      <span class="text-secondary text-sm ml-2">claimed <strong>${esc(claimed ? claimed.playerUuid : 'Unknown')}</strong> won (${esc(String(r.player1Wins))}-${esc(String(r.player2Wins))})</span>
+                    </div>
+                  </div>
+                  <span class="text-muted text-sm">${fmtRel(r.createdAt)}</span>
+                </div>`
+            })
+            .join('')
+
+          const target = Math.ceil((cachedDetail?.tournament?.bestOf ?? 1) / 2)
+
           openActionModal({
-            title: 'Confirm Match Winner',
+            title: isDispute ? 'Resolve Dispute' : 'Confirm Match Winner',
             bodyHtml: `
+              ${isDispute ? `<div style="margin-bottom: 16px;">${reportRows || '<p class="text-muted text-sm">No player reports on file.</p>'}</div>` : ''}
+              ${isDispute ? '<div id="act-proof-box" style="margin-bottom: 16px;"></div>' : ''}
+              ${isDispute ? '<div class="form-row"><button type="button" class="btn btn-secondary btn-sm" id="act-load-proof">Load Proof Attachments</button></div>' : ''}
               <div class="form-row">
                 <label class="form-label">Select Winner</label>
                 <select class="select" id="act-winner-sel">
                   ${p1 ? `<option value="${p1.id}">${esc(p1.playerUuid)} (Player 1)</option>` : ''}
                   ${p2 ? `<option value="${p2.id}">${esc(p2.playerUuid)} (Player 2)</option>` : ''}
                 </select>
-              </div>`,
+              </div>
+              <div class="create-field-grid" style="grid-template-columns: 1fr 1fr; margin-top: 12px;">
+                <div class="form-row">
+                  <label class="form-label">Player 1 Wins</label>
+                  <input type="number" class="input" id="act-win-p1" min="0" max="${target}" value="${target}" />
+                </div>
+                <div class="form-row">
+                  <label class="form-label">Player 2 Wins</label>
+                  <input type="number" class="input" id="act-win-p2" min="0" max="${target}" value="0" />
+                </div>
+              </div>
+              <p class="text-muted text-sm" style="margin: 8px 0 0;">Best-of ${cachedDetail?.tournament?.bestOf ?? 1} — winner needs ${target} wins.</p>`,
             onConfirm: async () => {
               const sel = document.querySelector('#act-winner-sel')
               const winnerId = Number(sel.value)
@@ -2188,9 +2261,75 @@
                 Ui.showToast('Invalid winner selected', 'error')
                 return false
               }
+              const p1Wins = Number(document.querySelector('#act-win-p1')?.value)
+              const p2Wins = Number(document.querySelector('#act-win-p2')?.value)
+              if (!Number.isInteger(p1Wins) || !Number.isInteger(p2Wins) || p1Wins < 0 || p2Wins < 0) {
+                Ui.showToast('Enter valid scores', 'error')
+                return false
+              }
               try {
-                await Api.apiPost('/api/tournament/' + tournamentId + '/confirm', { matchId, winnerId })
-                Ui.showToast('Match confirmed', 'success')
+                await Api.apiPost('/api/tournament/' + tournamentId + '/confirm', { matchId, winnerId, p1Wins, p2Wins })
+                Ui.showToast(isDispute ? 'Dispute resolved' : 'Match confirmed', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+
+          const winnerSel = document.querySelector('#act-winner-sel')
+          const winP1 = document.querySelector('#act-win-p1')
+          const winP2 = document.querySelector('#act-win-p2')
+          const syncScores = () => {
+            if (!winP1 || !winP2 || !winnerSel) return
+            const selectedIsP1 = Number(winnerSel.value) === (p1 ? p1.id : -1)
+            winP1.value = String(selectedIsP1 ? target : 0)
+            winP2.value = String(selectedIsP1 ? 0 : target)
+          }
+          if (winnerSel) winnerSel.addEventListener('change', syncScores)
+
+          const loadProofBtn = document.querySelector('#act-load-proof')
+          if (loadProofBtn) {
+            loadProofBtn.addEventListener('click', async () => {
+              const box = document.querySelector('#act-proof-box')
+              if (!box) return
+              loadProofBtn.disabled = true
+              loadProofBtn.textContent = 'Loading…'
+              try {
+                const res = await Api.apiGet('/api/tournament/' + tournamentId + '/proof/' + matchId)
+                const proof = Array.isArray(res.proof) ? res.proof : []
+                if (proof.length === 0) {
+                  box.innerHTML = '<p class="text-muted text-sm">No proof attachments found in the match thread.</p>'
+                } else {
+                  box.innerHTML = proof
+                    .map(
+                      (p) =>
+                        `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${esc(p.url)}" alt="proof" style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid var(--border-subtle); margin: 4px 4px 0 0;" /></a>`
+                    )
+                    .join('')
+                }
+              } catch (err) {
+                box.innerHTML =
+                  '<p class="text-danger text-sm">Failed to load proof: ' + esc(err.message || String(err)) + '</p>'
+              } finally {
+                loadProofBtn.disabled = false
+                loadProofBtn.textContent = 'Load Proof Attachments'
+              }
+            })
+          }
+          return
+        }
+
+        if (act === 'bye') {
+          openActionModal({
+            title: 'Advance BYE Match',
+            bodyHtml: `
+              <p class="text-secondary" style="margin: 0 0 12px;">Advance this BYE match and move the walkover winner into the next round? This cannot be undone.</p>`,
+            onConfirm: async () => {
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/bye', { matchId })
+                Ui.showToast('BYE match advanced', 'success')
                 await renderDetail(tournamentId)
               } catch (err) {
                 Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
@@ -2358,6 +2497,135 @@
           await renderDetail(id)
         } catch (err) {
           Ui.showToast('Failed to open check-in: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function saveSeeds(tournamentId, host) {
+        const inputs = host ? host.querySelectorAll('.seed-input') : document.querySelectorAll('.seed-input')
+        const seeds = []
+        for (const input of inputs) {
+          const raw = input.value.trim()
+          if (raw === '') continue
+          const seed = Number(raw)
+          if (!Number.isInteger(seed) || seed < 1) {
+            Ui.showToast('Seed values must be positive integers (or leave blank for auto-seed)', 'error')
+            return
+          }
+          seeds.push({ playerId: Number(input.dataset.pid), seed })
+        }
+        if (seeds.length === 0) {
+          Ui.showToast('No seeds to save', 'info')
+          return
+        }
+        try {
+          await Api.apiPost('/api/tournament/' + tournamentId + '/seeds', { seeds })
+          Ui.showToast(`Saved ${seeds.length} seed(s)`, 'success')
+          await renderDetail(tournamentId)
+        } catch (err) {
+          Ui.showToast('Failed to save seeds: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function openEditModal(tournamentId) {
+        const t = cachedDetail?.tournament
+        if (!t) return
+        const SUPPORTED = ['single-elim', 'double-elim', 'round-robin']
+        const fmtName = (f) => (f === 'double-elim' ? 'Double Elimination' : f === 'round-robin' ? 'Round Robin' : 'Single Elimination')
+
+        openActionModal({
+          title: 'Edit Tournament Settings',
+          bodyHtml: `
+            <div class="form-row">
+              <label class="form-label">Name</label>
+              <input type="text" class="input" id="act-edit-name" maxlength="80" value="${esc(t.name || '')}" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Game Type</label>
+              <input type="text" class="input" id="act-edit-gametype" value="${esc(t.gameType || '')}" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Bracket Format</label>
+              <select class="select" id="act-edit-format">
+                ${SUPPORTED.map((f) => `<option value="${f}" ${t.bracketFormat === f ? 'selected' : ''}>${fmtName(f)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="create-field-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="form-row">
+                <label class="form-label">Best-of</label>
+                <input type="number" class="input" id="act-edit-bestof" min="1" max="9" step="2" value="${esc(String(t.bestOf ?? 1))}" />
+              </div>
+              <div class="form-row">
+                <label class="form-label">Round Deadline (hours)</label>
+                <input type="number" class="input" id="act-edit-deadline" min="1" max="720" value="${esc(String(t.roundDeadlineHours ?? 48))}" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Check-in Window (min)</label>
+              <input type="number" class="input" id="act-edit-checkin" min="0" max="1440" value="${esc(String(t.checkinWindowMinutes ?? 60))}" />
+              <span class="create-field-hint">0 disables check-in.</span>
+            </div>
+            <p class="text-muted text-sm" style="margin-top: 10px;">Changes apply immediately. Bracket format only matters when the tournament starts.</p>`,
+          onConfirm: async () => {
+            const name = document.querySelector('#act-edit-name')?.value.trim()
+            const gameType = document.querySelector('#act-edit-gametype')?.value.trim()
+            const bracketFormat = document.querySelector('#act-edit-format')?.value
+            const bestOf = Number(document.querySelector('#act-edit-bestof')?.value)
+            const deadline = Number(document.querySelector('#act-edit-deadline')?.value)
+            const checkin = Number(document.querySelector('#act-edit-checkin')?.value)
+
+            if (!name) {
+              Ui.showToast('Name is required', 'error')
+              return false
+            }
+            if (!gameType) {
+              Ui.showToast('Game type is required', 'error')
+              return false
+            }
+            if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9) {
+              Ui.showToast('Best-of must be an odd number between 1 and 9', 'error')
+              return false
+            }
+            if (!Number.isInteger(deadline) || deadline < 1 || deadline > 720) {
+              Ui.showToast('Round deadline must be between 1 and 720 hours', 'error')
+              return false
+            }
+            if (!Number.isInteger(checkin) || checkin < 0 || checkin > 1440) {
+              Ui.showToast('Check-in window must be between 0 and 1440 minutes', 'error')
+              return false
+            }
+            if (!SUPPORTED_FORMATS.includes(bracketFormat)) {
+              Ui.showToast('Pick a valid bracket format', 'error')
+              return false
+            }
+
+            try {
+              await Api.apiPost('/api/tournament/' + tournamentId + '/edit', {
+                name,
+                gameType,
+                bracketFormat,
+                bestOf,
+                roundDeadlineHours: deadline,
+                checkinWindowMinutes: checkin
+              })
+              Ui.showToast('Tournament updated', 'success')
+              await renderDetail(tournamentId)
+            } catch (err) {
+              Ui.showToast('Failed to update: ' + (err.message || String(err)), 'error')
+              return false
+            }
+          }
+        })
+      }
+
+      async function reopenTournament(id) {
+        if (!Ui.confirmAction('Reopen this cancelled tournament into the signup phase? The bracket will be cleared, registered players will be kept.')) return
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/reopen', {})
+          Ui.showToast('Tournament reopened', 'success')
+          currentId = null
+          await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to reopen: ' + (err.message || String(err)), 'error')
         }
       }
 
@@ -2702,7 +2970,10 @@
           'tournament.match_resolved',
           'tournament.undo',
           'tournament.cancelled',
-          'tournament.completed'
+          'tournament.completed',
+          'tournament.edited',
+          'tournament.seeds_updated',
+          'tournament.reopened'
         ])
         Ws.connectWS('subscribeTournament', 'tournament.', (type) => {
           if (!wsRefreshTypes.has(type)) return
