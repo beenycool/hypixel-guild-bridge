@@ -41,7 +41,8 @@ export default {
             { name: 'Settings', value: 'settings' },
             { name: 'Bot Messages', value: 'bot-messages' },
             { name: 'Punishments', value: 'punishments' },
-            { name: 'Inactivity', value: 'inactivity' }
+            { name: 'Inactivity', value: 'inactivity' },
+            { name: 'Tournament', value: 'tournament' }
           )
       ),
 

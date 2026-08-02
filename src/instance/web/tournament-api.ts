@@ -7,11 +7,19 @@ import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 import {
   MatchStatus,
+  PlayerStatus,
   type Tournament,
   type TournamentMatch,
   type TournamentPlayer,
   TournamentStatus
 } from '../../core/tournament/types.js'
+import {
+  buildCheckinAnnouncementEmbed,
+  buildCheckinComponents,
+  buildSignupComponents,
+  buildSignupEmbed,
+  fetchParticipantCount
+} from '../discord/features/tournament-buttons.js'
 
 import { sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
@@ -126,6 +134,20 @@ export class TournamentApiHandler {
         return true
       }
       await this.handleCreate(request, response, auth)
+      return true
+    }
+
+    // POST /api/tournament/test/create (create a test tournament with fake players)
+    if (pathPart === `${TournamentPrefix}/test/create`) {
+      if (method !== 'POST') {
+        this.sendMethodNotAllowed(response, ['POST'])
+        return true
+      }
+      if (permission < Permission.Admin) {
+        sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+        return true
+      }
+      await this.handleTestCreate(request, response, auth)
       return true
     }
 
@@ -615,6 +637,30 @@ export class TournamentApiHandler {
         checkinWindowMinutes,
         bracketFormat
       )
+
+      // Post a signup announcement with Join/Leave buttons in the tournament
+      // notification channel, mirroring the removed Discord /tournament create.
+      try {
+        const notificationChannelId = config.getTournamentNotificationChannelId(bridgeId)
+        if (notificationChannelId) {
+          const client = this.application.discordInstance.getClient()
+          const channel = await client.channels.fetch(notificationChannelId).catch(() => undefined)
+          if (channel?.isTextBased() && 'send' in channel) {
+            const participantCount = await fetchParticipantCount(this.application.core.databaseManager, tournament.id)
+            const signupMessage = await channel
+              .send({ embeds: [buildSignupEmbed(tournament, participantCount)] })
+              .catch(() => undefined)
+            if (signupMessage !== undefined) {
+              await signupMessage
+                .edit({ components: buildSignupComponents(tournament.id, signupMessage.id) })
+                .catch(() => undefined)
+            }
+          }
+        }
+      } catch (error: unknown) {
+        this.logger.warn(`Failed to post signup announcement for tournament ${tournament.id}`, error)
+      }
+
       sendSuccess(response, tournament)
     } catch (error: unknown) {
       if (error instanceof Error && error.message.includes('already exists')) {
@@ -852,11 +898,40 @@ export class TournamentApiHandler {
   private async handleOpenCheckin(response: http.ServerResponse, tournamentId: number): Promise<void> {
     try {
       await this.application.core.tournamentManager.openCheckinManually(tournamentId)
-      sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to open check-in:', error)
       sendError(response, 'INTERNAL_ERROR', String(error), 500)
+      return
     }
+
+    // Post a check-in announcement with a Check In button in the notification
+    // channel, mirroring the removed Discord /tournament open-checkin.
+    try {
+      const tournament = await this.application.core.tournamentManager.getTournament(tournamentId)
+      if (tournament !== undefined) {
+        const notificationChannelId = this.application.core.bridgeConfigurations.getTournamentNotificationChannelId(
+          tournament.bridgeId
+        )
+        if (notificationChannelId) {
+          const client = this.application.discordInstance.getClient()
+          const channel = await client.channels.fetch(notificationChannelId).catch(() => undefined)
+          if (channel?.isTextBased() && 'send' in channel) {
+            const checkinMessage = await channel
+              .send({ embeds: [buildCheckinAnnouncementEmbed(tournament)] })
+              .catch(() => undefined)
+            if (checkinMessage !== undefined) {
+              await checkinMessage
+                .edit({ components: buildCheckinComponents(tournament.id, checkinMessage.id) })
+                .catch(() => undefined)
+            }
+          }
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.warn(`Failed to post check-in announcement for tournament ${tournamentId}`, error)
+    }
+
+    sendSuccess(response, { success: true })
   }
 
   private async handleAddPlayer(
@@ -1122,6 +1197,99 @@ export class TournamentApiHandler {
 
   private sendValidation(response: http.ServerResponse, message: string): void {
     sendError(response, 'VALIDATION_ERROR', message, 400)
+  }
+
+  private async handleTestCreate(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
+    const body = await this.readJsonBody(request, response)
+    if (body === undefined) return
+
+    const bridgeId = body.bridgeId
+    if (typeof bridgeId !== 'string' || bridgeId.trim().length === 0) {
+      sendError(response, 'VALIDATION_ERROR', 'bridgeId is required', 400)
+      return
+    }
+
+    const config = this.application.core.bridgeConfigurations
+    const name = typeof body.name === 'string' && body.name.trim().length > 0 ? body.name.trim() : 'Test Tournament'
+    const gameType =
+      typeof body.gameType === 'string' && body.gameType.trim().length > 0 ? body.gameType.trim() : 'Bridge'
+    const bestOf = typeof body.bestOf === 'number' ? body.bestOf : config.getTournamentDefaultBestOf(bridgeId)
+    if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0) {
+      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive odd integer (e.g. 1, 3, 5)', 400)
+      return
+    }
+    const deadline =
+      typeof body.deadline === 'number' ? body.deadline : config.getTournamentDefaultDeadlineHours(bridgeId)
+    const playerCount = typeof body.playerCount === 'number' ? body.playerCount : 8
+    if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 32) {
+      sendError(response, 'VALIDATION_ERROR', 'playerCount must be between 2 and 32', 400)
+      return
+    }
+    const autoStart = body.autoStart !== false
+    const categoryId =
+      typeof body.categoryId === 'string' && body.categoryId.trim().length > 0 ? body.categoryId.trim() : undefined
+    const createdBy = auth.userId ?? 'web-ui'
+
+    try {
+      const tournament = await this.application.core.tournamentManager.createTournament(
+        bridgeId,
+        name,
+        gameType,
+        bestOf,
+        createdBy,
+        deadline
+      )
+
+      await this.application.core.tournamentManager.auditLogger.log(
+        tournament.id,
+        'create_test_tournament',
+        createdBy,
+        undefined,
+        undefined,
+        { name, gameType, bestOf, playerCount, deadline, autoStart, categoryId, source: 'web' }
+      )
+
+      // Seed fake players, mirroring the removed Discord /tournament test.
+      const now = Math.floor(Date.now() / 1000)
+      const status = autoStart ? PlayerStatus.CheckedIn : PlayerStatus.Registered
+      const checkedInAt = autoStart ? now : undefined
+      for (let index = 0; index < playerCount; index++) {
+        const fakeUuid = `00000000-0000-0000-0000-${String(index + 1).padStart(12, '0')}`
+        await this.application.core.databaseManager.execute(
+          `INSERT INTO "tournament_players" ("tournamentId", "playerUuid", "discordId", "seed", "status", "checkedInAt")
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [tournament.id, fakeUuid, undefined, index + 1, status, checkedInAt]
+        )
+      }
+
+      if (autoStart) {
+        const client = this.application.discordInstance.getClient()
+        const guild = client.guilds.cache.first()
+        const guildId = typeof body.guildId === 'string' && body.guildId.length > 0 ? body.guildId : guild?.id
+        if (guildId === undefined) {
+          await this.application.core.tournamentManager.cancelTournament(tournament.id).catch(() => undefined)
+          sendError(response, 'VALIDATION_ERROR', 'guildId is required and no Discord guild available', 400)
+          return
+        }
+        try {
+          await this.application.core.tournamentManager.startTournament(tournament.id, guildId, categoryId)
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error)
+          await this.application.core.tournamentManager.cancelTournament(tournament.id).catch(() => undefined)
+          sendError(response, 'INTERNAL_ERROR', `Failed to start test tournament: ${message}`, 500)
+          return
+        }
+      }
+
+      sendSuccess(response, tournament)
+    } catch (error: unknown) {
+      this.logger.error('Failed to create test tournament:', error)
+      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+    }
   }
 
   private async handleTestResolveMatch(

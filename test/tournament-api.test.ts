@@ -86,6 +86,7 @@ interface FakeHarness {
   db: {
     queryRows: (sql: string, parameters: unknown[]) => Promise<unknown[]>
     queryOne: (sql: string, parameters: unknown[]) => Promise<unknown>
+    execute: (sql: string, parameters: unknown[]) => Promise<void>
   }
   rewindCalls: { matchId: number; actorDiscordId?: string }[]
   createCalls: unknown[][]
@@ -128,11 +129,13 @@ function setupTest(): FakeHarness {
   const defaults = { bestOf: 1, deadlineHours: 48, checkinMinutes: 60, bracketFormat: 'single-elim' }
   const database: FakeHarness['db'] = {
     queryRows: async (_sql: string, _parameters: unknown[]) => [],
-    queryOne: async (_sql: string, _parameters: unknown[]) => undefined
+    queryOne: async (_sql: string, _parameters: unknown[]) => undefined,
+    execute: async (_sql: string, _parameters: unknown[]) => {}
   }
   const databaseManager = {
     queryRows: (sql: string, parameters: unknown[]) => database.queryRows(sql, parameters),
-    queryOne: (sql: string, parameters: unknown[]) => database.queryOne(sql, parameters)
+    queryOne: (sql: string, parameters: unknown[]) => database.queryOne(sql, parameters),
+    execute: (sql: string, parameters: unknown[]) => database.execute(sql, parameters)
   }
   const app = {
     config: { web: { signingSecret: SIGNING_SECRET } },
@@ -142,9 +145,13 @@ function setupTest(): FakeHarness {
         getTournamentDefaultBestOf: (): number => defaults.bestOf,
         getTournamentDefaultDeadlineHours: (): number => defaults.deadlineHours,
         getTournamentCheckinWindowMinutes: (): number => defaults.checkinMinutes,
-        getTournamentDefaultBracketFormat: (): string => defaults.bracketFormat
+        getTournamentDefaultBracketFormat: (): string => defaults.bracketFormat,
+        setTournamentCategoryId: (): void => {}
       },
       tournamentManager: {
+        auditLogger: {
+          log: async (): Promise<void> => {}
+        },
         rewindMatch: async (matchId: number, actorDiscordId?: string): Promise<void> => {
           rewindCalls.push({ matchId, actorDiscordId })
         },
@@ -551,5 +558,69 @@ await describe('TournamentApiHandler', async () => {
     const body = JSON.parse(response.body) as { success: boolean; error: { code: string } }
     assert.strictEqual(body.success, false)
     assert.strictEqual(body.error.code, 'VALIDATION_ERROR')
+  })
+
+  await it('POST /api/tournament/test/create seeds fake players and creates a tournament', async () => {
+    const harness = setupTest()
+    const executeCalls: { sql: string; parameters: unknown[] }[] = []
+    harness.db.execute = async (sql: string, parameters: unknown[]) => {
+      executeCalls.push({ sql, parameters })
+    }
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament/test/create',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({ bridgeId: 'bridge-a', playerCount: 4, autoStart: false })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 200)
+    const body = JSON.parse(response.body) as { success: boolean; data: Tournament }
+    assert.strictEqual(body.success, true)
+    assert.deepStrictEqual(harness.createCalls[0]?.slice(0, 6), [
+      'bridge-a',
+      'Test Tournament',
+      'Bridge',
+      1,
+      'admin-1',
+      48
+    ])
+    assert.strictEqual(executeCalls.length, 4)
+    const first = executeCalls[0]
+    assert.ok(first)
+    assert.match(first.sql, /INSERT INTO "tournament_players"/)
+    assert.strictEqual(first.parameters[1], '00000000-0000-0000-0000-000000000001')
+    assert.strictEqual(first.parameters[3], 1)
+  })
+
+  await it('POST /api/tournament/test/create requires Admin permission', async () => {
+    const harness = setupTest()
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament/test/create',
+      harness,
+      makeToken(Permission.Officer, 'officer-1'),
+      JSON.stringify({ bridgeId: 'bridge-a' })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 403)
+    assert.strictEqual(harness.createCalls.length, 0)
+  })
+
+  await it('POST /api/tournament/test/create rejects playerCount outside 2-32', async () => {
+    const harness = setupTest()
+    const { response, handled } = await runHandler(
+      'POST',
+      '/api/tournament/test/create',
+      harness,
+      makeToken(Permission.Admin, 'admin-1'),
+      JSON.stringify({ bridgeId: 'bridge-a', playerCount: 64, autoStart: false })
+    )
+    assert.strictEqual(handled, true)
+    assert.strictEqual(response.statusCode, 400)
+    const body = JSON.parse(response.body) as { success: boolean; error: { code: string } }
+    assert.strictEqual(body.success, false)
+    assert.strictEqual(body.error.code, 'VALIDATION_ERROR')
+    assert.strictEqual(harness.createCalls.length, 0)
   })
 })

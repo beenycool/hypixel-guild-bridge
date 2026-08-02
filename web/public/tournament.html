@@ -1056,6 +1056,17 @@
               </svg>
               Create Tournament
             </button>
+            <button
+              class="btn btn-secondary btn-sm"
+              id="test-btn"
+              style="display: none"
+              title="Create a test tournament with fake players"
+            >
+              <svg class="ui-icon" viewBox="0 0 24 24">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              Test Tournament
+            </button>
           </div>
         </div>
 
@@ -2552,7 +2563,8 @@
         const t = cachedDetail?.tournament
         if (!t) return
         const SUPPORTED = ['single-elim', 'double-elim', 'round-robin']
-        const fmtName = (f) => (f === 'double-elim' ? 'Double Elimination' : f === 'round-robin' ? 'Round Robin' : 'Single Elimination')
+        const fmtName = (f) =>
+          f === 'double-elim' ? 'Double Elimination' : f === 'round-robin' ? 'Round Robin' : 'Single Elimination'
 
         openActionModal({
           title: 'Edit Tournament Settings',
@@ -2640,7 +2652,12 @@
       }
 
       async function reopenTournament(id) {
-        if (!Ui.confirmAction('Reopen this cancelled tournament into the signup phase? The bracket will be cleared, registered players will be kept.')) return
+        if (
+          !Ui.confirmAction(
+            'Reopen this cancelled tournament into the signup phase? The bracket will be cleared, registered players will be kept.'
+          )
+        )
+          return
         try {
           await Api.apiPost('/api/tournament/' + id + '/reopen', {})
           Ui.showToast('Tournament reopened', 'success')
@@ -2863,6 +2880,108 @@
         createModal.style.display = 'none'
       }
 
+      async function openTestCreateModal() {
+        let bridgesHtml = '<option value="">(no bridges)</option>'
+        let categoriesHtml = '<option value="">(Auto — create a new category)</option>'
+        try {
+          const data = await Api.apiGet('/api/bridges')
+          const ids = Array.isArray(data) ? data.map((b) => b.id || b.bridgeId) : []
+          if (ids.length) {
+            bridgesHtml = ids.map((id) => '<option value="' + esc(id) + '">' + esc(id) + '</option>').join('')
+          }
+        } catch {}
+        try {
+          const data = await Api.apiGet('/api/tournament/categories')
+          const cats = Array.isArray(data) ? data : []
+          if (cats.length) {
+            categoriesHtml += cats.map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('')
+          }
+        } catch {}
+        openActionModal({
+          title: 'Create Test Tournament',
+          bodyHtml: `
+            <p class="text-muted" style="font-size: 13px; margin: 0 0 12px">
+              Spins up a tournament with fake players to test the bracket flow.
+            </p>
+            <div class="form-row">
+              <label class="form-label">Bridge</label>
+              <select class="select" id="tt-bridge">${bridgesHtml}</select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Name</label>
+              <input type="text" class="input" id="tt-name" value="Test Tournament" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Game Type</label>
+              <input type="text" class="input" id="tt-gametype" value="Bridge" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Best-of</label>
+              <input type="number" class="input" id="tt-bestof" min="1" max="9" step="2" value="1" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Round Deadline (hours)</label>
+              <input type="number" class="input" id="tt-deadline" min="1" max="720" value="48" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Fake Players</label>
+              <input type="number" class="input" id="tt-players" min="2" max="32" value="8" />
+              <span class="create-field-hint">2–32 fake players seeded into the bracket.</span>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Discord Category</label>
+              <select class="select" id="tt-category">${categoriesHtml}</select>
+            </div>
+            <div class="form-row">
+              <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+                <input type="checkbox" id="tt-autostart" style="width: auto" checked />
+                Auto check-in &amp; start immediately
+              </label>
+            </div>`,
+          onConfirm: async () => {
+            const bridgeId = document.querySelector('#tt-bridge')?.value ?? ''
+            const name = document.querySelector('#tt-name')?.value.trim() || 'Test Tournament'
+            const gameType = document.querySelector('#tt-gametype')?.value.trim() || 'Bridge'
+            const bestOf = Number(document.querySelector('#tt-bestof')?.value) || 0
+            const deadline = Number(document.querySelector('#tt-deadline')?.value) || 0
+            const playerCount = Number(document.querySelector('#tt-players')?.value) || 0
+            const categoryId = document.querySelector('#tt-category')?.value ?? ''
+            const autoStart = document.querySelector('#tt-autostart')?.checked ?? true
+
+            if (!bridgeId) {
+              Ui.showToast('Select a bridge first', 'error')
+              return false
+            }
+            if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9) {
+              Ui.showToast('Best-of must be an odd number between 1 and 9 (e.g. 1, 3, 5).', 'error')
+              return false
+            }
+            if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 32) {
+              Ui.showToast('Player count must be between 2 and 32.', 'error')
+              return false
+            }
+            try {
+              const tournament = await Api.apiPost('/api/tournament/test/create', {
+                bridgeId,
+                name,
+                gameType,
+                bestOf,
+                deadline: Number.isInteger(deadline) && deadline > 0 ? deadline : undefined,
+                playerCount,
+                categoryId: categoryId || undefined,
+                autoStart
+              })
+              Ui.showToast(`Test tournament created (${playerCount} fake players)`, 'success')
+              await loadTournaments()
+              if (tournament && tournament.id != null) await showTournament(tournament.id)
+            } catch (err) {
+              Ui.showToast('Failed to create test tournament: ' + (err.message || String(err)), 'error')
+              return false
+            }
+          }
+        })
+      }
+
       async function submitCreate(e) {
         e.preventDefault()
         const bridgeId = document.querySelector('#cf-bridge').value
@@ -2927,6 +3046,11 @@
         if (isAdmin()) {
           createBtn.style.display = ''
           createBtn.addEventListener('click', openCreateModal)
+          const testBtn = document.querySelector('#test-btn')
+          if (testBtn) {
+            testBtn.style.display = ''
+            testBtn.addEventListener('click', openTestCreateModal)
+          }
         }
 
         createModal.addEventListener('click', (e) => {
