@@ -13,8 +13,12 @@ export class NotificationManager {
     this.logger = application.logger
   }
 
-  public async sendReviewNotification(bridgeId: string, channelIds: string[], reviews: PendingReview[]): Promise<void> {
-    if (reviews.length === 0) return
+  public async sendReviewNotification(
+    bridgeId: string,
+    channelIds: string[],
+    reviews: PendingReview[]
+  ): Promise<boolean> {
+    if (reviews.length === 0) return false
 
     // Sometimes bridgeId matches guildId, sometimes it's internal.
     // We iterate all instances and find the one that has these channels?
@@ -47,7 +51,7 @@ export class NotificationManager {
               .join('\n') || 'None'
         }
       )
-      .setFooter({ text: 'Use /rankup-pending to view and act on these reviews.' })
+      .setFooter({ text: 'Review pending rankup changes via the web dashboard.' })
       .setTimestamp()
 
     // Resolve UUIDs to names (best effort)
@@ -79,16 +83,29 @@ export class NotificationManager {
 
     embed.setFields({ name: 'Promotions', value: field1 }, { name: 'Demotions/Kicks', value: field2 })
 
+    let allSent = true
     for (const channelId of channelIds) {
       const instance = this.application.discordInstance
       const client = instance.getClient()
       const channel = await client.channels.fetch(channelId).catch(() => undefined)
       if (channel?.isSendable()) {
-        await channel.send({ embeds: [embed] }).catch((error: unknown) => {
-          this.logger.error(error)
-        })
+        try {
+          await channel.send({ embeds: [embed] })
+        } catch (error: unknown) {
+          allSent = false
+          this.logger.error(
+            `Failed to send rankup review notification to channel ${channelId} for bridge ${bridgeId}:`,
+            error
+          )
+        }
+      } else {
+        allSent = false
+        this.logger.warn(
+          `Rankup review notification channel ${channelId} for bridge ${bridgeId} not found or not sendable`
+        )
       }
     }
+    return allSent
   }
 
   public async sendNotifyOnly(
@@ -117,9 +134,16 @@ export class NotificationManager {
       const client = instance.getClient()
       const channel = await client.channels.fetch(channelId).catch(() => undefined)
       if (channel?.isSendable()) {
-        await channel.send({ embeds: [embed] }).catch((error: unknown) => {
-          this.logger.error(error)
-        })
+        try {
+          await channel.send({ embeds: [embed] })
+        } catch (error: unknown) {
+          this.logger.error(
+            `Failed to send rankup notify-only message to channel ${channelId} for bridge ${bridgeId}:`,
+            error
+          )
+        }
+      } else {
+        this.logger.warn(`Rankup notify-only channel ${channelId} for bridge ${bridgeId} not found or not sendable`)
       }
     }
   }

@@ -20,6 +20,7 @@ await describe('BridgeEvaluator', async () => {
     getRankupExcludedRanks: () => [],
     getRankupExcludedPlayers: () => [],
     getRankupManualReview: () => false,
+    getOfficerChannelIds: () => [],
     getRankupNotificationChannelIds: () => [],
     getRankupNotificationCooldown: () => 24
   }
