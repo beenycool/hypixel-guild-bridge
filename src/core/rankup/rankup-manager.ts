@@ -51,6 +51,14 @@ export class RankupManager {
           this.logger.info(`Bridge ${bridgeId}: rankup disabled, skipping scheduled checkup`)
           continue
         }
+        if (!this.isWithinScheduleWindow(bridgeId)) {
+          const day = this.bridgeConfig.getRankupScheduleDay(bridgeId)
+          const hour = this.bridgeConfig.getRankupScheduleHour(bridgeId)
+          this.logger.info(
+            `Bridge ${bridgeId}: outside rankup schedule (day ${day} hour ${hour} UK time), skipping scheduled checkup`
+          )
+          continue
+        }
         await this.runTaskForBridge(bridgeId)
       }
     } catch (error) {
@@ -58,6 +66,25 @@ export class RankupManager {
     } finally {
       this.isRunning = false
     }
+  }
+
+  private isWithinScheduleWindow(bridgeId: string): boolean {
+    const day = this.bridgeConfig.getRankupScheduleDay(bridgeId)
+    const hour = this.bridgeConfig.getRankupScheduleHour(bridgeId)
+    if (day < 0 || hour < 0) return true
+
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      weekday: 'short',
+      hour: 'numeric',
+      hourCycle: 'h23'
+    }).formatToParts(new Date())
+    const weekday = parts.find((part) => part.type === 'weekday')?.value
+    const currentHour = Number(parts.find((part) => part.type === 'hour')?.value)
+    if (weekday === undefined || Number.isNaN(currentHour)) return false
+
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return weekdays[day] === weekday && currentHour === hour
   }
 
   public async runTaskForBridge(bridgeId: string): Promise<void> {

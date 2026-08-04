@@ -394,6 +394,8 @@ export class SettingsApiHandler {
           cfg.setRankupManualReview(bridgeId, bool(body.manualReview))
           cfg.setRankupNotificationCooldown(bridgeId, number_(body.notificationCooldown))
           cfg.setRankupNotificationChannelIds(bridgeId, array(body.notificationChannelIds))
+          cfg.setRankupScheduleDay(bridgeId, number_(body.scheduleDay, -1))
+          cfg.setRankupScheduleHour(bridgeId, number_(body.scheduleHour, -1))
           cfg.setRankupRules(bridgeId, body.promotionRules as never)
           cfg.setRankupDemotionRules(bridgeId, body.demotionRules as never)
           cfg.setRankupExcludedRanks(bridgeId, array(body.excludedRanks))

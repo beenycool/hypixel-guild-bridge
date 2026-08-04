@@ -1004,6 +1004,38 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   /**
+   * Get the day of the week the rankup check is restricted to (0=Sunday..6=Saturday, -1 = no restriction)
+   */
+  public getRankupScheduleDay(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_rankupScheduleDay`, -1)
+  }
+
+  /**
+   * Set the day of the week the rankup check is restricted to (0=Sunday..6=Saturday)
+   */
+  public setRankupScheduleDay(bridgeId: string, day: number): void {
+    this.setConfig(bridgeId, `${bridgeId}_rankupScheduleDay`, day, () => {
+      this.configuration.setNumber(`${bridgeId}_rankupScheduleDay`, day)
+    })
+  }
+
+  /**
+   * Get the hour (UK time, 0-23) the rankup check is restricted to (-1 = no restriction)
+   */
+  public getRankupScheduleHour(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_rankupScheduleHour`, -1)
+  }
+
+  /**
+   * Set the hour (UK time, 0-23) the rankup check is restricted to
+   */
+  public setRankupScheduleHour(bridgeId: string, hour: number): void {
+    this.setConfig(bridgeId, `${bridgeId}_rankupScheduleHour`, hour, () => {
+      this.configuration.setNumber(`${bridgeId}_rankupScheduleHour`, hour)
+    })
+  }
+
+  /**
    * Get promotion rules for rankup
    */
   public getRankupRules(bridgeId: string): {
@@ -1370,6 +1402,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         manualReview: this.getRankupManualReview(bridgeId),
         notificationCooldown: this.getRankupNotificationCooldown(bridgeId),
         notificationChannelIds: this.getRankupNotificationChannelIds(bridgeId),
+        scheduleDay: this.getRankupScheduleDay(bridgeId),
+        scheduleHour: this.getRankupScheduleHour(bridgeId),
         promotionRules: this.getRankupRules(bridgeId),
         demotionRules: this.getRankupDemotionRules(bridgeId),
         excludedRanks: this.getRankupExcludedRanks(bridgeId),
