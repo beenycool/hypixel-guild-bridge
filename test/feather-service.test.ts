@@ -1,17 +1,23 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import type { Logger } from 'log4js'
+
 import type Application from '../src/application.js'
 import { FeatherService } from '../src/core/feather/feather-service.js'
 
-test('FeatherService returns undefined when no connected instance is available', async () => {
-  const dummyLogger = {
-    trace: () => {},
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {}
-  } as any
+const noop = (): void => {
+  /* noop */
+}
+
+await test('FeatherService returns undefined when no connected instance is available', async () => {
+  const dummyLogger: Logger = {
+    trace: noop,
+    debug: noop,
+    info: noop,
+    warn: noop,
+    error: noop
+  } as unknown as Logger
 
   const dummyApp = {
     minecraftManager: {

@@ -52,17 +52,12 @@ export default class QCommand extends ChatCommandHandler {
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
-    context.logger.debug(
-      `[q] handler called by ${context.username} args="${context.args.join(' ')}" bridge="${context.message.bridgeId}"`
-    )
-
     if (!context.app.bridgeResolver.isMultiBridgeEnabled()) {
       return `${context.username}, cross-bridge messaging is only available in multi-bridge mode.`
     }
 
     if (context.args.length === 1 && context.args[0] === 'list') {
       const bridgeIds = context.app.core.bridgeConfigurations.getAllBridgeIds()
-      context.logger.debug(`[q] list — bridgeIds=${bridgeIds}`)
       if (bridgeIds.length === 0) {
         return `${context.username}, no bridges are configured.`
       }
@@ -134,7 +129,6 @@ export default class QCommand extends ChatCommandHandler {
     // MinecraftBridge forwards to destination Minecraft instances.
     // The guild echo is suppressed by public.ts's bot-message filter (no duplicate).
     const rawMessage = `§2Guild > §f${context.username}: ${enrichedMessage}`
-    context.logger.debug(`[q] emitting chat to bridge="${bestBridgeId}" msg="${enrichedMessage}"`)
     const baseEvent = context.eventHelper.fillBaseEvent()
     await context.app.emit('chat', {
       ...baseEvent,

@@ -31,11 +31,11 @@ export function inventoryApiOffMessage(username: string): string {
 }
 
 export function classifyHypixelApiError(error: unknown): string | undefined {
-  const status = (error as { response?: { status?: number } })?.response?.status
+  const status = (error as { response?: { status?: number } }).response?.status
   if (status === 429) return apiRateLimitedMessage()
   if (status === 403) return apiKeyInvalidMessage()
   if (status != undefined && status >= 500) return apiDownMessage()
-  const code = (error as { code?: string })?.code
+  const code = (error as { code?: string }).code
   if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND') return apiDownMessage()
   return undefined
 }
@@ -166,6 +166,7 @@ export async function fetchAuroraPing(uuid: string, apiKey: string): Promise<Aur
   try {
     const url = `${AuroraPingBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
     const response = await httpClient.get<{ success: boolean; data?: AuroraPingEntry[] }>(url, {
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
       headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-Ping/1.0.0' }
     })
     if (!response.data.success || !response.data.data || response.data.data.length === 0) return undefined
@@ -178,6 +179,7 @@ export async function fetchAuroraPing(uuid: string, apiKey: string): Promise<Aur
 export interface AuroraWinstreakData {
   uuid: string
   winstreak: number
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case field required by external API contract
   accurate_winstreak: number | null
   estimated: boolean
   confirmed: number
@@ -189,6 +191,7 @@ export async function fetchAuroraWinstreak(uuid: string, apiKey: string): Promis
   try {
     const url = `${AuroraWinstreakBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
     const response = await httpClient.get<{ success: boolean; data?: AuroraWinstreakData }>(url, {
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
       headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-AuroraApi/1.0.0' }
     })
     if (!response.data.success || !response.data.data) return undefined

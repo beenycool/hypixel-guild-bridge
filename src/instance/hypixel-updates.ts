@@ -1,5 +1,3 @@
-import { httpClient } from '../common/http.js'
-
 import minecraftProtocol from 'minecraft-protocol'
 
 const { ping: MinecraftPing } = minecraftProtocol
@@ -7,6 +5,7 @@ const { ping: MinecraftPing } = minecraftProtocol
 import type Application from '../application'
 import type { HypixelUpdatesConfig } from '../application-config'
 import { ChannelType, Color, InstanceType } from '../common/application-event'
+import { httpClient } from '../common/http.js'
 import { Instance } from '../common/instance'
 import Duration from '../utility/duration'
 import { setIntervalAsync } from '../utility/scheduling'

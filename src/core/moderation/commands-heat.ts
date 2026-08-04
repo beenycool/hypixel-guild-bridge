@@ -1,5 +1,3 @@
-import type { Logger } from 'log4js'
-
 import type { DatabaseManager } from '../../common/database-manager'
 import type { User, UserIdentifier } from '../../common/user'
 import Duration from '../../utility/duration'
@@ -17,8 +15,7 @@ export class CommandsHeat {
 
   constructor(
     private readonly databaseManager: DatabaseManager,
-    config: ModerationConfigurations,
-    logger: Logger
+    config: ModerationConfigurations
   ) {
     this.moderationConfig = config
 
@@ -34,7 +31,6 @@ export class CommandsHeat {
       }
 
       if (deleted > 0) {
-        logger.debug(`Deleted ${deleted} entry of expired heats-commands`)
         this.databaseManager.enqueueWrite('cleaning expired command heats', async (database) => {
           await database.query('DELETE FROM "heatsCommands" WHERE "createdAt" < $1', [oldestTimestamp])
         })

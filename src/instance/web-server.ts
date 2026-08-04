@@ -228,7 +228,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         }
       }
 
-      const discordClient = this.application.discordInstance?.getClient()
+      const discordClient = this.application.discordInstance.getClient()
       const minecraftInstances = this.application.getInstancesNames(InstanceType.Minecraft).map((name) => ({
         name,
         status:
@@ -245,8 +245,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         components: {
           database: this.application.core.databaseManager.getPoolStatus(),
           discord: {
-            connected: discordClient?.isReady() ?? false,
-            guilds: discordClient?.guilds.cache.size ?? 0
+            connected: discordClient.isReady(),
+            guilds: discordClient.guilds.cache.size
           },
           minecraft: {
             instances: minecraftInstances

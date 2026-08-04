@@ -17,7 +17,6 @@ export function resolveProxyIfExist(
   }
 ): Partial<ClientProxyOptions> {
   if (!proxyConfig) return {}
-  logger.debug(`Proxy enabled with params: ${JSON.stringify(proxyConfig)}`)
 
   const proxyHost = proxyConfig.host
   const proxyPort = proxyConfig.port
@@ -48,8 +47,6 @@ export function resolveProxyIfExist(
 
 function createHttpConnectFunction(logger: Logger, proxyHost: string, proxyPort: number, host: string, port: number) {
   return function (client: Client): void {
-    logger.debug('connecting to proxy...')
-
     const request = Http.request({
       host: proxyHost,
       port: proxyPort,
@@ -59,7 +56,6 @@ function createHttpConnectFunction(logger: Logger, proxyHost: string, proxyPort:
     request.end()
 
     request.on('connect', (response, stream) => {
-      logger.debug('connection to proxy established. forwarding proxied connection to minecraft')
       client.setSocket(stream)
       client.emit('connect')
     })
@@ -80,8 +76,6 @@ function createSocksConnectFunction(
   port: number
 ) {
   return function (client: Client): void {
-    logger.debug('connecting to proxy...')
-
     SocksClient.createConnection({
       proxy: {
         host: proxyOptions.host,
@@ -98,7 +92,6 @@ function createSocksConnectFunction(
       }
     })
       .then((connectionEstablished) => {
-        logger.debug('connection to proxy established. forwarding proxied connection to minecraft')
         client.setSocket(connectionEstablished.socket)
         client.emit('connect')
       })

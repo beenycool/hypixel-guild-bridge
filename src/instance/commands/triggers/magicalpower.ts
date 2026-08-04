@@ -64,9 +64,8 @@ export default class MagicalPower extends SkyblockPlayerCommand {
     if (bagRaw === undefined) return []
 
     const parsed = await parse(Buffer.from(bagRaw.data, 'base64'))
-    const slots = (parsed.parsed?.value as Record<string, unknown>)?.i as {
-      value: { value: InventorySlot[] }
-    }
+    const parsedData = parsed.parsed.value as Record<string, unknown> | undefined
+    const slots = parsedData?.i as { value?: { value: InventorySlot[] } } | undefined
     const slotItems: InventorySlot[] = slots?.value?.value ?? []
 
     const result: { name: string; count: number }[] = []

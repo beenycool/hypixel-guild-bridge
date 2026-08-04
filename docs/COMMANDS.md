@@ -58,15 +58,14 @@ A shorter version can also be used: `!- rtca`
 | `garden`         | Returns a player's garden stats                                                                                                      |
 | `gay`            | Check how gay a player is                                                                                                            |
 | `gtop`           | Shows the top 5 GEXP earners in the guild for today                                                                                  |
+| `guildstats`     | Show guild activity stats for a period.                                                                                              |
 | `guild`          | Returns a player's guild, if they're in one                                                                                          |
 | `guildexp`       | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]                                                    |
-| `guildstats`     | Show guild activity stats for a period. Usage: !guildstats [daily|weekly|monthly|yearly]                                             |
 | `help`           | Shows a command description and an example about its usage                                                                           |
 | `hotm`           | Returns a player's hotm and powder                                                                                                   |
 | `hlevel`         | Returns a player's Hypixel common stats                                                                                              |
 | `insult`         | insult a player                                                                                                                      |
 | `iq`             | Returns a player's IQ (0-200)                                                                                                        |
-| `kms`            | mute yourself for 5 minutes                                                                                                          |
 | `kuudra`         | Returns a player's kuudra runs                                                                                                       |
 | `lesbian`        | Check how lesbian a player is                                                                                                        |
 | `level`          | Returns a player's skyblock level                                                                                                    |
@@ -88,39 +87,33 @@ A shorter version can also be used: `!- rtca`
 | `player`         | Get Hypixel player stats.                                                                                                            |
 | `points30`       | Returns user's 30 days activity points                                                                                               |
 | `points`         | Returns user's all time activity points                                                                                              |
-| `points`         | Returns user's activity points (use points30 for 30-day)                                                                             |
 | `praise`         | praise a player                                                                                                                      |
 | `purse`          | Returns a player's skyblock coins                                                                                                    |
 | `q`              | Send a one-time message to a different bridge, or list available bridges                                                             |
 | `qm`             | Mute a user from using cross-bridge chat (!q)                                                                                        |
 | `qmuted`         | List users muted from cross-bridge chat (!q)                                                                                         |
 | `quakecraft`     | Returns a player's Quakecraft stats                                                                                                  |
-| `quickmath`      | Solve a quick math problem!                                                                                                          |
 | `qunmute`        | Unmute a user from using cross-bridge chat (!q)                                                                                      |
 | `racism`         | Check how racist a player is                                                                                                         |
 | `rep`            | Returns a player's crimson isle's faction reputation                                                                                 |
-| `req`            | Check if a player meets the guild requirements                                                                                       |
 | `rhyme`          | Finds rhyming words and generates a short couplet using AI                                                                           |
 | `rng`            | Returns a random number between a range                                                                                              |
 | `rps`            | Play rock, paper, scissors against the bot                                                                                           |
 | `roulette`       | Try your luck for a 15 minute mute                                                                                                   |
 | `rtca`           | Returns the number of runs needed to reach the average class level specified                                                         |
 | `runs`           | Returns how many dungeon runs a player has done                                                                                      |
-| `sblevel`        | Returns a player's Skyblock level                                                                                                    |
 | `secrets`        | Returns how many secrets a player has done                                                                                           |
 | `select`         | Randomly select an online guild member                                                                                               |
-| `session`        | Show stat changes over custom duration. Usage: !session <duration> [game] [username] Example: !session 48h Bedwars                   |
 | `weekly`         | Show weekly stat changes (or !weekly <game>)                                                                                         |
 | `monthly`        | Show monthly stat changes (or !monthly <game>)                                                                                       |
 | `yearly`         | Show yearly stat changes (or !yearly <game>)                                                                                         |
+| `session`        | Show stat changes over custom duration. Example: !session 48h Bedwars                                                                |
 | `skills`         | Skills and Skill Average of specified user.                                                                                          |
 | `skyblock`       | Returns a player's skyblock stats                                                                                                    |
 | `skywars`        | Returns a player's SkyWars stats                                                                                                     |
 | `slayer`         | Slayer of specified user.                                                                                                            |
-| `smash`          | Returns a player's Smash Heroes stats                                                                                                |
 | `soopy`          | Use SoopyV2 API to execute commands                                                                                                  |
 | `specialmayors`  | Show when Skyblock special mayors are coming                                                                                         |
-| `speeduhc`       | Returns a player's Speed UHC stats                                                                                                   |
 | `starfall`       | When is the next Skyblock Starfall event                                                                                             |
 | `status`         | Show a player's Hypixel status and current location                                                                                  |
 | `timecharm`      | Returns a player's rift obtained time charms                                                                                         |
@@ -131,12 +124,10 @@ A shorter version can also be used: `!- rtca`
 | `tournament`     | Tournament commands — join, checkin, report, forfeit, bracket, status                                                                |
 | `translate`      | Translates text to a target language                                                                                                 |
 | `trophyfish`     | Returns a player's trophy fishing stats                                                                                              |
-| `uhc`            | Returns a player's UHC stats                                                                                                         |
 | `unlink`         | Unlink Minecraft account from Discord                                                                                                |
 | `unscramble`     | Unscramble the word and type it in chat to win!                                                                                      |
 | `urchin`         | Check a player for Urchin blacklist tags.                                                                                            |
 | `vengeance`      | Try your luck against another player for a 15 minute mute                                                                            |
-| `warlords`       | Returns a player's Warlords stats                                                                                                    |
 | `warp`           | Warp a player out of a lobby                                                                                                         |
 | `weight`         | Returns a player's senither weight                                                                                                   |
 | `ws`             | Show winstreaks for a player.                                                                                                        |
@@ -144,25 +135,25 @@ A shorter version can also be used: `!- rtca`
 
 ## Discord Commands
 
-| Command       | Description                                                      |
-| ------------- | ---------------------------------------------------------------- |
-| `/accept`     | accept a player to the guild if they have a join request in-game |
-| `/blacklist`  | Add or remove a player from the ignore list                      |
-| `/dashboard`  | Open the web dashboard for bridge management                     |
-| `/disconnect` | disconnect minecraft clients                                     |
-| `/execute`    | execute command in-game via Minecraft client                     |
-| `/invite`     | invite player to the guild in-game                               |
-| `/join`       | Instruct the Minecraft account to join a guild.                  |
-| `/kick`       | kick player from the guild in-game                               |
-| `/list`       | List players in your guild(s)                                    |
-| `/log`        | View guild activity logs                                         |
-| `/messages`   | Open the Bot Messages page to customize what the bot says        |
-| `/nick`       | Set a custom bot username/skin for rendered chat images          |
-| `/rank`       | Manage guild member ranks                                        |
-| `/reconnect`  | reconnect minecraft clients                                      |
-| `/restart`    | Send signal to restart the bridge                                |
-| `/summarise`  | Manually trigger the daily chat summary generation               |
-| `/tournament` | Manage or participate in single-elimination guild tournaments    |
+| Command       | Description                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| `/accept`     | accept a player to the guild if they have a join request in-game                                    |
+| `/blacklist`  | Add or remove a player from the ignore list                                                         |
+| `/dashboard`  | Open the web dashboard for bridge management                                                        |
+| `/disconnect` | disconnect minecraft clients                                                                        |
+| `/execute`    | execute command in-game via Minecraft client                                                        |
+| `/invite`     | invite player to the guild in-game                                                                  |
+| `/join`       | Instruct the Minecraft account to join a guild.                                                     |
+| `/kick`       | kick player from the guild in-game                                                                  |
+| `/list`       | List players in your guild(s)                                                                       |
+| `/log`        | View guild activity logs                                                                            |
+| `/messages`   | Open the Bot Messages page to customize what the bot says                                           |
+| `/nick`       | Set a custom bot username/skin for rendered chat images                                             |
+| `/rank`       | Manage guild member ranks                                                                           |
+| `/reconnect`  | reconnect minecraft clients                                                                         |
+| `/restart`    | Send signal to restart the bridge                                                                   |
+| `/summarise`  | Manually trigger the daily chat summary generation                                                  |
+| `/tournament` | Player commands for guild tournaments — admin actions are managed in the web dashboard (/dashboard) |
 
 ---
 

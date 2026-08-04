@@ -12,7 +12,17 @@ import { jsdoc } from 'eslint-plugin-jsdoc'
  */
 export default [
   {
-    ignores: ['**/node_modules', '.idea', './logs', './config', '**/*-ti.ts', 'package-lock.json', 'eslint.config.mjs']
+    ignores: [
+      '**/node_modules',
+      '.idea',
+      './logs',
+      './config',
+      './build', // compiled output, never linted
+      'web/public/js', // legacy browser JS, not part of the TypeScript project
+      '**/*-ti.ts',
+      'package-lock.json',
+      'eslint.config.mjs'
+    ]
   },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
@@ -117,7 +127,7 @@ export default [
           format: null,
           custom: {
             match: true,
-            regex: '^([A-Z]{1,3}[a-z0-9]+)+$'
+            regex: '^(?:[A-Z]{1,3}[a-z0-9]+|[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*|[a-z][a-zA-Z0-9]*)+$'
           },
           modifiers: ['const', 'global']
         },

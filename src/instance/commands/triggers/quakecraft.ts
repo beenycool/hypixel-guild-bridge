@@ -13,6 +13,7 @@ export default class Quakecraft extends HypixelPlayerCommand {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.quakecraft
     if (stats === undefined) return `${givenUsername} has never played Quakecraft.` + this.formatPingSuffix()

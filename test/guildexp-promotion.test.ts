@@ -4,11 +4,14 @@ import { describe, it } from 'node:test'
 import GuildExperience from '../src/instance/commands/triggers/guildexp.js'
 
 await describe('GuildExperience Promotion & Next Rank Checks', async () => {
-  const command = new GuildExperience()
+  // formatResponse is private; expose it through a minimal typed view instead of `any`.
+  const command = new GuildExperience() as unknown as {
+    formatResponse(...callArguments: unknown[]): string
+  }
 
   await it('formats standard weekly GEXP when no context or bridge is provided', () => {
     const member = { uuid: 'uuid-1', rank: 'Member', joinedAt: Date.now(), weeklyExperience: 50_000 }
-    const result = (command as any).formatResponse('Steve', 'weekly', member)
+    const result = command.formatResponse('Steve', 'weekly', member)
     assert.strictEqual(result, "Steve's Weekly Guild Experience: 50,000.")
   })
 
@@ -43,14 +46,18 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
             getRankupManualReview: () => false
           },
           rankupManager: {
-            runTaskForBridge: async () => {}
+            runTaskForBridge: () => Promise.resolve()
           }
         }
       },
-      logger: { error: () => {} }
+      logger: {
+        error: () => {
+          /* noop */
+        }
+      }
     }
 
-    const result = (command as any).formatResponse('Steve', 'weekly', member, mockContext, guild)
+    const result = command.formatResponse('Steve', 'weekly', member, mockContext, guild)
     assert.strictEqual(
       result,
       "Steve's Weekly Guild Experience: 100,000. Eligible for promotion to Officer! (Auto-promoting...)"
@@ -91,7 +98,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
       }
     }
 
-    const result = (command as any).formatResponse('Steve', 'weekly', member, mockContext, guild)
+    const result = command.formatResponse('Steve', 'weekly', member, mockContext, guild)
     assert.strictEqual(
       result,
       "Steve's Weekly Guild Experience: 45,000. Next rank [Officer]: 45,000 / 80,000 GEXP (35,000 needed)."
@@ -132,7 +139,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
       }
     }
 
-    const result = (command as any).formatResponse('Steve', 'weekly', member, mockContext, guild)
+    const result = command.formatResponse('Steve', 'weekly', member, mockContext, guild)
     assert.strictEqual(
       result,
       "Steve's Weekly Guild Experience: 90,000. Next rank [Officer]: 90,000 / 80,000 GEXP & 3/7 days in guild."

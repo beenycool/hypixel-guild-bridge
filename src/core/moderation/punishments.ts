@@ -2,7 +2,6 @@ import type { Logger } from 'log4js'
 
 import type Application from '../../application'
 import type { BasePunishment } from '../../common/application-event'
-import { InstanceType, PunishmentPurpose, PunishmentType } from '../../common/application-event'
 import type { DatabaseManager } from '../../common/database-manager'
 import type { User, UserIdentifier } from '../../common/user'
 
@@ -30,7 +29,6 @@ export default class Punishments {
 
       const deleted = before - this.entries.length
       if (deleted > 0) {
-        logger.debug(`Deleted ${deleted} entry of expired punishments`)
         this.databaseManager.enqueueWrite('cleaning expired punishments', async (database) => {
           await database.query('DELETE FROM "punishments" WHERE "till" < $1', [cutoff])
         })

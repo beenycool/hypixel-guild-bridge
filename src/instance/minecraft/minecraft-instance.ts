@@ -126,10 +126,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   public async automaticReconnect(): Promise<void> {
     const autoConnect = this.application.core.minecraftSessions.getInstanceAutoConnect(this.instanceName)
     if (!autoConnect) {
-      this.logger.debug(
-        `instance is attempting to connect automatically but configured to not auto-connect. Attempt stopped.`
-      )
-
       await this.broadcastInstanceMessage({
         type: InstanceMessageType.MinecraftInstanceNotAutoConnect,
         value: undefined
@@ -231,8 +227,8 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
     const session = client.session as { accessToken?: string } | undefined
     const accessToken = session?.accessToken
-    const uuid = client.uuid
-    const username = client.username
+    const uuid = client.uuid as string | undefined
+    const username = client.username as string | undefined
 
     if (accessToken === undefined || uuid === undefined || username === undefined) return undefined
     return { accessToken, uuid, username }
@@ -280,7 +276,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return result
   }
 
-  private static readonly MAX_MINECRAFT_MESSAGE_LENGTH = 256
+  private static readonly MaxMinecraftMessageLength = 256
 
   /**
    * Split a message into at most 2 parts at a word boundary near the max length.
@@ -288,9 +284,9 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
    * Returns the original message wrapped in an array if it fits in one part.
    */
   private static splitMessage(message: string): string[] {
-    if (message.length <= MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH) return [message]
+    if (message.length <= MinecraftInstance.MaxMinecraftMessageLength) return [message]
 
-    const maxLength = MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH
+    const maxLength = MinecraftInstance.MaxMinecraftMessageLength
 
     // Try to split at the last space before or at the limit
     const breakIndex = message.lastIndexOf(' ', maxLength)
@@ -359,7 +355,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     const startTime = Date.now()
     const maxExecutionTime = 10_000
 
-    const sendWithRetry = async (message_: string, isRetry: boolean): Promise<void> => {
+    const sendWithRetry = async (messageToSend: string, isRetry: boolean): Promise<void> => {
       if (isRetry) await new Promise((resolve) => setTimeout(resolve, 100))
 
       return new Promise((resolve, reject) => {
@@ -392,7 +388,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
         }
 
         this.sendQueue
-          .queue(message_, priority, originEventId)
+          .queue(messageToSend, priority, originEventId)
           .then(() => {
             client.on('systemChat', listener)
             client.on('playerChat', listener)
@@ -403,8 +399,8 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
               resolve()
             }, 500)
           })
-          .catch((error) => {
-            reject(error)
+          .catch((error: unknown) => {
+            reject(error instanceof Error ? error : new Error(String(error)))
           })
       })
     }
@@ -422,7 +418,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       } catch (error: unknown) {
         if (error instanceof Error && error.message === 'duplicate-message') {
           const randomId = MinecraftInstance.generateID(24)
-          const maxLength = MinecraftInstance.MAX_MINECRAFT_MESSAGE_LENGTH - randomId.length - 3
+          const maxLength = MinecraftInstance.MaxMinecraftMessageLength - randomId.length - 3
           currentMessage = `${currentMessage.slice(0, Math.max(0, maxLength))} - ${randomId}`
           continue
         }
@@ -433,10 +429,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
   private sendNow(message: string) {
     if (this.clientSession?.client.state === states.PLAY) {
-      this.logger.debug(`Sending message now: ${message}`)
       this.clientSession.client.chat(message)
-    } else {
-      this.logger.debug(`Dropping message due to client not being connected and ready: ${message}`)
     }
   }
 

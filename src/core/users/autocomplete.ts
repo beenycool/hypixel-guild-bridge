@@ -32,19 +32,20 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
       this.pendingUsernames.add(event.user.displayName())
     })
 
-    setIntervalAsync(async () => this.fetchGuildInfo(), {
+    setIntervalAsync(() => this.fetchGuildInfo(), {
       delay: Duration.seconds(300),
       errorHandler: this.errorHandler.promiseCatch('fetching guild info for autocomplete')
     })
 
     setIntervalAsync(
-      async () => {
+      () => {
         const usernames = [...this.pendingUsernames]
         const ranks = [...this.pendingRanks]
         this.pendingUsernames.clear()
         this.pendingRanks.clear()
         if (usernames.length > 0) this.addUsernames(usernames)
         if (ranks.length > 0) this.addRanks(ranks)
+        return Promise.resolve()
       },
       {
         delay: Duration.seconds(30),
@@ -69,25 +70,15 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
       const oldestTimestamp = Math.floor((Date.now() - Autocomplete.MaxLife.toMilliseconds()) / 1000)
 
       this.databaseManager.enqueueTransaction('cleaning autocomplete entries', async (database) => {
-        const usernamesDeleted = await database.query('DELETE FROM "autocompleteUsernames" WHERE "timestamp" < $1', [
-          oldestTimestamp
-        ])
-        const ranksDeleted = await database.query('DELETE FROM "autocompleteRanks" WHERE "timestamp" < $1', [
-          oldestTimestamp
-        ])
-        const count = (usernamesDeleted.rowCount ?? 0) + (ranksDeleted.rowCount ?? 0)
-
-        if (count > 0) {
-          this.logger.debug(`Deleted ${count} old autocomplete entry`)
-        }
+        await database.query('DELETE FROM "autocompleteUsernames" WHERE "timestamp" < $1', [oldestTimestamp])
+        await database.query('DELETE FROM "autocompleteRanks" WHERE "timestamp" < $1', [oldestTimestamp])
       })
     })
 
-    this.application.addShutdownListener(async () => {
+    this.application.addShutdownListener(() => {
       const usernames = [...this.pendingUsernames]
       const ranks = [...this.pendingRanks]
       if (usernames.length > 0 || ranks.length > 0) {
-        this.logger.debug(`Flushing ${usernames.length} usernames and ${ranks.length} ranks on shutdown`)
         if (usernames.length > 0) this.addUsernames(usernames)
         if (ranks.length > 0) this.addRanks(ranks)
       }
@@ -96,7 +87,6 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
 
   public async load(): Promise<void> {
     // No longer loading into RAM to prevent memory issues
-    this.logger.debug('Autocomplete loaded (on-demand mode)')
   }
 
   public async username(query: string, limit: number): Promise<string[]> {
@@ -195,8 +185,6 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
   }
 
   private async resolveGuildRanks(): Promise<void> {
-    this.logger.debug('Resolving guild ranks from server')
-
     const guildsResolver = this.application.minecraftManager
       .getMinecraftBots()
       .map((bots) => bots.uuid)

@@ -9,7 +9,7 @@ export class CircuitBreaker {
     private readonly resetMs = 30_000
   ) {}
 
-  async execute<T>(function_: () => Promise<T>): Promise<T> {
+  async execute<T>(task: () => Promise<T>): Promise<T> {
     if (this.state === 'open') {
       if (Date.now() - this.lastFailure >= this.resetMs) {
         if (this.halfOpenLock) {
@@ -24,7 +24,7 @@ export class CircuitBreaker {
     }
 
     try {
-      const result = await function_()
+      const result = await task()
       this.onSuccess()
       return result
     } catch (error) {

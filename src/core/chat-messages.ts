@@ -26,8 +26,8 @@ export class ChatMessagesService {
 
       const userId = event.user.discordProfile()?.id ?? event.user.mojangProfile()?.id ?? event.user.displayName()
       const username = event.user.displayName()
-      const discordId = event.user.discordProfile()?.id ?? null
-      const bridgeId = event.bridgeId ?? this.app.bridgeResolver.getBridgeIdForInstance(event.instanceName) ?? null
+      const discordId = event.user.discordProfile()?.id ?? undefined
+      const bridgeId = event.bridgeId ?? this.app.bridgeResolver.getBridgeIdForInstance(event.instanceName) ?? undefined
 
       this.databaseManager.enqueueWrite(`storing chat message for ${userId}`, async (database) => {
         await database.query(
@@ -45,7 +45,7 @@ export class ChatMessagesService {
       `SELECT "message" FROM "ChatMessages" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${MAX_MESSAGES_TO_FETCH}`,
       [userId]
     )
-    return rows.map((r) => r.message).reverse()
+    return rows.map((r) => r.message).toReversed()
   }
 
   async getMessagesByUsername(username: string): Promise<string[]> {
@@ -53,7 +53,7 @@ export class ChatMessagesService {
       `SELECT "message" FROM "ChatMessages" WHERE LOWER("username") = LOWER($1) ORDER BY "createdAt" DESC LIMIT ${MAX_MESSAGES_TO_FETCH}`,
       [username]
     )
-    return rows.map((r) => r.message).reverse()
+    return rows.map((r) => r.message).toReversed()
   }
 
   async getCachedIq(userId: string): Promise<number | undefined> {

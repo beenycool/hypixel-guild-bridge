@@ -16,7 +16,9 @@ function makeMockContext(
       openrouterApiKey: 'test-api-key',
       openrouterModel: undefined,
       logger: {
-        error: () => {}
+        error: () => {
+          /* noop */
+        }
       },
       ...appOverrides
     },
@@ -24,11 +26,15 @@ function makeMockContext(
     args: [],
     username: 'TestUser',
     eventHelper: {} as ChatCommandContext['eventHelper'],
-    logger: { error: () => {} } as unknown as ChatCommandContext['logger'],
+    logger: {
+      error: () => {
+        /* noop */
+      }
+    } as unknown as ChatCommandContext['logger'],
     errorHandler: {} as ChatCommandContext['errorHandler'],
     allCommands: [],
     message: {} as ChatCommandContext['message'],
-    sendFeedback: async () => {},
+    sendFeedback: () => Promise.resolve(),
     ...overrides
   } as unknown as ChatCommandContext
 }
@@ -36,7 +42,7 @@ function makeMockContext(
 type MockImpl = (apiKey: string, model: string, messages: { role: string; content: string }[]) => Promise<string>
 
 class TestTranslate extends Translate {
-  mockImpl: MockImpl | null = null
+  mockImpl: MockImpl | undefined = undefined
 
   protected override async postToOpenRouter(
     apiKey: string,
@@ -162,7 +168,7 @@ await describe('Translate command handler', async () => {
 
   await it('translates with explicit language', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => 'Bonjour le monde'
+    command.mockImpl = () => Promise.resolve('Bonjour le monde')
     const context = makeMockContext()
     context.args = ['french', 'hello']
     const result = await command.handler(context)
@@ -171,7 +177,7 @@ await describe('Translate command handler', async () => {
 
   await it('translates without explicit language (auto-detect)', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => 'Hello world'
+    command.mockImpl = () => Promise.resolve('Hello world')
     const context = makeMockContext()
     context.args = ['bonjour le monde']
     const result = await command.handler(context)
@@ -180,7 +186,7 @@ await describe('Translate command handler', async () => {
 
   await it('returns 401 error message', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => {
+    command.mockImpl = () => {
       throw Object.assign(new AxiosError('Unauthorized', 'ERR_BAD_REQUEST'), {
         response: { status: 401, data: {} }
       })
@@ -192,7 +198,7 @@ await describe('Translate command handler', async () => {
 
   await it('returns 402 error message', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => {
+    command.mockImpl = () => {
       throw Object.assign(new AxiosError('Payment Required', 'ERR_BAD_REQUEST'), {
         response: { status: 402, data: {} }
       })
@@ -204,7 +210,7 @@ await describe('Translate command handler', async () => {
 
   await it('returns 429 rate limit message', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => {
+    command.mockImpl = () => {
       throw Object.assign(new AxiosError('Too Many Requests', 'ERR_BAD_REQUEST'), {
         response: { status: 429, data: {} }
       })
@@ -216,7 +222,7 @@ await describe('Translate command handler', async () => {
 
   await it('returns timeout message on ECONNABORTED', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => {
+    command.mockImpl = () => {
       throw Object.assign(new AxiosError('timeout', 'ECONNABORTED'), {
         code: 'ECONNABORTED',
         response: undefined
@@ -229,7 +235,7 @@ await describe('Translate command handler', async () => {
 
   await it('returns generic axios error with message from API', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => {
+    command.mockImpl = () => {
       throw Object.assign(new AxiosError('Bad Request', 'ERR_BAD_REQUEST'), {
         response: {
           status: 400,
@@ -244,7 +250,7 @@ await describe('Translate command handler', async () => {
 
   await it('handles non-axios errors with generic message', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => {
+    command.mockImpl = () => {
       throw new Error('Something went horribly wrong')
     }
     const context = makeMockContext()
@@ -254,7 +260,7 @@ await describe('Translate command handler', async () => {
 
   await it('handles malformed API response (missing content)', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => {
+    command.mockImpl = () => {
       throw new Error('Invalid API response: missing or empty translation content')
     }
     const context = makeMockContext()
@@ -265,9 +271,10 @@ await describe('Translate command handler', async () => {
   await it('uses configurable model when set', async () => {
     let capturedModel = ''
     const command = new TestTranslate()
-    command.mockImpl = async (_key, model) => {
+    command.mockImpl = (apiKey, model) => {
+      void apiKey
       capturedModel = model
-      return 'translated'
+      return Promise.resolve('translated')
     }
     const context = makeMockContext({
       appOverrides: { openrouterModel: 'custom-model' }
@@ -280,9 +287,10 @@ await describe('Translate command handler', async () => {
   await it('uses default model when not configured', async () => {
     let capturedModel = ''
     const command = new TestTranslate()
-    command.mockImpl = async (_key, model) => {
+    command.mockImpl = (apiKey, model) => {
+      void apiKey
       capturedModel = model
-      return 'translated'
+      return Promise.resolve('translated')
     }
     const context = makeMockContext()
     context.args = ['hello']
@@ -292,7 +300,7 @@ await describe('Translate command handler', async () => {
 
   await it('truncates long translations at word boundary', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => 'a'.repeat(100) + ' ' + 'b'.repeat(200)
+    command.mockImpl = () => Promise.resolve('a'.repeat(100) + ' ' + 'b'.repeat(200))
     const context = makeMockContext()
     context.args = ['hello']
     const result = await command.handler(context)
@@ -303,7 +311,7 @@ await describe('Translate command handler', async () => {
 
   await it('truncates long translations with no spaces', async () => {
     const command = new TestTranslate()
-    command.mockImpl = async () => 'a'.repeat(300)
+    command.mockImpl = () => Promise.resolve('a'.repeat(300))
     const context = makeMockContext()
     context.args = ['hello']
     const result = await command.handler(context)
@@ -314,7 +322,7 @@ await describe('Translate command handler', async () => {
   await it('does not truncate short translations', async () => {
     const command = new TestTranslate()
     const shortText = 'Hello, how are you?'
-    command.mockImpl = async () => shortText
+    command.mockImpl = () => Promise.resolve(shortText)
     const context = makeMockContext()
     context.args = ['french', shortText]
     const result = await command.handler(context)

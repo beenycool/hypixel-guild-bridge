@@ -233,7 +233,11 @@ export class GuildApiHandler {
       const log: { message: string; instanceName: string }[] = []
       const timeout = 10_000
 
-      this.application.sendMinecraft([instance], MinecraftSendChatPriority.High, undefined, '/guild log')
+      this.application
+        .sendMinecraft([instance], MinecraftSendChatPriority.High, undefined, '/guild log')
+        .catch((error: unknown) => {
+          this.logger.error('Failed to send guild log command', error)
+        })
 
       await new Promise<void>((resolve) => {
         const timer = setTimeout(() => {

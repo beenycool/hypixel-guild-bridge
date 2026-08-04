@@ -1,5 +1,3 @@
-import type { Logger } from 'log4js'
-
 import type { InstanceIdentifier } from '../../common/application-event'
 import type { DatabaseManager } from '../../common/database-manager'
 import Duration from '../../utility/duration'
@@ -10,10 +8,7 @@ export class InstanceHistoryButton {
   private readonly buttons = new Map<string, DiscordPersistentInstance>()
   private readonly lastButtons = new Map<string, string>()
 
-  constructor(
-    private readonly databaseManager: DatabaseManager,
-    logger: Logger
-  ) {
+  constructor(private readonly databaseManager: DatabaseManager) {
     this.databaseManager.registerCleaner(() => {
       const cutoff = Date.now() - InstanceHistoryButton.MaxLife.toMilliseconds()
       let deleted = 0
@@ -27,7 +22,6 @@ export class InstanceHistoryButton {
       }
 
       if (deleted > 0) {
-        logger.debug(`Deleted ${deleted} old entries in DiscordPersistentButtons.`)
         this.databaseManager.enqueueWrite('cleaning old discord history buttons', async (database) => {
           await database.query('DELETE FROM "discordInstanceHistoryButton" WHERE "createdAt" < $1', [
             Math.floor(cutoff / 1000)

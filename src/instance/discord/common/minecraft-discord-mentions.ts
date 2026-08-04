@@ -1,4 +1,4 @@
-import type { Guild } from 'discord.js'
+import type { Guild, GuildMember } from 'discord.js'
 import { escapeMarkdown } from 'discord.js'
 
 const MentionTokenRegex = /\B@([^\s@]{1,32})/g
@@ -45,7 +45,7 @@ export async function resolveDiscordMentionsInMessage(
     }
   }
 
-  const searchResults: { lowered: string; members: import('discord.js').GuildMember[] }[] = []
+  const searchResults: { lowered: string; members: GuildMember[] }[] = []
   for (const [lowered, token] of unrestoredEntries) {
     const results = await guild.members.search({ query: token, limit: 25 })
     searchResults.push({ lowered, members: [...results.values()] })

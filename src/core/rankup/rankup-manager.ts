@@ -117,8 +117,7 @@ export class RankupManager {
       return
     }
 
-    let decision: RankupDecision & { kind: 'promote' | 'demote' | 'kick' }
-    decision =
+    const decision: RankupDecision & { kind: 'promote' | 'demote' | 'kick' } =
       review.action === 'kick'
         ? { kind: 'kick', uuid: review.uuid, currentRank: review.currentRank, reason: review.reason }
         : {

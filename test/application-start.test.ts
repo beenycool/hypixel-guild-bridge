@@ -3,6 +3,11 @@ import { describe, it } from 'node:test'
 
 import Application from '../src/application.js'
 
+const noop = (): void => {
+  /* noop */
+}
+const promiseCatch = (): (() => void) => noop
+
 await describe('Application.start', async () => {
   await it('rebuilds bridge lookup maps before loading instances', async () => {
     const calls: string[] = []
@@ -13,9 +18,12 @@ await describe('Application.start', async () => {
           calls.push('core.awaitReady')
         },
         tournamentManager: {
-          rehydrate: async () => {
+          rehydrate: () => {
             calls.push('core.tournamentManager.rehydrate')
           }
+        },
+        bridgeConfigurations: {
+          getAllBridgeIds: () => []
         }
       },
       bridgeResolver: {
@@ -41,12 +49,16 @@ await describe('Application.start', async () => {
       logger: {
         debug: () => {
           /* noop */
+        },
+        info: () => {
+          /* noop */
+        },
+        warn: () => {
+          /* noop */
         }
       },
       errorHandler: {
-        promiseCatch: () => () => {
-          /* noop */
-        }
+        promiseCatch
       },
       randomChatter: {
         start: () => {

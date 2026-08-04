@@ -81,7 +81,7 @@ function buildPlayer(id: number, discordId: string | undefined): TournamentPlaye
 }
 
 describe('TournamentNotifications', () => {
-  it('should send a whisper to a specific player', async () => {
+  it('should send a whisper to a specific player', () => {
     let sentMessage = ''
     let sentUuid = ''
 
@@ -90,12 +90,12 @@ describe('TournamentNotifications', () => {
       sentMessage = message
     }
 
-    await mockSendMinecraft('player-uuid', 'Your match is ready!')
+    mockSendMinecraft('player-uuid', 'Your match is ready!')
     assert.equal(sentUuid, 'player-uuid')
     assert.equal(sentMessage, 'Your match is ready!')
   })
 
-  it('should announce to guild chat', async () => {
+  it('should announce to guild chat', () => {
     let announced = false
     let announcedMessage = ''
 
@@ -104,7 +104,7 @@ describe('TournamentNotifications', () => {
       announcedMessage = message
     }
 
-    await mockAnnounce('bridge-1', 'Round 1 is complete!')
+    mockAnnounce('bridge-1', 'Round 1 is complete!')
     assert.equal(announced, true)
     assert.equal(announcedMessage, 'Round 1 is complete!')
   })

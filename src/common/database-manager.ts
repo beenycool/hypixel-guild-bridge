@@ -61,23 +61,23 @@ export class DatabaseManager {
   public async queryRows<T extends QueryResultRow = QueryResultRow>(
     text: string,
     values: QueryValues = [],
-    db?: Queryable
+    database?: Queryable
   ): Promise<T[]> {
-    const result = db ? await db.query<T>(text, values) : await this.query<T>(text, values)
-    return result.rows as T[]
+    const result = database ? await database.query<T>(text, values) : await this.query<T>(text, values)
+    return result.rows
   }
 
   public async queryOne<T extends QueryResultRow = QueryResultRow>(
     text: string,
     values: QueryValues = [],
-    db?: Queryable
+    database?: Queryable
   ): Promise<T | undefined> {
-    const rows = await this.queryRows<T>(text, values, db)
+    const rows = await this.queryRows<T>(text, values, database)
     return rows[0]
   }
 
-  public async execute(text: string, values: QueryValues = [], db?: Queryable): Promise<number> {
-    const result = db ? await db.query(text, values) : await this.query(text, values)
+  public async execute(text: string, values: QueryValues = [], database?: Queryable): Promise<number> {
+    const result = database ? await database.query(text, values) : await this.query(text, values)
     return result.rowCount ?? 0
   }
 
@@ -91,6 +91,7 @@ export class DatabaseManager {
         const pool = this.getPool()
 
         let timeout: NodeJS.Timeout | undefined
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- Promise executor requires two params; resolve is intentionally unused (only the timeout rejection is used)
         const timeoutPromise = new Promise((_, reject) => {
           timeout = setTimeout(() => {
             reject(new Error('Database write operation timed out'))
@@ -121,6 +122,7 @@ export class DatabaseManager {
         try {
           await client.query('BEGIN')
 
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- Promise executor requires two params; resolve is intentionally unused (only the timeout rejection is used)
           const timeoutPromise = new Promise((_, reject) => {
             timeout = setTimeout(() => {
               reject(new Error('Database transaction operation timed out'))
@@ -223,8 +225,11 @@ export class DatabaseManager {
         connectionString: databaseUrl,
         ssl: ssl ? { rejectUnauthorized: false } : undefined,
         max: maxConnections,
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case option required by the pg library
         statement_timeout: 30_000,
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case option required by the pg library
         lock_timeout: 10_000,
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case option required by the pg library
         idle_in_transaction_session_timeout: 30_000
       }) as unknown as PoolLike
       this.logger.info(`Using PostgreSQL database connection with max connections: ${maxConnections}`)

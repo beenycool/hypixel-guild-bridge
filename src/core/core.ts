@@ -41,6 +41,7 @@ import { Profanity } from './moderation/profanity'
 import type { SavedPunishment } from './moderation/punishments'
 import Punishments from './moderation/punishments'
 import PunishmentsEnforcer from './moderation/punishments-enforcer'
+import type { PendingReview, RankupHistoryEntry } from './rankup/pending-review-manager'
 import { PendingReviewManager } from './rankup/pending-review-manager'
 import { RankupManager } from './rankup/rankup-manager'
 import { SpontaneousEventsConfigurations } from './spontaneous-events-configurations'
@@ -122,7 +123,7 @@ export class Core extends Instance<InstanceType.Core> {
       this.discordConfigurations,
       this.bridgeConfigurations
     )
-    this.discordInstanceHistoryButton = new InstanceHistoryButton(this.databaseManager, this.logger)
+    this.discordInstanceHistoryButton = new InstanceHistoryButton(this.databaseManager)
     this.discordEmojis = new DiscordEmojis(this.databaseManager)
 
     this.disconnectLogger = new DisconnectLogger(this.databaseManager)
@@ -130,15 +131,30 @@ export class Core extends Instance<InstanceType.Core> {
     this.pendingReviewManager = new PendingReviewManager(this.databaseManager, (type, data) => {
       switch (type) {
         case 'reviewAdded': {
-          void application.emit('pendingReviewAdded', data)
+          application
+            .emit('pendingReviewAdded', data as Readonly<{ bridgeId: string; review: PendingReview }>)
+            .catch((error: unknown) => {
+              this.logger.error('Failed to emit pendingReviewAdded event')
+              this.logger.error(error)
+            })
           break
         }
         case 'reviewRemoved': {
-          void application.emit('pendingReviewRemoved', data)
+          application
+            .emit('pendingReviewRemoved', data as Readonly<{ bridgeId: string; id: number }>)
+            .catch((error: unknown) => {
+              this.logger.error('Failed to emit pendingReviewRemoved event')
+              this.logger.error(error)
+            })
           break
         }
         case 'historyAppended': {
-          void application.emit('pendingHistoryAppended', data)
+          application
+            .emit('pendingHistoryAppended', data as Readonly<{ bridgeId: string; entry: RankupHistoryEntry }>)
+            .catch((error: unknown) => {
+              this.logger.error('Failed to emit pendingHistoryAppended event')
+              this.logger.error(error)
+            })
           break
         }
       }
@@ -158,7 +174,7 @@ export class Core extends Instance<InstanceType.Core> {
 
     this.profanity = new Profanity(this.moderationConfiguration)
     this.punishments = new Punishments(this.databaseManager, application, this.logger)
-    this.commandsHeat = new CommandsHeat(this.databaseManager, this.moderationConfiguration, this.logger)
+    this.commandsHeat = new CommandsHeat(this.databaseManager, this.moderationConfiguration)
     this.enforcer = new PunishmentsEnforcer(this)
 
     this.rankupManager = new RankupManager(
@@ -180,7 +196,7 @@ export class Core extends Instance<InstanceType.Core> {
 
     this.tournamentManager = new TournamentManager(this.databaseManager, application)
     this.tournamentTestPanels = new TournamentTestPanels(this.databaseManager, this.logger)
-    application.addShutdownListener(async () => {
+    application.addShutdownListener(() => {
       this.tournamentManager.stopScheduler()
     })
 

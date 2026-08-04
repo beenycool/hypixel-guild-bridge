@@ -44,7 +44,7 @@ import type DiscordInstance from './discord-instance.js'
 export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   readonly commands = new Collection<string, DiscordCommandHandler>()
 
-  private static readonly rateLimiter = new UserRateLimiter(5, 10_000)
+  private static readonly RateLimiter = new UserRateLimiter(5, 10_000)
 
   constructor(clientInstance: DiscordInstance) {
     super(clientInstance)
@@ -187,7 +187,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     const command = this.commands.get(interaction.commandName)
 
     try {
-      if (!CommandManager.rateLimiter.tryAcquire(interaction.user.id)) {
+      if (!CommandManager.RateLimiter.tryAcquire(interaction.user.id)) {
         await interaction.reply({
           content: 'Please slow down. You are sending commands too fast!',
           flags: MessageFlags.Ephemeral
@@ -207,8 +207,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       const permission = await user.permission(bridgeId)
 
       if (command == undefined) {
-        this.logger.debug(`command but it doesn't exist: ${interaction.commandName}`)
-
         await interaction.reply({
           content: 'Command is not implemented somehow. Maybe there is new a version?',
           flags: MessageFlags.Ephemeral
@@ -217,7 +215,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       }
 
       if (permission < (command.permission ?? Permission.Anyone)) {
-        this.logger.debug('No permission to execute this command')
         assert.ok(command.permission !== undefined)
         assert.ok(command.permission !== Permission.Anyone)
         await interaction.reply({
@@ -230,7 +227,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
 
       const scopeCheck = this.checkScope(command.scope ?? CommandScope.Anywhere, channelType)
       if (scopeCheck !== undefined) {
-        this.logger.debug(`can't execute in channel ${interaction.channelId}`)
         await interaction.reply({ content: scopeCheck, flags: MessageFlags.Ephemeral })
         return
       }
@@ -242,7 +238,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
           .find((name) => name.toLowerCase() === instanceName.toLowerCase())
 
         if (existingInstanceName === undefined) {
-          this.logger.debug(`instance ${instanceName} does not exist`)
           await interaction.reply({
             content: `The instance \`${escapeMarkdown(instanceName)}\` does not exist!`,
             flags: MessageFlags.Ephemeral
@@ -254,7 +249,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
           bridgeId !== undefined &&
           !this.application.bridgeResolver.shouldProcessEvent(bridgeId, existingInstanceName)
         ) {
-          this.logger.debug(`instance ${existingInstanceName} does not belong to bridge ${bridgeId}`)
           await interaction.reply({
             content: `The instance \`${existingInstanceName}\` does not belong to this bridge!`,
             flags: MessageFlags.Ephemeral

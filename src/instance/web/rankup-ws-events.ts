@@ -6,7 +6,7 @@ import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pendin
 
 export class RankupWsEvents {
   private readonly subscribers = new Set<WebSocket>()
-  private static readonly HISTORY_SNAPSHOT_LIMIT = 50
+  private static readonly HistorySnapshotLimit = 50
 
   constructor(
     private readonly application: Application,
@@ -74,7 +74,7 @@ export class RankupWsEvents {
     for (const bridgeId of bridgeIds) {
       bridges[bridgeId] = {
         pending: pendingReviewManager.getReviews(bridgeId),
-        history: pendingReviewManager.getHistory(bridgeId, RankupWsEvents.HISTORY_SNAPSHOT_LIMIT)
+        history: pendingReviewManager.getHistory(bridgeId, RankupWsEvents.HistorySnapshotLimit)
       }
     }
 

@@ -95,6 +95,74 @@ const SubcommandAliases = new Map<string, ArcadeSubcommand>([
   ['to', 'throwout']
 ])
 
+interface ArcadeGameStats {
+  wins?: number
+  gamesPlayed?: number
+  flawlessGames?: number
+  mapsCompleted?: number
+  fastestGame?: number
+  kills?: number
+  deaths?: number
+  losses?: number
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+  KDRatio?: number
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+  WLRatio?: number
+  roundWins?: number
+  stars?: number
+  rounds?: number
+  roundsPlayed?: number
+  headshots?: number
+  blocksDestroyed?: number
+  winsAsAnimal?: number
+  winsAsHunter?: number
+  tauntsUsed?: number
+  goals?: number
+  kicks?: number
+  powerKicks?: number
+  shotsFired?: number
+  winsAsSeeker?: number
+  winsAsHider?: number
+  scoreRecordOverall?: number
+  scoreRecordNormal?: number
+  topScore?: number
+  finalKills?: number
+  witherKills?: number
+  zombieKills?: number
+  bestRound?: number
+  playersRevived?: number
+  coins?: number
+}
+
+interface ArcadeZombiesStats extends ArcadeGameStats {
+  overall?: ArcadeGameStats
+}
+
+interface ArcadeHideAndSeekStats extends ArcadeGameStats {
+  partyPooper?: ArcadeGameStats
+  propHunt?: ArcadeGameStats
+}
+
+interface ArcadeStats {
+  coins?: number
+  dropper?: ArcadeGameStats
+  zombies?: ArcadeZombiesStats
+  partyGames?: ArcadeGameStats
+  pixelParty?: ArcadeGameStats
+  blockingDead?: ArcadeGameStats
+  bountyHunters?: ArcadeGameStats
+  dragonWars?: ArcadeGameStats
+  enderSpleef?: ArcadeGameStats
+  farmHunt?: ArcadeGameStats
+  football?: ArcadeGameStats
+  galaxyWars?: ArcadeGameStats
+  hideAndSeek?: ArcadeHideAndSeekStats
+  holeInTheWall?: ArcadeGameStats
+  hypixelSays?: ArcadeGameStats
+  miniWalls?: ArcadeGameStats
+  throwOut?: ArcadeGameStats
+}
+
 export default class Arcade extends HypixelPlayerCommand {
   constructor() {
     super({
@@ -183,9 +251,10 @@ export default class Arcade extends HypixelPlayerCommand {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- override of the abstract async onPlayer; body is synchronous
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const { subcommand } = this.parseArgs(context)
-    const stats = player.stats?.arcade as Record<string, any> | undefined
+    const stats = player.stats?.arcade as ArcadeStats | undefined
 
     if (stats === undefined) return `${givenUsername} has never played Arcade games.` + this.formatPingSuffix()
 
@@ -412,7 +481,6 @@ export default class Arcade extends HypixelPlayerCommand {
         )
       }
 
-      case 'summary':
       default: {
         const coins = stats.coins ?? 0
         const dropperWins = stats.dropper?.wins ?? 0

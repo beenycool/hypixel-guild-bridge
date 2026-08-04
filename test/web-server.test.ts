@@ -26,6 +26,15 @@ await describe('web server /health', async () => {
       },
       getInstancesNames: () => [],
       i18n: { t: () => '' },
+      discordInstance: {
+        getClient: () => ({
+          isReady: () => true,
+          guilds: { cache: { size: 0 } }
+        })
+      },
+      minecraftManager: {
+        getAllInstances: () => []
+      },
       core: {
         databaseManager: {
           execute: async () => {
@@ -38,7 +47,7 @@ await describe('web server /health', async () => {
         }
       }
     } as unknown as Application
-    const server = new WebServer(app, { port: 0, token: undefined as any, enabled: true })
+    const server = new WebServer(app, { port: 0, token: undefined as unknown as string, enabled: true })
 
     await new Promise<void>((resolve) => {
       const httpServer = (server as unknown as { httpServer: http.Server }).httpServer

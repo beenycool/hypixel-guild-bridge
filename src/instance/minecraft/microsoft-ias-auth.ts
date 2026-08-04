@@ -8,7 +8,6 @@ const MICROSOFT_TOKEN_URL = 'https://login.live.com/oauth20_token.srf'
 const XBOX_LIVE_AUTH_URL = 'https://user.auth.xboxlive.com/user/authenticate'
 const XSTS_AUTH_URL = 'https://xsts.auth.xboxlive.com/xsts/authorize'
 const MINECRAFT_LOGIN_URL = 'https://api.minecraftservices.com/authentication/login_with_xbox'
-const MINECRAFT_ENTITLEMENTS_URL = 'https://api.minecraftservices.com/entitlements/mcstore'
 const MINECRAFT_PROFILE_URL = 'https://api.minecraftservices.com/minecraft/profile'
 
 const CACHE_REFRESH_TOKEN = 'iasRefreshToken'
@@ -27,6 +26,7 @@ export interface IasAuthOptions {
   onError?: (message: string) => void
 }
 
+/* eslint-disable @typescript-eslint/naming-convention -- interface mirrors Microsoft OAuth JSON wire format */
 interface MicrosoftTokenResponse {
   token_type: string
   expires_in: number
@@ -35,21 +35,26 @@ interface MicrosoftTokenResponse {
   refresh_token: string
   user_id: string
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
+/* eslint-disable @typescript-eslint/naming-convention -- interface mirrors Xbox Live API JSON wire format */
 interface XboxLiveResponse {
   IssueInstant: string
   NotAfter: string
   Token: string
-  DisplayClaims: {
-    xui: { uhs: string }[]
+  DisplayClaims?: {
+    xui?: { uhs?: string }[]
   }
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
+/* eslint-disable @typescript-eslint/naming-convention -- interface mirrors Minecraft Services JSON wire format */
 interface MinecraftLoginResponse {
   access_token: string
   token_type: string
   expires_in: number
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 interface MinecraftProfile {
   id: string
@@ -147,6 +152,7 @@ async function authenticate(client: Client, clientOptions: ClientOptions, option
 }
 
 async function refreshMicrosoftToken(refreshToken: string): Promise<MicrosoftTokenResponse> {
+  /* eslint-disable @typescript-eslint/naming-convention -- OAuth form field names required by the protocol */
   const body = new URLSearchParams({
     client_id: IAS_CLIENT_ID,
     refresh_token: refreshToken,
@@ -154,12 +160,15 @@ async function refreshMicrosoftToken(refreshToken: string): Promise<MicrosoftTok
     redirect_uri: IAS_REDIRECT_URI,
     scope: IAS_SCOPE
   })
+  /* eslint-enable @typescript-eslint/naming-convention */
 
+  /* eslint-disable @typescript-eslint/naming-convention -- HTTP header name required by the protocol */
   const response = await fetch(MICROSOFT_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString()
   })
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
@@ -170,6 +179,7 @@ async function refreshMicrosoftToken(refreshToken: string): Promise<MicrosoftTok
 }
 
 async function authenticateXboxLive(msAccessToken: string): Promise<XboxLiveResponse> {
+  /* eslint-disable @typescript-eslint/naming-convention -- Xbox Live API wire format (headers and body field names) */
   const response = await fetch(XBOX_LIVE_AUTH_URL, {
     method: 'POST',
     headers: {
@@ -186,6 +196,7 @@ async function authenticateXboxLive(msAccessToken: string): Promise<XboxLiveResp
       TokenType: 'JWT'
     })
   })
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
@@ -196,6 +207,7 @@ async function authenticateXboxLive(msAccessToken: string): Promise<XboxLiveResp
 }
 
 async function authorizeXsts(xblToken: string): Promise<{ token: string; uhs: string }> {
+  /* eslint-disable @typescript-eslint/naming-convention -- Xbox Live API wire format (headers and body field names) */
   const response = await fetch(XSTS_AUTH_URL, {
     method: 'POST',
     headers: {
@@ -211,17 +223,20 @@ async function authorizeXsts(xblToken: string): Promise<{ token: string; uhs: st
       TokenType: 'JWT'
     })
   })
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
     throw new Error(`XSTS authorization failed: ${response.status} ${response.statusText} - ${text}`)
   }
 
+  /* eslint-disable @typescript-eslint/naming-convention -- XSTS error fields mirror Xbox wire format */
   const data = (await response.json()) as XboxLiveResponse & {
     XErr?: number
     Message?: string
     Redirect?: string
   }
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   const uhs = data.DisplayClaims?.xui?.[0]?.uhs
   if (!uhs || !data.Token) {
@@ -232,6 +247,7 @@ async function authorizeXsts(xblToken: string): Promise<{ token: string; uhs: st
 }
 
 async function loginToMinecraft(uhs: string, xstsToken: string): Promise<StoredMcToken> {
+  /* eslint-disable @typescript-eslint/naming-convention -- HTTP header names required by the protocol */
   const response = await fetch(MINECRAFT_LOGIN_URL, {
     method: 'POST',
     headers: {
@@ -242,6 +258,7 @@ async function loginToMinecraft(uhs: string, xstsToken: string): Promise<StoredM
       identityToken: `XBL3.0 x=${uhs};${xstsToken}`
     })
   })
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')
@@ -260,12 +277,14 @@ async function loginToMinecraft(uhs: string, xstsToken: string): Promise<StoredM
 }
 
 async function fetchMinecraftProfile(accessToken: string): Promise<StoredProfile> {
+  /* eslint-disable @typescript-eslint/naming-convention -- HTTP header name required by the protocol */
   const response = await fetch(MINECRAFT_PROFILE_URL, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
   })
+  /* eslint-enable @typescript-eslint/naming-convention */
 
   if (!response.ok) {
     const text = await response.text().catch(() => '')

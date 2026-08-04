@@ -59,6 +59,7 @@ export class MatchManager {
         [matchId]
       )
       const match = matchResult.rows[0]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- query rows are typed non-optional but the DB may return no rows at runtime
       if (match === undefined) {
         throw new Error('Match not found.')
       }
@@ -252,7 +253,10 @@ export class MatchManager {
       }
     }
 
-    const winnerId = match.player1Id === forfeitingPlayerId ? match.player2Id! : match.player1Id!
+    const winnerId = match.player1Id === forfeitingPlayerId ? match.player2Id : match.player1Id
+    if (winnerId === undefined) {
+      throw new Error('Cannot forfeit: opponent not found.')
+    }
     this.logger?.info(`Match ${matchId}: Forfeit accepted, winner=${winnerId}`)
     const target = Math.ceil(tournament.bestOf / 2)
     const winnerIsPlayer1 = match.player1Id === winnerId
@@ -368,6 +372,7 @@ export class MatchManager {
         [matchId]
       )
       const match = matchResult.rows[0]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- query rows are typed non-optional but the DB may return no rows at runtime
       if (!match) return { success: false, message: 'Match not found.' }
 
       const isPlayer1 = match.player1Id === oldPlayerId
@@ -414,7 +419,7 @@ export class MatchManager {
 
       // Create new match thread
       if (tournament.discordChannelId !== undefined) {
-        const otherPlayerId = isPlayer1 ? match.player2Id! : match.player1Id!
+        const otherPlayerId = isPlayer1 ? match.player2Id : match.player1Id
         const otherResult = await txClient.query<TournamentPlayer>(
           'SELECT * FROM "tournament_players" WHERE "id" = $1',
           [otherPlayerId]
@@ -426,6 +431,7 @@ export class MatchManager {
         const otherPlayer = otherResult.rows[0]
         const newPlayer = newPlayerResult.rows[0]
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- query rows are typed non-optional but the DB may return no rows at runtime
         if (otherPlayer !== undefined && newPlayer !== undefined) {
           const names = await this.getPlayerNames(tournament.id)
           const p1 = isPlayer1 ? newPlayer : otherPlayer

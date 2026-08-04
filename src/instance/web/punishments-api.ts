@@ -41,7 +41,7 @@ export class PunishmentsApiHandler {
     if (!rawUrl) return false
 
     const [pathPart, queryPart] = rawUrl.split('?')
-    if (!pathPart?.startsWith(PunishmentsPrefix)) return false
+    if (!pathPart.startsWith(PunishmentsPrefix)) return false
 
     const permission = this.verifyAuth(request, response)
     if (permission === undefined) return true
@@ -60,7 +60,7 @@ export class PunishmentsApiHandler {
     if (request.method === 'POST') {
       const forgiveMatch = PunishmentIdPattern.exec(pathPart)
       if (forgiveMatch) {
-        await this.handleForgive(forgiveMatch[1], response)
+        this.handleForgive(forgiveMatch[1], response)
         return true
       }
     }
@@ -114,7 +114,7 @@ export class PunishmentsApiHandler {
     }
   }
 
-  private async handleForgive(idString: string, response: http.ServerResponse): Promise<void> {
+  private handleForgive(idString: string, response: http.ServerResponse): void {
     const id = Number.parseInt(idString, 10)
     if (!Number.isFinite(id)) {
       sendError(response, 'VALIDATION_ERROR', 'Invalid punishment id', 400)

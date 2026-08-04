@@ -1,6 +1,7 @@
 import type { Logger } from 'log4js'
 
 import type Application from '../application.js'
+// eslint-disable-next-line import/no-restricted-paths -- known architecture violation: common bridge uses utility executor, pending refactor
 import { SerialExecutor } from '../utility/serial-executor.js'
 
 import type {
@@ -16,6 +17,26 @@ import type {
 } from './application-event.js'
 import type { Instance } from './instance.js'
 import type UnexpectedErrorHandler from './unexpected-error-handler.js'
+
+/**
+ * Wraps an event handler so execution is serialized through the bridge queue
+ * and any rejection is routed to the error handler instead of floating.
+ * @param queue the serial executor that serializes bridge event handling
+ * @param errorHandler receives promise rejections from the handler
+ * @param action the bridge callback to invoke for each event
+ * @param context label describing the handled event type for error reporting
+ * @returns a handler suitable for registering on the application event bus
+ */
+function createSerializedEventHandler<E>(
+  queue: SerialExecutor,
+  errorHandler: UnexpectedErrorHandler,
+  action: (event: E) => void | Promise<void>,
+  context: string
+): (event: E) => Promise<void> {
+  return async (event) => {
+    await queue.run(() => Promise.resolve(action(event))).catch(errorHandler.promiseCatch(context))
+  }
+}
 
 /**
  * Abstract class with abstract callback functions that must be implemented
@@ -41,81 +62,89 @@ export default abstract class Bridge<K extends Instance<InstanceType>> {
     this.logger = logger
     this.errorHandler = errorHandler
 
-    const onCommand = async (event: CommandEvent) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onCommand(event)))
-        .catch(this.errorHandler.promiseCatch('handling command event'))
-    }
+    const onCommand = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onCommand.bind(this),
+      'handling command event'
+    )
     this.application.on('command', onCommand)
     this.cleanups.push(() => {
       this.application.off('command', onCommand)
     })
 
-    const onCommandFeedback = async (event: CommandFeedbackEvent) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onCommandFeedback(event)))
-        .catch(this.errorHandler.promiseCatch('handling command feedback'))
-    }
+    const onCommandFeedback = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onCommandFeedback.bind(this),
+      'handling command feedback'
+    )
     this.application.on('commandFeedback', onCommandFeedback)
     this.cleanups.push(() => {
       this.application.off('commandFeedback', onCommandFeedback)
     })
 
-    const onChat = async (event: ChatEvent) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onChat(event)))
-        .catch(this.errorHandler.promiseCatch('handling chat event'))
-    }
+    const onChat = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onChat.bind(this),
+      'handling chat event'
+    )
     this.application.on('chat', onChat)
     this.cleanups.push(() => {
       this.application.off('chat', onChat)
     })
 
-    const onGuildPlayer = async (event: GuildPlayerEvent) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onGuildPlayer(event)))
-        .catch(this.errorHandler.promiseCatch('handling guildPlayer event'))
-    }
+    const onGuildPlayer = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onGuildPlayer.bind(this),
+      'handling guildPlayer event'
+    )
     this.application.on('guildPlayer', onGuildPlayer)
     this.cleanups.push(() => {
       this.application.off('guildPlayer', onGuildPlayer)
     })
 
-    const onGuildGeneral = async (event: GuildGeneralEvent) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onGuildGeneral(event)))
-        .catch(this.errorHandler.promiseCatch('handling guildGeneral event'))
-    }
+    const onGuildGeneral = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onGuildGeneral.bind(this),
+      'handling guildGeneral event'
+    )
     this.application.on('guildGeneral', onGuildGeneral)
     this.cleanups.push(() => {
       this.application.off('guildGeneral', onGuildGeneral)
     })
 
-    const onMinecraftChatEvent = async (event: MinecraftReactiveEvent) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onMinecraftChatEvent(event)))
-        .catch(this.errorHandler.promiseCatch('handling minecraftChat event'))
-    }
+    const onMinecraftChatEvent = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onMinecraftChatEvent.bind(this),
+      'handling minecraftChat event'
+    )
     this.application.on('minecraftChatEvent', onMinecraftChatEvent)
     this.cleanups.push(() => {
       this.application.off('minecraftChatEvent', onMinecraftChatEvent)
     })
 
-    const onInstanceStatus = async (event: InstanceStatus) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onInstance(event)))
-        .catch(this.errorHandler.promiseCatch('handling instance event'))
-    }
+    const onInstanceStatus = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onInstance.bind(this),
+      'handling instance event'
+    )
     this.application.on('instanceStatus', onInstanceStatus)
     this.cleanups.push(() => {
       this.application.off('instanceStatus', onInstanceStatus)
     })
 
-    const onBroadcast = async (event: BroadcastEvent) => {
-      await this.queue
-        .run(() => Promise.resolve(this.onBroadcast(event)))
-        .catch(this.errorHandler.promiseCatch('handling broadcast event'))
-    }
+    const onBroadcast = createSerializedEventHandler(
+      this.queue,
+      this.errorHandler,
+      this.onBroadcast.bind(this),
+      'handling broadcast event'
+    )
     this.application.on('broadcast', onBroadcast)
     this.cleanups.push(() => {
       this.application.off('broadcast', onBroadcast)

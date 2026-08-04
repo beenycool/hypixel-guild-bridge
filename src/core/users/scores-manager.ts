@@ -266,7 +266,6 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
 
     const usernames = this.database.getLegacyUsernames(oldestTimestamp)
     if (usernames.size === 0) return
-    this.logger.debug(`Found ${usernames.size} legacy username that requires migration`)
 
     const resolvedProfiles = await this.application.mojangApi.profilesByUsername(usernames)
     const entries: { username: string; uuid: string }[] = []
@@ -275,14 +274,7 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
       entries.push({ username, uuid })
     }
 
-    if (entries.length < usernames.size) {
-      this.logger.debug(`No Mojang information found for ${usernames.size - entries.length} username. Skipping those.`)
-    }
-
-    const changedCount = this.database.migrateUsernameToUuid(oldestTimestamp, entries)
-    if (changedCount > 0) {
-      this.logger.debug(`Migrated ${changedCount} database entry from Mojang username to UUID`)
-    }
+    this.database.migrateUsernameToUuid(oldestTimestamp, entries)
   }
 
   private timestamp(): number {
@@ -919,7 +911,7 @@ class ScoreDatabase {
   }
 
   private createTimeframeRecord(
-    _tableName: 'AllMembers' | 'OnlineMembers',
+    tableName: 'AllMembers' | 'OnlineMembers',
     uuid: string,
     fromTimestamp: number,
     toTimestamp: number

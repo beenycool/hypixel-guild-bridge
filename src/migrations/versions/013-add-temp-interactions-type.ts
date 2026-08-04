@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prevent-abbreviations -- migration filename is recorded in the DB migration log; renaming would re-run this migration on existing deployments */
 import type { QueryInterface } from '../runner.js'
 
 export async function up(query: QueryInterface): Promise<void> {

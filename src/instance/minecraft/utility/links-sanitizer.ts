@@ -2,6 +2,10 @@ import { httpClient } from '../../../common/http.js'
 import type { MinecraftConfigurations } from '../../../core/minecraft/minecraft-configurations'
 import { stufEncode } from '../common/url-encoder.js'
 
+interface ChatCompletionResponse {
+  choices?: { message?: { content?: string } }[]
+}
+
 export class LinksSanitizer {
   constructor(
     private readonly config: MinecraftConfigurations,
@@ -67,8 +71,8 @@ export class LinksSanitizer {
     }
 
     const results = await Promise.all(promises)
-    for (const [index_, index] of indexes.entries()) {
-      parts[index] = results[index_]
+    for (const [resultIndex, index] of indexes.entries()) {
+      parts[index] = results[resultIndex]
     }
 
     return parts.join(' ')
@@ -78,12 +82,15 @@ export class LinksSanitizer {
     if (!this.openrouterApiKey) return `(${type})`
 
     try {
+      /* eslint-disable @typescript-eslint/naming-convention -- OpenAI content-block wire format */
       const contentBlock =
         type === 'video' ? { type: 'video_url', video_url: { url } } : { type: 'image_url', image_url: { url } }
+      /* eslint-enable @typescript-eslint/naming-convention */
 
-      const response = await httpClient.post(
+      const response = await httpClient.post<ChatCompletionResponse>(
         'https://openrouter.ai/api/v1/chat/completions',
         {
+          /* eslint-disable @typescript-eslint/naming-convention -- OpenRouter API request body wire format */
           model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
           messages: [
             {
@@ -94,17 +101,20 @@ export class LinksSanitizer {
           max_tokens: 100,
           temperature: 0.3,
           reasoning: { effort: 'none' }
+          /* eslint-enable @typescript-eslint/naming-convention */
         },
         {
+          /* eslint-disable @typescript-eslint/naming-convention -- HTTP header names required by the protocol */
           headers: {
             Authorization: `Bearer ${this.openrouterApiKey}`,
             'Content-Type': 'application/json'
           },
+          /* eslint-enable @typescript-eslint/naming-convention */
           timeout: 30_000
         }
       )
 
-      const content: unknown = response.data?.choices?.[0]?.message?.content
+      const content: unknown = response.data.choices?.[0]?.message?.content
       if (typeof content !== 'string' || content.length === 0) return `(${type})`
 
       const maxLength = 80

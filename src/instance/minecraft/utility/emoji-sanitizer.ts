@@ -1,9 +1,11 @@
 import EmojisMap from 'emoji-name-map'
 
 const ALLOWED_EMOJI_SET = new Set(
-  '☺ ☹ ☠ ❣ ❤ ✌ ☝ ✍ ♨ ✈ ⌛ ⌚ ☀ ☁ ☂ ❄ ☃ ☄ ♠ ♥ ♦ ♣ ♟ ☎ ⌨ ✉ ✏ ✒ ✂ ☢ ☣ ' +
+  (
+    '☺ ☹ ☠ ❣ ❤ ✌ ☝ ✍ ♨ ✈ ⌛ ⌚ ☀ ☁ ☂ ❄ ☃ ☄ ♠ ♥ ♦ ♣ ♟ ☎ ⌨ ✉ ✏ ✒ ✂ ☢ ☣ ' +
     '⬆ ⬇ ➡ ⬅ ↗ ↘ ↙ ↖ ↕ ↔ ↩ ↪ ✡ ☸ ☯ ✝ ☦ ☪ ☮ ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓ ▶ ◀ ♀ ♂ ✖ ‼ 〰 ☑ ✔ ✳ ✴ ' +
-    '❇ © ® ™ Ⓜ ㊗ ㊙ ▪ ▫ ☷ ☵ ☶ ☋ ☌ ♜ ♕ ♡ ♬ ☚ ♮ ♝ ♯ ☴ ♭ ☓ ☛ ☭ ♢ ✐ ♖ ☈ ☒ ★ ♚ ♛ ✎ ♪ ☰ ☽ ☡ ☼ ♅ ☐ ☟ ❦ ☊'.split(' ')
+    '❇ © ® ™ Ⓜ ㊗ ㊙ ▪ ▫ ☷ ☵ ☶ ☋ ☌ ♜ ♕ ♡ ♬ ☚ ♮ ♝ ♯ ☴ ♭ ☓ ☛ ☭ ♢ ✐ ♖ ☈ ☒ ★ ♚ ♛ ✎ ♪ ☰ ☽ ☡ ☼ ♅ ☐ ☟ ❦ ☊'
+  ).split(' ')
 )
 
 const DISALLOWED_EMOJIS = Object.entries(EmojisMap.emoji).filter(([, unicode]) => !ALLOWED_EMOJI_SET.has(unicode))
@@ -46,6 +48,6 @@ export default class EmojiSanitizer {
   }
 
   private cleanStandardEmoji(message: string): string {
-    return message.replace(EMOJI_REPLACE_REGEX, (match) => `:${EMOJI_NAME_BY_UNICODE.get(match)!}:`)
+    return message.replace(EMOJI_REPLACE_REGEX, (match) => `:${EMOJI_NAME_BY_UNICODE.get(match) ?? match}:`)
   }
 }

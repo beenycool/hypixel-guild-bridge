@@ -1,4 +1,4 @@
-import type { ButtonInteraction, Client, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js'
+import type { ButtonInteraction, Client } from 'discord.js'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, escapeMarkdown, MessageFlags } from 'discord.js'
 
 import type { GuildRequirementsConfig } from '../../../application-config.js'
@@ -6,7 +6,6 @@ import type { GuildPlayerEvent, InstanceType } from '../../../common/application
 import { GuildPlayerEventType, MinecraftSendChatPriority, Permission } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance'
 import { checkChatTriggers, InviteAcceptChat } from '../../../utility/chat-triggers.js'
-import { getFirstConnectedBridgeMinecraftInstanceName } from '../common/bridge-minecraft-instances.js'
 import { formatChatTriggerResponse } from '../common/chattrigger-format.js'
 import {
   checkGuildRequirements,

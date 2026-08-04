@@ -2685,15 +2685,18 @@
 
       const SUPPORTED_FORMATS = ['single-elim', 'double-elim', 'round-robin']
 
-      async function loadCategories() {
+      async function loadCategories(bridgeId) {
         const sel = document.querySelector('#cf-category')
         if (!sel) return
         const current = sel.value
-        try {
-          const data = await Api.apiGet('/api/tournament/categories')
-          createCategories = Array.isArray(data) ? data : []
-        } catch {
-          createCategories = []
+        createCategories = []
+        if (bridgeId) {
+          try {
+            const data = await Api.apiGet('/api/tournament/categories?bridgeId=' + encodeURIComponent(bridgeId))
+            createCategories = Array.isArray(data) ? data : []
+          } catch {
+            createCategories = []
+          }
         }
         sel.innerHTML =
           '<option value="">(Auto — create a new category)</option>' +
@@ -2856,7 +2859,6 @@
         document.querySelector('#cf-defaults-summary').textContent = 'Loading bridge defaults…'
         document.querySelector('#cf-active-warning-text').textContent = ''
         setCreateLoading(true)
-        void loadCategories()
 
         const bridges = await loadBridges()
         if (bridges.length === 0) {
@@ -2873,6 +2875,7 @@
         } catch {}
         const target = bridges.includes(preferred) ? preferred : bridges[0]
         await applyBridgeDefaults(target)
+        void loadCategories(target)
         setTimeout(() => document.querySelector('#cf-name').focus(), 50)
       }
 
@@ -2882,19 +2885,12 @@
 
       async function openTestCreateModal() {
         let bridgesHtml = '<option value="">(no bridges)</option>'
-        let categoriesHtml = '<option value="">(Auto — create a new category)</option>'
+        let bridges = []
         try {
           const data = await Api.apiGet('/api/bridges')
-          const ids = Array.isArray(data) ? data.map((b) => b.id || b.bridgeId) : []
-          if (ids.length) {
-            bridgesHtml = ids.map((id) => '<option value="' + esc(id) + '">' + esc(id) + '</option>').join('')
-          }
-        } catch {}
-        try {
-          const data = await Api.apiGet('/api/tournament/categories')
-          const cats = Array.isArray(data) ? data : []
-          if (cats.length) {
-            categoriesHtml += cats.map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('')
+          bridges = Array.isArray(data) ? data.map((b) => b.id || b.bridgeId) : []
+          if (bridges.length) {
+            bridgesHtml = bridges.map((id) => '<option value="' + esc(id) + '">' + esc(id) + '</option>').join('')
           }
         } catch {}
         openActionModal({
@@ -2930,7 +2926,7 @@
             </div>
             <div class="form-row">
               <label class="form-label">Discord Category</label>
-              <select class="select" id="tt-category">${categoriesHtml}</select>
+              <select class="select" id="tt-category"><option value="">(Auto — create a new category)</option></select>
             </div>
             <div class="form-row">
               <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer">
@@ -2980,6 +2976,30 @@
             }
           }
         })
+
+        const ttBridge = document.querySelector('#tt-bridge')
+        if (ttBridge && bridges.length > 0) {
+          ttBridge.value = bridges[0]
+          void loadTestCategories(ttBridge.value)
+          ttBridge.addEventListener('change', (e) => void loadTestCategories(e.target.value))
+        }
+      }
+
+      async function loadTestCategories(bridgeId) {
+        const sel = document.querySelector('#tt-category')
+        if (!sel) return
+        if (!bridgeId) {
+          sel.innerHTML = '<option value="">(Auto — create a new category)</option>'
+          return
+        }
+        let cats = []
+        try {
+          const data = await Api.apiGet('/api/tournament/categories?bridgeId=' + encodeURIComponent(bridgeId))
+          cats = Array.isArray(data) ? data : []
+        } catch {}
+        sel.innerHTML =
+          '<option value="">(Auto — create a new category)</option>' +
+          cats.map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('')
       }
 
       async function submitCreate(e) {
@@ -3068,6 +3088,7 @@
 
         document.querySelector('#cf-bridge').addEventListener('change', (e) => {
           void applyBridgeDefaults(e.target.value)
+          void loadCategories(e.target.value)
         })
 
         refreshBtn.addEventListener('click', () => {

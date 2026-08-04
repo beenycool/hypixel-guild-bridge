@@ -75,6 +75,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
   private readonly localCleanups: (() => void)[] = []
 
+  private readonly onInstanceReactive = (event: InstanceReactive): void => {
+    void this.queue
+      .run(async () => this.onInstanceReactiveEvent(event))
+      .catch(this.errorHandler.promiseCatch('handling event instanceReactive'))
+  }
+
   constructor(
     application: Application,
     clientInstance: DiscordInstance,
@@ -97,14 +103,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       this.errorHandler
     )
 
-    const onInstanceReactive = async (event: InstanceReactive) => {
-      await this.queue
-        .run(async () => this.onInstanceReactiveEvent(event))
-        .catch(this.errorHandler.promiseCatch('handling event instanceReactive'))
-    }
-    this.application.on('instanceReactive', onInstanceReactive)
+    this.application.on('instanceReactive', this.onInstanceReactive)
     this.localCleanups.push(() => {
-      this.application.off('instanceReactive', onInstanceReactive)
+      this.application.off('instanceReactive', this.onInstanceReactive)
     })
   }
 
@@ -206,9 +207,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   async onChat(event: ChatEvent): Promise<void> {
-    this.logger.debug(
-      `[onChat] instanceType=${event.instanceType} bridgeId=${event.bridgeId} instanceName=${event.instanceName} channelType=${event.channelType} msg="${event.message}"`
-    )
     const channels = this.resolveChannelsForEvent([event.channelType], event.bridgeId, {
       kind: 'chat',
       instanceName: event.instanceName
@@ -314,7 +312,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     try {
       return await resolveDiscordMentionsInMessage(message, channel.guild, async (mcName) => {
         const profile = await this.application.mojangApi.profileByUsername(mcName)
-        if (profile === undefined) return
         const link = await this.application.core.verification.findByIngame(profile.id)
         return link?.discordId
       })
@@ -348,7 +345,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     if (event.type === GuildPlayerEventType.Leave || event.type === GuildPlayerEventType.Kick) {
-      const userId = event.user.mojangProfile()?.id ?? event.user.displayName()
+      const userId = event.user.mojangProfile().id
       const bridgeId = event.bridgeId ?? 'default'
       const key = `${bridgeId}:${userId}`
       this.rankCompactTracker.delete(key)
@@ -362,7 +359,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     if (isRankChange) {
       const parsed = parseRankChange(event.message)
       if (parsed !== undefined) {
-        const userId = event.user.mojangProfile()?.id ?? username
+        const userId = event.user.mojangProfile().id
         const bridgeId = event.bridgeId ?? 'default'
         rankTrackerKey = `${bridgeId}:${userId}`
         const existing = this.rankCompactTracker.get(rankTrackerKey)
@@ -387,11 +384,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           const compactedMessage = event.message.replace(pattern, replacement)
           let compactedRawMessage = event.rawMessage.replace(pattern, replacement)
 
-          if (actionWord === 'demoted') {
-            compactedRawMessage = compactedRawMessage.replaceAll('§a', '§c')
-          } else if (actionWord === 'promoted') {
-            compactedRawMessage = compactedRawMessage.replaceAll('§c', '§a')
-          }
+          compactedRawMessage =
+            actionWord === 'demoted'
+              ? compactedRawMessage.replaceAll('§a', '§c')
+              : compactedRawMessage.replaceAll('§c', '§a')
 
           activeEvent = {
             ...event,
@@ -585,7 +581,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
         const allSent = [...messages, ...promoteImageMessages]
         this.rankCompactTracker.set(rankTrackerKey, {
-          userId: event.user.mojangProfile()?.id ?? username,
+          userId: event.user.mojangProfile().id,
           initialRank,
           currentRank: parsed.toRank,
           initialType,
@@ -959,9 +955,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
   private async sendCommandResponse(event: CommandEvent): Promise<void> {
     const replyIds = this.messageAssociation.getMessageId(event.originEventId)
-    this.logger.debug(
-      `[cmd-response] command="${event.commandName}" originEventId="${event.originEventId}" replyIds=${replyIds.length} bridgeId="${event.bridgeId}"`
-    )
 
     const bots = this.application.minecraftManager.getMinecraftBots()
     let botName = 'Bridge Bot'
@@ -999,10 +992,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         : `${botRank.replace(new RegExp(botName, 'i'), botUsernameOverride)}§f`
       : `§a${effectiveBotName}§f`
 
-    this.logger.debug(
-      `[cmd-image] bridgeId="${event.bridgeId}" botName="${botName}" override="${botUsernameOverride ?? 'none'}" effectiveBotName="${effectiveBotName}" botRank="${botRank ?? 'none'}" namePart="${namePart}"`
-    )
-
     const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
       kind: 'command',
       instanceName: event.instanceName
@@ -1026,9 +1015,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
         if (this.messageToImage.shouldRenderImage()) {
           const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
-          this.logger.debug(
-            `[cmd-image] formattedMessage="${formattedMessage}" skinUsername="${botName}" channelType="${channelType}"`
-          )
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
             username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
           })

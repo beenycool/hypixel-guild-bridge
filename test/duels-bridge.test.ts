@@ -5,6 +5,8 @@ import { formatBridgeWins, getBridgeStatsFromRawDuels } from '../src/instance/co
 
 await describe('Bridge Duels raw stats', async () => {
   await it('sums all raw bridge win fields', () => {
+    // Snake_case keys mirror the raw Hypixel API payload that the duels parser consumes.
+    /* eslint-disable @typescript-eslint/naming-convention */
     const rawDuels = {
       bridge_duel_wins: 14_587,
       bridge_doubles_wins: 9467,
@@ -23,6 +25,7 @@ await describe('Bridge Duels raw stats', async () => {
       bridge_3v3v3v3_losses: 150,
       capture_threes_losses: 8
     }
+    /* eslint-enable @typescript-eslint/naming-convention */
 
     const stats = getBridgeStatsFromRawDuels(rawDuels)
 

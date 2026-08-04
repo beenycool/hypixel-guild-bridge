@@ -26,6 +26,7 @@ export class AntiAbuse {
     return { allowed: true }
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- async signature kept: MatchManager awaits it and tests mock it as Promise-returning
   async checkForfeitPattern(playerUuid: string, opponentUuid: string): Promise<AbuseCheckResult> {
     const history = this.forfeitTracker.get(playerUuid) ?? []
     const sameOpponent = history.filter((h) => h.opponent === opponentUuid)
@@ -47,6 +48,7 @@ export class AntiAbuse {
     this.logger?.info(`AntiAbuse: Recorded forfeit — ${playerUuid} vs ${opponentUuid}`)
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- async signature kept: MatchManager awaits it and tests mock it as Promise-returning
   async checkFalseReporting(adminDiscordId: string): Promise<AbuseCheckResult> {
     const overrides = this.overrideTracker.get(adminDiscordId) ?? 0
     if (overrides >= 3) {
@@ -71,6 +73,7 @@ export class AntiAbuse {
       `AntiAbuse: Checking alt accounts for tournament ${tournamentId} (${playerUuids.length} player(s))`
     )
     try {
+      // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case column name required by the mojang table
       const rows = await this.databaseManager.queryRows<{ player_uuid: string; ip: string | null }>(
         'SELECT player_uuid, ip FROM mojang WHERE player_uuid = ANY($1)',
         [playerUuids]

@@ -13,7 +13,7 @@ export function decodePacket(data: Buffer): { typeId: number; packetId: string; 
   const jsonLength = data.readInt32BE(offset)
   offset += 4
   const jsonString = data.subarray(offset, offset + jsonLength).toString('utf8')
-  const json = jsonString.length > 0 ? JSON.parse(jsonString) : {}
+  const json: unknown = jsonString.length > 0 ? JSON.parse(jsonString) : {}
   return { typeId, packetId, json }
 }
 

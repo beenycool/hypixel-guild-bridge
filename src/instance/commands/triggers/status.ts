@@ -32,18 +32,13 @@ export default class Status extends ChatCommandHandler {
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
-    const logger = context.logger
-    const startTotal = Date.now()
     const givenUsername = context.args[0] ?? context.username
 
     const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
     if (uuid == undefined) {
-      logger.debug(`[status] mojang lookup for "${givenUsername}" took ${Date.now() - startTotal}ms - not found`)
       return usernameNotExists(context, givenUsername)
     }
-    logger.debug(`[status] mojang lookup for "${givenUsername}" took ${Date.now() - startTotal}ms`)
 
-    const startParallel = Date.now()
     const [lunarStatus, session, player] = await Promise.all([
       withTimeout(context.app.lunarService.checkLunarStatus(uuid)),
       context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => undefined),
@@ -51,28 +46,20 @@ export default class Status extends ChatCommandHandler {
         { lastLogoutTimestamp: number } | undefined
       >
     ])
-    logger.debug(
-      `[status] parallel checks for ${givenUsername}: ${Date.now() - startParallel}ms (lunar=${lunarStatus})`
-    )
 
     if (session?.online) {
       const suffix = lunarStatus === true ? ' and is on Lunar Client' : ''
-      logger.debug(`[status] total for ${givenUsername}: ${Date.now() - startTotal}ms`)
       return this.formatStatus(givenUsername, session, suffix)
     }
 
     if (player !== undefined) {
       const lastSeen = formatTime(Date.now() - player.lastLogoutTimestamp)
-      logger.debug(
-        `[status] total for ${givenUsername}: ${Date.now() - startTotal}ms (offline, last seen ${lastSeen} ago)`
-      )
       if (lunarStatus === true) {
         return `${givenUsername} is currently online with Lunar Client on another server (last seen on Hypixel ${lastSeen} ago).`
       }
       return `${givenUsername} was last online ${lastSeen} ago.`
     }
 
-    logger.debug(`[status] total for ${givenUsername}: ${Date.now() - startTotal}ms`)
     if (lunarStatus === true) {
       return `${givenUsername} is currently online with Lunar Client on another server.`
     }

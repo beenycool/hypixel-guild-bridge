@@ -1,13 +1,12 @@
 import assert from 'node:assert'
 
 import type Application from '../application'
-import { ChannelType, type ChatEvent, Color, InstanceType, PunishmentPurpose } from '../common/application-event'
+import { ChannelType, type ChatEvent, Color, InstanceType } from '../common/application-event'
 import { Instance } from '../common/instance'
 import SubInstance from '../common/sub-instance'
 import type { User } from '../common/user'
 import { SpontaneousEventsNames } from '../core/spontaneous-events-configurations'
 import triviaData from '../resources/data/trivia-entries.json' with { type: 'json' }
-import Duration from '../utility/duration'
 import { SerialExecutor } from '../utility/serial-executor.js'
 import { Timeout } from '../utility/timeout'
 

@@ -1,10 +1,66 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
+import type { Logger } from 'log4js'
+
+import type Application from '../src/application.js'
+import type { BridgeConfigurations } from '../src/core/discord/bridge-configurations.js'
+import type { ActionDispatcher } from '../src/core/rankup/action-dispatcher.js'
 import { BridgeEvaluator } from '../src/core/rankup/bridge-evaluator.js'
+import type { NotificationManager } from '../src/core/rankup/notification-manager.js'
+import type { PendingReviewManager } from '../src/core/rankup/pending-review-manager.js'
+
+interface FakeGuildMember {
+  uuid: string
+  rank: string
+  joinedAt: Date
+  weeklyExperience?: number
+  expHistory?: { day: string; date: Date; exp: number; totalExp: number }[]
+}
+
+interface FakeGuild {
+  ranks: { name: string; priority: number }[]
+  members: FakeGuildMember[]
+}
+
+function createPendingManager(overrides: Partial<PendingReviewManager> = {}): PendingReviewManager {
+  return {
+    removeReviewByUuid: () => {
+      /* noop */
+    },
+    addReview: () => {
+      /* noop */
+    },
+    clearReviewsNotInList: () => {
+      /* noop */
+    },
+    getReviews: () => [],
+    updateNotifiedAt: () => {
+      /* noop */
+    },
+    ...overrides
+  } as unknown as PendingReviewManager
+}
+
+function createNotificationManager(overrides: Partial<NotificationManager> = {}): NotificationManager {
+  return {
+    sendReviewNotification: () => Promise.resolve(false),
+    sendNotifyOnly: () => Promise.resolve(),
+    ...overrides
+  } as unknown as NotificationManager
+}
+
+function createActionDispatcher(dispatchCalls: unknown[][]): ActionDispatcher {
+  return {
+    dispatch: (...callArguments: unknown[]) => {
+      dispatchCalls.push(callArguments)
+      return Promise.resolve()
+    }
+  } as unknown as ActionDispatcher
+}
 
 await describe('BridgeEvaluator', async () => {
-  const baseGuild = {
+  const baseGuild: FakeGuild = {
     ranks: [
       { name: 'Member', priority: 0 },
       { name: 'Officer', priority: 1 },
@@ -25,7 +81,7 @@ await describe('BridgeEvaluator', async () => {
     getRankupNotificationCooldown: () => 24
   }
 
-  const baseLogger = {
+  const baseLogger: Logger = {
     info: () => {
       /* noop */
     },
@@ -35,28 +91,51 @@ await describe('BridgeEvaluator', async () => {
     warn: () => {
       /* noop */
     }
-  }
+  } as unknown as Logger
 
-  function createFakeApplication(members: any[]) {
+  function createFakeApplication(members: FakeGuildMember[]): Application {
     return {
       hypixelApi: {
-        getGuild: async () => ({
-          ...baseGuild,
-          members
-        })
+        getGuild: () =>
+          Promise.resolve({
+            ...baseGuild,
+            members
+          })
       },
       minecraftManager: {
         getAllInstances: () => [{ instanceName: 'bot-a', uuid: () => 'mock-uuid' }]
       },
       core: {
         databaseManager: {
-          queryRows: async () => []
+          queryRows: () => []
         },
         inactivity: {
           getActiveByUuid: () => undefined
         }
       }
-    } as any
+    } as unknown as Application
+  }
+
+  function createBridgeConfig(
+    overrides: Partial<
+      Pick<
+        BridgeConfigurations,
+        | 'getMinecraftInstances'
+        | 'getRankupRules'
+        | 'getRankupDemotionRules'
+        | 'getRankupExcludedRanks'
+        | 'getRankupExcludedPlayers'
+        | 'getRankupManualReview'
+        | 'getOfficerChannelIds'
+        | 'getRankupNotificationChannelIds'
+        | 'getRankupNotificationCooldown'
+      >
+    > = {}
+  ): BridgeConfigurations {
+    return {
+      ...baseBridgeConfig,
+      ...overrides
+    } as unknown as BridgeConfigurations
   }
 
   await it('dispatches promotion when member meets promotion rules', async () => {
@@ -72,29 +151,13 @@ await describe('BridgeEvaluator', async () => {
           expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
       ]),
-      {
-        ...baseBridgeConfig,
+      createBridgeConfig({
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }]
-      } as any,
-      {
-        removeReviewByUuid: () => {
-          /* noop */
-        },
-        clearReviewsNotInList: () => {
-          /* noop */
-        },
-        getReviews: () => [],
-        updateNotifiedAt: () => {
-          /* noop */
-        }
-      } as any,
-      {} as any,
-      {
-        dispatch: async (...arguments_: unknown[]) => {
-          dispatchCalls.push(arguments_)
-        }
-      } as any,
-      baseLogger as any
+      }),
+      createPendingManager(),
+      createNotificationManager(),
+      createActionDispatcher(dispatchCalls),
+      baseLogger
     )
 
     await evaluator.processBridge('bridge-a')
@@ -116,31 +179,15 @@ await describe('BridgeEvaluator', async () => {
           expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 500, totalExp: 500 }]
         }
       ]),
-      {
-        ...baseBridgeConfig,
+      createBridgeConfig({
         getRankupDemotionRules: () => [
           { fromRank: 'Officer', action: 'demote', targetRank: 'Member', maxWeeklyGexp: 10_000, gracePeriod: 7 }
         ]
-      } as any,
-      {
-        removeReviewByUuid: () => {
-          /* noop */
-        },
-        clearReviewsNotInList: () => {
-          /* noop */
-        },
-        getReviews: () => [],
-        updateNotifiedAt: () => {
-          /* noop */
-        }
-      } as any,
-      {} as any,
-      {
-        dispatch: async (...arguments_: unknown[]) => {
-          dispatchCalls.push(arguments_)
-        }
-      } as any,
-      baseLogger as any
+      }),
+      createPendingManager(),
+      createNotificationManager(),
+      createActionDispatcher(dispatchCalls),
+      baseLogger
     )
 
     await evaluator.processBridge('bridge-a')
@@ -163,30 +210,18 @@ await describe('BridgeEvaluator', async () => {
           expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
       ]),
-      {
-        ...baseBridgeConfig,
+      createBridgeConfig({
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }],
         getRankupExcludedPlayers: () => ['uuid-excluded']
-      } as any,
-      {
+      }),
+      createPendingManager({
         removeReviewByUuid: (bridgeId: string, uuid: string) => {
           removeReviewCalls.push(uuid)
-        },
-        clearReviewsNotInList: () => {
-          /* noop */
-        },
-        getReviews: () => [],
-        updateNotifiedAt: () => {
-          /* noop */
         }
-      } as any,
-      {} as any,
-      {
-        dispatch: async (...arguments_: unknown[]) => {
-          dispatchCalls.push(arguments_)
-        }
-      } as any,
-      baseLogger as any
+      }),
+      createNotificationManager(),
+      createActionDispatcher(dispatchCalls),
+      baseLogger
     )
 
     await evaluator.processBridge('bridge-a')
@@ -208,29 +243,13 @@ await describe('BridgeEvaluator', async () => {
           expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
       ]),
-      {
-        ...baseBridgeConfig,
+      createBridgeConfig({
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }]
-      } as any,
-      {
-        removeReviewByUuid: () => {
-          /* noop */
-        },
-        clearReviewsNotInList: () => {
-          /* noop */
-        },
-        getReviews: () => [],
-        updateNotifiedAt: () => {
-          /* noop */
-        }
-      } as any,
-      {} as any,
-      {
-        dispatch: async (...arguments_: unknown[]) => {
-          dispatchCalls.push(arguments_)
-        }
-      } as any,
-      baseLogger as any
+      }),
+      createPendingManager(),
+      createNotificationManager(),
+      createActionDispatcher(dispatchCalls),
+      baseLogger
     )
 
     await evaluator.processBridge('bridge-a')
@@ -252,33 +271,18 @@ await describe('BridgeEvaluator', async () => {
           expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 50_000, totalExp: 50_000 }]
         }
       ]),
-      {
-        ...baseBridgeConfig,
+      createBridgeConfig({
         getRankupRules: () => [{ targetRank: 'Officer', minWeeklyGexp: 10_000, minDaysInGuild: 7, minOnlineHours: 0 }],
         getRankupManualReview: () => true
-      } as any,
-      {
-        removeReviewByUuid: () => {
-          /* noop */
-        },
-        addReview: (...arguments_: unknown[]) => {
-          addReviewCalls.push(arguments_)
-        },
-        clearReviewsNotInList: () => {
-          /* noop */
-        },
-        getReviews: () => [],
-        updateNotifiedAt: () => {
-          /* noop */
+      }),
+      createPendingManager({
+        addReview: (...callArguments: unknown[]) => {
+          addReviewCalls.push(callArguments)
         }
-      } as any,
-      {} as any,
-      {
-        dispatch: async (...arguments_: unknown[]) => {
-          dispatchCalls.push(arguments_)
-        }
-      } as any,
-      baseLogger as any
+      }),
+      createNotificationManager(),
+      createActionDispatcher(dispatchCalls),
+      baseLogger
     )
 
     await evaluator.processBridge('bridge-a')
@@ -304,39 +308,21 @@ await describe('BridgeEvaluator', async () => {
           expHistory: [{ day: '2024-01-01', date: new Date('2024-01-01'), exp: 500, totalExp: 500 }]
         }
       ]),
-      {
-        ...baseBridgeConfig,
+      createBridgeConfig({
         getRankupDemotionRules: () => [
           { fromRank: 'Officer', action: 'notify', maxWeeklyGexp: 10_000, gracePeriod: 7 }
         ],
         getRankupManualReview: () => true
-      } as any,
-      {
-        removeReviewByUuid: () => {
-          /* noop */
-        },
-        addReview: (...arguments_: unknown[]) => {
-          addReviewCalls.push(arguments_)
-        },
-        clearReviewsNotInList: () => {
-          /* noop */
-        },
-        getReviews: () => [],
-        updateNotifiedAt: () => {
-          /* noop */
+      }),
+      createPendingManager(),
+      createNotificationManager({
+        sendNotifyOnly: (...callArguments: unknown[]) => {
+          sendNotifyCalls.push(callArguments)
+          return Promise.resolve()
         }
-      } as any,
-      {
-        sendNotifyOnly: async (...arguments_: unknown[]) => {
-          sendNotifyCalls.push(arguments_)
-        }
-      } as any,
-      {
-        dispatch: async (...arguments_: unknown[]) => {
-          dispatchCalls.push(arguments_)
-        }
-      } as any,
-      baseLogger as any
+      }),
+      createActionDispatcher(dispatchCalls),
+      baseLogger
     )
 
     await evaluator.processBridge('bridge-a')

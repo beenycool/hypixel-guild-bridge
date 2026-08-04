@@ -149,31 +149,36 @@ export function buildThreadComponents(matchId: number): ActionRowBuilder<ButtonB
 }
 
 export function buildReportModal(matchId: number): ModalBuilder {
-  return new ModalBuilder()
-    .setCustomId(`${Prefix}:${ReportAction}:${matchId}`)
-    .setTitle('Report Match Result')
-    .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId('my-wins')
-          .setLabel('Your wins')
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(1)
-          .setMaxLength(2)
-          .setPlaceholder('Games you won')
-      ),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId('their-wins')
-          .setLabel('Opponent wins')
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(1)
-          .setMaxLength(2)
-          .setPlaceholder('Games your opponent won')
+  return (
+    new ModalBuilder()
+      .setCustomId(`${Prefix}:${ReportAction}:${matchId}`)
+      .setTitle('Report Match Result')
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- ModalBuilder.addComponents deprecated in discord.js 14.25; migrating to LabelBuilder/TextDisplayBuilder components requires modal restructuring
+      .addComponents(
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+          new TextInputBuilder()
+            .setCustomId('my-wins')
+            // eslint-disable-next-line @typescript-eslint/no-deprecated -- TextInputBuilder.setLabel deprecated; label requires LabelBuilder component restructure
+            .setLabel('Your wins')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(1)
+            .setMaxLength(2)
+            .setPlaceholder('Games you won')
+        ),
+        new ActionRowBuilder<TextInputBuilder>().addComponents(
+          new TextInputBuilder()
+            .setCustomId('their-wins')
+            // eslint-disable-next-line @typescript-eslint/no-deprecated -- TextInputBuilder.setLabel deprecated; label requires LabelBuilder component restructure
+            .setLabel('Opponent wins')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(1)
+            .setMaxLength(2)
+            .setPlaceholder('Games your opponent won')
+        )
       )
-    )
+  )
 }
 
 export function deriveWinner(

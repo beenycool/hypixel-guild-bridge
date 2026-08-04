@@ -6,17 +6,17 @@ import protobuf from 'protobufjs'
 
 import { rsaEncryptPkcs1 } from './lunar-crypto.js'
 
-let root: protobuf.Root | null = null
+let root: protobuf.Root | undefined
 
 export async function loadProto(): Promise<protobuf.Root> {
   if (root) return root
-  const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  const protoDir = path.join(__dirname, 'proto')
+  const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
+  const protoDirectory = path.join(currentDirectory, 'proto')
   root = await protobuf.load([
-    path.join(protoDir, 'common.proto'),
-    path.join(protoDir, 'authenticator.proto'),
-    path.join(protoDir, 'websocket.proto'),
-    path.join(protoDir, 'subscription.proto')
+    path.join(protoDirectory, 'common.proto'),
+    path.join(protoDirectory, 'authenticator.proto'),
+    path.join(protoDirectory, 'websocket.proto'),
+    path.join(protoDirectory, 'subscription.proto')
   ])
   return root
 }
@@ -65,7 +65,7 @@ export async function encodeAuthHello(uuid: string, username: string): Promise<B
   return Buffer.from(ServerboundAuth.encode(message).finish())
 }
 
-export async function decodeAuthMessage(data: Buffer): Promise<any> {
+export async function decodeAuthMessage(data: Buffer): Promise<unknown> {
   const r = await loadProto()
   const AuthMessage = r.lookupType('lunarclient.authenticator.v1.ClientboundAuthMessage')
   return AuthMessage.decode(data)
@@ -141,7 +141,7 @@ export async function encodeRpcMessage(
   return Buffer.from(ServerboundWs.encode(message).finish())
 }
 
-export async function decodeWsMessage(data: Buffer): Promise<any> {
+export async function decodeWsMessage(data: Buffer): Promise<unknown> {
   const r = await loadProto()
   const ClientboundWs = r.lookupType('lunarclient.websocket.v1.ClientboundWebSocketMessage')
   return ClientboundWs.decode(data)
@@ -156,7 +156,7 @@ export async function encodeSubscribeV2(uuids: string[]): Promise<Buffer> {
   return Buffer.from(SubscribeV2Request.encode(message).finish())
 }
 
-export async function decodeSubscribeV2Response(data: Buffer): Promise<any> {
+export async function decodeSubscribeV2Response(data: Buffer): Promise<unknown> {
   const r = await loadProto()
   const SubscribeV2Resp = r.lookupType('lunarclient.websocket.subscription.v1.SubscribeV2Response')
   return SubscribeV2Resp.decode(data)

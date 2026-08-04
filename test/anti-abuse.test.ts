@@ -6,8 +6,8 @@ import { AntiAbuse } from '../src/core/tournament/anti-abuse.js'
 // The signup limiter only uses in-memory state, so the database manager is a stub.
 const mockDatabase = {}
 
-describe('AntiAbuse', () => {
-  it('should allow the first signup attempt and reject an immediate repeat from the same user', () => {
+await describe('AntiAbuse', async () => {
+  await it('should allow the first signup attempt and reject an immediate repeat from the same user', () => {
     const antiAbuse = new AntiAbuse(mockDatabase as never)
 
     assert.equal(antiAbuse.checkSignupRate('user-1').allowed, true)
@@ -16,7 +16,7 @@ describe('AntiAbuse', () => {
     assert.match(second.reason ?? '', /slow down/i)
   })
 
-  it('should not rate-limit different users', () => {
+  await it('should not rate-limit different users', () => {
     const antiAbuse = new AntiAbuse(mockDatabase as never)
 
     assert.equal(antiAbuse.checkSignupRate('user-1').allowed, true)

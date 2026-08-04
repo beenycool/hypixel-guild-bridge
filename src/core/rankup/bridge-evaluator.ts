@@ -84,6 +84,7 @@ export class BridgeEvaluator {
         continue
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Hypixel API may omit weeklyExperience at runtime despite the type
       const weeklyGexp = member.weeklyExperience ?? 0
 
       const memberLastSeen = lastSeenByUuid.get(member.uuid)
@@ -172,7 +173,7 @@ export class BridgeEvaluator {
           this.actionDispatcher.dispatch(bridgeId, instanceNames[0], decision, member.rank).catch((error: unknown) => {
             this.logger.error(`Failed to dispatch ${decision.kind} for ${member.uuid} in ${bridgeId}:`, error)
           })
-        } else if (decision.kind === 'notify') {
+        } else {
           this.notificationManager.sendNotifyOnly(bridgeId, notificationChannels, decision).catch((error: unknown) => {
             this.logger.error(`Failed to send notify for ${member.uuid} in ${bridgeId}:`, error)
           })

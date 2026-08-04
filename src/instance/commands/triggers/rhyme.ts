@@ -23,7 +23,7 @@ export default class Rhyme extends ChatCommandHandler {
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
-    const word = context.args[0]
+    const word = context.args.at(0)
     if (word === undefined) {
       return `Usage: ${context.commandPrefix}rhyme <word>`
     }
@@ -64,7 +64,7 @@ export default class Rhyme extends ChatCommandHandler {
   private handleError(context: ChatCommandContext, error: unknown): string {
     if (isAxiosError(error)) {
       context.logger.error(
-        `Rhyme API error: status=${error.response?.status?.toString() ?? 'unknown'}, ` +
+        `Rhyme API error: status=${error.response?.status.toString() ?? 'unknown'}, ` +
           `message=${error.message}` +
           (error.response?.data ? `, data=${JSON.stringify(error.response.data)}` : '')
       )
@@ -85,7 +85,8 @@ export default class Rhyme extends ChatCommandHandler {
         return 'Rhyme failed: Request timed out. Please try again.'
       }
 
-      const apiMessage: unknown = error.response?.data?.error?.message
+      const apiMessage: unknown = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error
+        ?.message
       const fallback = typeof apiMessage === 'string' ? apiMessage : error.message
       return `Rhyme failed: ${fallback}`
     }

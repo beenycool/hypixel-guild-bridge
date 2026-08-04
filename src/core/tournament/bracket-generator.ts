@@ -171,8 +171,7 @@ export class SingleElimBracketStrategy implements BracketStrategy {
 
   advanceWinner(
     match: TournamentMatch,
-    winnerId: number,
-    players: TournamentPlayer[]
+    winnerId: number
   ): { winnerId: number; nextMatchId?: number; loserId?: number } {
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
     return {
@@ -224,9 +223,10 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
 
     const ubByRound = new Map<number, GeneratedMatch[]>()
     for (const m of upper.matches) {
-      const list = ubByRound.get(m.round!) ?? []
+      if (m.round === undefined) continue
+      const list = ubByRound.get(m.round) ?? []
       list.push(m)
-      ubByRound.set(m.round!, list)
+      ubByRound.set(m.round, list)
     }
 
     interface LbEntrant {
@@ -256,25 +256,32 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
     }
 
     const pairEntrants = (entrants: LbEntrant[]): { pairs: [LbEntrant, LbEntrant][]; leftover: LbEntrant[] } => {
-      const evens = entrants.filter((e) => e.matchIndex % 2 === 0)
-      const odds = entrants.filter((e) => e.matchIndex % 2 === 1)
+      const evens = entrants.filter((entrant) => entrant.matchIndex % 2 === 0)
+      const odds = entrants.filter((entrant) => entrant.matchIndex % 2 === 1)
       const pairs: [LbEntrant, LbEntrant][] = []
+      const take = (from: LbEntrant[]): LbEntrant => {
+        const entrant = from.shift()
+        if (entrant === undefined) throw new Error('Unexpected empty entrant list')
+        return entrant
+      }
       while (evens.length > 0 && odds.length > 0) {
-        pairs.push([evens.shift()!, odds.shift()!])
+        pairs.push([take(evens), take(odds)])
       }
       while (evens.length > 1) {
-        pairs.push([evens.shift()!, evens.shift()!])
+        pairs.push([take(evens), take(evens)])
       }
       while (odds.length > 1) {
-        pairs.push([odds.shift()!, odds.shift()!])
+        pairs.push([take(odds), take(odds)])
       }
       return { pairs, leftover: [...evens, ...odds] }
     }
 
     const pickRoundIndices = (matchCount: number, nextUbLosers: number, leftover: LbEntrant[]): number[] => {
       const targetEvans =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- leftover may be empty at runtime
         Math.ceil(nextUbLosers / 2) + (leftover[0] !== undefined && leftover[0].matchIndex % 2 === 0 ? 1 : 0)
       const targetOdds =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- leftover may be empty at runtime
         Math.floor(nextUbLosers / 2) + (leftover[0] !== undefined && leftover[0].matchIndex % 2 === 1 ? 1 : 0)
       const nextEntrantCount = matchCount + nextUbLosers + leftover.length
       const slack = nextEntrantCount % 2
@@ -293,8 +300,8 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
       const chosenDiff = candidates[0] ?? (matchCount % 2 === 1 ? -1 : 0)
       const evenCount = (matchCount + chosenDiff) / 2
       const oddCount = matchCount - evenCount
-      const evenIndices = Array.from({ length: evenCount }, (_, index) => index * 2)
-      const oddIndices = Array.from({ length: oddCount }, (_, index) => index * 2 + 1)
+      const evenIndices = Array.from({ length: evenCount }, (unused, index) => index * 2)
+      const oddIndices = Array.from({ length: oddCount }, (unused, index) => index * 2 + 1)
       return [...evenIndices, ...oddIndices].toSorted((a, b) => a - b)
     }
 
@@ -325,11 +332,11 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
         lbIndexMap.set(`${round}_${destinationIndex}`, match)
       }
       matches.push(...roundMatches)
-      const winners: LbEntrant[] = roundMatches.map((m) => ({
-        kind: 'lb',
-        round: m.round!,
-        matchIndex: m.matchIndex!
-      }))
+      const winners: LbEntrant[] = roundMatches.flatMap((m) =>
+        m.round === undefined || m.matchIndex === undefined
+          ? []
+          : [{ kind: 'lb', round: m.round, matchIndex: m.matchIndex }]
+      )
       return [...winners, ...leftover]
     }
 
@@ -337,8 +344,11 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
 
     for (let r = 1; r <= totalUpperRounds; r++) {
       const losers: LbEntrant[] = (ubByRound.get(r) ?? [])
-        .filter((m) => (r === 1 ? m.status !== MatchStatus.Bye : true))
-        .map((m) => ({ kind: 'ub', round: r, matchIndex: m.matchIndex! }))
+        .filter(
+          (m): m is GeneratedMatch & { matchIndex: number } =>
+            m.matchIndex !== undefined && (r === 1 ? m.status !== MatchStatus.Bye : true)
+        )
+        .map((m) => ({ kind: 'ub', round: r, matchIndex: m.matchIndex }))
       const nextLosers = (ubByRound.get(r + 1) ?? []).length
       pending = addLbRound([...pending, ...losers], nextLosers)
     }
@@ -352,9 +362,11 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
     )
 
     const ubFinal = (ubByRound.get(totalUpperRounds) ?? [])[0]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- array may be empty at runtime
     if (ubFinal !== undefined) {
       ubFinal.winnerNext = { round: grandFinalRound, matchIndex: 0 }
     }
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- array may be empty at runtime
     if (pending[0] !== undefined) {
       linkSource(pending[0], grandFinalRound, 0)
     }
@@ -381,8 +393,7 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
 
   advanceWinner(
     match: TournamentMatch,
-    winnerId: number,
-    players: TournamentPlayer[]
+    winnerId: number
   ): { winnerId: number; nextMatchId?: number; loserId?: number } {
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
     return {
@@ -434,13 +445,13 @@ export class RoundRobinBracketStrategy implements BracketStrategy {
     let matchIndex = 0
 
     for (let index = 0; index < n; index++) {
-      for (let index_ = index + 1; index_ < n; index_++) {
+      for (let otherIndex = index + 1; otherIndex < n; otherIndex++) {
         matches.push({
           tournamentId,
           round: 1,
           matchIndex: matchIndex++,
           player1Id: players[index].id,
-          player2Id: players[index_].id,
+          player2Id: players[otherIndex].id,
           status: MatchStatus.Active,
           player1Wins: 0,
           player2Wins: 0,
@@ -456,8 +467,7 @@ export class RoundRobinBracketStrategy implements BracketStrategy {
 
   advanceWinner(
     match: TournamentMatch,
-    winnerId: number,
-    players: TournamentPlayer[]
+    winnerId: number
   ): { winnerId: number; nextMatchId?: number; loserId?: number } {
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
     return { winnerId, loserId: loserId ?? undefined }
@@ -511,7 +521,11 @@ export class BracketGenerator {
   }
 
   getStrategy(name: string): BracketStrategy {
-    return this.strategies.get(name) ?? this.strategies.get('single-elim')!
+    const strategy = this.strategies.get(name) ?? this.strategies.get('single-elim')
+    if (strategy === undefined) {
+      throw new Error('Default bracket strategy "single-elim" is not registered')
+    }
+    return strategy
   }
 
   getSeedOrder(n: number): number[] {

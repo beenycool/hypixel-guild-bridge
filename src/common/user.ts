@@ -33,7 +33,10 @@ export class User {
     }
   }
 
-  /** Returns the best available display name for this user */
+  /**
+   * Returns the best available display name for this user
+   * @returns the display name, preferring Mojang, then Discord, then the raw identifier
+   */
   public displayName(): string {
     const mojangProfile = this.mojangProfile()
     if (mojangProfile !== undefined) return mojangProfile.name
@@ -44,7 +47,10 @@ export class User {
     return this.getUserIdentifier().userId.slice(0, 16)
   }
 
-  /** Returns the user's avatar URL, preferring Mojang over Discord */
+  /**
+   * Returns the user's avatar URL, preferring Mojang over Discord
+   * @returns the avatar URL, or undefined if the user has no known avatar
+   */
   public avatar(): string | undefined {
     const mojangProfile = this.mojangProfile()
     if (mojangProfile !== undefined) {
@@ -59,7 +65,10 @@ export class User {
     return undefined
   }
 
-  /** Returns a link to the user's SkyBlock stats page */
+  /**
+   * Returns a link to the user's SkyBlock stats page
+   * @returns the SkyBlock stats URL, or undefined if no Mojang profile is available
+   */
   public profileLink(): string | undefined {
     const mojangProfile = this.mojangProfile()
     if (mojangProfile !== undefined) {
@@ -69,19 +78,26 @@ export class User {
     return undefined
   }
 
-  /** Returns the user's Mojang profile if available */
+  /**
+   * Returns the user's Mojang profile if available
+   * @returns the Mojang profile, or undefined if the user has none
+   */
   public mojangProfile(): MojangProfile | undefined {
     return this.userMojang
   }
 
-  /** Returns the user's Discord profile if available */
+  /**
+   * Returns the user's Discord profile if available
+   * @returns the Discord profile, or undefined if the user has none
+   */
   public discordProfile(): DiscordProfile | undefined {
     return this.userDiscord
   }
 
   /**
    * Resolves the user's permission level, checking Discord roles and admin username
-   * @param bridgeId
+   * @param bridgeId the bridge whose Discord roles should be checked
+   * @returns the highest permission level the user holds
    */
   public async permission(bridgeId?: string): Promise<Permission> {
     let permission = Permission.Anyone
@@ -106,12 +122,18 @@ export class User {
     return permission
   }
 
-  /** Whether the user has linked their Minecraft and Discord accounts */
+  /**
+   * Whether the user has linked their Minecraft and Discord accounts
+   * @returns true if both accounts are linked
+   */
   public verified(): boolean {
     return this.userLink !== undefined
   }
 
-  /** Whether the user is immune to moderation actions */
+  /**
+   * Whether the user is immune to moderation actions
+   * @returns true if the user is admin-level or listed as immune
+   */
   public async immune(): Promise<boolean> {
     if ((await this.permission()) >= Permission.Admin) return true
 
@@ -128,7 +150,8 @@ export class User {
 
   /**
    * Checks if this user equals another by any shared identifier
-   * @param other
+   * @param other the user to compare against
+   * @returns true when both users share a Discord id, a Mojang id, or the same origin identifier
    */
   public equalsUser(other: User): boolean {
     const discordProfile = this.discordProfile()
@@ -154,7 +177,8 @@ export class User {
 
   /**
    * Checks if this user matches a specific identifier
-   * @param identifier
+   * @param identifier the identifier to look for
+   * @returns true if any of this user's identifiers match
    */
   public equalsIdentifier(identifier: UserIdentifier): boolean {
     return this.allIdentifiers().some(
@@ -162,12 +186,18 @@ export class User {
     )
   }
 
-  /** Returns the primary user identifier */
+  /**
+   * Returns the primary user identifier
+   * @returns the user's primary identifier
+   */
   public getUserIdentifier(): UserIdentifier {
     return this.userIdentifier
   }
 
-  /** Returns all known identifiers (Mojang, Discord, linked) for this user */
+  /**
+   * Returns all known identifiers (Mojang, Discord, linked) for this user
+   * @returns every identifier known for this user
+   */
   public allIdentifiers(): UserIdentifier[] {
     const result: UserIdentifier[] = []
 
@@ -200,7 +230,10 @@ export class User {
     return result
   }
 
-  /** Returns the user's punishment history */
+  /**
+   * Returns the user's punishment history
+   * @returns a view over the user's saved punishments
+   */
   public punishments(): PunishmentInstant {
     const punishments = this.context.punishments.findByUser(this)
     return new PunishmentInstant(this, punishments)
@@ -208,7 +241,8 @@ export class User {
 
   /**
    * Removes all punishments for this user
-   * @param executor
+   * @param executor the event that triggered the forgiveness
+   * @returns the punishments that were removed
    */
   public async forgive(executor: InformEvent): Promise<SavedPunishment[]> {
     const savedPunishments = this.context.punishments.remove(this)
@@ -220,10 +254,11 @@ export class User {
 
   /**
    * Bans the user for a specified duration and reason
-   * @param executor
-   * @param purpose
-   * @param duration
-   * @param reason
+   * @param executor the event that triggered the ban
+   * @param purpose why the ban was issued
+   * @param duration how long the ban lasts
+   * @param reason human readable reason for the ban
+   * @returns the saved punishment
    */
   public async ban(
     executor: InformEvent,
@@ -236,10 +271,11 @@ export class User {
 
   /**
    * Mutes the user for a specified duration and reason
-   * @param executor
-   * @param purpose
-   * @param duration
-   * @param reason
+   * @param executor the event that triggered the mute
+   * @param purpose why the mute was issued
+   * @param duration how long the mute lasts
+   * @param reason human readable reason for the mute
+   * @returns the saved punishment
    */
   public async mute(
     executor: InformEvent,
@@ -277,7 +313,8 @@ export class User {
 
   /**
    * Records a moderation heat action (with auto-escalation)
-   * @param type
+   * @param type the heat action to record
+   * @returns the resulting heat state
    */
   public async addModerationAction(type: HeatType): Promise<HeatResult> {
     return this.context.commandsHeat.add(this, type)
@@ -285,13 +322,17 @@ export class User {
 
   /**
    * Attempts to record a moderation heat action (no auto-escalation)
-   * @param type
+   * @param type the heat action to record
+   * @returns the resulting heat state
    */
   public async tryAddModerationAction(type: HeatType): Promise<HeatResult> {
     return this.context.commandsHeat.tryAdd(this, type)
   }
 
-  /** Checks if this user originated from Minecraft */
+  /**
+   * Checks if this user originated from Minecraft
+   * @returns true, narrowing the type to MinecraftUser, when the user came from Minecraft
+   */
   public isMojangUser(): this is MinecraftUser {
     if (this.userIdentifier.originInstance === InstanceType.Minecraft) {
       assert.ok(this.userMojang !== undefined)
@@ -301,7 +342,10 @@ export class User {
     return false
   }
 
-  /** Checks if this user originated from Discord */
+  /**
+   * Checks if this user originated from Discord
+   * @returns true, narrowing the type to DiscordUser, when the user came from Discord
+   */
   public isDiscordUser(): this is DiscordUser {
     if (this.userIdentifier.originInstance === InstanceType.Discord) {
       assert.ok(this.userDiscord !== undefined)
@@ -311,7 +355,10 @@ export class User {
     return false
   }
 
-  /** Serializes the user to a plain object */
+  /**
+   * Serializes the user to a plain object
+   * @returns a plain object representation of the user's identifier
+   */
   public toJSON(): object {
     return { ...this.userIdentifier }
   }
@@ -351,14 +398,18 @@ export class PunishmentInstant {
     private readonly punishments: SavedPunishment[]
   ) {}
 
-  /** Returns all punishments for this user */
+  /**
+   * Returns all punishments for this user
+   * @returns every saved punishment of this user
+   */
   public all(): SavedPunishment[] {
     return this.punishments
   }
 
   /**
    * Finds the longest punishment of a given type
-   * @param type
+   * @param type the punishment type to look for
+   * @returns the longest matching punishment, or undefined if none exists
    */
   public longestPunishment(type: PunishmentType): SavedPunishment | undefined {
     const punishments = this.all()
@@ -377,7 +428,8 @@ export class PunishmentInstant {
 
   /**
    * Returns the expiration timestamp of the longest punishment of a given type
-   * @param type
+   * @param type the punishment type to look for
+   * @returns the expiration timestamp, or undefined if no matching punishment exists
    */
   public punishedTill(type: PunishmentType): number | undefined {
     return this.longestPunishment(type)?.till

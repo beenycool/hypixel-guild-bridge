@@ -79,10 +79,10 @@ export default class Vengeance extends ChatCommandHandler {
         'Lost in Vengeance game'
       )
       const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
-      const override = translator?.('commands.vengeance.win')
+      const override = translator('commands.vengeance.win')
       if (override && override !== 'commands.vengeance.win') {
         try {
-          messages = JSON.parse(override)
+          messages = JSON.parse(override) as string[]
         } catch {
           messages = [override]
         }
@@ -99,10 +99,10 @@ export default class Vengeance extends ChatCommandHandler {
 
       this.countSinceLastWin++
       const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
-      const override = translator?.('commands.vengeance.lose')
+      const override = translator('commands.vengeance.lose')
       if (override && override !== 'commands.vengeance.lose') {
         try {
-          messages = JSON.parse(override)
+          messages = JSON.parse(override) as string[]
         } catch {
           messages = [override]
         }
@@ -112,10 +112,10 @@ export default class Vengeance extends ChatCommandHandler {
     } else {
       this.countSinceLastWin++
       const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
-      const override = translator?.('commands.vengeance.draw')
+      const override = translator('commands.vengeance.draw')
       if (override && override !== 'commands.vengeance.draw') {
         try {
-          messages = JSON.parse(override)
+          messages = JSON.parse(override) as string[]
         } catch {
           messages = [override]
         }

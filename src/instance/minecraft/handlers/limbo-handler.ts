@@ -58,7 +58,6 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async triggerLimbo(): Promise<void> {
-    this.logger.debug(`Spawn event triggered. sending to limbo...`)
     await this.limbo()
   }
 

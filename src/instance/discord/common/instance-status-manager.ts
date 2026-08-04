@@ -68,9 +68,12 @@ export class InstanceStatusManager {
     }
 
     await interactivePaging(interaction, 0, DefaultTimeout, this.errorHandler, async (requestedPage) => {
-      const entries = (
-        await this.application.core.statusHistory.getHistory(entry.instanceName, entry.startTime, entry.endTime)
-      ).toReversed()
+      const history = await this.application.core.statusHistory.getHistory(
+        entry.instanceName,
+        entry.startTime,
+        entry.endTime
+      )
+      const entries = history.toReversed()
 
       let firstAuthenticationIndex = -1
       let authenticationFound = false
@@ -147,7 +150,9 @@ export class InstanceStatusManager {
     })
   }
 
-  public async send(): Promise<void> {}
+  public async send(): Promise<void> {
+    // Intentionally empty: status is delivered interactively via interactivePaging.
+  }
 
   private generateButtons(): MessageActionRowComponentData[] {
     return [

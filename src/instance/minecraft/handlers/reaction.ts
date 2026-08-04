@@ -33,7 +33,7 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           : this.application.core.minecraftConfigurations.getJoinGuildReaction())
       ) {
         const raw = t('instance.reaction.join')
-        const messages: string[] = JSON.parse(raw)
+        const messages = JSON.parse(raw) as string[]
         if (messages.length === 0) {
           this.logger.error('There is no guild join reaction messages. Dropping the reaction entirely.')
           return
@@ -59,7 +59,7 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           : this.application.core.minecraftConfigurations.getLeaveGuildReaction())
       ) {
         const raw = t('instance.reaction.leave')
-        const messages: string[] = JSON.parse(raw)
+        const messages = JSON.parse(raw) as string[]
         if (messages.length === 0) {
           this.logger.error('There is no guild leave reaction messages. Dropping the reaction entirely.')
           return
@@ -84,7 +84,7 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
           : this.application.core.minecraftConfigurations.getKickGuildReaction())
       ) {
         const raw = t('instance.reaction.kick')
-        const messages: string[] = JSON.parse(raw)
+        const messages = JSON.parse(raw) as string[]
         if (messages.length === 0) {
           this.logger.error('There is no guild kick reaction messages. Dropping the reaction entirely.')
           return
@@ -107,7 +107,8 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
         bridgeId !== undefined &&
         bridgeConfig.getWelcomeOnlineEnabled(bridgeId)
       ) {
-        const playerUuid = event.user.mojangProfile()?.id
+        const profile = event.user.mojangProfile() as { id: string } | undefined
+        const playerUuid = profile?.id
         if (playerUuid !== undefined) {
           const messages = bridgeConfig.getWelcomeOnlineMessages(bridgeId)
           const playerEntry = messages.find(

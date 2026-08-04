@@ -51,10 +51,13 @@ export default class Bedwars extends HypixelPlayerCommand {
     let winstreak = this.getStat(modeStats, 'winstreak')
     let wsPrefix = ''
     if (mode === 'overall' && (winstreak === undefined || winstreak === 0)) {
-      const auraData = await fetchAuroraWinstreak(this.lastUuid!, context.app.auroraApiKey ?? '')
-      if (auraData !== undefined) {
-        winstreak = auraData.winstreak
-        wsPrefix = '~'
+      const lastUuid = this.lastUuid
+      if (lastUuid !== undefined) {
+        const auraData = await fetchAuroraWinstreak(lastUuid, context.app.auroraApiKey ?? '')
+        if (auraData !== undefined) {
+          winstreak = auraData.winstreak
+          wsPrefix = '~'
+        }
       }
     }
     const wsDisplay =

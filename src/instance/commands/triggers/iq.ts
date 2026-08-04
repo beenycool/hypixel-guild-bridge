@@ -34,9 +34,9 @@ export default class Iq extends ChatCommandHandler {
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-    const isLookupSelf =
-      context.args[0] === undefined || context.args[0].toLowerCase() === context.username.toLowerCase()
+    const firstArgument = context.args.at(0)
+    const givenUsername = firstArgument ?? context.username
+    const isLookupSelf = firstArgument === undefined || firstArgument.toLowerCase() === context.username.toLowerCase()
 
     // Rate limit on the sender (not the target)
     const senderId =
@@ -95,7 +95,7 @@ export default class Iq extends ChatCommandHandler {
   private handleError(context: ChatCommandContext, error: unknown): string {
     if (isAxiosError(error)) {
       context.logger.error(
-        `IQ API error: status=${error.response?.status?.toString() ?? 'unknown'}, ` +
+        `IQ API error: status=${error.response?.status.toString() ?? 'unknown'}, ` +
           `message=${error.message}` +
           (error.response?.data ? `, data=${JSON.stringify(error.response.data)}` : '')
       )
@@ -116,7 +116,8 @@ export default class Iq extends ChatCommandHandler {
         return 'IQ estimation failed: Request timed out. Please try again.'
       }
 
-      const apiMessage: unknown = error.response?.data?.error?.message
+      const apiMessage: unknown = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error
+        ?.message
       const fallback = typeof apiMessage === 'string' ? apiMessage : error.message
       return `IQ estimation failed: ${fallback}`
     }

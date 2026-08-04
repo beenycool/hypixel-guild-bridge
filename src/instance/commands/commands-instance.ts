@@ -14,6 +14,7 @@ import { ConnectableInstance, Status } from '../../common/connectable-instance.j
 import { InternalInstancePrefix } from '../../common/instance.js'
 
 import EightBallCommand from './triggers/8ball.js'
+import Accessories from './triggers/accessories.js'
 import Api from './triggers/api.js'
 import Arcade from './triggers/arcade.js'
 import Asian from './triggers/asian.js'
@@ -21,6 +22,7 @@ import AuctionHouse from './triggers/auction.js'
 import Bedwars from './triggers/bedwars.js'
 import Bestiary from './triggers/bestiary'
 import Bits from './triggers/bits.js'
+import Blitz from './triggers/blitz.js'
 import Boo from './triggers/boo.js'
 import Boop from './triggers/boop.js'
 import Bow from './triggers/bow.js'
@@ -30,6 +32,7 @@ import Catacomb from './triggers/catacomb.js'
 import Chattermute from './triggers/chattermute.js'
 import Chocolate from './triggers/chocolate'
 import Collection from './triggers/collection'
+import Cops from './triggers/cops.js'
 import Crimson from './triggers/crimson.js'
 import CurrentDungeon from './triggers/current-dungeon.js'
 import DadJoke from './triggers/dadjoke.js'
@@ -43,6 +46,7 @@ import DuelsBridge from './triggers/duels-bridge.js'
 import Duels from './triggers/duels.js'
 import Eggs from './triggers/eggs'
 import Election from './triggers/election.js'
+import Essence from './triggers/essence.js'
 import Execute from './triggers/execute.js'
 import Explain from './triggers/explain.js'
 import FairySouls from './triggers/fairysouls.js'
@@ -50,6 +54,7 @@ import Fetchur from './triggers/fetchur.js'
 import Forge from './triggers/forge.js'
 import Garden from './triggers/garden.js'
 import Gay from './triggers/gay.js'
+import Gtop from './triggers/gtop.js'
 import GuildSessions from './triggers/guild-sessions.js'
 import Guild from './triggers/guild.js'
 import GuildExperience from './triggers/guildexp.js'
@@ -64,13 +69,16 @@ import Level from './triggers/level.js'
 import List from './triggers/list.js'
 import MagicalPower from './triggers/magicalpower.js'
 import Mayor from './triggers/mayor.js'
+import Megawalls from './triggers/megawalls.js'
 import Murdermystery from './triggers/murdermystery.js'
 import Mute from './triggers/mute.js'
 import Networth from './triggers/networth.js'
+import Paintball from './triggers/paintball.js'
 import PartyManager from './triggers/party.js'
 import PartyGames from './triggers/partygames.js'
 import PersonalBest from './triggers/personal-best.js'
 import Ping from './triggers/ping.js'
+import Pit from './triggers/pit.js'
 import Player from './triggers/player.js'
 import Points30days from './triggers/points-30days'
 import PointsAll from './triggers/points-all'
@@ -101,6 +109,8 @@ import SpecialMayors from './triggers/special-mayors'
 import Starfall from './triggers/starfall.js'
 import StatusCommand from './triggers/status.js'
 import Timecharms from './triggers/timecharms.js'
+import Tntgames from './triggers/tntgames.js'
+import Tnttag from './triggers/tnttag.js'
 import Toggle from './triggers/toggle.js'
 import Toggled from './triggers/toggled.js'
 import Tournament from './triggers/tournament.js'
@@ -129,7 +139,9 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Arcade(),
       new Asian(),
       new AuctionHouse(),
+      new Accessories(),
       new Bits(),
+      new Blitz(),
       new Bedwars(),
       new Bow(),
       new Duels(),
@@ -143,6 +155,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Chattermute(),
       new Chocolate(),
       new Collection(),
+      new Cops(),
       new Crimson(),
       new CurrentDungeon(),
       new DadJoke(),
@@ -155,6 +168,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Eggs(),
       new Election(),
       new EightBallCommand(),
+      new Essence(),
       new Execute(),
       new Explain(),
       new FairySouls(),
@@ -162,6 +176,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Forge(),
       new Garden(),
       new Gay(),
+      new Gtop(),
       new Lesbian(),
       new Guild(),
       new GuildExperience(),
@@ -176,14 +191,17 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new List(),
       new MagicalPower(),
       new Mayor(),
+      new Megawalls(),
       new Murdermystery(),
       new Mute(),
       new Networth(),
       ...new PartyManager().resolveCommands(),
       ...new SessionCommands().resolveCommands(),
       new PartyGames(),
+      new Paintball(),
       new PersonalBest(),
       new Ping(),
+      new Pit(),
       new Player(),
       new Points30days(),
       new PointsAll(),
@@ -213,6 +231,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Starfall(),
       new StatusCommand(),
       new Timecharms(),
+      new Tntgames(),
+      new Tnttag(),
       new TrophyFish(),
       new Toggle(),
       new Toggled(),
@@ -262,12 +282,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
   async connect(): Promise<void> {
     this.checkCommandsIntegrity()
     await this.setAndBroadcastNewStatus(Status.Connected)
-    this.logger.debug('chat commands are ready to serve')
   }
 
   async disconnect(): Promise<void> {
     await this.setAndBroadcastNewStatus(Status.Ended)
-    this.logger.debug('chat commands have been disabled')
 
     // Clean up cooldown interval
     clearInterval(this.cooldownCleanupInterval)
@@ -385,10 +403,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       return
     }
 
-    this.logger.debug(
-      `[cmd] ${event.user.displayName()} executing "${event.message}" on bridge="${bridgeId ?? 'none'}"`
-    )
-
     try {
       const commandResponse = await command.handler({
         app: this.application,
@@ -411,14 +425,13 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
         }
       })
 
-      this.logger.debug(`[cmd] response for "${command.triggers[0]}": ${commandResponse}`)
       await this.reply(event, command.triggers[0], commandResponse)
     } catch (error) {
       this.logger.error('Error while handling command', error)
 
       const errorInstance = error instanceof Error ? error : new Error(String(error))
-      const errorType = errorInstance.name ?? errorInstance.constructor.name
-      const errorMessage = errorInstance.message ?? 'unknown error'
+      const errorType = errorInstance.name
+      const errorMessage = errorInstance.message
       const errorStack = errorInstance.stack ?? ''
 
       const randomSuffix = (Math.random() + 1).toString(36).slice(7)
@@ -435,7 +448,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
               event.user.displayName(),
               event.instanceName,
               event.instanceType,
-              event.bridgeId ?? null,
+              event.bridgeId ?? undefined,
               errorType,
               errorMessage,
               errorStack

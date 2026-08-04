@@ -16,6 +16,7 @@ interface FakeSocket extends EventEmitter {
 }
 
 function createFakeSocket(): FakeSocket {
+  // eslint-disable-next-line unicorn/prefer-event-target -- fake mimics the ws WebSocket API, which is EventEmitter-based
   const socket = new EventEmitter() as FakeSocket
   socket.sentMessages = []
   socket.readyState = 1
@@ -42,6 +43,7 @@ function createFakeApplication(options: FakeAppOptions = {}): {
   historyByBridge: Map<string, RankupHistoryEntry[]>
   bridgeIds: string[]
 } {
+  // eslint-disable-next-line unicorn/prefer-event-target -- fake app event bus must expose .on() like the real Application
   const eventEmitter = new EventEmitter()
   const reviewsByBridge = options.reviewsByBridge ?? new Map<string, PendingReview[]>()
   const historyByBridge = options.historyByBridge ?? new Map<string, RankupHistoryEntry[]>()
@@ -65,25 +67,29 @@ function createFakeApplication(options: FakeAppOptions = {}): {
   return { app, eventEmitter, reviewsByBridge, historyByBridge, bridgeIds }
 }
 
+const noop = (): void => {
+  /* noop */
+}
+
 const silentLogger: Logger = {
-  trace: () => {},
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  fatal: () => {},
+  trace: noop,
+  debug: noop,
+  info: noop,
+  warn: noop,
+  error: noop,
+  fatal: noop,
   level: 'off',
   isLevelEnabled: () => false,
-  log: () => {},
-  setLevel: () => {},
+  log: noop,
+  setLevel: noop,
   getLevel: () => 'off'
 } as unknown as Logger
 
 await describe('RankupWsEvents', async () => {
-  await it('tick() returns 0 as a no-op', async () => {
+  await it('tick() returns 0 as a no-op', () => {
     const { app } = createFakeApplication({ bridgeIds: [] })
     const events = new RankupWsEvents(app, silentLogger)
-    const count = await events.tick()
+    const count = events.tick()
     assert.strictEqual(count, 0)
   })
 
@@ -123,7 +129,7 @@ await describe('RankupWsEvents', async () => {
     assert.strictEqual(payload.data.proposedRank, 'Officer')
   })
 
-  await it('pendingReviewRemoved event broadcasts reviewRemoved to subscribers', async () => {
+  await it('pendingReviewRemoved event broadcasts reviewRemoved to subscribers', () => {
     const { app, eventEmitter } = createFakeApplication({ bridgeIds: ['a'] })
     const events = new RankupWsEvents(app, silentLogger)
     const socket = createFakeSocket()

@@ -25,7 +25,7 @@ import StateHandler from './handlers/state-handler.js'
 import StatusHandler from './handlers/status-handler.js'
 
 export default class DiscordInstance extends ConnectableInstance<InstanceType.Discord> {
-  private static readonly PermissionCacheTTL = 5 * 60 * 1000
+  private static readonly PermissionCacheTtl = 5 * 60 * 1000
 
   readonly commandsManager: CommandManager
   readonly guildRequirements: GuildRequirements
@@ -57,6 +57,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.staticConfig = config
 
     this.client = new Client({
+      /* eslint-disable @typescript-eslint/naming-convention -- discord.js cache manager keys must match Client manager property names */
       makeCache: Options.cacheWithLimits({
         ApplicationEmojiManager: {},
         AutoModerationRuleManager: { maxSize: 0 },
@@ -76,8 +77,10 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
         ThreadMemberManager: { maxSize: 0 },
         UserManager: { maxSize: 0 }
       }),
+      /* eslint-enable @typescript-eslint/naming-convention */
       sweepers: {
         messages: { interval: 300, lifetime: 1800 },
+        // eslint-disable-next-line unicorn/no-null -- discord.js sweeper filter requires null to disable user sweeping
         users: { interval: 3600, filter: () => null },
         threads: { interval: 3600, lifetime: 3600 }
       },
@@ -193,7 +196,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
 
     this.permissionCache.set(cacheKey, {
       permission: highestPermission,
-      expiresAt: Date.now() + DiscordInstance.PermissionCacheTTL
+      expiresAt: Date.now() + DiscordInstance.PermissionCacheTtl
     })
 
     // Evict oldest entry if cache exceeds max size
@@ -252,7 +255,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     }
     this.connected = true
 
-    this.logger.debug('Discord connecting')
     await this.setAndBroadcastNewStatus(Status.Connecting)
 
     this.stateHandler.registerEvents(this.client)
@@ -272,6 +274,5 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.chatManager.dispose()
     await this.client.destroy()
     await this.setAndBroadcastNewStatus(Status.Ended)
-    this.logger.debug('discord instance has disconnected')
   }
 }

@@ -8,12 +8,12 @@ export function sha1Hex(...buffers: Buffer[]): Buffer {
 
 export function formatServerId(digest: Buffer): string {
   const hex = digest.toString('hex')
-  let number_ = BigInt('0x' + hex)
+  let value = BigInt('0x' + hex)
   const mask = 1n << 159n
-  if (number_ & mask) {
-    number_ = number_ - (1n << 160n)
+  if (value & mask) {
+    value = value - (1n << 160n)
   }
-  return number_.toString(16)
+  return value.toString(16)
 }
 
 export function generateAesKey(): Buffer {

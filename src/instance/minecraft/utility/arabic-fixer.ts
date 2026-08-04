@@ -2,10 +2,10 @@ import assert from 'node:assert'
 
 import esrever from 'esrever'
 
-let _compiledPatterns: { regex: RegExp; replace: string }[] | undefined
+let compiledPatterns: { regex: RegExp; replace: string }[] | undefined
 
 export function getCompiledPatterns(): { regex: RegExp; replace: string }[] {
-  return (_compiledPatterns ??= ArabicFixer.compilePatterns())
+  return (compiledPatterns ??= ArabicFixer.compilePatterns())
 }
 
 export default class ArabicFixer {

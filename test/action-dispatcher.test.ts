@@ -1,8 +1,53 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
+import type { Logger } from 'log4js'
+
+import type Application from '../src/application.js'
 import { ActionDispatcher } from '../src/core/rankup/action-dispatcher.js'
+import type { PendingReviewManager } from '../src/core/rankup/pending-review-manager.js'
 import type { RankupDecision } from '../src/core/rankup/rankup-decision.js'
+
+interface FakeMinecraftInstance {
+  instanceName: string
+  send: (command: string) => Promise<void>
+}
+
+function createFakeApplication(
+  profile: { name: string; id: string } | 'fail',
+  instances: FakeMinecraftInstance[]
+): Application {
+  return {
+    mojangApi: {
+      profileByUuid: () => (profile === 'fail' ? Promise.reject(new Error('API error')) : Promise.resolve(profile))
+    },
+    minecraftManager: {
+      getAllInstances: () => instances
+    }
+  } as unknown as Application
+}
+
+function createPendingManager(
+  logHistory: (...callArguments: unknown[]) => void = () => {
+    /* noop */
+  }
+): PendingReviewManager {
+  return {
+    logHistory
+  } as unknown as PendingReviewManager
+}
+
+function createLogger(overrides: Partial<Logger> = {}): Logger {
+  return {
+    error: () => {
+      /* noop */
+    },
+    warn: () => {
+      /* noop */
+    },
+    ...overrides
+  } as unknown as Logger
+}
 
 await describe('ActionDispatcher', async () => {
   await it('sends promote command and logs history with real fromRank', async () => {
@@ -10,31 +55,19 @@ await describe('ActionDispatcher', async () => {
     const historyEntries: unknown[][] = []
 
     const dispatcher = new ActionDispatcher(
-      {
-        mojangApi: {
-          profileByUuid: () => Promise.resolve({ name: 'TestPlayer', id: 'uuid-1' })
-        },
-        minecraftManager: {
-          getAllInstances: () => [
-            {
-              instanceName: 'bot-a',
-              send: async (command: string) => {
-                sentCommands.push(command)
-              }
-            }
-          ]
+      createFakeApplication({ name: 'TestPlayer', id: 'uuid-1' }, [
+        {
+          instanceName: 'bot-a',
+          send: (command: string) => {
+            sentCommands.push(command)
+            return Promise.resolve()
+          }
         }
-      } as any,
-      {
-        logHistory: (...arguments_: unknown[]) => {
-          historyEntries.push(arguments_)
-        }
-      } as any,
-      {
-        warn: () => {
-          /* noop */
-        }
-      } as any
+      ]),
+      createPendingManager((...callArguments: unknown[]) => {
+        historyEntries.push(callArguments)
+      }),
+      createLogger()
     )
 
     const decision: RankupDecision & { kind: 'promote' } = {
@@ -61,31 +94,19 @@ await describe('ActionDispatcher', async () => {
     const historyEntries: unknown[][] = []
 
     const dispatcher = new ActionDispatcher(
-      {
-        mojangApi: {
-          profileByUuid: () => Promise.resolve({ name: 'DemotedPlayer', id: 'uuid-2' })
-        },
-        minecraftManager: {
-          getAllInstances: () => [
-            {
-              instanceName: 'bot-a',
-              send: async (command: string) => {
-                sentCommands.push(command)
-              }
-            }
-          ]
+      createFakeApplication({ name: 'DemotedPlayer', id: 'uuid-2' }, [
+        {
+          instanceName: 'bot-a',
+          send: (command: string) => {
+            sentCommands.push(command)
+            return Promise.resolve()
+          }
         }
-      } as any,
-      {
-        logHistory: (...arguments_: unknown[]) => {
-          historyEntries.push(arguments_)
-        }
-      } as any,
-      {
-        warn: () => {
-          /* noop */
-        }
-      } as any
+      ]),
+      createPendingManager((...callArguments: unknown[]) => {
+        historyEntries.push(callArguments)
+      }),
+      createLogger()
     )
 
     const decision: RankupDecision & { kind: 'demote' } = {
@@ -109,31 +130,19 @@ await describe('ActionDispatcher', async () => {
     const historyEntries: unknown[][] = []
 
     const dispatcher = new ActionDispatcher(
-      {
-        mojangApi: {
-          profileByUuid: () => Promise.resolve({ name: 'KickedPlayer', id: 'uuid-3' })
-        },
-        minecraftManager: {
-          getAllInstances: () => [
-            {
-              instanceName: 'bot-a',
-              send: async (command: string) => {
-                sentCommands.push(command)
-              }
-            }
-          ]
+      createFakeApplication({ name: 'KickedPlayer', id: 'uuid-3' }, [
+        {
+          instanceName: 'bot-a',
+          send: (command: string) => {
+            sentCommands.push(command)
+            return Promise.resolve()
+          }
         }
-      } as any,
-      {
-        logHistory: (...arguments_: unknown[]) => {
-          historyEntries.push(arguments_)
-        }
-      } as any,
-      {
-        warn: () => {
-          /* noop */
-        }
-      } as any
+      ]),
+      createPendingManager((...callArguments: unknown[]) => {
+        historyEntries.push(callArguments)
+      }),
+      createLogger()
     )
 
     const decision: RankupDecision & { kind: 'kick' } = {
@@ -156,34 +165,19 @@ await describe('ActionDispatcher', async () => {
     const historyEntries: unknown[][] = []
 
     const dispatcher = new ActionDispatcher(
-      {
-        mojangApi: {
-          profileByUuid: () => Promise.reject(new Error('API error'))
-        },
-        minecraftManager: {
-          getAllInstances: () => [
-            {
-              instanceName: 'bot-a',
-              send: async (command: string) => {
-                sentCommands.push(command)
-              }
-            }
-          ]
+      createFakeApplication('fail', [
+        {
+          instanceName: 'bot-a',
+          send: (command: string) => {
+            sentCommands.push(command)
+            return Promise.resolve()
+          }
         }
-      } as any,
-      {
-        logHistory: (...arguments_: unknown[]) => {
-          historyEntries.push(arguments_)
-        }
-      } as any,
-      {
-        error: () => {
-          /* noop */
-        },
-        warn: () => {
-          /* noop */
-        }
-      } as any
+      ]),
+      createPendingManager((...callArguments: unknown[]) => {
+        historyEntries.push(callArguments)
+      }),
+      createLogger()
     )
 
     const decision: RankupDecision & { kind: 'promote' } = {
@@ -208,24 +202,13 @@ await describe('ActionDispatcher', async () => {
     const warns: string[] = []
 
     const dispatcher = new ActionDispatcher(
-      {
-        mojangApi: {
-          profileByUuid: () => Promise.resolve({ name: 'TestPlayer', id: 'uuid-1' })
-        },
-        minecraftManager: {
-          getAllInstances: () => []
-        }
-      } as any,
-      {
-        logHistory: () => {
-          /* noop */
-        }
-      } as any,
-      {
+      createFakeApplication({ name: 'TestPlayer', id: 'uuid-1' }, []),
+      createPendingManager(),
+      createLogger({
         warn: (message: string) => {
           warns.push(message)
         }
-      } as any
+      })
     )
 
     const decision: RankupDecision & { kind: 'promote' } = {

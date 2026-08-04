@@ -25,7 +25,7 @@ export class TokenBucket {
     }
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
-        const index = this.queue.findIndex((e) => e.resolve === resolve)
+        const index = this.queue.findIndex((entry) => entry.resolve === resolve)
         if (index !== -1) this.queue.splice(index, 1)
         reject(new Error('TokenBucket acquire timeout'))
       }, TokenBucket.AcquireTimeoutMs)

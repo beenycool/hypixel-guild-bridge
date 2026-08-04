@@ -2,7 +2,7 @@ import type { Registry } from 'prom-client'
 import { Gauge } from 'prom-client'
 
 import type Application from '../../application.js'
-import { InstanceType, PunishmentType } from '../../common/application-event.js'
+import { PunishmentType } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 import Duration from '../../utility/duration'
 import { setIntervalAsync } from '../../utility/scheduling'
@@ -23,7 +23,7 @@ export default class GuildOnlineMetrics {
   private static readonly SnapshotInterval = Duration.minutes(30)
   private static readonly EventRetention = Duration.days(90)
   private static readonly SnapshotRetention = Duration.days(365)
-  private static readonly GuildListCacheTTL = Duration.seconds(30)
+  private static readonly GuildListCacheTtl = Duration.seconds(30)
   private guildListCache = new Map<
     string,
     {
@@ -159,7 +159,9 @@ export default class GuildOnlineMetrics {
     })
     register.registerMetric(this.guildActivePunishments)
 
-    this.app.core.databaseManager.registerCleaner(() => this.clean())
+    this.app.core.databaseManager.registerCleaner(() => {
+      this.clean()
+    })
 
     setIntervalAsync(() => this.snapshotMemberState(), {
       delay: GuildOnlineMetrics.SnapshotInterval,
@@ -179,7 +181,7 @@ export default class GuildOnlineMetrics {
     }[]
   }> {
     const cached = this.guildListCache.get(instanceName)
-    if (cached && Date.now() - cached.cachedAt < GuildOnlineMetrics.GuildListCacheTTL.toMilliseconds()) {
+    if (cached && Date.now() - cached.cachedAt < GuildOnlineMetrics.GuildListCacheTtl.toMilliseconds()) {
       return cached
     }
     const guildList = await this.app.core.guildManager.list(instanceName)
@@ -230,7 +232,7 @@ export default class GuildOnlineMetrics {
           this.guildTotalExperience.set({ name: instanceName }, hypixelGuild.experience)
           this.guildWeeklyExperience.set({ name: instanceName }, hypixelGuild.totalWeeklyGexp)
 
-          await this.recordGuildManagementMetrics(instanceName, hypixelGuild, app)
+          this.recordGuildManagementMetrics(instanceName, hypixelGuild, app)
 
           if (!this.exportPerMember) return
 
@@ -254,14 +256,16 @@ export default class GuildOnlineMetrics {
           for (const member of hypixelGuild.members) {
             const sortedHistory = member.expHistory.toSorted((a, b) => b.date.getTime() - a.date.getTime())
             const online = onlineUuids.has(member.uuid)
-            const memberName =
-              (await this.app.mojangApi.profileByUuid(member.uuid).catch(() => undefined))?.name ?? member.uuid
+            const profile = await this.app.mojangApi.profileByUuid(member.uuid).catch(() => undefined)
+            const memberName = profile?.name ?? member.uuid
 
+            /* eslint-disable @typescript-eslint/naming-convention -- Prometheus label names must match labelNames declarations */
             const labels = {
               name: instanceName,
               member_uuid: member.uuid,
               member_name: memberName
             }
+            /* eslint-enable @typescript-eslint/naming-convention */
             this.memberWeeklyExperience.set(labels, member.weeklyExperience)
             this.memberDailyExperience.set(labels, sortedHistory[0]?.exp ?? 0)
             this.memberJoinedAt.set(labels, member.joinedAtTimestamp)
@@ -313,8 +317,8 @@ export default class GuildOnlineMetrics {
         const online = onlineUuids.has(member.uuid)
         const existing = existingByUuid.get(member.uuid)
         const lastSeenAt = online ? Date.now() : (existing?.lastSeenAt ?? member.joinedAtTimestamp)
-        const memberName =
-          (await this.app.mojangApi.profileByUuid(member.uuid).catch(() => undefined))?.name ?? member.uuid
+        const profile = await this.app.mojangApi.profileByUuid(member.uuid).catch(() => undefined)
+        const memberName = profile?.name ?? member.uuid
 
         writes.push(
           this.app.core.databaseManager.execute(
@@ -405,10 +409,12 @@ export default class GuildOnlineMetrics {
           await guild.members.fetch().catch(() => undefined)
           const roles = await guild.roles.fetch()
           for (const role of roles.values()) {
+            /* eslint-disable @typescript-eslint/naming-convention -- Prometheus label names must match labelNames declarations */
             this.discordRoleMembers.set(
               { guild_id: guild.id, role_id: role.id, role_name: role.name },
               role.members.size
             )
+            /* eslint-enable @typescript-eslint/naming-convention */
           }
         })().catch(() => undefined)
       )
@@ -425,11 +431,11 @@ export default class GuildOnlineMetrics {
     return this.app.bridgeResolver.getBridgeIdForInstance(instanceName)
   }
 
-  private async recordGuildManagementMetrics(
+  private recordGuildManagementMetrics(
     instanceName: string,
     hypixelGuild: { members: readonly { uuid: string; rank: string }[] },
     app: Application
-  ): Promise<void> {
+  ): void {
     const rankCounts = new Map<string, number>()
     const memberUuids = new Set<string>()
     for (const member of hypixelGuild.members) {
@@ -438,7 +444,9 @@ export default class GuildOnlineMetrics {
       rankCounts.set(rankLabel, (rankCounts.get(rankLabel) ?? 0) + 1)
     }
     for (const [rankName, count] of rankCounts) {
+      /* eslint-disable @typescript-eslint/naming-convention -- Prometheus label name must match labelNames declaration */
       this.guildRankMembers.set({ name: instanceName, rank_name: rankName }, count)
+      /* eslint-enable @typescript-eslint/naming-convention */
     }
 
     let inactivityForGuild = 0
@@ -456,7 +464,7 @@ export default class GuildOnlineMetrics {
     for (const punishment of app.core.allPunishments()) {
       if (!memberUuids.has(punishment.userId)) continue
       if (punishment.type === PunishmentType.Mute) muteCount++
-      else if (punishment.type === PunishmentType.Ban) banCount++
+      else banCount++
     }
     this.guildActivePunishments.set({ name: instanceName, type: 'mute' }, muteCount)
     this.guildActivePunishments.set({ name: instanceName, type: 'ban' }, banCount)
@@ -479,13 +487,13 @@ export default class GuildOnlineMetrics {
     this.guildActivePunishments.reset()
   }
 
-  private async clean(): Promise<void> {
+  private clean(): void {
     const eventCutoff = Math.floor((Date.now() - GuildOnlineMetrics.EventRetention.toMilliseconds()) / 1000)
     const snapshotCutoffDay = Math.floor(
       (Date.now() - GuildOnlineMetrics.SnapshotRetention.toMilliseconds()) / Duration.days(1).toMilliseconds()
     )
 
-    await this.app.core.databaseManager.enqueueWrite('cleaning guild member analytics', async (database) => {
+    this.app.core.databaseManager.enqueueWrite('cleaning guild member analytics', async (database) => {
       await database.query('DELETE FROM "guildMemberEvents" WHERE "createdAt" < $1', [eventCutoff])
       await database.query('DELETE FROM "guildMemberDailySnapshots" WHERE "snapshotDay" < $1', [snapshotCutoffDay])
     })

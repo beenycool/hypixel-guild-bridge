@@ -1,5 +1,6 @@
 import assert from 'node:assert'
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- static utility class keeps class syntax for dual value/type usage (see Omit<SkyblockInstant, ...>)
 export class SkyblockInstant {
   public static readonly HoursCount = 24
   private static readonly HourInMillisecond = 50_000
@@ -124,6 +125,7 @@ export interface InstantOptions {
   second: number
 }
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- static utility class, kept as class for consistency with SkyblockInstant
 export class SkyblockEvents {
   private static readonly ElectionEnds = { month: 1, day: 27, minute: 0, hour: 0, second: 0 }
 

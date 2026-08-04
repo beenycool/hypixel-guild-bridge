@@ -1,6 +1,7 @@
 import process from 'node:process'
 
 import { type Canvas, createCanvas, type Image, loadImage, registerFont } from 'canvas'
+// eslint-disable-next-line import/no-extraneous-dependencies -- lru-cache is a transitive dependency; adding to package.json is out of lane scope
 import LRUCache from 'lru-cache'
 
 import type Application from '../../../application'
@@ -75,17 +76,17 @@ export default class MessageToImage {
   private static readonly MaxLinePosition = MessageToImage.CanvasWidth - MessageToImage.WidthMargin
   private static readonly LineAdvance = 40
 
-  private static fontsRegistered = false
-  private static skinCache = new LRUCache<string, { image: Image; fetchedAt: number }>({ max: 100 })
-  private static readonly SkinCacheTTL = 10 * 60 * 1000
+  private static FontsRegistered = false
+  private static SkinCache = new LRUCache<string, { image: Image; fetchedAt: number }>({ max: 100 })
+  private static readonly SkinCacheTtl = 10 * 60 * 1000
 
-  private static measureCanvas?: Canvas
+  private static MeasureCanvas?: Canvas
 
   private static ensureFontsRegistered(): void {
-    if (MessageToImage.fontsRegistered) return
+    if (MessageToImage.FontsRegistered) return
     registerFont('./resources/fonts/MinecraftRegular-Bmg3.ttf', { family: 'Minecraft' })
     registerFont('./resources/fonts/unifont.ttf', { family: 'MinecraftUnicode' })
-    MessageToImage.fontsRegistered = true
+    MessageToImage.FontsRegistered = true
   }
 
   /**
@@ -118,7 +119,7 @@ export default class MessageToImage {
     const splitMessageSpace = normalizedMessage.split(' ')
     for (let index = 0; index < splitMessageSpace.length; index++) {
       const segment = splitMessageSpace[index]
-      if (segment !== undefined && !segment.startsWith('§')) {
+      if (!segment.startsWith('§')) {
         splitMessageSpace[index] = `§r${segment}`
       }
     }
@@ -206,12 +207,12 @@ export default class MessageToImage {
   private async loadSkinImage(username: string, skinSize: number): Promise<Image> {
     const url = `https://mc-heads.net/avatar/${encodeURIComponent(username)}/${skinSize}`
     const cacheKey = `${username}_${skinSize}`
-    const cached = MessageToImage.skinCache.get(cacheKey)
-    if (cached && Date.now() - cached.fetchedAt < MessageToImage.SkinCacheTTL) {
+    const cached = MessageToImage.SkinCache.get(cacheKey)
+    if (cached && Date.now() - cached.fetchedAt < MessageToImage.SkinCacheTtl) {
       return cached.image
     }
     const image = await loadImage(url)
-    MessageToImage.skinCache.set(cacheKey, { image, fetchedAt: Date.now() })
+    MessageToImage.SkinCache.set(cacheKey, { image, fetchedAt: Date.now() })
     return image
   }
 
@@ -361,20 +362,20 @@ export default class MessageToImage {
   }
 
   private getHeightJs(message: string, username?: string, splitMessage?: string[]): number {
-    MessageToImage.measureCanvas ??= createCanvas(1, 1)
-    const context = MessageToImage.measureCanvas.getContext('2d')
+    MessageToImage.MeasureCanvas ??= createCanvas(1, 1)
+    const context = MessageToImage.MeasureCanvas.getContext('2d')
     const segments = splitMessage ?? MessageToImage.splitFormattedSegmentsJs(message)
     context.font = `40px Minecraft, MinecraftUnicode`
 
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const message_ of segments) {
-      const currentMessage = message_.slice(1)
+    for (const segment of segments) {
+      const currentMessage = segment.slice(1)
       const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
       const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
 
-      if (width + messageWidth > MessageToImage.CanvasWidth || message_.startsWith('n')) {
+      if (width + messageWidth > MessageToImage.CanvasWidth || segment.startsWith('n')) {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }
@@ -403,13 +404,13 @@ export default class MessageToImage {
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const message_ of splitMessage) {
-      const colorCode = MessageToImage.RgbaColorJs[message_.charAt(0)]
-      const currentMessage = message_.slice(1)
+    for (const segment of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
       const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
       const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
 
-      if (width + messageWidth > MessageToImage.CanvasWidth || message_.startsWith('n')) {
+      if (width + messageWidth > MessageToImage.CanvasWidth || segment.startsWith('n')) {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }
@@ -454,11 +455,11 @@ export default class MessageToImage {
     let width = MessageToImage.WidthMargin
     let height = 35
 
-    for (const message_ of splitMessage) {
-      const colorCode = MessageToImage.RgbaColorJs[message_.charAt(0)]
-      const currentMessage = message_.slice(1)
+    for (const segment of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
 
-      if (width + context.measureText(currentMessage).width > MessageToImage.CanvasWidth || message_.startsWith('n')) {
+      if (width + context.measureText(currentMessage).width > MessageToImage.CanvasWidth || segment.startsWith('n')) {
         width = MessageToImage.WidthMargin
         height += MessageToImage.LineAdvance
       }
@@ -516,8 +517,8 @@ export default class MessageToImage {
   }
 
   private getHeight(message: string, skinUsername?: string, splitMessage?: string[]): number {
-    MessageToImage.measureCanvas ??= createCanvas(1, 1)
-    const context = MessageToImage.measureCanvas.getContext('2d')
+    MessageToImage.MeasureCanvas ??= createCanvas(1, 1)
+    const context = MessageToImage.MeasureCanvas.getContext('2d')
     const segments = splitMessage ?? MessageToImage.splitFormattedSegments(message)
     context.font = `40px Minecraft, MinecraftUnicode`
 

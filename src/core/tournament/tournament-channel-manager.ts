@@ -1,6 +1,14 @@
-import { type AnyThreadChannel, ChannelType, EmbedBuilder, type TextChannel, type ThreadChannel } from 'discord.js'
+import {
+  type AnyThreadChannel,
+  ChannelType,
+  DiscordAPIError,
+  EmbedBuilder,
+  type TextChannel,
+  type ThreadChannel
+} from 'discord.js'
 
 import type Application from '../../application.js'
+// eslint-disable-next-line import/no-restricted-paths -- known architecture violation (core importing instance); pending refactor
 import { buildThreadComponents } from '../../instance/discord/features/tournament-buttons.js'
 import { CircuitBreaker } from '../../utility/circuit-breaker.js'
 import RateLimiter from '../../utility/rate-limiter.js'
@@ -33,7 +41,7 @@ export class TournamentChannelManager {
 
     const channelName = `🏆-${tournamentName.toLowerCase().replaceAll(/\s+/g, '-')}`
     this.application.logger.info(
-      `createBracketChannel: Creating channel "${channelName}" in guild ${guildId}, category=${parentCategoryId ?? 'none'}`
+      `createBracketChannel: Creating channel "${channelName}" in guild ${guildId} (${guild.name}), category=${parentCategoryId ?? 'none'}`
     )
     const channel = await guild.channels
       .create({
@@ -48,8 +56,8 @@ export class TournamentChannelManager {
         ],
         reason: `Tournament ${tournamentName} bracket channel`
       })
-      .catch((error) => {
-        this.application.logger.info(`createBracketChannel: Failed to create channel: ${error}`)
+      .catch((error: unknown): TextChannel | undefined => {
+        this.application.logger.info(`createBracketChannel: Failed to create channel: ${String(error)}`)
         return undefined
       })
 
@@ -66,15 +74,17 @@ export class TournamentChannelManager {
       return
     })
     if (guild === undefined) return undefined
-    this.application.logger.info(`createTournamentCategory: Creating category for "${tournamentName}"`)
+    this.application.logger.info(
+      `createTournamentCategory: Creating category for "${tournamentName}" in guild ${guildId} (${guild.name})`
+    )
     const category = await guild.channels
       .create({
         name: `🏆 ${tournamentName}`,
         type: ChannelType.GuildCategory,
         reason: `Tournament ${tournamentName} category`
       })
-      .catch((error) => {
-        this.application.logger.info(`createTournamentCategory: Failed to create category: ${error}`)
+      .catch((error: unknown) => {
+        this.application.logger.info(`createTournamentCategory: Failed to create category: ${String(error)}`)
         return
       })
     if (category !== undefined) {
@@ -95,7 +105,9 @@ export class TournamentChannelManager {
     })
     if (guild === undefined) return undefined
     const slug = tournamentName.toLowerCase().replaceAll(/\s+/g, '-')
-    this.application.logger.info(`createLiveChannel: Creating live channel "🏆-${slug}-live"`)
+    this.application.logger.info(
+      `createLiveChannel: Creating live channel "🏆-${slug}-live" in guild ${guildId} (${guild.name})`
+    )
     const channel = await guild.channels
       .create({
         name: `🏆-${slug}-live`,
@@ -109,8 +121,8 @@ export class TournamentChannelManager {
         ],
         reason: `Tournament ${tournamentName} live updates`
       })
-      .catch((error) => {
-        this.application.logger.info(`createLiveChannel: Failed to create channel: ${error}`)
+      .catch((error: unknown) => {
+        this.application.logger.info(`createLiveChannel: Failed to create channel: ${String(error)}`)
         return
       })
     if (channel !== undefined) {
@@ -150,9 +162,32 @@ export class TournamentChannelManager {
 
   private async addMemberWithRetry(thread: AnyThreadChannel, userId: string): Promise<void> {
     await this.threadCreationLimiter.wait()
-    await this.circuitBreaker.execute(async () => {
-      await thread.members.add(userId)
-    })
+    try {
+      await this.circuitBreaker.execute(async () => {
+        await thread.members.add(userId)
+      })
+    } catch (error) {
+      if (error instanceof DiscordAPIError && this.isIgnorableMemberAddError(error.code)) {
+        this.application.logger.warn(
+          `addMemberWithRetry: Could not add user ${userId} to thread ${thread.id} in guild ${thread.guildId} (${thread.guild.name}) (${error.message}) — skipping`
+        )
+        return
+      }
+      throw error
+    }
+  }
+
+  private isIgnorableMemberAddError(code: number | string | undefined): boolean {
+    // 50001 Missing Access (user not in guild), 10011 Unknown Member, 10013 Unknown User
+    return code === 50_001 || code === 10_011 || code === 10_013
+  }
+
+  private async isGuildMember(guildId: string, userId: string): Promise<boolean> {
+    const client = this.application.discordInstance.getClient()
+    const guild = await client.guilds.fetch(guildId).catch(() => undefined)
+    if (guild === undefined) return false
+    const member = await guild.members.fetch(userId).catch(() => undefined)
+    return member !== undefined
   }
 
   /**
@@ -183,8 +218,8 @@ export class TournamentChannelManager {
         type: ChannelType.PrivateThread,
         reason: `Match thread for ${p1Name} vs ${p2Name}`
       })
-      .catch((error) => {
-        this.application.logger.info(`createMatchThread: Failed to create thread: ${error}`)
+      .catch((error: unknown) => {
+        this.application.logger.info(`createMatchThread: Failed to create thread: ${String(error)}`)
         return
       })
 
@@ -193,17 +228,30 @@ export class TournamentChannelManager {
     this.application.logger.info(`createMatchThread: Thread created — ${thread.id}`)
 
     // Add players to thread if their discord ID is linked
+    const guild = textChannel.guild
     if (player1.discordId != undefined) {
       this.application.logger.info(
         `createMatchThread: Adding player1 discord ${player1.discordId} to thread ${thread.id}`
       )
-      await this.addMemberWithRetry(thread, player1.discordId)
+      if (await this.isGuildMember(guild.id, player1.discordId)) {
+        await this.addMemberWithRetry(thread, player1.discordId)
+      } else {
+        this.application.logger.warn(
+          `createMatchThread: Player1 discord ${player1.discordId} is not in guild ${guild.id} (${guild.name}), skipping`
+        )
+      }
     }
     if (player2.discordId != undefined) {
       this.application.logger.info(
         `createMatchThread: Adding player2 discord ${player2.discordId} to thread ${thread.id}`
       )
-      await this.addMemberWithRetry(thread, player2.discordId)
+      if (await this.isGuildMember(guild.id, player2.discordId)) {
+        await this.addMemberWithRetry(thread, player2.discordId)
+      } else {
+        this.application.logger.warn(
+          `createMatchThread: Player2 discord ${player2.discordId} is not in guild ${guild.id} (${guild.name}), skipping`
+        )
+      }
     }
 
     // Send initial instructional message in the thread
@@ -287,10 +335,8 @@ export class TournamentChannelManager {
   ): Promise<string | undefined> {
     try {
       const client = this.application.discordInstance.getClient()
-      const guild = client.guilds.cache.first()
-      if (guild === undefined) return undefined
 
-      const forum = guild.channels.cache.get(forumChannelId)
+      const forum = await client.channels.fetch(forumChannelId).catch(() => undefined)
       if (forum?.isThreadOnly() !== true) return undefined
 
       const title = `Round ${round} — ${p1} vs ${p2}`
@@ -303,10 +349,22 @@ export class TournamentChannelManager {
       })
 
       if (discordId1 !== undefined) {
-        await this.addMemberWithRetry(thread, discordId1)
+        if (await this.isGuildMember(forum.guildId, discordId1)) {
+          await this.addMemberWithRetry(thread, discordId1)
+        } else {
+          this.application.logger.warn(
+            `createMatchForumPost: discord ${discordId1} is not in guild ${forum.guildId} (${forum.guild.name}), skipping`
+          )
+        }
       }
       if (discordId2 !== undefined) {
-        await this.addMemberWithRetry(thread, discordId2)
+        if (await this.isGuildMember(forum.guildId, discordId2)) {
+          await this.addMemberWithRetry(thread, discordId2)
+        } else {
+          this.application.logger.warn(
+            `createMatchForumPost: discord ${discordId2} is not in guild ${forum.guildId} (${forum.guild.name}), skipping`
+          )
+        }
       }
 
       return thread.id
@@ -352,9 +410,9 @@ export class TournamentChannelManager {
       return false
     }
     const messages = await thread.messages.fetch({ limit: 50 }).catch(() => undefined)
-    if (messages === undefined || messages === null) return false
+    if (messages === undefined) return false
     const hasProof = messages.some(
-      (m) => m.attachments.size > 0 || m.embeds.some((e) => e.image !== null || e.url !== null)
+      (m) => m.attachments.size > 0 || m.embeds.some((embed) => embed.image !== null || embed.url !== null)
     )
     this.application.logger.info(`checkProofAttachment: Thread ${threadId} — hasProof=${hasProof}`)
     return hasProof

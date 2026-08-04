@@ -35,7 +35,7 @@ export class StatusApiHandler {
     if (!rawUrl) return false
 
     const [pathPart] = rawUrl.split('?')
-    if (!pathPart?.startsWith(StatusPrefix)) return false
+    if (!pathPart.startsWith(StatusPrefix)) return false
 
     if (request.method !== 'GET') {
       this.sendMethodNotAllowed(response, ['GET'])
@@ -98,7 +98,7 @@ export class StatusApiHandler {
       version: '2',
       minecraftConnected: connectedInstances.length > 0,
       discordConnected: discordClient.isReady(),
-      discordLatency: discordClient.isReady() ? discordClient.ws.ping : null,
+      discordLatency: discordClient.isReady() ? discordClient.ws.ping : undefined,
       instances,
       bridges,
       guild: guildInfo

@@ -51,15 +51,15 @@ if (!fs.existsSync(LoggerPath)) {
     console.error('Failed to copy logger config file:', error)
   }
 }
-let LoggerConfig: Configuration
+let loggerConfig: Configuration
 try {
-  LoggerConfig = JSON.parse(fs.readFileSync(LoggerPath, 'utf8')) as Configuration
+  loggerConfig = JSON.parse(fs.readFileSync(LoggerPath, 'utf8')) as Configuration
 } catch (error) {
   // eslint-disable-next-line no-restricted-syntax
   console.error('Failed to parse logger config:', error)
   throw error
 }
-const Logger = Logger4js.configure(LoggerConfig).getLogger('Main')
+const Logger = Logger4js.configure(loggerConfig).getLogger('Main')
 
 // Default to port 80 if no port is provided (common in containers).
 // We also export INTERNAL_PORT so the application config can use ${INTERNAL_PORT}.
@@ -162,7 +162,7 @@ HealthServer.on('upgrade', (request, socket, head) => {
     headers: request.headers
   })
 
-  proxy.on('upgrade', (_proxyResponse, proxySocket) => {
+  proxy.on('upgrade', (proxyResponse, proxySocket) => {
     proxySocket.write(head)
     proxySocket.pipe(socket).pipe(proxySocket)
   })
@@ -177,7 +177,6 @@ HealthServer.listen(ExternalPort, () => {
 
 let app: Application | undefined
 
-Logger.debug('Setting up process...')
 process.on('uncaughtException', function (error) {
   Logger.fatal(error)
   process.exit(1)
@@ -194,9 +193,8 @@ function handleShutdown(signal: string) {
   Logger.info(`Process has caught ${signal} signal.`)
   HealthServer.close()
   if (app === undefined) {
-    gracefullyExitProcess(0)
+    gracefullyExitProcess(0).catch(() => process.exit(1))
   } else {
-    Logger.debug('Shutting down application')
     void app
       .shutdown()
       .then(() => gracefullyExitProcess(0))
@@ -210,7 +208,6 @@ process.on('SIGTERM', handleShutdown)
 
 process.title = PackageJson.name
 
-Logger.debug('Loading up languages...')
 const I18n = await loadI18()
 
 if (process.argv.includes('test-run')) {

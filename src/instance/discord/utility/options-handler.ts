@@ -249,7 +249,7 @@ export class OptionsHandler {
       if (entry === undefined) break
       const item = entry.item
       if (item.type !== OptionType.Category && item.type !== OptionType.EmbedCategory) break
-      if (!current.options.includes(item as any)) break
+      if (!current.options.includes(item as Exclude<OptionItem, EmbedCategoryOption>)) break
       newPath.push(seg)
       current = item
     }
@@ -302,7 +302,7 @@ export class OptionsHandler {
       timeoutId.refresh()
       void Promise.resolve()
         .then(async () => {
-          const alreadyReplied = await this.handleInteraction(messageInteraction, errorHandler)
+          await this.handleInteraction(messageInteraction, errorHandler)
 
           // Rebuild IDs to pick up any dynamically added options
           this.rebuildIds()
@@ -325,7 +325,7 @@ export class OptionsHandler {
                 allowedMentions: { parse: [] }
               }))
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           if (error instanceof DiscordAPIError && error.code === 10_008) return
           if (error instanceof Error && error.name === 'InteractionCollectorError') {
             this.enabled = false
@@ -967,8 +967,6 @@ class ViewBuilder {
         }
 
         case OptionType.Channel: {
-          assert.ok(option.type === OptionType.Channel)
-
           let label = bold(option.name)
           if (option.description !== undefined) label += `\n-# ${option.description}`
           block.push({ type: ComponentType.TextDisplay, content: label })
@@ -1495,7 +1493,7 @@ class ViewBuilder {
       if ('components' in component && Array.isArray(component.components)) {
         count += this.countTotalComponents(component.components as ComponentInContainerData[])
       }
-      if ('accessory' in component && component.accessory !== undefined) {
+      if ('accessory' in component) {
         count++
       }
     }
@@ -1507,7 +1505,7 @@ class ViewBuilder {
     if ('components' in component && Array.isArray(component.components)) {
       count += this.countTotalComponents(component.components as ComponentInContainerData[])
     }
-    if ('accessory' in component && component.accessory !== undefined) {
+    if ('accessory' in component) {
       count++
     }
     return count

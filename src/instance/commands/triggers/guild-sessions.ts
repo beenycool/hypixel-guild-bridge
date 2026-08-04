@@ -18,11 +18,11 @@ const PERIOD_NAMES: Record<Period, string> = {
 function fmtCompact(n: number): string {
   if (n >= 1_000_000) {
     const value = n / 1_000_000
-    return value < 10 ? value.toFixed(1) + 'M' : Math.round(value) + 'M'
+    return value < 10 ? value.toFixed(1) + 'M' : Math.round(value).toString() + 'M'
   }
   if (n >= 1000) {
     const value = n / 1000
-    return value < 10 ? value.toFixed(1) + 'K' : Math.round(value) + 'K'
+    return value < 10 ? value.toFixed(1) + 'K' : Math.round(value).toString() + 'K'
   }
   return n.toString()
 }
@@ -61,12 +61,15 @@ export default class GuildSessions extends ChatCommandHandler {
 
     try {
       const response = await httpClient.get<{
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- API response field name
         guild_id: string
         name: string
         from: number
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- API response field name
         from_readable: string
-        members: Record<string, { gexp?: { total: number } }>
+        members?: Record<string, { gexp?: { total: number } }>
       }>(`https://api.urchin.gg/v3/guild/sessions/${period}`, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the API
         headers: { 'X-API-Key': apiKey },
         params: { guild: guildName }
       })

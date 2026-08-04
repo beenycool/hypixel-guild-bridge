@@ -12,6 +12,14 @@ export interface ChatCompletionResult {
   content: string
 }
 
+interface OpenRouterResponse {
+  choices?: {
+    message?: {
+      content?: string
+    }
+  }[]
+}
+
 export class OpenRouterClient {
   private readonly apiKey: string
   private readonly defaultModel: string | undefined
@@ -44,15 +52,17 @@ export class OpenRouterClient {
       body.reasoning = { effort: options.reasoningEffort }
     }
 
-    const response = await axios.post(this.baseUrl, body, {
+    const response = await axios.post<OpenRouterResponse>(this.baseUrl, body, {
       headers: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
         Authorization: `Bearer ${this.apiKey}`,
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
         'Content-Type': 'application/json'
       },
       timeout: this.timeoutMs
     })
 
-    const content: unknown = response.data?.choices?.[0]?.message?.content
+    const content: unknown = response.data.choices?.[0]?.message?.content
     if (typeof content !== 'string' || content.length === 0) {
       throw new Error('OpenRouter returned empty or invalid response content')
     }

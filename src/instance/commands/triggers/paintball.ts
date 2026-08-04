@@ -7,12 +7,13 @@ import { formatStatNumber, shortenNumber } from '../common/utility'
 export default class Paintball extends HypixelPlayerCommand {
   constructor() {
     super({
-      triggers: ['paintball', 'pb'],
+      triggers: ['paintball'],
       description: "Returns a player's Paintball stats",
       example: `paintball %s`
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.paintball
     if (stats === undefined) return `${givenUsername} has never played Paintball.` + this.formatPingSuffix()

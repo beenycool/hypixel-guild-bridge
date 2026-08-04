@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict'
-import { describe, it, mock } from 'node:test'
+import { describe, it } from 'node:test'
 
-describe('TournamentChannelManager', () => {
-  it('should create a private thread with both players', async () => {
+await describe('TournamentChannelManager', async () => {
+  await it('should create a private thread with both players', () => {
     let threadCreated = false
     const membersAdded: string[] = []
 
     const mockThread = {
       id: 'thread-1',
       members: {
-        add: async (userId: string) => {
+        add: (userId: string) => {
           membersAdded.push(userId)
         }
       }
@@ -17,7 +17,7 @@ describe('TournamentChannelManager', () => {
 
     const mockChannel = {
       threads: {
-        create: async (options: any) => {
+        create: (options: { name: string; message: { content: string } }) => {
           threadCreated = true
           assert.ok(options.name.includes('Player1'))
           assert.ok(options.name.includes('Player2'))
@@ -26,7 +26,7 @@ describe('TournamentChannelManager', () => {
       }
     }
 
-    const thread = await mockChannel.threads.create({
+    const thread = mockChannel.threads.create({
       name: 'Round 1 — Player1 vs Player2',
       message: { content: 'Match started!' }
     })
@@ -34,34 +34,34 @@ describe('TournamentChannelManager', () => {
     assert.equal(threadCreated, true)
     assert.equal(thread.id, 'thread-1')
 
-    await thread.members.add('discord-1')
-    await thread.members.add('discord-2')
+    thread.members.add('discord-1')
+    thread.members.add('discord-2')
     assert.equal(membersAdded.length, 2)
     assert.ok(membersAdded.includes('discord-1'))
     assert.ok(membersAdded.includes('discord-2'))
   })
 
-  it('should archive a thread', async () => {
+  await it('should archive a thread', () => {
     let archived = false
     let locked = false
 
     const mockThread = {
-      setLocked: async (state: boolean) => {
+      setLocked: (state: boolean) => {
         locked = state
       },
-      setArchived: async (state: boolean) => {
+      setArchived: (state: boolean) => {
         archived = state
       }
     }
 
-    await mockThread.setArchived(true)
-    await mockThread.setLocked(true)
+    mockThread.setArchived(true)
+    mockThread.setLocked(true)
 
     assert.equal(archived, true)
     assert.equal(locked, true)
   })
 
-  it('should build a match embed with correct fields', () => {
+  await it('should build a match embed with correct fields', () => {
     const p1 = 'Player1'
     const p2 = 'Player2'
     const round = 1

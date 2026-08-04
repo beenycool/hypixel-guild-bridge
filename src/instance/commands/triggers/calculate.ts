@@ -26,7 +26,7 @@ export default class Calculate extends ChatCommandHandler {
 
     try {
       const mathjs = await import('mathjs')
-      const result = mathjs.evaluate(expression)
+      const result = mathjs.evaluate(expression) as number
 
       // The following if-statement is purely an Easter egg
       // It can be removed without causing any adverse affects on the bridge

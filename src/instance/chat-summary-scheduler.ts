@@ -7,6 +7,17 @@ import { Instance } from '../common/instance.js'
 import Duration from '../utility/duration.js'
 import { setIntervalAsync } from '../utility/scheduling.js'
 
+/* eslint-disable @typescript-eslint/naming-convention -- interface mirrors OpenRouter/OpenAI API wire format */
+interface ChatCompletionResponse {
+  choices?: { message?: { content?: string } }[]
+  usage?: {
+    prompt_tokens?: number
+    completion_tokens?: number
+    cost?: number
+  }
+}
+/* eslint-enable @typescript-eslint/naming-convention */
+
 export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
   private started = false
   private intervalHandle: NodeJS.Timeout | undefined
@@ -154,6 +165,7 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
         // Format logs for AI
         const logsText = rows
           .map((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB rows may contain NULL for username
             const username = r.username ?? r.userId ?? 'Unknown'
             const mentionInfo = r.discordId ? ` (Discord: <@${r.discordId}>)` : ''
             return `${username}${mentionInfo}: ${r.message}`
@@ -192,7 +204,7 @@ Output: No meta-commentary, no greetings. Output ONLY the final summary.`
         const userContent = `Here are the chat logs from today:\n\n${logsText}`
 
         this.logger.info(`Sending request to OpenRouter using model: ${model}`)
-        const response = await axios.post(
+        const response = await axios.post<ChatCompletionResponse>(
           'https://ai.hackclub.com/proxy/v1/chat/completions',
           {
             model,
@@ -204,15 +216,17 @@ Output: No meta-commentary, no greetings. Output ONLY the final summary.`
             reasoning: { effort: 'high' }
           },
           {
+            /* eslint-disable @typescript-eslint/naming-convention -- HTTP header names required by the protocol */
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json'
             },
+            /* eslint-enable @typescript-eslint/naming-convention */
             timeout: 60_000
           }
         )
 
-        const summaryText = response.data?.choices?.[0]?.message?.content
+        const summaryText = response.data.choices?.[0]?.message?.content
         if (typeof summaryText !== 'string' || summaryText.length === 0) {
           throw new Error('Invalid OpenRouter response: empty summary')
         }
@@ -227,7 +241,7 @@ Output: No meta-commentary, no greetings. Output ONLY the final summary.`
               await (channel as TextChannel).send({ content: chunk })
             }
             this.logger.info(`Successfully posted chat summary to channel ${channelId}`)
-            const usage = response.data?.usage
+            const usage = response.data.usage
             if (usage) {
               const footer = `-# Input: ${usage.prompt_tokens ?? '?'} · Output: ${usage.completion_tokens ?? '?'} · Cost: $${(usage.cost ?? 0).toFixed(6)} · Model: ${model}`
               await (channel as TextChannel).send({ content: footer })

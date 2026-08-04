@@ -63,7 +63,9 @@ export default class SubmissionGamePlugin extends PluginInstance {
     }
 
     if (session === undefined && event.instanceType === InstanceType.Discord) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: Discord events may lack a linked Discord profile at runtime
       const discordId = event.user.discordProfile()?.id
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: same runtime gap between the type contract and real payloads
       if (discordId !== undefined) {
         sessionKey = `discord:${discordId}`
         session = this.sessions.get(sessionKey)

@@ -16,6 +16,7 @@ const MODE_ABBR: Record<string, string> = {
   doubles: 'Dbl',
   threes: 'Tri',
   fours: 'Quad',
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- API mode key from the winstreak response
   '4v4': '4v4',
   overall: 'All',
   core: 'Core'
@@ -48,7 +49,10 @@ export default class WinstreakCommand extends ChatCommandHandler {
     try {
       const response = await httpClient.get<CoralWinstreakResponse>(`https://api.urchin.gg/v3/player/winstreaks`, {
         params: { player: uuid },
-        headers: { 'X-API-Key': urchinApiKey }
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the Urchin API
+          'X-API-Key': urchinApiKey
+        }
       })
 
       const modes = response.data.modes
@@ -59,7 +63,7 @@ export default class WinstreakCommand extends ChatCommandHandler {
       const entries = Object.entries(modes)
         .map(([mode, winstreak]) => ({ mode, winstreak }))
         .filter((m) => m.winstreak > 0)
-        .sort((a, b) => b.winstreak - a.winstreak)
+        .toSorted((a, b) => b.winstreak - a.winstreak)
 
       if (entries.length === 0) {
         return context.app.i18n.t(($) => $['commands.winstreak.no-data'], { username: givenUsername })

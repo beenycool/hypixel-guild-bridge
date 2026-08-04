@@ -71,11 +71,11 @@ export default class Roulette extends ChatCommandHandler {
       )
 
       const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
-      const override = translator?.('commands.roulette.lose')
+      const override = translator('commands.roulette.lose')
       let messages: string[]
       if (override && override !== 'commands.roulette.lose') {
         try {
-          messages = JSON.parse(override)
+          messages = JSON.parse(override) as string[]
         } catch {
           messages = [override]
         }
@@ -88,11 +88,11 @@ export default class Roulette extends ChatCommandHandler {
     }
 
     const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
-    const override = translator?.('commands.roulette.win')
+    const override = translator('commands.roulette.win')
     let messages: string[]
     if (override && override !== 'commands.roulette.win') {
       try {
-        messages = JSON.parse(override)
+        messages = JSON.parse(override) as string[]
       } catch {
         messages = [override]
       }

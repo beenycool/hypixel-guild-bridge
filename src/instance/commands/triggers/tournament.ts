@@ -155,7 +155,6 @@ export default class Tournament extends ChatCommandHandler {
         return 'No bracket channel has been created yet.'
       }
 
-      case 'status':
       default: {
         const players = await context.app.core.databaseManager.queryRows<TournamentPlayer>(
           'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',

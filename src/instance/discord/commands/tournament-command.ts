@@ -454,11 +454,11 @@ export default {
           return
         }
 
-        const startDate = parsed[0].start?.date()
+        const startDate = parsed[0].start.date()
         const endDate = parsed[0].end?.date()
 
         let response = `**Your availability has been recorded for:**\n`
-        if (startDate) response += `<t:${Math.floor(startDate.getTime() / 1000)}:F>\n`
+        response += `<t:${Math.floor(startDate.getTime() / 1000)}:F>\n`
         if (endDate) response += `to <t:${Math.floor(endDate.getTime() / 1000)}:F>`
 
         // Post availability to match thread for opponent visibility
@@ -525,7 +525,10 @@ export default {
           flags: MessageFlags.Ephemeral
         })
       } catch (error) {
-        await context.interaction.reply({ content: `Error recording proof: ${error}`, flags: MessageFlags.Ephemeral })
+        await context.interaction.reply({
+          content: `Error recording proof: ${String(error)}`,
+          flags: MessageFlags.Ephemeral
+        })
       }
       return
     }

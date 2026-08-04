@@ -9,6 +9,11 @@ import type Application from '../src/application.js'
 import type { PendingReview, RankupHistoryEntry } from '../src/core/rankup/pending-review-manager.js'
 import { RankupApiHandler } from '../src/instance/web/rankup-api.js'
 
+const noop = (): void => {
+  /* No-op fake implementation. */
+}
+
+// eslint-disable-next-line unicorn/prefer-event-target -- fake mimics node http.IncomingMessage, which is an EventEmitter
 class FakeRequest extends EventEmitter {
   method: string
   url: string
@@ -21,7 +26,9 @@ class FakeRequest extends EventEmitter {
     this.headers = {}
   }
 
-  setEncoding(_encoding: string): void {}
+  setEncoding(): void {
+    /* No-op: the request fake emits plain string chunks. */
+  }
 
   feedBody(body: string): void {
     if (body.length > 0) this.emit('data', body)
@@ -76,7 +83,7 @@ interface FakePendingReviewManager {
   getReviews: (bridgeId: string) => PendingReview[]
   getReview: (id: number) => PendingReview | undefined
   removeReview: (id: number) => void
-  logHistory: (...arguments_: unknown[]) => void
+  logHistory: (...values: unknown[]) => void
   getHistory: (bridgeId: string, limit: number) => RankupHistoryEntry[]
   getHistoryCalls: { bridgeId: string; limit: number }[]
 }
@@ -100,14 +107,14 @@ function createFakeBridgeConfigurations(overrides: Partial<FakeBridgeConfigurati
     getRankupExcludedRanks: () => [],
     getRankupExcludedPlayers: () => [],
     getMinecraftInstances: () => ['bot-a'],
-    setRankupEnabled: () => {},
-    setRankupManualReview: () => {},
-    setRankupNotificationCooldown: () => {},
-    setRankupNotificationChannelIds: () => {},
-    setRankupRules: () => {},
-    setRankupDemotionRules: () => {},
-    setRankupExcludedRanks: () => {},
-    setRankupExcludedPlayers: () => {},
+    setRankupEnabled: noop,
+    setRankupManualReview: noop,
+    setRankupNotificationCooldown: noop,
+    setRankupNotificationChannelIds: noop,
+    setRankupRules: noop,
+    setRankupDemotionRules: noop,
+    setRankupExcludedRanks: noop,
+    setRankupExcludedPlayers: noop,
     ...overrides
   }
 }
@@ -116,8 +123,8 @@ function createFakePendingReviewManager(overrides: Partial<FakePendingReviewMana
   return {
     getReviews: () => [],
     getReview: () => undefined,
-    removeReview: () => {},
-    logHistory: () => {},
+    removeReview: noop,
+    logHistory: noop,
     getHistory: () => [],
     getHistoryCalls: [],
     ...overrides
@@ -126,9 +133,13 @@ function createFakePendingReviewManager(overrides: Partial<FakePendingReviewMana
 
 function createFakeRankupManager(): FakeRankupManager {
   return {
-    runTaskForBridge: async () => {},
+    runTaskForBridge: async () => {
+      /* No-op fake. */
+    },
     runTaskCalls: [],
-    approveReview: async () => {},
+    approveReview: async () => {
+      /* No-op fake. */
+    },
     approveCalls: []
   }
 }
@@ -143,6 +154,7 @@ interface FakeHarness {
   response: FakeResponse
 }
 
+// eslint-disable-next-line @typescript-eslint/require-await -- async contract: every caller awaits setupTest()
 async function setupTest(
   overrides: {
     bridgeConfigurations?: Partial<FakeBridgeConfigurations>
@@ -153,9 +165,10 @@ async function setupTest(
   const bridgeConfigurations = createFakeBridgeConfigurations(overrides.bridgeConfigurations)
   const pendingReviewManager = createFakePendingReviewManager(overrides.pendingReviewManager)
   const rankupManager = createFakeRankupManager()
+  // eslint-disable-next-line unicorn/prefer-event-target -- fake mirrors the app's EventEmitter-based API
   const eventEmitter = new EventEmitter()
   const app = {
-    on: (event: string, callback: (...arguments_: unknown[]) => void) => eventEmitter.on(event, callback),
+    on: (event: string, callback: (...values: unknown[]) => void) => eventEmitter.on(event, callback),
     getWebConfig: () => ({ token: 'test', enabled: true, port: 8080 }),
     core: {
       bridgeConfigurations,
@@ -164,16 +177,16 @@ async function setupTest(
     }
   } as unknown as Application
   const logger: Logger = {
-    trace: () => {},
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-    fatal: () => {},
+    trace: noop,
+    debug: noop,
+    info: noop,
+    warn: noop,
+    error: noop,
+    fatal: noop,
     level: 'off',
     isLevelEnabled: () => false,
-    log: () => {},
-    setLevel: () => {},
+    log: noop,
+    setLevel: noop,
     getLevel: () => 'off'
   } as unknown as Logger
   const handler = new RankupApiHandler(app, logger)
@@ -228,11 +241,11 @@ await describe('RankupApiHandler', async () => {
         enabled: boolean
         manualReview: boolean
         pendingCount: number
-        lastCheckAt: number | null
+        lastCheckAt: number | undefined
       }[]
     }
     assert.deepStrictEqual(body, {
-      bridges: [{ bridgeId: 'a', enabled: true, manualReview: false, pendingCount: 2, lastCheckAt: null }]
+      bridges: [{ bridgeId: 'a', enabled: true, manualReview: false, pendingCount: 2, lastCheckAt: undefined }]
     })
   })
 
@@ -378,6 +391,7 @@ await describe('RankupApiHandler', async () => {
         }
       }
     })
+    // eslint-disable-next-line @typescript-eslint/require-await -- fake must match Promise-returning interface
     harness.rankupManager.approveReview = async (bridgeId: string, id: number) => {
       harness.rankupManager.approveCalls.push({ bridgeId, id })
     }
@@ -408,8 +422,8 @@ await describe('RankupApiHandler', async () => {
         removeReview: (id: number) => {
           removedIds.push(id)
         },
-        logHistory: (...arguments_: unknown[]) => {
-          historyCalls.push(arguments_)
+        logHistory: (...values: unknown[]) => {
+          historyCalls.push(values)
         }
       }
     })
@@ -428,6 +442,7 @@ await describe('RankupApiHandler', async () => {
 
   await it('POST /api/rankup/run-check kicks the task and records a timestamp', async () => {
     const harness = await setupTest()
+    // eslint-disable-next-line @typescript-eslint/require-await -- fake must match Promise-returning interface
     harness.rankupManager.runTaskForBridge = async (bridgeId: string) => {
       harness.rankupManager.runTaskCalls.push(bridgeId)
     }
@@ -454,8 +469,8 @@ await describe('RankupApiHandler', async () => {
     const pendingReviewManager: FakePendingReviewManager = {
       getReviews: () => [],
       getReview: () => undefined,
-      removeReview: () => {},
-      logHistory: () => {},
+      removeReview: noop,
+      logHistory: noop,
       getHistory: () => [],
       getHistoryCalls: []
     }

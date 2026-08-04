@@ -90,8 +90,7 @@ interface MatchManagerHarness {
 function buildHarness(
   tournament: Tournament,
   matches: TournamentMatch[],
-  players: TournamentPlayer[],
-  discordChannelId?: string
+  players: TournamentPlayer[]
 ): MatchManagerHarness {
   const executed: { sql: string; values: unknown[] }[] = []
   const notificationsCalled: { name: string; args: unknown[] }[] = []
@@ -113,7 +112,7 @@ function buildHarness(
   execute.mock.mockImplementation(async (sql: string, values: unknown[]) => {
     executed.push({ sql, values })
     if (sql.includes('UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3')) {
-      const match = matches.find((m) => m.id === values[values.length - 1])
+      const match = matches.find((m) => m.id === values.at(-1))
       if (match !== undefined) {
         match.status = values[0] as MatchStatus
         match.winnerId = values[1] as number
@@ -152,16 +151,16 @@ function buildHarness(
   } as unknown as TournamentChannelManager
 
   const notifications = {
-    announceLiveUpdate: (...arguments_: unknown[]) => {
-      notificationsCalled.push({ name: 'announceLiveUpdate', args: arguments_ })
+    announceLiveUpdate: (...callArguments: unknown[]) => {
+      notificationsCalled.push({ name: 'announceLiveUpdate', args: callArguments })
       return Promise.resolve()
     },
-    announceWinner: (...arguments_: unknown[]) => {
-      notificationsCalled.push({ name: 'announceWinner', args: arguments_ })
+    announceWinner: (...callArguments: unknown[]) => {
+      notificationsCalled.push({ name: 'announceWinner', args: callArguments })
       return Promise.resolve()
     },
-    announceRoundComplete: (...arguments_: unknown[]) => {
-      notificationsCalled.push({ name: 'announceRoundComplete', args: arguments_ })
+    announceRoundComplete: (...callArguments: unknown[]) => {
+      notificationsCalled.push({ name: 'announceRoundComplete', args: callArguments })
       return Promise.resolve()
     },
     notifyMatchStart: () => Promise.resolve(),
@@ -481,7 +480,7 @@ describe('MatchManager score & forfeit validation (pure logic)', () => {
           discordThreadId: undefined
         })
       ]
-      const { manager, executed } = buildHarness(tournament, matches, players, 'channel-1')
+      const { manager, executed } = buildHarness(tournament, matches, players)
 
       await manager.adminConfirm(1, 100)
 
@@ -544,7 +543,7 @@ describe('MatchManager score & forfeit validation (pure logic)', () => {
           discordThreadId: undefined
         })
       ]
-      const { manager, executed } = buildHarness(tournament, matches, players, 'channel-1')
+      const { manager, executed } = buildHarness(tournament, matches, players)
 
       await manager.resolveByeMatch(1, 100)
       await manager.resolveByeMatch(2, 200)

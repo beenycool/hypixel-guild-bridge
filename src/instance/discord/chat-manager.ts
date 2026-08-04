@@ -1,13 +1,9 @@
 import assert from 'node:assert'
 
 import type { Client, Message } from 'discord.js'
-import type { Logger } from 'log4js'
 
-import type Application from '../../application.js'
 import { ChannelType, InstanceType, MinecraftSendChatPriority } from '../../common/application-event.js'
-import type EventHelper from '../../common/event-helper.js'
 import SubInstance from '../../common/sub-instance'
-import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.js'
 
 import { FilteredReaction, UnverifiedReaction } from './common/discord-config.js'
 import type MessageAssociation from './common/message-association.js'
@@ -285,7 +281,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const gcCommand = `/gc ${content}`
     await this.application.sendMinecraft(instances, MinecraftSendChatPriority.Default, undefined, gcCommand)
 
-    this.logger.debug(`Passthrough command sent to guild chat: ${content}`)
     return true
   }
 

@@ -18,11 +18,11 @@ await describe('verifyToken', async () => {
       secret
     )
     const result = verifyToken({ signingSecret: secret }, `Bearer ${signed}`)
-    assert.strictEqual(result.ok, true)
-    if (result.ok) {
-      assert.strictEqual(result.permission, Permission.Admin)
-      assert.strictEqual(result.userId, 'user123')
+    if (!result.ok) {
+      assert.fail('expected a valid token result')
     }
+    assert.strictEqual(result.permission, Permission.Admin)
+    assert.strictEqual(result.userId, 'user123')
   })
 
   await it('returns Owner permission from valid signed token', () => {
@@ -37,11 +37,11 @@ await describe('verifyToken', async () => {
       secret
     )
     const result = verifyToken({ signingSecret: secret }, `Bearer ${signed}`)
-    assert.strictEqual(result.ok, true)
-    if (result.ok) {
-      assert.strictEqual(result.permission, Permission.Owner)
-      assert.strictEqual(result.userId, 'user456')
+    if (!result.ok) {
+      assert.fail('expected a valid token result')
     }
+    assert.strictEqual(result.permission, Permission.Owner)
+    assert.strictEqual(result.userId, 'user456')
   })
 
   await it('returns Helper permission from valid signed token', () => {
@@ -56,11 +56,11 @@ await describe('verifyToken', async () => {
       secret
     )
     const result = verifyToken({ signingSecret: secret }, `Bearer ${signed}`)
-    assert.strictEqual(result.ok, true)
-    if (result.ok) {
-      assert.strictEqual(result.permission, Permission.Helper)
-      assert.strictEqual(result.userId, 'user789')
+    if (!result.ok) {
+      assert.fail('expected a valid token result')
     }
+    assert.strictEqual(result.permission, Permission.Helper)
+    assert.strictEqual(result.userId, 'user789')
   })
 
   await it('rejects expired signed token', () => {
@@ -94,17 +94,17 @@ await describe('verifyToken', async () => {
 
   await it('returns missing when no signingSecret configured', () => {
     const result = verifyToken({ signingSecret: '' }, undefined)
-    assert.strictEqual(result.ok, false)
-    if (!result.ok) {
-      assert.strictEqual(result.reason, 'missing')
+    if (result.ok) {
+      assert.fail('expected a missing-token failure')
     }
+    assert.strictEqual(result.reason, 'missing')
   })
 
   await it('returns missing when no header and no query token', () => {
     const result = verifyToken({ signingSecret: 'secret' }, undefined)
-    assert.strictEqual(result.ok, false)
-    if (!result.ok) {
-      assert.strictEqual(result.reason, 'missing')
+    if (result.ok) {
+      assert.fail('expected a missing-token failure')
     }
+    assert.strictEqual(result.reason, 'missing')
   })
 })

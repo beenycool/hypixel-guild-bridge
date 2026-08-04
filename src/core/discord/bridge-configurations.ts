@@ -893,8 +893,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   public getWelcomeOnlineMessages(bridgeId: string): { uuid: string; message: string }[] {
     const raw = this.configuration.getString(`${bridgeId}_welcomeOnlineMessages`, '[]')
     try {
-      const parsed = JSON.parse(raw)
-      return Array.isArray(parsed) ? parsed : []
+      const parsed: unknown = JSON.parse(raw)
+      return Array.isArray(parsed) ? (parsed as { uuid: string; message: string }[]) : []
     } catch {
       return []
     }

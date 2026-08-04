@@ -70,6 +70,7 @@ const GAME_ALIASES: Record<string, string> = {
   blitz: 'HungerGames'
 }
 
+/* eslint-disable @typescript-eslint/naming-convention -- keys are Hypixel game wire/display names that must keep their exact case */
 const GAME_SHORT: Record<string, string> = {
   Bedwars: 'BW',
   SkyWars: 'SW',
@@ -100,7 +101,9 @@ const GAME_SHORT: Record<string, string> = {
   Legacy: 'Legacy',
   MainLobby: 'Lobby'
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
+/* eslint-disable @typescript-eslint/naming-convention -- keys are Hypixel API stat names that must keep their exact case */
 const STAT_SHORT: Record<string, string> = {
   wins: 'W',
   kills: 'K',
@@ -116,6 +119,7 @@ const STAT_SHORT: Record<string, string> = {
   assists: 'A',
   coins: 'Coins'
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 const GAME_SUFFIX = /_(?:bedwars|skywars|duels|walls3|speeduhc|tntgames|paintball|quake|arena)$/
 
@@ -145,6 +149,16 @@ function isNoise(key: string): boolean {
   return NOISE_KEYS.test(stripped)
 }
 
+/**
+ * Read a numeric stat from an API payload. The raw value is returned cast to
+ * number; only a missing key (null/undefined) yields undefined, so callers can
+ * fall back with `?? 0` without tripping unnecessary-condition checks.
+ */
+function readNumber(stats: Record<string, unknown>, key: string): number | undefined {
+  const value = stats[key]
+  return value === undefined ? undefined : (value as number)
+}
+
 function extractDuelSubmodes(stats: Record<string, unknown>): { name: string; wins: number; losses: number }[] {
   const submodes: { name: string; wins: number; losses: number }[] = []
   for (const [key, value] of Object.entries(stats)) {
@@ -170,6 +184,7 @@ function extractDuelSubmodes(stats: Record<string, unknown>): { name: string; wi
 // ---- Bedwars submodes ----
 
 const BEDWARS_MODE_SUFFIXES = ['1', '2', '3', '4', '4v4', 'castle']
+/* eslint-disable @typescript-eslint/naming-convention -- keys are Bedwars mode wire IDs (numeric suffixes of API stat names) */
 const BEDWARS_MODE_LABELS: Record<string, string> = {
   '1': 'Solo',
   '2': 'Dubs',
@@ -178,6 +193,7 @@ const BEDWARS_MODE_LABELS: Record<string, string> = {
   '4v4': '4v4',
   castle: 'Castle'
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 function extractBedwarsSubmodes(stats: Record<string, unknown>): {
   name: string
@@ -200,14 +216,14 @@ function extractBedwarsSubmodes(stats: Record<string, unknown>): {
     gamesPlayed: number
   }[] = []
   for (const suffix of BEDWARS_MODE_SUFFIXES) {
-    const wins = (stats[`wins_bedwars_${suffix}`] as number) ?? 0
+    const wins = readNumber(stats, `wins_bedwars_${suffix}`) ?? 0
     if (wins === 0) continue
-    const losses = (stats[`losses_bedwars_${suffix}`] as number) ?? 0
-    const kills = (stats[`kills_bedwars_${suffix}`] as number) ?? 0
-    const deaths = (stats[`deaths_bedwars_${suffix}`] as number) ?? 0
-    const finalKills = (stats[`final_kills_bedwars_${suffix}`] as number) ?? 0
-    const finalDeaths = (stats[`final_deaths_bedwars_${suffix}`] as number) ?? 0
-    const gamesPlayed = (stats[`games_played_bedwars_${suffix}`] as number) ?? 0
+    const losses = readNumber(stats, `losses_bedwars_${suffix}`) ?? 0
+    const kills = readNumber(stats, `kills_bedwars_${suffix}`) ?? 0
+    const deaths = readNumber(stats, `deaths_bedwars_${suffix}`) ?? 0
+    const finalKills = readNumber(stats, `final_kills_bedwars_${suffix}`) ?? 0
+    const finalDeaths = readNumber(stats, `final_deaths_bedwars_${suffix}`) ?? 0
+    const gamesPlayed = readNumber(stats, `games_played_bedwars_${suffix}`) ?? 0
     result.push({
       name: BEDWARS_MODE_LABELS[suffix],
       wins,
@@ -249,15 +265,15 @@ function formatBedwarsSubmode(s: {
 }
 
 function formatBedwars(stats: Record<string, unknown>): string {
-  const w = (stats.wins_bedwars as number) ?? 0
-  const k = (stats.kills_bedwars as number) ?? 0
-  const fk = (stats.final_kills_bedwars as number) ?? 0
-  const fd = (stats.final_deaths_bedwars as number) ?? 0
-  const xp = (stats.Experience as number) ?? 0
-  const gp = (stats.games_played_bedwars as number) ?? 0
-  const bb = (stats.beds_broken_bedwars as number) ?? 0
-  const bl = (stats.beds_lost_bedwars as number) ?? 0
-  const ws = (stats.winstreak as number) ?? 0
+  const w = readNumber(stats, 'wins_bedwars') ?? 0
+  const k = readNumber(stats, 'kills_bedwars') ?? 0
+  const fk = readNumber(stats, 'final_kills_bedwars') ?? 0
+  const fd = readNumber(stats, 'final_deaths_bedwars') ?? 0
+  const xp = readNumber(stats, 'Experience') ?? 0
+  const gp = readNumber(stats, 'games_played_bedwars') ?? 0
+  const bb = readNumber(stats, 'beds_broken_bedwars') ?? 0
+  const bl = readNumber(stats, 'beds_lost_bedwars') ?? 0
+  const ws = readNumber(stats, 'winstreak') ?? 0
 
   const parts: string[] = []
   if (w !== 0) parts.push(`${fmt(w)}W`)
@@ -274,7 +290,7 @@ function formatBedwars(stats: Record<string, unknown>): string {
 
   const submodes = extractBedwarsSubmodes(stats)
   if (submodes.length > 0) {
-    const subParts = submodes.map(formatBedwarsSubmode)
+    const subParts = submodes.map((s) => formatBedwarsSubmode(s))
     parts.push(subParts.join(', '))
   }
   return `BW: ${parts.join(', ')}`
@@ -292,6 +308,7 @@ const SKYWARS_MODE_IDS = [
   'team_insane',
   'mega_doubles'
 ]
+/* eslint-disable @typescript-eslint/naming-convention -- keys are Skywars mode IDs (suffixes of API stat names) */
 const SKYWARS_MODE_LABELS: Record<string, string> = {
   solo_normal: 'Solo',
   team_normal: 'Team',
@@ -302,6 +319,7 @@ const SKYWARS_MODE_LABELS: Record<string, string> = {
   team_insane: 'TeamI',
   mega_doubles: 'MegaD'
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 function extractSkywarsSubmodes(
   stats: Record<string, unknown>
@@ -309,12 +327,12 @@ function extractSkywarsSubmodes(
   const result: { name: string; wins: number; losses: number; kills: number; deaths: number; gamesPlayed: number }[] =
     []
   for (const id of SKYWARS_MODE_IDS) {
-    const wins = (stats[`wins_${id}`] as number) ?? 0
+    const wins = readNumber(stats, `wins_${id}`) ?? 0
     if (wins === 0) continue
-    const losses = (stats[`losses_${id}`] as number) ?? 0
-    const kills = (stats[`kills_${id}`] as number) ?? 0
-    const deaths = (stats[`deaths_${id}`] as number) ?? 0
-    const gamesPlayed = (stats[`games_played_${id}`] as number) ?? (stats[`games_played_skywars_${id}`] as number) ?? 0
+    const losses = readNumber(stats, `losses_${id}`) ?? 0
+    const kills = readNumber(stats, `kills_${id}`) ?? 0
+    const deaths = readNumber(stats, `deaths_${id}`) ?? 0
+    const gamesPlayed = readNumber(stats, `games_played_${id}`) ?? readNumber(stats, `games_played_skywars_${id}`) ?? 0
     result.push({ name: SKYWARS_MODE_LABELS[id], wins, losses, kills, deaths, gamesPlayed })
   }
   result.sort((a, b) => b.gamesPlayed - a.gamesPlayed)
@@ -339,13 +357,13 @@ function formatSkywarsSubmode(s: {
 }
 
 function formatSkywars(stats: Record<string, unknown>): string {
-  const k = (stats.kills as number) ?? 0
-  const d = (stats.deaths as number) ?? 0
-  const w = (stats.wins as number) ?? 0
-  const l = (stats.losses as number) ?? 0
-  const gp = (stats.games_played_skywars as number) ?? 0
-  const xp = (stats.skywars_experience as number) ?? 0
-  const souls = (stats.souls as number) ?? 0
+  const k = readNumber(stats, 'kills') ?? 0
+  const d = readNumber(stats, 'deaths') ?? 0
+  const w = readNumber(stats, 'wins') ?? 0
+  const l = readNumber(stats, 'losses') ?? 0
+  const gp = readNumber(stats, 'games_played_skywars') ?? 0
+  const xp = readNumber(stats, 'skywars_experience') ?? 0
+  const souls = readNumber(stats, 'souls') ?? 0
 
   const parts: string[] = []
   if (k !== 0) parts.push(`${fmt(k)}K`)
@@ -362,15 +380,15 @@ function formatSkywars(stats: Record<string, unknown>): string {
 
   const submodes = extractSkywarsSubmodes(stats)
   if (submodes.length > 0) {
-    const subParts = submodes.map(formatSkywarsSubmode)
+    const subParts = submodes.map((s) => formatSkywarsSubmode(s))
     parts.push(subParts.join(', '))
   }
   return `SW: ${parts.join(', ')}`
 }
 
 function formatDuels(stats: Record<string, unknown>): string {
-  const w = (stats.wins as number) ?? 0
-  const l = (stats.losses as number) ?? 0
+  const w = readNumber(stats, 'wins') ?? 0
+  const l = readNumber(stats, 'losses') ?? 0
 
   const parts: string[] = []
   if (w !== 0) parts.push(`${fmt(w)}W`)
@@ -399,7 +417,7 @@ function formatSingleGame(gameKey: string, stats: Record<string, unknown>): stri
   }
   if (Object.keys(nums).length === 0) return undefined
   const top = Object.entries(nums)
-    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .toSorted((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
     .slice(0, 10)
     .map(([k, v]) => `${shortStat(k)}${v > 0 ? '+' : ''}${v}`)
     .join(', ')
@@ -442,7 +460,7 @@ function formatAllGames(delta: Record<string, unknown>): string | undefined {
       games.push({ text: `${shortGame(game)}: ${statsString}`, mag })
     }
 
-    games.sort((a, b) => b.mag - a.mag)
+    games.toSorted((a, b) => b.mag - a.mag)
     if (games.length > 0) {
       parts.push(
         games
@@ -506,7 +524,7 @@ class SessionCommand extends ChatCommandHandler {
     let givenUsername: string
 
     const first = effectiveArguments[0]
-    const second = effectiveArguments[1]
+    const second = effectiveArguments.at(1)
 
     if (first) {
       const resolved = resolveGameKey(first)
@@ -528,9 +546,11 @@ class SessionCommand extends ChatCommandHandler {
         uuid: string
         displayname?: string | null
         from: number
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- API response field name
         from_readable: string
         delta: Record<string, unknown>
       }>(`https://api.urchin.gg/v3/player/sessions/${isCustom ? 'custom' : this.period}`, {
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the API
         headers: { 'X-API-Key': apiKey },
         params: { player: uuid, ...(isCustom && duration ? { duration } : {}) }
       })
@@ -598,7 +618,8 @@ class SessionCommand extends ChatCommandHandler {
       context.logger.error(error)
 
       try {
-        const healthResp = await httpClient.get('https://api.urchin.gg/health', { timeout: 3000 })
+        const healthResp = await httpClient.get<{ status?: string }>('https://api.urchin.gg/health', { timeout: 3000 })
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: health endpoint may return an empty body
         if (healthResp.status !== 200 || healthResp.data?.status !== 'healthy') {
           return context.app.i18n.t(($) => $['commands.sessions.api-degraded'])
         }

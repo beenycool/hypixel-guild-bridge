@@ -22,6 +22,7 @@ export default class TrophyFish extends SkyblockPlayerCommand {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
   async onSkyblockPlayer(
     context: ChatCommandContext,
     username: string,

@@ -28,14 +28,14 @@ export default class ChatManager extends SubInstance<MinecraftInstance, Instance
     this.minecraftData = GetMinecraftData(clientInstance.defaultVersion)
 
     const require = createRequire(import.meta.url)
-    const chatDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), 'chat')
-    const files = fs.readdirSync(chatDir).filter((f) => f.endsWith('.ts'))
+    const chatDirectory = path.resolve(path.dirname(new URL(import.meta.url).pathname), 'chat')
+    const files = fs.readdirSync(chatDirectory).filter((f) => f.endsWith('.ts'))
 
     this.chatModules = files
       .map((file) => {
         try {
-          const module_ = require(path.join(chatDir, file))
-          return module_.default as MinecraftChatMessage
+          const loadedModule = require(path.join(chatDirectory, file)) as { default?: MinecraftChatMessage } | undefined
+          return loadedModule?.default
         } catch (error) {
           this.logger.error(`Failed to load chat module ${file}:`, error)
           return

@@ -94,22 +94,22 @@ const KNOWN_LANGUAGES = new Set([
 const REQUEST_TIMEOUT_MS = 30_000
 const MAX_RESPONSE_LENGTH = 240
 
-export function parseTargetLanguage(arguments_: string[]): { language: string | undefined; message: string } {
-  if (arguments_.length === 0) return { language: undefined, message: '' }
+export function parseTargetLanguage(argumentsList: string[]): { language: string | undefined; message: string } {
+  if (argumentsList.length === 0) return { language: undefined, message: '' }
 
-  if (arguments_[0].toLowerCase() === 'to' && arguments_.length > 1) {
-    const candidate = arguments_[1].toLowerCase()
+  if (argumentsList[0].toLowerCase() === 'to' && argumentsList.length > 1) {
+    const candidate = argumentsList[1].toLowerCase()
     if (KNOWN_LANGUAGES.has(candidate)) {
-      return { language: candidate, message: arguments_.slice(2).join(' ') }
+      return { language: candidate, message: argumentsList.slice(2).join(' ') }
     }
   }
 
-  const first = arguments_[0].toLowerCase()
+  const first = argumentsList[0].toLowerCase()
   if (KNOWN_LANGUAGES.has(first)) {
-    return { language: first, message: arguments_.slice(1).join(' ') }
+    return { language: first, message: argumentsList.slice(1).join(' ') }
   }
 
-  return { language: undefined, message: arguments_.join(' ') }
+  return { language: undefined, message: argumentsList.join(' ') }
 }
 
 export default class Translate extends ChatCommandHandler {
@@ -135,15 +135,18 @@ export default class Translate extends ChatCommandHandler {
         reasoning: { effort: 'low' }
       },
       {
+        /* eslint-disable @typescript-eslint/naming-convention -- HTTP header names required by the OpenRouter API */
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
+        /* eslint-enable @typescript-eslint/naming-convention */
         timeout: REQUEST_TIMEOUT_MS
       }
     )
 
-    const content: unknown = response.data?.choices?.[0]?.message?.content
+    const data = response.data as { choices?: { message?: { content?: unknown } }[] }
+    const content: unknown = data.choices?.[0]?.message?.content
     if (typeof content !== 'string' || content.length === 0) {
       throw new Error('Invalid API response: missing or empty translation content')
     }
@@ -194,7 +197,7 @@ export default class Translate extends ChatCommandHandler {
     } catch (error: unknown) {
       if (isAxiosError(error)) {
         context.logger.error(
-          `Translate API error: status=${error.response?.status?.toString() ?? 'unknown'}, ` +
+          `Translate API error: status=${error.response?.status.toString() ?? 'unknown'}, ` +
             `message=${error.message}` +
             (error.response?.data ? `, data=${JSON.stringify(error.response.data)}` : '')
         )
@@ -215,7 +218,8 @@ export default class Translate extends ChatCommandHandler {
           return 'Translation failed: Request timed out. Please try again.'
         }
 
-        const apiMessage: unknown = error.response?.data?.error?.message
+        const apiMessage: unknown = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error
+          ?.message
         const fallback = typeof apiMessage === 'string' ? apiMessage : error.message
         return `Translation failed: ${fallback}`
       }

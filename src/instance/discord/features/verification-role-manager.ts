@@ -326,6 +326,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
       if (member.nickname === null) return false
 
       try {
+        // eslint-disable-next-line unicorn/no-null -- discord.js requires null to reset the nickname
         await member.setNickname(null, NicknameSyncReason)
         return true
       } catch (error: unknown) {

@@ -82,8 +82,7 @@ export class LunarService {
       const isLunar = await this.querySubscribeV2(uuid)
       this.cache.set(uuid, isLunar)
       return isLunar
-    } catch (error: unknown) {
-      this.logger.debug(`Lunar status check failed for ${uuid}:`, error)
+    } catch {
       return undefined
     }
   }
@@ -99,9 +98,6 @@ export class LunarService {
 
     const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
     if (timeSinceLastFail < this.authCooldownMs) {
-      this.logger.debug(
-        `[LunarService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`
-      )
       return
     }
 
@@ -132,22 +128,29 @@ export class LunarService {
   ): Promise<string | undefined> {
     return new Promise<string | undefined>((resolve, reject) => {
       const ws = new WebSocket(AUTHENTICATOR_URL, {
-        headers: { 'User-Agent': USER_AGENT }
-      })
-
-      ws.on('open', async () => {
-        try {
-          const hello = await encodeAuthHello(uuid, username)
-          ws.send(hello)
-        } catch (error: unknown) {
-          ws.close()
-          reject(error)
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+          'User-Agent': USER_AGENT
         }
       })
 
-      ws.on('message', async (data: Buffer) => {
-        try {
-          const message = await decodeAuthMessage(data)
+      ws.on('open', () => {
+        ;(async () => {
+          const hello = await encodeAuthHello(uuid, username)
+          ws.send(hello)
+        })().catch((error: unknown) => {
+          ws.close()
+          reject(error instanceof Error ? error : new Error(String(error)))
+        })
+      })
+
+      ws.on('message', (data: Buffer) => {
+        ;(async () => {
+          const message = (await decodeAuthMessage(data)) as {
+            encryptionRequest?: { publicKey: Buffer; randomBytes: Buffer }
+            authSuccess?: { jwt: string }
+            encryptionFail?: unknown
+          }
           if (message.encryptionRequest) {
             const { publicKey: serverPubKeyDer, randomBytes: nonce } = message.encryptionRequest
             const aesKey = generateAesKey()
@@ -158,17 +161,17 @@ export class LunarService {
             const encResp = await encodeAuthEncryptionResponse(aesKey, nonce, serverPubKeyDer)
             ws.send(encResp)
           } else if (message.authSuccess) {
-            const jwtToken = message.authSuccess.jwt as string
+            const jwtToken = message.authSuccess.jwt
             ws.close()
             resolve(jwtToken)
           } else if (message.encryptionFail) {
             ws.close()
             resolve(undefined)
           }
-        } catch (error: unknown) {
+        })().catch((error: unknown) => {
           ws.close()
-          reject(error)
-        }
+          reject(error instanceof Error ? error : new Error(String(error)))
+        })
       })
 
       ws.on('error', (error: Error) => {
@@ -193,23 +196,28 @@ export class LunarService {
           path: parsed.pathname,
           method: 'POST',
           headers: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'Content-Type': 'application/json',
+            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'Content-Length': Buffer.byteLength(postData),
+            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'User-Agent': USER_AGENT
           }
         },
-        (res) => {
+        (response) => {
           if (
-            res.statusCode === 204 ||
-            (res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300)
+            response.statusCode === 204 ||
+            (response.statusCode !== undefined && response.statusCode >= 200 && response.statusCode < 300)
           ) {
             resolve()
           } else {
-            reject(new Error(`Mojang joinServer returned HTTP ${res.statusCode}`))
+            reject(new Error(`Mojang joinServer returned HTTP ${response.statusCode}`))
           }
         }
       )
-      request.on('error', reject)
+      request.on('error', (error: Error) => {
+        reject(error)
+      })
       request.write(postData)
       request.end()
     })
@@ -218,11 +226,14 @@ export class LunarService {
   private async connectGameWs(uuid: string, username: string, jwt: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(GAME_WS_URL, {
-        headers: { 'User-Agent': USER_AGENT }
+        headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+          'User-Agent': USER_AGENT
+        }
       })
 
-      ws.on('open', async () => {
-        try {
+      ws.on('open', () => {
+        ;(async () => {
           const handshake = await encodeHandshake(uuid, username, jwt)
           ws.send(handshake)
 
@@ -231,26 +242,28 @@ export class LunarService {
 
           await this.sendRpc('lunarclient.websocket.cosmetic.v2.CosmeticService', 'Login', Buffer.alloc(0))
           resolve()
-        } catch (error: unknown) {
+        })().catch((error: unknown) => {
           ws.close()
-          reject(error)
-        }
+          reject(error instanceof Error ? error : new Error(String(error)))
+        })
       })
 
-      ws.on('message', async (data: Buffer) => {
-        try {
-          const message = await decodeWsMessage(data)
+      ws.on('message', (data: Buffer) => {
+        ;(async () => {
+          const message = (await decodeWsMessage(data)) as {
+            rpcResponse?: { requestId: { toString(): string }; output: Buffer }
+          }
           if (message.rpcResponse) {
             const requestId = message.rpcResponse.requestId.toString()
             const callback = this.pendingRpcRequests.get(requestId)
             if (callback) {
               this.pendingRpcRequests.delete(requestId)
-              callback(message.rpcResponse.output as Buffer)
+              callback(message.rpcResponse.output)
             }
           }
-        } catch {
+        })().catch(() => {
           // ignore non-RPC messages
-        }
+        })
       })
 
       ws.on('close', (code, reason) => {
@@ -301,7 +314,9 @@ export class LunarService {
       inputBytes
     )
 
-    const resp = await decodeSubscribeV2Response(outputBytes)
+    const resp = (await decodeSubscribeV2Response(outputBytes)) as {
+      cosmeticPushes?: { playerUuid?: { high?: unknown; low?: unknown } }[]
+    }
     if (!resp.cosmeticPushes || !Array.isArray(resp.cosmeticPushes)) return false
 
     return resp.cosmeticPushes.some((push: { playerUuid?: { high?: unknown; low?: unknown } }) => {

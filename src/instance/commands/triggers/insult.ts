@@ -19,18 +19,11 @@ export default class Insult extends ChatCommandHandler {
     const i18nKey = insultMode === 'custom' ? 'commands.insult' : 'commands.insult.normal'
 
     let messages = context.app.i18n.t(($) => $[i18nKey], { returnObjects: true, name: givenUsername })
-    context.logger.debug(
-      `[insult] bridgeId=${bridgeId} mode=${insultMode} key=${i18nKey} isArray=${Array.isArray(messages)} len=${Array.isArray(messages) ? messages.length : 'N/A'} type=${typeof messages}`
-    )
 
     if (!Array.isArray(messages) || messages.length === 0) {
       messages = context.app.i18n.t(($) => $['commands.insult'], { returnObjects: true, name: givenUsername })
-      context.logger.debug(
-        `[insult] fallback key=commands.insult isArray=${Array.isArray(messages)} len=${Array.isArray(messages) ? messages.length : 'N/A'} type=${typeof messages}`
-      )
     }
     if (!Array.isArray(messages) || messages.length === 0) {
-      context.logger.debug(`[insult] no insults found for any key`)
       return `${givenUsername}, you're lucky there are no insults configured right now.`
     }
 

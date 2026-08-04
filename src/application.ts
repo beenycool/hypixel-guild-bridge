@@ -300,6 +300,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       // Check per-bridge overrides first for simple string keys
       if (typeof keyOrSelector === 'string') {
         const override = overrides[keyOrSelector]
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: override map may lack the key at runtime despite Record type
         if (override !== undefined) return override
       }
       return (this.i18n.t as unknown as TranslatorFunction)(keyOrSelector, {
@@ -324,10 +325,8 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       const checkedInstance = instance
 
       if (checkedInstance instanceof ConnectableInstance) {
-        this.logger.debug(`Connecting instance type=${instance.instanceType},name=${instance.instanceName}`)
         await checkedInstance.connect()
       } else if (instance instanceof PluginInstance) {
-        this.logger.debug(`Signaling plugin instance type=${instance.instanceType},name=${instance.instanceName}`)
         await instance.onReady()
       }
     }
@@ -353,16 +352,17 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
         try {
           const guild = await this.hypixelApi.getGuild('player', botUuid)
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: API may return no guild for unknown players despite the type
           if (guild?.name) {
             this.core.bridgeConfigurations.setGuildName(bridgeId, guild.name)
             this.logger.info(`Resolved guild for bridge ${bridgeId}: ${guild.name}`)
           }
         } catch (error: unknown) {
-          this.logger.warn(`Failed to resolve guild for bridge ${bridgeId}: ${error}`)
+          this.logger.warn(`Failed to resolve guild for bridge ${bridgeId}: ${String(error)}`)
         }
       }
     } catch (error: unknown) {
-      this.logger.warn(`Failed to resolve guild names: ${error}`)
+      this.logger.warn(`Failed to resolve guild names: ${String(error)}`)
     }
 
     // Start background utilities that require instances/core to be ready
@@ -382,7 +382,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     for (const instance of this.getAllInstances().toReversed()) {
       // reversed to go backward of `start()`
       if (instance instanceof ConnectableInstance && instance.currentStatus() !== Status.Fresh) {
-        this.logger.debug(`Disconnecting instance type=${instance.instanceType},name=${instance.instanceName}`)
         await instance.disconnect()
       }
     }
@@ -481,7 +480,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.logger.info('Waiting 5 seconds for other nodes to receive the signal before shutting down.')
     await sleep(5000)
       .then(() => {
-        this.logger.debug('shutting down application')
         return this.shutdown()
       })
       .then(() => gracefullyExitProcess(2))

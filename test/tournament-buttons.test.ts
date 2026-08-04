@@ -24,7 +24,15 @@ import {
 } from '../src/instance/discord/features/tournament-buttons.js'
 
 function customIdOf(button: ButtonBuilder): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- discord.js wire-format field
   return (button.data as { custom_id?: string }).custom_id
+}
+
+function requireValue<T>(value: T | undefined, message: string): T {
+  if (value === undefined) {
+    throw new Error(message)
+  }
+  return value
 }
 
 function makeTournament(overrides: Partial<Tournament> = {}): Tournament {
@@ -54,58 +62,55 @@ function makeTournament(overrides: Partial<Tournament> = {}): Tournament {
   }
 }
 
-describe('parseCustomId', () => {
-  it('parses signup actions with tournamentId and messageId', () => {
+await describe('parseCustomId', async () => {
+  await it('parses signup actions with tournamentId and messageId', () => {
     for (const action of [JoinAction, LeaveAction, CheckinAction]) {
-      const parsed = parseCustomId(`${Prefix}:${action}:12:123456789`)
-      assert.notEqual(parsed, undefined)
-      assert.equal(parsed?.action, action)
-      assert.equal(parsed?.tournamentId, 12)
-      assert.equal(parsed?.messageId, '123456789')
+      const parsed = requireValue(parseCustomId(`${Prefix}:${action}:12:123456789`), 'expected a parsed signup id')
+      assert.equal(parsed.action, action)
+      assert.equal(parsed.tournamentId, 12)
+      assert.equal(parsed.messageId, '123456789')
     }
   })
 
-  it('parses match actions with matchId', () => {
-    const report = parseCustomId(`${Prefix}:${ReportAction}:42`)
-    assert.notEqual(report, undefined)
-    assert.equal(report?.action, ReportAction)
-    assert.equal(report?.matchId, 42)
-    assert.equal(report?.tournamentId, undefined)
+  await it('parses match actions with matchId', () => {
+    const report = requireValue(parseCustomId(`${Prefix}:${ReportAction}:42`), 'expected a parsed report id')
+    assert.equal(report.action, ReportAction)
+    assert.equal(report.matchId, 42)
+    assert.equal(report.tournamentId, undefined)
 
-    const forfeit = parseCustomId(`${Prefix}:${ForfeitAction}:42`)
-    assert.notEqual(forfeit, undefined)
-    assert.equal(forfeit?.action, ForfeitAction)
-    assert.equal(forfeit?.matchId, 42)
+    const forfeit = requireValue(parseCustomId(`${Prefix}:${ForfeitAction}:42`), 'expected a parsed forfeit id')
+    assert.equal(forfeit.action, ForfeitAction)
+    assert.equal(forfeit.matchId, 42)
   })
 
-  it('parses forfeit confirm with matchId and playerId', () => {
-    const parsed = parseCustomId(`${Prefix}:${ForfeitConfirmAction}:42:7`)
-    assert.notEqual(parsed, undefined)
-    assert.equal(parsed?.action, ForfeitConfirmAction)
-    assert.equal(parsed?.matchId, 42)
-    assert.equal(parsed?.playerId, 7)
+  await it('parses forfeit confirm with matchId and playerId', () => {
+    const parsed = requireValue(
+      parseCustomId(`${Prefix}:${ForfeitConfirmAction}:42:7`),
+      'expected a parsed forfeit confirm id'
+    )
+    assert.equal(parsed.action, ForfeitConfirmAction)
+    assert.equal(parsed.matchId, 42)
+    assert.equal(parsed.playerId, 7)
   })
 
-  it('rejects customIds with the wrong prefix', () => {
+  await it('rejects customIds with the wrong prefix', () => {
     assert.equal(parseCustomId('other-prefix:join:12:m1'), undefined)
     assert.equal(parseCustomId(Prefix), undefined)
     assert.equal(parseCustomId(''), undefined)
   })
 
-  it('rejects malformed ids', () => {
-    const parsed = parseCustomId(`${Prefix}:${JoinAction}:abc:123`)
-    assert.notEqual(parsed, undefined)
-    assert.equal(parsed?.tournamentId, undefined)
-    assert.equal(parsed?.messageId, '123')
+  await it('rejects malformed ids', () => {
+    const parsed = requireValue(parseCustomId(`${Prefix}:${JoinAction}:abc:123`), 'expected a parsed malformed id')
+    assert.equal(parsed.tournamentId, undefined)
+    assert.equal(parsed.messageId, '123')
 
-    const missing = parseCustomId(`${Prefix}:${ReportAction}:`)
-    assert.notEqual(missing, undefined)
-    assert.equal(missing?.matchId, undefined)
+    const missing = requireValue(parseCustomId(`${Prefix}:${ReportAction}:`), 'expected a parsed empty report id')
+    assert.equal(missing.matchId, undefined)
   })
 })
 
-describe('buildSignupEmbed', () => {
-  it('describes the button signup flow and participant count', () => {
+await describe('buildSignupEmbed', async () => {
+  await it('describes the button signup flow and participant count', () => {
     const tournament = makeTournament()
     const embed = buildSignupEmbed(tournament, 4)
 
@@ -117,14 +122,14 @@ describe('buildSignupEmbed', () => {
     assert.ok(embed.data.footer?.text.includes('Tournament ID: 5'))
   })
 
-  it('renders a zero participant count', () => {
+  await it('renders a zero participant count', () => {
     const embed = buildSignupEmbed(makeTournament(), 0)
     assert.ok(embed.data.description?.includes('**Participants:** 0'))
   })
 })
 
-describe('buildSignupComponents', () => {
-  it('builds Join and Leave buttons with full customIds', () => {
+await describe('buildSignupComponents', async () => {
+  await it('builds Join and Leave buttons with full customIds', () => {
     const rows = buildSignupComponents(5, 'm1')
     assert.equal(rows.length, 1)
 
@@ -137,8 +142,8 @@ describe('buildSignupComponents', () => {
   })
 })
 
-describe('buildCheckinComponents', () => {
-  it('builds a Check In button with the message id', () => {
+await describe('buildCheckinComponents', async () => {
+  await it('builds a Check In button with the message id', () => {
     const rows = buildCheckinComponents(5, 'm1')
     assert.equal(rows.length, 1)
     assert.equal(rows[0].components.length, 1)
@@ -146,8 +151,8 @@ describe('buildCheckinComponents', () => {
   })
 })
 
-describe('buildThreadComponents', () => {
-  it('builds Report and Forfeit buttons for a match', () => {
+await describe('buildThreadComponents', async () => {
+  await it('builds Report and Forfeit buttons for a match', () => {
     const rows = buildThreadComponents(9)
     assert.equal(rows.length, 1)
 
@@ -158,8 +163,8 @@ describe('buildThreadComponents', () => {
   })
 })
 
-describe('buildReportModal', () => {
-  it('uses the report customId and includes both score inputs', () => {
+await describe('buildReportModal', async () => {
+  await it('uses the report customId and includes both score inputs', () => {
     const modal = buildReportModal(9)
     assert.equal(modal.data.custom_id, `${Prefix}:${ReportAction}:9`)
     const rows = modal.components.filter(
@@ -171,20 +176,20 @@ describe('buildReportModal', () => {
   })
 })
 
-describe('deriveWinner', () => {
-  it('awards the win to the reporter when their score is higher', () => {
+await describe('deriveWinner', async () => {
+  await it('awards the win to the reporter when their score is higher', () => {
     assert.equal(deriveWinner(2, 1, 10, 20), 10)
   })
 
-  it('awards the win to the opponent when their score is higher', () => {
+  await it('awards the win to the opponent when their score is higher', () => {
     assert.equal(deriveWinner(0, 2, 10, 20), 20)
   })
 
-  it('returns undefined on a tie score', () => {
+  await it('returns undefined on a tie score', () => {
     assert.equal(deriveWinner(1, 1, 10, 20), undefined)
   })
 
-  it('is consistent with a reversed pair of scores', () => {
+  await it('is consistent with a reversed pair of scores', () => {
     assert.equal(deriveWinner(1, 2, 10, 20), 20)
     assert.equal(deriveWinner(2, 1, 20, 10), 20)
   })

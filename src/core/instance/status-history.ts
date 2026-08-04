@@ -12,30 +12,18 @@ export class StatusHistory {
     private readonly databaseManager: DatabaseManager,
     private readonly logger: Logger
   ) {
-    this.databaseManager.registerCleaner(async () => {
+    this.databaseManager.registerCleaner(() => {
       const cutoff = Date.now() - StatusHistory.MaxLife.toMilliseconds()
 
       this.databaseManager.enqueueTransaction('cleaning status history', async (database) => {
-        const statusDeleted = await database.query('DELETE FROM "instanceStatusHistory" WHERE "createdAt" < $1', [
-          Math.floor(cutoff / 1000)
-        ])
-        const messageDeleted = await database.query('DELETE FROM "instanceMessageHistory" WHERE "createdAt" < $1', [
-          Math.floor(cutoff / 1000)
-        ])
-
-        if ((statusDeleted.rowCount ?? 0) > 0) {
-          this.logger.debug(`Deleted ${statusDeleted.rowCount} old entries in instanceStatusHistory.`)
-        }
-        if ((messageDeleted.rowCount ?? 0) > 0) {
-          this.logger.debug(`Deleted ${messageDeleted.rowCount} old entries in instanceMessageHistory.`)
-        }
+        await database.query('DELETE FROM "instanceStatusHistory" WHERE "createdAt" < $1', [Math.floor(cutoff / 1000)])
+        await database.query('DELETE FROM "instanceMessageHistory" WHERE "createdAt" < $1', [Math.floor(cutoff / 1000)])
       })
     })
   }
 
   public async load(): Promise<void> {
     // No longer loading everything into RAM to prevent OOM
-    this.logger.debug('StatusHistory loaded (on-demand mode)')
   }
 
   public add(entry: InstanceStatus): void {
@@ -48,8 +36,8 @@ export class StatusHistory {
             entry.instanceName,
             entry.instanceType,
             Math.floor(entry.createdAt / 1000),
-            entry.status?.from,
-            entry.status?.to
+            entry.status.from,
+            entry.status.to
           ]
         )
       })
@@ -64,8 +52,8 @@ export class StatusHistory {
             entry.instanceName,
             entry.instanceType,
             Math.floor(entry.createdAt / 1000),
-            entry.message?.type,
-            entry.message?.value ?? undefined
+            entry.message.type,
+            entry.message.value ?? undefined
           ]
         )
       })

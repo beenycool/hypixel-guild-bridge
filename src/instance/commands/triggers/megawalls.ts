@@ -7,12 +7,13 @@ import { formatStatNumber, shortenNumber } from '../common/utility'
 export default class Megawalls extends HypixelPlayerCommand {
   constructor() {
     super({
-      triggers: ['megawalls', 'mw'],
+      triggers: ['megawalls'],
       description: "Returns a player's Megawalls stats",
       example: `mw %s`
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const stats = player.stats?.megawalls
     if (stats === undefined) return `${givenUsername} has never played Megawalls.` + this.formatPingSuffix()

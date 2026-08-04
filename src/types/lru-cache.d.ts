@@ -1,5 +1,5 @@
 declare module 'lru-cache' {
-  interface LRUCacheOptions<K, V> {
+  interface LRUCacheOptions {
     max: number
     ttl?: number
   }

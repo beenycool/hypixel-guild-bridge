@@ -1,8 +1,42 @@
 import assert from 'node:assert/strict'
-import { describe, it, mock } from 'node:test'
+import { describe, it } from 'node:test'
 
-describe('DeadlineScheduler', () => {
-  it('should identify expired deadlines', () => {
+interface FakeMatchRow {
+  id: number
+  player1Id: number
+  player2Id: number
+  status: string
+  deadlineAt: string
+}
+
+interface FakePlayerRow {
+  id: number
+  seed: number
+}
+
+interface FakeReportRow {
+  matchId: number
+  reporterId: number
+  claimedWinnerId: number
+}
+
+function resolveWithHigherSeed(match: FakeMatchRow, players: FakePlayerRow[]): number | undefined {
+  if (match.status !== 'Active' && match.status !== 'Reported') return undefined
+  const player1 = players.find((player) => player.id === match.player1Id)
+  const player2 = players.find((player) => player.id === match.player2Id)
+  if (!player1 || !player2) return undefined
+  return player1.seed <= player2.seed ? match.player1Id : match.player2Id
+}
+
+function getWinner(reports: FakeReportRow[]): number | undefined {
+  if (reports.length === 1) {
+    return reports[0].claimedWinnerId
+  }
+  return undefined
+}
+
+await describe('DeadlineScheduler', async () => {
+  await it('should identify expired deadlines', () => {
     const now = Date.now()
     const past = new Date(now - 3_600_000).toISOString()
     const future = new Date(now + 3_600_000).toISOString()
@@ -11,7 +45,7 @@ describe('DeadlineScheduler', () => {
     assert.ok(new Date(future).getTime() > now)
   })
 
-  it('should detect 24-hour warning threshold', () => {
+  await it('should detect 24-hour warning threshold', () => {
     const now = Date.now()
     const in23Hours = new Date(now + 23 * 3_600_000)
     const in25Hours = new Date(now + 25 * 3_600_000)
@@ -25,21 +59,13 @@ describe('DeadlineScheduler', () => {
     assert.equal(withinWarningThreshold(in25Hours), false)
   })
 
-  it('should auto-resolve with higher seed when no reports', async () => {
+  await it('should auto-resolve with higher seed when no reports', () => {
     const match = {
       id: 1,
-      player1_id: 1,
-      player2_id: 2,
+      player1Id: 1,
+      player2Id: 2,
       status: 'Active',
-      deadline_at: new Date(Date.now() - 1000).toISOString()
-    }
-
-    const resolveWithHigherSeed = (m: typeof match, players: any[]): number | null => {
-      if (m.status !== 'Active' && m.status !== 'Reported') return null
-      const p1 = players.find((p: any) => p.id === m.player1_id)
-      const p2 = players.find((p: any) => p.id === m.player2_id)
-      if (!p1 || !p2) return null
-      return p1.seed <= p2.seed ? m.player1_id : m.player2_id
+      deadlineAt: new Date(Date.now() - 1000).toISOString()
     }
 
     const players = [
@@ -51,18 +77,10 @@ describe('DeadlineScheduler', () => {
     assert.equal(winner, 1)
   })
 
-  it('should advance reporting player when only one report exists', async () => {
-    const reports = [{ match_id: 1, reporter_id: 1, claimed_winner_id: 1 }]
+  await it('should advance reporting player when only one report exists', () => {
+    const reports = [{ matchId: 1, reporterId: 1, claimedWinnerId: 1 }]
 
-    const getWinner = (reports: any[], match: any): number | null => {
-      if (reports.length === 1) {
-        return reports[0].claimed_winner_id
-      }
-      return null
-    }
-
-    const match = { id: 1, player1_id: 1, player2_id: 2 }
-    const winner = getWinner(reports, match)
+    const winner = getWinner(reports)
     assert.equal(winner, 1)
   })
 })

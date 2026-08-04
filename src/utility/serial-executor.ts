@@ -1,16 +1,12 @@
 export class SerialExecutor {
   private chain: Promise<void> = Promise.resolve()
 
-  run<T>(function_: () => Promise<T>): Promise<T> {
-    let resolve: (value: T) => void
-    let reject: (reason: unknown) => void
-    const promise = new Promise<T>((res, rej) => {
-      resolve = res
-      reject = rej
-    })
-
-    this.chain = this.chain.then(() => function_()).then(resolve!, reject!)
-
-    return promise
+  run<T>(task: () => Promise<T>): Promise<T> {
+    const result = this.chain.then(() => task())
+    this.chain = result.then(
+      () => undefined,
+      () => undefined
+    )
+    return result
   }
 }

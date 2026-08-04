@@ -2,6 +2,17 @@ import type { Logger } from 'log4js'
 
 import type { DatabaseManager } from '../../common/database-manager.js'
 
+export interface AuditLogRow {
+  id: number
+  tournamentId: number
+  action: string
+  actorDiscordId: string
+  targetMatchId: number | undefined
+  targetUuid: string | undefined
+  metadata: unknown
+  createdAt: number
+}
+
 export class AuditLogger {
   constructor(
     private readonly databaseManager: DatabaseManager,
@@ -27,9 +38,10 @@ export class AuditLogger {
           tournamentId,
           action,
           actorDiscordId,
-          targetMatchId ?? null,
-          targetUuid ?? null,
-          metadata ? JSON.stringify(metadata) : null
+          // pg converts undefined to NULL for nullable columns
+          targetMatchId ?? undefined,
+          targetUuid ?? undefined,
+          metadata ? JSON.stringify(metadata) : undefined
         ]
       )
     } catch (error) {
@@ -37,15 +49,15 @@ export class AuditLogger {
     }
   }
 
-  async getLogs(tournamentId: number, limit = 50, offset = 0): Promise<any[]> {
-    return await this.databaseManager.queryRows<any>(
+  async getLogs(tournamentId: number, limit = 50, offset = 0): Promise<AuditLogRow[]> {
+    return await this.databaseManager.queryRows<AuditLogRow>(
       `SELECT * FROM "tournament_audit_log" WHERE "tournamentId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3`,
       [tournamentId, limit, offset]
     )
   }
 
-  async getLogsByAction(action: string, limit = 50): Promise<any[]> {
-    return await this.databaseManager.queryRows<any>(
+  async getLogsByAction(action: string, limit = 50): Promise<AuditLogRow[]> {
+    return await this.databaseManager.queryRows<AuditLogRow>(
       `SELECT * FROM "tournament_audit_log" WHERE "action" = $1 ORDER BY "createdAt" DESC LIMIT $2`,
       [action, limit]
     )

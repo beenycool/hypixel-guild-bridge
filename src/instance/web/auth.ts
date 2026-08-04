@@ -31,7 +31,7 @@ export function verifyToken(
   }
 
   const payload = verifySignedToken(candidate, tokens.signingSecret)
-  if (payload === null) {
+  if (payload === undefined) {
     return { ok: false, reason: 'mismatch' }
   }
 
@@ -39,7 +39,7 @@ export function verifyToken(
 }
 
 function extractCandidate(authorizationHeader: string | undefined, queryToken?: string | string[]): string | undefined {
-  if (authorizationHeader !== undefined && authorizationHeader.startsWith(BEARER_PREFIX)) {
+  if (authorizationHeader?.startsWith(BEARER_PREFIX) === true) {
     return authorizationHeader.slice(BEARER_PREFIX.length)
   }
 

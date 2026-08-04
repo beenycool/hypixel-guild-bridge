@@ -55,7 +55,7 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
     // Collect metrics periodically in background so scrapes return instantly
     // Also trigger an immediate collection on startup
     setImmediate(() => {
-      void this.collectMetrics().catch((error) => {
+      void this.collectMetrics().catch((error: unknown) => {
         this.logger.error('Initial metric collection failed', error)
       })
     })
@@ -76,7 +76,14 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
       const route = request.url.split('?')[0]
       if (route === '/metrics') {
         response.setHeader('Content-Type', this.register.contentType)
-        this.register.metrics().then((metrics) => response.end(metrics))
+        this.register
+          .metrics()
+          .then((metrics) => response.end(metrics))
+          .catch((error: unknown) => {
+            this.logger.error('Failed to collect metrics for scrape', error)
+            response.writeHead(HttpStatusCode.InternalServerError)
+            response.end()
+          })
       } else if (route === '/ping') {
         response.writeHead(HttpStatusCode.Ok)
         response.end()
@@ -86,14 +93,10 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
       }
     })
 
-    this.logger.debug(`Listening on port ${this.config.port}`)
     this.httpServer.listen(this.config.port)
-
-    this.logger.debug('prometheus is enabled')
   }
 
   private async collectMetrics(): Promise<void> {
-    this.logger.debug('Collecting metrics')
     await this.guildOnlineMetrics.collectMetrics(this.application)
   }
 }

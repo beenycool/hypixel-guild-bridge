@@ -12,3 +12,7 @@ hypixel-guild-dscord-chat-bridge.publishsettings
 IasTokenExtractor*.class
 IasTokenExtractor*.java
 InGameAccountSwitcher-Forge-1.8.9-7.1.2.jar
+outputs/
+*.log
+blockops-yesterday.txt
+.all-paths.txt

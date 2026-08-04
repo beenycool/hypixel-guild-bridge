@@ -14,7 +14,7 @@
   "categories": {
     "default": {
       "appenders": ["logs", "out"],
-      "level": "debug"
+      "level": "info"
     }
   }
 }

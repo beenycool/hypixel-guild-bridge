@@ -41,7 +41,11 @@ function buildMockApplication(): Application {
         getTournamentCategoryId: () => undefined,
         getTournamentNotificationChannelId: () => undefined,
         getTournamentDefaultBracketFormat: () => 'single-elim',
-        getTournamentMinParticipants: () => 2
+        getTournamentMinParticipants: () => 2,
+        getPublicChannelIds: () => [],
+        getOfficerChannelIds: () => [],
+        getLoggerChannelIds: () => [],
+        getPromoteChannelIds: () => []
       }
     },
     discordInstance: {
@@ -130,6 +134,46 @@ function resetMocks(): void {
   TransactionMock.mock.mockImplementation(async (callback: (database: unknown) => Promise<unknown>) => {
     return await callback(MockDatabase)
   })
+}
+
+function buildCheckedInPlayers(): TournamentPlayer[] {
+  return Array.from({ length: 4 }, (element, index) => {
+    void element
+    return {
+      id: index + 1,
+      tournamentId: 1,
+      playerUuid: `uuid-${index + 1}`,
+      discordId: undefined,
+      seed: 0,
+      status: PlayerStatus.Registered,
+      joinedAt: 0,
+      checkedInAt: 1
+    }
+  })
+}
+
+function mockSignupFlow(
+  tournament: Tournament,
+  players: TournamentPlayer[]
+): { inserts: { sql: string; values: unknown[] }[] } {
+  const inserts: { sql: string; values: unknown[] }[] = []
+  let nextId = 1
+  QueryOneMock.mock.mockImplementation(async (sql: string) => {
+    if (sql.includes('INSERT INTO "tournaments"')) return tournament
+    return
+  })
+  QueryRowsMock.mock.mockImplementation(async (sql: string) => {
+    if (sql.includes('"tournament_players"')) return players
+    return []
+  })
+  QueryMock.mock.mockImplementation(async (sql: string, values: unknown[]): Promise<QueryResult> => {
+    if (sql.includes('INSERT INTO "tournament_matches"')) {
+      inserts.push({ sql, values })
+      return { rows: [{ id: nextId++ }] }
+    }
+    return { rows: [] }
+  })
+  return { inserts }
 }
 
 describe('TournamentManager', () => {
@@ -321,7 +365,6 @@ describe('TournamentManager', () => {
     it('rolls back the match, tournament, reports, player statuses and next-match advancement', async () => {
       resetMocks()
       const tournament = buildTournament()
-      const match = buildMatch()
       const nextMatch = buildMatch({
         id: 9,
         round: 3,
@@ -441,43 +484,6 @@ describe('TournamentManager', () => {
   })
 
   describe('startTournament', () => {
-    function buildCheckedInPlayers(): TournamentPlayer[] {
-      return Array.from({ length: 4 }, (_, index) => ({
-        id: index + 1,
-        tournamentId: 1,
-        playerUuid: `uuid-${index + 1}`,
-        discordId: undefined,
-        seed: 0,
-        status: PlayerStatus.Registered,
-        joinedAt: 0,
-        checkedInAt: 1
-      }))
-    }
-
-    function mockSignupFlow(
-      tournament: Tournament,
-      players: TournamentPlayer[]
-    ): { inserts: { sql: string; values: unknown[] }[] } {
-      const inserts: { sql: string; values: unknown[] }[] = []
-      let nextId = 1
-      QueryOneMock.mock.mockImplementation(async (sql: string) => {
-        if (sql.includes('INSERT INTO "tournaments"')) return tournament
-        return
-      })
-      QueryRowsMock.mock.mockImplementation(async (sql: string) => {
-        if (sql.includes('"tournament_players"')) return players
-        return []
-      })
-      QueryMock.mock.mockImplementation(async (sql: string, values: unknown[]): Promise<QueryResult> => {
-        if (sql.includes('INSERT INTO "tournament_matches"')) {
-          inserts.push({ sql, values })
-          return { rows: [{ id: nextId++ }] }
-        }
-        return { rows: [] }
-      })
-      return { inserts }
-    }
-
     it('generates with the tournament bracket format and inserts loserNextMatchId links', async () => {
       resetMocks()
       const tournament = buildTournament({
@@ -527,7 +533,9 @@ describe('TournamentManager', () => {
       assert.strictEqual(inserts.length, 6, 'round-robin for 4 players should insert 6 matches')
       for (const insert of inserts) {
         assert.strictEqual(insert.values[1], 1, 'round-robin matches are all in round 1')
+        // eslint-disable-next-line unicorn/no-null -- SQL NULL sentinel for 'no next match'
         assert.strictEqual(insert.values[6], null, 'round-robin matches have no nextMatchId')
+        // eslint-disable-next-line unicorn/no-null -- SQL NULL sentinel for 'no loser next match'
         assert.strictEqual(insert.values[7], null, 'round-robin matches have no loserNextMatchId')
       }
     })

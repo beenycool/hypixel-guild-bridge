@@ -62,11 +62,6 @@ export class SessionsManager {
     const count = this.sessions.get(key)?.size ?? 0
     this.sessions.delete(key)
 
-    if (count !== 0) {
-      this.logger.debug(`Deleted Minecraft sessions for name=${instanceName} (changes=${count})`)
-    }
-    this.logger.debug(`Remaining mojangSessions for ${instanceName} = ${this.sessions.get(key)?.size ?? 0}`)
-
     this.databaseManager.enqueueWrite(`deleting sessions for ${instanceName}`, async (database) => {
       await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1)', [instanceName])
     })
@@ -88,7 +83,6 @@ export class SessionsManager {
     }
 
     if (deleted !== 0) {
-      this.logger.debug(`Deleted ${deleted} Minecraft cached session files with the name=${instanceName}`)
       this.databaseManager.enqueueWrite(`deleting cached sessions for ${instanceName}`, async (database) => {
         await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" != $2', [
           instanceName,
@@ -104,7 +98,6 @@ export class SessionsManager {
     const createdAt = Math.floor(Date.now() / 1000)
     const sessionMap = getOrCreate(this.sessions, sessionKey(name), () => new Map())
     sessionMap.set(cacheName, { name, cacheName, value: JSON.stringify(value), createdAt })
-    this.logger.debug(`setSession: name=${name} cacheName=${cacheName}`)
 
     this.databaseManager.enqueueWrite(`saving session ${name}:${cacheName}`, async (database) => {
       await database.query(
@@ -163,8 +156,6 @@ export class SessionsManager {
     }
 
     this.instances.set(instanceKey(options.name), { name: options.name, proxyId, connect: true })
-    this.logger.debug(`addInstance: inserted name=${options.name} proxyId=${String(proxyId)}`)
-    this.logger.debug(`addInstance: total mojangInstances=${this.instances.size}`)
 
     this.databaseManager.enqueueTransaction(`adding minecraft instance ${options.name}`, async (database) => {
       const duplicateInstances = await database.query<{ name: string; proxyId: number | null }>(
@@ -223,12 +214,7 @@ export class SessionsManager {
     this.instances.delete(key)
     if (instance.proxyId !== undefined) {
       this.proxies.delete(instance.proxyId)
-      this.logger.debug(
-        `Deleted related proxy with the id=${instance.proxyId} to the Minecraft instance with the name=${instanceName} (changes=1)`
-      )
     }
-    this.logger.debug(`Deleted Minecraft instance with the name=${instanceName} (changes=1)`)
-    this.logger.debug(`deleteInstance: remaining mojangInstances=${this.instances.size}`)
 
     this.databaseManager.enqueueTransaction(`deleting minecraft instance ${instanceName}`, async (database) => {
       await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1)', [instance.name])
@@ -305,13 +291,11 @@ export class SessionsManager {
             'tid'
           ]
           if (nestedPropertyNames.includes(cacheName)) {
-            this.logger.debug(`Skipping nested property "${cacheName}" that was incorrectly extracted as a cache entry`)
             continue
           }
 
           this.setSession(instanceName, username, cacheName, cacheValue as Record<string, unknown>)
           imported.push(cacheName)
-          this.logger.debug(`Imported cache "${cacheName}" for instance "${instanceName}"`)
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error)
           errors.push(`Failed to import cache "${cacheName}": ${errorMessage}`)
@@ -384,10 +368,7 @@ class Session implements Cache {
   async reset(): Promise<void> {
     await Promise.resolve()
 
-    const result = this.sessionsManager.deleteSingleCache(this.name, this.cacheName)
-    if (result !== 0) {
-      this.logger.debug(`Deleted sessions for name=${this.name} and cacheName=${this.cacheName}`)
-    }
+    this.sessionsManager.deleteSingleCache(this.name, this.cacheName)
   }
 
   async getCached(): Promise<Record<string, unknown>> {

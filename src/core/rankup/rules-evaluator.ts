@@ -81,10 +81,6 @@ export class RulesEvaluator {
     ) {
       const reason = `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`
 
-      if (applicableDemotion.action === 'demote' && applicableDemotion.targetRank === undefined) {
-        return { action: 'none' }
-      }
-
       if (applicableDemotion.action === 'kick') {
         return { action: 'kick', reason }
       }
@@ -93,9 +89,13 @@ export class RulesEvaluator {
         return { action: 'notify', reason }
       }
 
+      if (applicableDemotion.targetRank === undefined) {
+        return { action: 'none' }
+      }
+
       return {
         action: 'demote' as const,
-        targetRank: applicableDemotion.targetRank!,
+        targetRank: applicableDemotion.targetRank,
         reason
       }
     }
@@ -105,12 +105,14 @@ export class RulesEvaluator {
       const inactiveRule = demotionRules.find(
         (r) => r.fromRank.toLowerCase() === member.rank.toLowerCase() && r.maxDaysInactive !== undefined
       )
+      const maxDaysInactive = inactiveRule?.maxDaysInactive
       if (
         inactiveRule &&
         daysInGuild > inactiveRule.gracePeriod &&
-        member.daysSinceLastSeen > inactiveRule.maxDaysInactive!
+        maxDaysInactive !== undefined &&
+        member.daysSinceLastSeen > maxDaysInactive
       ) {
-        const reason = `Inactive for ${member.daysSinceLastSeen.toFixed(1)} days (max ${inactiveRule.maxDaysInactive!}).`
+        const reason = `Inactive for ${member.daysSinceLastSeen.toFixed(1)} days (max ${maxDaysInactive}).`
 
         if (inactiveRule.action === 'kick') {
           return { action: 'kick', reason }
@@ -120,13 +122,13 @@ export class RulesEvaluator {
           return { action: 'notify', reason }
         }
 
-        if (inactiveRule.action === 'demote' && inactiveRule.targetRank === undefined) {
+        if (inactiveRule.targetRank === undefined) {
           return { action: 'none' }
         }
 
         return {
           action: 'demote' as const,
-          targetRank: inactiveRule.targetRank!,
+          targetRank: inactiveRule.targetRank,
           reason
         }
       }

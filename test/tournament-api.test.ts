@@ -27,6 +27,7 @@ interface TournamentResult {
   createdAt: number
 }
 
+// eslint-disable-next-line unicorn/prefer-event-target -- http.IncomingMessage is an EventEmitter; the handler relies on the .on() API that EventTarget lacks
 class FakeRequest extends EventEmitter {
   method: string
   url: string
@@ -39,7 +40,9 @@ class FakeRequest extends EventEmitter {
     this.headers = {}
   }
 
-  setEncoding(_encoding: string): void {}
+  setEncoding(): void {
+    /* noop */
+  }
 
   feedBody(body: string): void {
     if (body.length > 0) this.emit('data', body)
@@ -128,9 +131,9 @@ function setupTest(): FakeHarness {
   const activeByBridge: Record<string, Tournament | undefined> = {}
   const defaults = { bestOf: 1, deadlineHours: 48, checkinMinutes: 60, bracketFormat: 'single-elim' }
   const database: FakeHarness['db'] = {
-    queryRows: async (_sql: string, _parameters: unknown[]) => [],
-    queryOne: async (_sql: string, _parameters: unknown[]) => undefined,
-    execute: async (_sql: string, _parameters: unknown[]) => {}
+    queryRows: () => Promise.resolve([]),
+    queryOne: () => Promise.resolve(undefined),
+    execute: () => Promise.resolve()
   }
   const databaseManager = {
     queryRows: (sql: string, parameters: unknown[]) => database.queryRows(sql, parameters),
@@ -146,18 +149,20 @@ function setupTest(): FakeHarness {
         getTournamentDefaultDeadlineHours: (): number => defaults.deadlineHours,
         getTournamentCheckinWindowMinutes: (): number => defaults.checkinMinutes,
         getTournamentDefaultBracketFormat: (): string => defaults.bracketFormat,
-        setTournamentCategoryId: (): void => {}
+        setTournamentCategoryId: (): void => {
+          /* noop */
+        }
       },
       tournamentManager: {
         auditLogger: {
-          log: async (): Promise<void> => {}
+          log: () => Promise.resolve()
         },
-        rewindMatch: async (matchId: number, actorDiscordId?: string): Promise<void> => {
+        rewindMatch: (matchId: number, actorDiscordId?: string): void => {
           rewindCalls.push({ matchId, actorDiscordId })
         },
-        createTournament: async (...arguments_: unknown[]): Promise<Tournament> => {
-          createCalls.push(arguments_)
-          const bridgeId = String(arguments_[0])
+        createTournament: (...callArguments: unknown[]): Tournament => {
+          createCalls.push(callArguments)
+          const bridgeId = String(callArguments[0])
           const existing = activeByBridge[bridgeId]
           if (
             existing !== undefined &&
@@ -167,11 +172,11 @@ function setupTest(): FakeHarness {
           }
           return makeTournament({
             bridgeId,
-            name: String(arguments_[1]),
-            gameType: String(arguments_[2]),
-            bestOf: Number(arguments_[3]),
-            roundDeadlineHours: Number(arguments_[5]),
-            bracketFormat: (arguments_[8] as string | undefined) ?? 'single-elim'
+            name: String(callArguments[1]),
+            gameType: String(callArguments[2]),
+            bestOf: Number(callArguments[3]),
+            roundDeadlineHours: Number(callArguments[5]),
+            bracketFormat: (callArguments[8] as string | undefined) ?? 'single-elim'
           })
         },
         getActiveTournament: (bridgeId: string): Tournament | undefined => activeByBridge[bridgeId]
@@ -179,16 +184,32 @@ function setupTest(): FakeHarness {
     }
   } as unknown as Application
   const logger: Logger = {
-    trace: () => {},
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-    fatal: () => {},
+    trace: () => {
+      /* noop */
+    },
+    debug: () => {
+      /* noop */
+    },
+    info: () => {
+      /* noop */
+    },
+    warn: () => {
+      /* noop */
+    },
+    error: () => {
+      /* noop */
+    },
+    fatal: () => {
+      /* noop */
+    },
     level: 'off',
     isLevelEnabled: () => false,
-    log: () => {},
-    setLevel: () => {},
+    log: () => {
+      /* noop */
+    },
+    setLevel: () => {
+      /* noop */
+    },
     getLevel: () => 'off'
   } as unknown as Logger
   const handler = new TournamentApiHandler(app, logger)
@@ -241,7 +262,7 @@ await describe('TournamentApiHandler', async () => {
       manuallyExtended: false,
       hadProofAttachment: false
     }
-    harness.db.queryOne = async () => match
+    harness.db.queryOne = () => Promise.resolve(match)
     const { response, handled } = await runHandler(
       'POST',
       '/api/tournament/5/undo',
@@ -273,7 +294,7 @@ await describe('TournamentApiHandler', async () => {
 
   await it('POST /api/tournament/:id/undo returns 404 for a match outside the tournament', async () => {
     const harness = setupTest()
-    harness.db.queryOne = async () => undefined
+    harness.db.queryOne = () => Promise.resolve(undefined)
     const { response, handled } = await runHandler(
       'POST',
       '/api/tournament/5/undo',
@@ -336,10 +357,10 @@ await describe('TournamentApiHandler', async () => {
     ]
     let querySql = ''
     let queryParameters: unknown[] = []
-    harness.db.queryRows = async (sql: string, parameters: unknown[]) => {
+    harness.db.queryRows = (sql: string, parameters: unknown[]): Promise<unknown[]> => {
       querySql = sql
       queryParameters = parameters
-      return results
+      return Promise.resolve(results)
     }
     const { response, handled } = await runHandler(
       'GET',
@@ -361,7 +382,7 @@ await describe('TournamentApiHandler', async () => {
 
   await it('GET /api/tournament/:id/results returns an empty array when no results exist', async () => {
     const harness = setupTest()
-    harness.db.queryRows = async () => []
+    harness.db.queryRows = () => Promise.resolve([])
     const { response, handled } = await runHandler(
       'GET',
       '/api/tournament/5/results',
@@ -563,8 +584,9 @@ await describe('TournamentApiHandler', async () => {
   await it('POST /api/tournament/test/create seeds fake players and creates a tournament', async () => {
     const harness = setupTest()
     const executeCalls: { sql: string; parameters: unknown[] }[] = []
-    harness.db.execute = async (sql: string, parameters: unknown[]) => {
+    harness.db.execute = (sql: string, parameters: unknown[]): Promise<void> => {
       executeCalls.push({ sql, parameters })
+      return Promise.resolve()
     }
     const { response, handled } = await runHandler(
       'POST',

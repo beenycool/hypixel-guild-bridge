@@ -25,7 +25,13 @@ await describe('Arcade triggers and argument parsing', async () => {
   })
 
   await it('correctly parses direct command arguments', () => {
-    const arcade = new Arcade() as any
+    // parseArgs is private; expose it through a minimal typed view instead of `any`.
+    const arcade = new Arcade() as unknown as {
+      parseArgs(context: { commandPrefix: string; username: string; args: string[]; message: { message: string } }): {
+        subcommand: string
+        username: string
+      }
+    }
 
     // !football PlayerName
     const context1 = {

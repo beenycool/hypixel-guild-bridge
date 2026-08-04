@@ -234,12 +234,12 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
       await this.application.core.tournamentManager.matchManager
         .submitReport(match.id, match.player1Id, winnerId, p1Wins, p2Wins)
-        .catch((error) => {
+        .catch((error: unknown) => {
           this.application.logger.error(`TournamentTestPanel: submitReport player1 failed for match ${match.id}`, error)
         })
       await this.application.core.tournamentManager.matchManager
         .submitReport(match.id, match.player2Id, winnerId, p1Wins, p2Wins)
-        .catch((error) => {
+        .catch((error: unknown) => {
           this.application.logger.error(`TournamentTestPanel: submitReport player2 failed for match ${match.id}`, error)
         })
 
@@ -314,7 +314,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
 
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player1Id, winnerId, p1Wins, p2Wins)
-      .catch((error) => {
+      .catch((error: unknown) => {
         this.application.logger.error(
           `TournamentTestPanel: submitReport player1 failed for match ${activeMatch.id}`,
           error
@@ -322,7 +322,7 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
       })
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player2Id, winnerId, p1Wins, p2Wins)
-      .catch((error) => {
+      .catch((error: unknown) => {
         this.application.logger.error(
           `TournamentTestPanel: submitReport player2 failed for match ${activeMatch.id}`,
           error
@@ -394,14 +394,14 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
     // Player 1 claims Player 1 won
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player1Id, activeMatch.player1Id, targetWins, 0)
-      .catch((error) => {
+      .catch((error: unknown) => {
         this.application.logger.error(`TournamentTestPanel: dispute submitReport p1 failed`, error)
       })
 
     // Player 2 claims Player 2 won
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player2Id, activeMatch.player2Id, 0, targetWins)
-      .catch((error) => {
+      .catch((error: unknown) => {
         this.application.logger.error(`TournamentTestPanel: dispute submitReport p2 failed`, error)
       })
 

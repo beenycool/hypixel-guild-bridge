@@ -56,11 +56,11 @@ export default class Mute extends ChatCommandHandler {
     )
 
     const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
-    const override = translator?.('commands.mute.game')
+    const override = translator('commands.mute.game')
     let messages: string[]
     if (override && override !== 'commands.mute.game') {
       try {
-        messages = JSON.parse(override)
+        messages = JSON.parse(override) as string[]
       } catch {
         messages = [override]
       }

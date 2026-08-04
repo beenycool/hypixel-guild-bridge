@@ -2,7 +2,7 @@ import path from 'node:path'
 
 import { createCanvas, registerFont } from 'canvas'
 
-import { MatchStatus, TournamentStatus } from './types.js'
+import { MatchStatus } from './types.js'
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 
 export interface BracketData {
@@ -23,8 +23,10 @@ export class BracketVisualizer {
 
   buildBracketImage(data: BracketData): Buffer | null {
     try {
+      // eslint-disable-next-line unicorn/no-null -- null is the documented no-image sentinel (callers and tests compare === null)
       if (data.matches.length === 0) return null
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB row may omit totalRounds at runtime despite the type
       const totalRounds = Math.max(1, data.tournament.totalRounds ?? 1)
       const maxMatchesRound1 = Math.pow(2, totalRounds - 1)
 
@@ -55,8 +57,12 @@ export class BracketVisualizer {
       const matchesByRound = new Map<number, TournamentMatch[]>()
       for (const match of data.matches) {
         const round = match.round
-        if (!matchesByRound.has(round)) matchesByRound.set(round, [])
-        matchesByRound.get(round)!.push(match)
+        const roundMatches = matchesByRound.get(round)
+        if (roundMatches === undefined) {
+          matchesByRound.set(round, [match])
+        } else {
+          roundMatches.push(match)
+        }
       }
 
       // Render round header labels
@@ -79,9 +85,10 @@ export class BracketVisualizer {
         const boxWidth = columnWidth - 30
 
         for (const [index, match] of roundMatches.entries()) {
-          const matchIdx = match.matchIndex ?? index
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- matchIndex may be omitted at runtime (see tests) despite the type
+          const matchIndex = match.matchIndex ?? index
           const slotsInRound = Math.pow(2, round - 1)
-          const centerSlotIndex = matchIdx * slotsInRound + (slotsInRound - 1) / 2
+          const centerSlotIndex = matchIndex * slotsInRound + (slotsInRound - 1) / 2
           const centerY = headerHeight + padding + (centerSlotIndex + 0.5) * slotHeight
           const y = centerY - matchHeight / 2
 
@@ -126,7 +133,9 @@ export class BracketVisualizer {
           // Draw player 1 info
           const p1Name = match.player1Id ? (data.playerNames.get(match.player1Id) ?? 'TBD') : '—'
           const p1Score =
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
             match.player1Wins !== null && match.player1Wins !== undefined ? match.player1Wins.toString() : ''
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB column may be NULL at runtime despite the TS type
           const p1IsWinner = match.winnerId !== null && match.player1Id === match.winnerId
 
           context.font = '12px Minecraft, sans-serif'
@@ -151,7 +160,9 @@ export class BracketVisualizer {
           // Draw player 2 info
           const p2Name = match.player2Id ? (data.playerNames.get(match.player2Id) ?? 'TBD') : '—'
           const p2Score =
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
             match.player2Wins !== null && match.player2Wins !== undefined ? match.player2Wins.toString() : ''
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB column may be NULL at runtime despite the TS type
           const p2IsWinner = match.winnerId !== null && match.player2Id === match.winnerId
 
           context.textAlign = 'left'
@@ -170,9 +181,9 @@ export class BracketVisualizer {
             const nextBoxX = nextColX + 15
             const midX = (boxX + boxWidth + nextBoxX) / 2
 
-            const nextMatchIdx = Math.floor(matchIdx / 2)
+            const nextMatchIndex = Math.floor(matchIndex / 2)
             const nextSlotsInRound = Math.pow(2, round)
-            const nextCenterSlotIndex = nextMatchIdx * nextSlotsInRound + (nextSlotsInRound - 1) / 2
+            const nextCenterSlotIndex = nextMatchIndex * nextSlotsInRound + (nextSlotsInRound - 1) / 2
             const nextCenterY = headerHeight + padding + (nextCenterSlotIndex + 0.5) * slotHeight
 
             context.strokeStyle = borderColor
@@ -189,6 +200,7 @@ export class BracketVisualizer {
 
       return canvas.toBuffer('image/png')
     } catch {
+      // eslint-disable-next-line unicorn/no-null -- null is the documented no-image sentinel (callers and tests compare === null)
       return null
     }
   }
@@ -199,11 +211,16 @@ export class BracketVisualizer {
     const matchesByRound = new Map<number, TournamentMatch[]>()
     for (const match of data.matches) {
       const round = match.round
-      if (!matchesByRound.has(round)) matchesByRound.set(round, [])
-      matchesByRound.get(round)!.push(match)
+      const roundMatches = matchesByRound.get(round)
+      if (roundMatches === undefined) {
+        matchesByRound.set(round, [match])
+      } else {
+        roundMatches.push(match)
+      }
     }
 
     for (const [round, roundMatches] of matchesByRound) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB row may omit totalRounds at runtime despite the type
       const label = round === (data.tournament.totalRounds ?? 1) ? '&e&lFINAL' : `&e&lRound ${round}`
       lines.push('')
       lines.push(label)
@@ -234,12 +251,12 @@ export class BracketVisualizer {
 
         if (match.status === MatchStatus.Completed && match.winnerId) {
           const winnerName = match.winnerId === match.player1Id ? p1 : p2
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
           const score = `${match.player1Wins ?? 0}-${match.player2Wins ?? 0}`
           lines.push(`${statusIcon} ${p1} vs ${p2} &7(${score}) &a${winnerName} wins`)
         } else if (match.status === MatchStatus.Bye) {
-          const advancer = match.player1Id
-            ? (data.playerNames.get(match.player1Id) ?? 'TBD')
-            : (data.playerNames.get(match.player2Id!) ?? 'TBD')
+          const advancerId = match.player1Id ?? match.player2Id
+          const advancer = advancerId === undefined ? 'TBD' : (data.playerNames.get(advancerId) ?? 'TBD')
           lines.push(`${statusIcon} ${p1} &7(BYE) &a${advancer} advances`)
         } else {
           lines.push(`${statusIcon} ${p1} vs ${p2}`)

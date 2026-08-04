@@ -62,8 +62,7 @@ export class FeatherService {
       const isFeather = await this.queryAccountSearch(uuid)
       this.cache.set(uuid, isFeather)
       return isFeather
-    } catch (error: unknown) {
-      this.logger.debug(`Feather status check failed for ${uuid}:`, error)
+    } catch {
       return undefined
     }
   }
@@ -73,9 +72,6 @@ export class FeatherService {
 
     const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
     if (timeSinceLastFail < this.authCooldownMs) {
-      this.logger.debug(
-        `[FeatherService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`
-      )
       return
     }
 

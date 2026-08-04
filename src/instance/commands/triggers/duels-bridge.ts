@@ -19,25 +19,16 @@ export default class DuelsBridge extends ChatCommandHandler {
 
     const firstArgument = context.args[0]?.toLowerCase()
     const subMode = firstArgument ? BridgeSubModeAliases.get(firstArgument) : undefined
-    context.logger.debug(
-      `duels-bridge command start username=${context.username} args=${JSON.stringify(context.args)} subMode=${subMode ?? 'none'}`
-    )
 
     if (subMode) {
       const newContext = {
         ...context,
         args: ['bridge', subMode, ...context.args.slice(1)]
       } as ChatCommandContext
-      context.logger.debug(
-        `duels-bridge resolved subMode username=${context.username} args=${JSON.stringify(newContext.args)}`
-      )
       return await underlying.handler(newContext)
     }
 
     const newContext = { ...context, args: ['bridge', ...context.args] } as ChatCommandContext
-    context.logger.debug(
-      `duels-bridge default bridge args username=${context.username} args=${JSON.stringify(newContext.args)}`
-    )
     return await underlying.handler(newContext)
   }
 }

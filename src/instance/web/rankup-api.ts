@@ -14,7 +14,7 @@ interface BridgeListEntry {
   enabled: boolean
   manualReview: boolean
   pendingCount: number
-  lastCheckAt: number | null
+  lastCheckAt: number | undefined
 }
 
 interface PromotionRule {
@@ -37,7 +37,7 @@ interface RulesResponse {
   manualReview: boolean
   notificationCooldown: number
   notificationChannelIds: string[]
-  notificationChannels: { id: string; name: string | null }[]
+  notificationChannels: { id: string; name: string | undefined }[]
   promotionRules: PromotionRule[]
   demotionRules: DemotionRule[]
   excludedRanks: string[]
@@ -56,15 +56,15 @@ export class RankupApiHandler {
     private readonly logger: Logger
   ) {}
 
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
+  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
     const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return null
+    if (!webConfig?.signingSecret) return undefined
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)
     if (result.ok) return result.permission
     sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-    return null
+    return undefined
   }
 
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
@@ -80,7 +80,7 @@ export class RankupApiHandler {
     const query = this.parseQuery(queryPart)
 
     const permission = this.verifyAuth(request, response)
-    if (permission === null) return true
+    if (permission === undefined) return true
 
     if (permission < Permission.Helper) {
       sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
@@ -98,7 +98,7 @@ export class RankupApiHandler {
 
     if (pathPart === `${PREFIX}/pending`) {
       const bridgeId = this.requireBridgeId(query, response)
-      if (bridgeId === null) return true
+      if (bridgeId === undefined) return true
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
@@ -113,7 +113,7 @@ export class RankupApiHandler {
         return true
       }
       const bridgeId = this.requireBridgeId(query, response)
-      if (bridgeId === null) return true
+      if (bridgeId === undefined) return true
       const limit = this.parseLimit(query.limit)
       await this.handleHistory(response, bridgeId, limit)
       return true
@@ -121,7 +121,7 @@ export class RankupApiHandler {
 
     if (pathPart === `${PREFIX}/rules`) {
       const bridgeId = this.requireBridgeId(query, response)
-      if (bridgeId === null) return true
+      if (bridgeId === undefined) return true
       if (method === 'GET') {
         await this.handleGetRules(response, bridgeId)
         return true
@@ -140,7 +140,7 @@ export class RankupApiHandler {
 
     if (pathPart === `${PREFIX}/guild-ranks`) {
       const bridgeId = this.requireBridgeId(query, response)
-      if (bridgeId === null) return true
+      if (bridgeId === undefined) return true
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
@@ -169,7 +169,7 @@ export class RankupApiHandler {
 
     if (pathPart === `${PREFIX}/status`) {
       const bridgeId = this.requireBridgeId(query, response)
-      if (bridgeId === null) return true
+      if (bridgeId === undefined) return true
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
@@ -186,7 +186,6 @@ export class RankupApiHandler {
       }
       const [idRaw, action] = segments
       const id = Number(idRaw)
-      this.logger.debug('Pending review action: path=%s, idRaw=%s, parsedId=%d, action=%s', pathPart, idRaw, id, action)
       if (!Number.isInteger(id) || id <= 0) {
         sendError(response, 'VALIDATION_ERROR', 'Invalid review id', 400)
         return true
@@ -200,7 +199,7 @@ export class RankupApiHandler {
         return true
       }
       if (action === 'reject') {
-        await this.handleReject(response, id)
+        this.handleReject(response, id)
         return true
       }
       sendError(response, 'NOT_FOUND', 'Not found', 404)
@@ -220,7 +219,7 @@ export class RankupApiHandler {
       enabled: bridgeConfigurations.getRankupEnabled(bridgeId),
       manualReview: bridgeConfigurations.getRankupManualReview(bridgeId),
       pendingCount: pendingReviewManager.getReviews(bridgeId).length,
-      lastCheckAt: this.lastCheckByBridge.get(bridgeId) ?? null
+      lastCheckAt: this.lastCheckByBridge.get(bridgeId)
     }))
 
     sendSuccess(response, { bridges })
@@ -242,15 +241,13 @@ export class RankupApiHandler {
     const cfg = this.application.core.bridgeConfigurations
     const channelIds = cfg.getRankupNotificationChannelIds(bridgeId)
 
-    const notificationChannels: { id: string; name: string | null }[] = []
-    const client = this.application.discordInstance?.getClient()
+    const notificationChannels: { id: string; name: string | undefined }[] = []
+    const client = this.application.discordInstance.getClient()
     for (const id of channelIds) {
-      let name: string | null = null
-      if (client) {
-        const ch = await client.channels.fetch(id).catch(() => undefined)
-        if (ch && 'name' in ch) {
-          name = (ch as { name: string }).name
-        }
+      let name: string | undefined
+      const ch = await client.channels.fetch(id).catch(() => undefined)
+      if (ch && 'name' in ch) {
+        name = (ch as { name: string }).name
       }
       notificationChannels.push({ id, name })
     }
@@ -278,7 +275,7 @@ export class RankupApiHandler {
     if (body === undefined) return
 
     const error = this.validateRulesBody(body)
-    if (error !== null) {
+    if (error !== undefined) {
       sendError(response, 'VALIDATION_ERROR', error, 400)
       return
     }
@@ -316,15 +313,14 @@ export class RankupApiHandler {
     }
 
     try {
-      this.logger.debug(`Fetching guild ranks for bridge ${bridgeId} using bot UUID ${botUuid}`)
       const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getGuild('player', ...) returns null at runtime for players without a guild despite the Promise<Guild> typing
       if (!guild) {
         this.logger.info(`Guild not found for bridge ${bridgeId} (bot UUID: ${botUuid}) — returning empty ranks`)
         sendSuccess(response, { ranks: [] })
         return
       }
       const rankNames = guild.ranks.map((r) => r.name)
-      this.logger.debug(`Fetched ${rankNames.length} guild ranks for bridge ${bridgeId}: [${rankNames.join(', ')}]`)
       sendSuccess(response, { ranks: rankNames })
     } catch (error: unknown) {
       this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId} (bot UUID: ${botUuid}):`, error)
@@ -337,7 +333,7 @@ export class RankupApiHandler {
     query: Record<string, string | string[]>
   ): Promise<void> {
     const bridgeId = this.requireBridgeId(query, response)
-    if (bridgeId === null) return
+    if (bridgeId === undefined) return
 
     const usernameRaw = query.username
     const username = Array.isArray(usernameRaw) ? usernameRaw[0] : usernameRaw
@@ -383,6 +379,7 @@ export class RankupApiHandler {
 
     const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- hypixel-api-reborn sets weeklyExperience to null at runtime when expHistory is missing despite the number typing
     const weeklyGexp = member.weeklyExperience ?? 0
 
     const stats = {
@@ -443,13 +440,12 @@ export class RankupApiHandler {
   private handleStatus(response: http.ServerResponse, bridgeId: string): void {
     sendSuccess(response, {
       running: false,
-      lastCheckAt: this.lastCheckByBridge.get(bridgeId) ?? null,
-      nextCheckAt: null
+      lastCheckAt: this.lastCheckByBridge.get(bridgeId),
+      nextCheckAt: undefined
     })
   }
 
   private async handleApprove(response: http.ServerResponse, id: number): Promise<void> {
-    this.logger.debug('handleApprove: id=%d', id)
     const review = this.application.core.pendingReviewManager.getReview(id)
     if (review === undefined) {
       sendError(response, 'NOT_FOUND', 'Review not found', 404)
@@ -465,8 +461,7 @@ export class RankupApiHandler {
     }
   }
 
-  private async handleReject(response: http.ServerResponse, id: number): Promise<void> {
-    this.logger.debug('handleReject: id=%d', id)
+  private handleReject(response: http.ServerResponse, id: number): void {
     const review = this.application.core.pendingReviewManager.getReview(id)
     if (review === undefined) {
       sendError(response, 'NOT_FOUND', 'Review not found', 404)
@@ -485,7 +480,7 @@ export class RankupApiHandler {
     sendSuccess(response, { success: true })
   }
 
-  private validateRulesBody(body: unknown): string | null {
+  private validateRulesBody(body: unknown): string | undefined {
     if (typeof body !== 'object' || body === null || Array.isArray(body)) {
       return 'Body must be an object'
     }
@@ -509,19 +504,19 @@ export class RankupApiHandler {
     if (!Array.isArray(b.promotionRules)) return 'promotionRules must be an array'
     for (const rule of b.promotionRules) {
       const error = this.validatePromotionRule(rule)
-      if (error !== null) return `promotionRules: ${error}`
+      if (error !== undefined) return `promotionRules: ${error}`
     }
 
     if (!Array.isArray(b.demotionRules)) return 'demotionRules must be an array'
     for (const rule of b.demotionRules) {
       const error = this.validateDemotionRule(rule)
-      if (error !== null) return `demotionRules: ${error}`
+      if (error !== undefined) return `demotionRules: ${error}`
     }
 
-    return null
+    return undefined
   }
 
-  private validatePromotionRule(rule: unknown): string | null {
+  private validatePromotionRule(rule: unknown): string | undefined {
     if (typeof rule !== 'object' || rule === null || Array.isArray(rule)) {
       return 'rule must be an object'
     }
@@ -536,10 +531,10 @@ export class RankupApiHandler {
     if (typeof r.minOnlineHours !== 'number' || !Number.isFinite(r.minOnlineHours)) {
       return 'minOnlineHours must be a number'
     }
-    return null
+    return undefined
   }
 
-  private validateDemotionRule(rule: unknown): string | null {
+  private validateDemotionRule(rule: unknown): string | undefined {
     if (typeof rule !== 'object' || rule === null || Array.isArray(rule)) {
       return 'rule must be an object'
     }
@@ -564,7 +559,7 @@ export class RankupApiHandler {
     ) {
       return 'maxDaysInactive must be a number when present'
     }
-    return null
+    return undefined
   }
 
   private parseQuery(queryPart: string | undefined): Record<string, string | string[]> {
@@ -612,20 +607,17 @@ export class RankupApiHandler {
     return items.map((item) => ({ ...item, name: names.get(item.uuid) }))
   }
 
-  private requireBridgeId(query: Record<string, string | string[]>, response: http.ServerResponse): string | null {
+  private requireBridgeId(query: Record<string, string | string[]>, response: http.ServerResponse): string | undefined {
     const raw = query.bridgeId
     const value = Array.isArray(raw) ? raw[0] : raw
-    if (value === undefined || value.length === 0) {
+    if (value.length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'Missing or empty bridgeId', 400)
-      return null
+      return undefined
     }
     return value
   }
 
-  private async readJsonBody(
-    request: http.IncomingMessage,
-    response: http.ServerResponse
-  ): Promise<unknown | undefined> {
+  private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
     let raw: string
     try {
       raw = await this.readBody(request)

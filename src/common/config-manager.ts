@@ -61,9 +61,6 @@ export class ConfigManager<T extends object> {
       4
     )
     if (fileRawData !== readyToSave) {
-      this.logger.debug(
-        `Saved configuration file seems manually edited. Reformatting the file properly ${this.configFilePath}..`
-      )
       fs.writeFileSync(this.configFilePath, readyToSave, { encoding: 'utf8' })
     }
 
@@ -71,8 +68,6 @@ export class ConfigManager<T extends object> {
   }
 
   public save(): void {
-    this.logger.debug(`Saving configuration file for ${this.configFilePath}`)
-
     const objectToSave = this.removeWithoutDefaults(this.data as Record<string, unknown>, this.defaultConfig)
     const dataRaw = JSON.stringify(objectToSave, undefined, 4)
     fs.writeFileSync(this.configFilePath, dataRaw, { encoding: 'utf8' })
@@ -110,9 +105,6 @@ export class ConfigManager<T extends object> {
    * Mark {@link #data} changed. So they are eligible for auto save routine.
    */
   public markDirty(): void {
-    if (!this.dirty) {
-      this.logger.debug(`Marked configuration as dirty for later save: ${this.configFilePath}`)
-    }
     this.dirty = true
   }
 

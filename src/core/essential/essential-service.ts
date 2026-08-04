@@ -61,8 +61,7 @@ export class EssentialService {
       const isOnline = await this.queryPlayerStatus(uuid)
       this.cache.set(uuid, isOnline)
       return isOnline
-    } catch (error: unknown) {
-      this.logger.debug(`Essential status check failed for ${uuid}:`, error)
+    } catch {
       return undefined
     }
   }
@@ -78,9 +77,6 @@ export class EssentialService {
 
     const timeSinceLastFail = Date.now() - this.lastAuthFailedAt
     if (timeSinceLastFail < this.authCooldownMs) {
-      this.logger.debug(
-        `[EssentialService] Skipping auth attempt (${this.authCooldownMs - timeSinceLastFail}ms remaining in cooldown)`
-      )
       return
     }
 
@@ -111,12 +107,19 @@ export class EssentialService {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(ESSENTIAL_WS_URL, {
         headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
           Authorization: `Basic ${authString}`,
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
           'Essential-User-UUID': uuid,
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
           'Essential-User-Name': username,
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
           'Essential-Max-Protocol-Version': '10',
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
           'Essential-Mod-Version': '1.3.4.1',
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
           'Essential-Mod-Branch': 'stable',
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
           'Essential-Mod-Commit': '0000000'
         }
       })
@@ -253,19 +256,22 @@ export class EssentialService {
           path: parsed.pathname,
           method: 'POST',
           headers: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'Content-Type': 'application/json',
+            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'Content-Length': Buffer.byteLength(postData),
+            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'User-Agent': 'Essential/1.3.4.1'
           }
         },
-        (res) => {
+        (response) => {
           if (
-            res.statusCode === 204 ||
-            (res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300)
+            response.statusCode === 204 ||
+            (response.statusCode !== undefined && response.statusCode >= 200 && response.statusCode < 300)
           ) {
             resolve()
           } else {
-            reject(new Error(`Mojang joinServer returned HTTP ${res.statusCode}`))
+            reject(new Error(`Mojang joinServer returned HTTP ${response.statusCode}`))
           }
         }
       )

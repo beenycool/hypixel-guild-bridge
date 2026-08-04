@@ -25,7 +25,7 @@ export class TournamentNotifications {
   /**
    * Translate a key using the bridge-specific translator.
    */
-  private t(bridgeId: string, key: string, parameters?: Record<string, any>): string {
+  private t(bridgeId: string, key: string, parameters?: Record<string, unknown>): string {
     try {
       const translator = this.application.getTranslatorForBridge(bridgeId)
       return translator(key, parameters)
@@ -85,7 +85,7 @@ export class TournamentNotifications {
       this.application.logger.info(`sendWhisper: Whisper sent to ${profile.name}`)
       return true
     } catch (error) {
-      this.application.logger.info(`sendWhisper: Failed to send whisper to ${profile.name}: ${error}`)
+      this.application.logger.info(`sendWhisper: Failed to send whisper to ${profile.name}: ${String(error)}`)
       return false
     }
   }
@@ -114,7 +114,7 @@ export class TournamentNotifications {
       await inst.send(`/gc ${message}`, MinecraftSendChatPriority.Default, undefined)
       this.application.logger.info(`announceToGuild: Guild announcement sent`)
     } catch (error) {
-      this.application.logger.info(`announceToGuild: Failed: ${error}`)
+      this.application.logger.info(`announceToGuild: Failed: ${String(error)}`)
     }
   }
 
@@ -417,12 +417,11 @@ export class TournamentNotifications {
     tournamentName: string,
     playerName: string,
     streamUrl: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API stub: reserved for per-channel announcements
     channelId: string
   ): Promise<void> {
     this.application.logger.info(`announceStream: ${playerName} streaming ${tournamentName} at ${streamUrl}`)
     try {
-      const message = `🔴 ${playerName} is now live: ${streamUrl}`
-
       const embed = new EmbedBuilder()
         .setTitle(`${playerName} is now live!`)
         .setURL(streamUrl)

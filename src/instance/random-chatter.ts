@@ -16,7 +16,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
   private intervalHandle: NodeJS.Timeout | undefined
   public pausedBy: string | undefined
   private readonly guildPlayerListener = (event: {
-    type: string
+    type: GuildPlayerEventType
     user: { mojangProfile: () => { name: string } | undefined }
   }) => {
     if (this.pausedBy === undefined) return
@@ -128,15 +128,13 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     if (next !== undefined && now < next) return
 
     const messages = bridgeConfig.getRandomChatterMessages(bridgeId, [])
-    if (!messages || messages.length === 0) return
+    if (messages.length === 0) return
 
     const minOnline = bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId)
     const includeName = bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
 
     // Quiet window: do not send if recent real guild activity happened for this bridge
-    const quietMinutes = bridgeConfig.getRandomChatterQuietWindowMinutes
-      ? bridgeConfig.getRandomChatterQuietWindowMinutes(bridgeId)
-      : 0
+    const quietMinutes = bridgeConfig.getRandomChatterQuietWindowMinutes(bridgeId)
     if (quietMinutes > 0) {
       const lastActivity = this.lastActivityAt.get(bridgeId)
       if (lastActivity !== undefined && lastActivity + Duration.minutes(quietMinutes).toMilliseconds() > Date.now())
@@ -145,7 +143,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
 
     // Get guild list from guildManager for this bridge's configured minecraft instances.
     const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
-    if (!instanceNames || instanceNames.length === 0) return
+    if (instanceNames.length === 0) return
 
     // Choose the first configured Minecraft instance that exists and is connected
     let chosenInstance: string | undefined
@@ -169,9 +167,6 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
 
     const botIgn = mc.username()
     if (botIgn === undefined) {
-      this.logger.debug(
-        `random-chatter: skip bridge ${bridgeId}: minecraft username not available for instance ${chosenInstance}`
-      )
       return
     }
 
@@ -180,9 +175,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     if (onlineMembers.length < minOnline) return
 
     // Anti-repeat selection: prefer messages not seen in the last N sends for this bridge
-    const antiRepeatLength = bridgeConfig.getRandomChatterAntiRepeatLength
-      ? bridgeConfig.getRandomChatterAntiRepeatLength(bridgeId)
-      : 5
+    const antiRepeatLength = bridgeConfig.getRandomChatterAntiRepeatLength(bridgeId)
     const memory = this.antiRepeatMemory.get(bridgeId) ?? []
     let candidates = messages.filter((m) => !memory.includes(m))
     if (candidates.length === 0) candidates = messages // fallback when all messages are in recent memory
@@ -263,13 +256,13 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       if (this.pausedBy !== undefined) return { sent: false, reason: 'paused' }
 
       const messages = bridgeConfig.getRandomChatterMessages(bridgeId, [])
-      if (!messages || messages.length === 0) return { sent: false, reason: 'no_messages' }
+      if (messages.length === 0) return { sent: false, reason: 'no_messages' }
 
       const minOnline = bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId)
       const includeName = bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
 
       const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
-      if (!instanceNames || instanceNames.length === 0) return { sent: false, reason: 'no_instances_configured' }
+      if (instanceNames.length === 0) return { sent: false, reason: 'no_instances_configured' }
 
       // choose a connected instance
       let chosenInstance: string | undefined

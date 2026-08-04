@@ -142,9 +142,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       }
       return
     } else if (reason === QuitOwnVolition) {
-      const reason = 'Client quit on its own volition. No further trying to reconnect.'
-
-      this.logger.debug(reason)
       // eslint-disable-next-line unicorn/prefer-ternary
       if (clientSession.silentQuit) {
         //TODO: properly handle silent quit
@@ -155,7 +152,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       return
     }
 
-    this.logger.debug(`Client quit with the reason: ${reason}`)
     this.clientInstance.lastDisconnectMessage = { type: InstanceMessageType.MinecraftEnded, value: reason }
     this.clientInstance.lastDisconnectTime = Date.now()
     this.clientInstance.reconnectAttempts++

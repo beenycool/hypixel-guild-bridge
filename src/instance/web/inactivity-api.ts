@@ -45,7 +45,7 @@ export class InactivityApiHandler {
     if (!rawUrl) return false
 
     const [pathPart] = rawUrl.split('?')
-    if (!pathPart?.startsWith(InactivityPrefix)) return false
+    if (!pathPart.startsWith(InactivityPrefix)) return false
 
     const method = request.method ?? 'GET'
 
@@ -303,8 +303,8 @@ export class InactivityApiHandler {
       const config = await this.loadConfig()
       if (!config.enabled || config.channelIds.length === 0) return
 
-      const discordClient = this.application.discordInstance?.getClient()
-      if (!discordClient?.isReady()) return
+      const discordClient = this.application.discordInstance.getClient()
+      if (!discordClient.isReady()) return
 
       let playerName: string
       let reason: string

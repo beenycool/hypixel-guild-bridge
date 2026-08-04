@@ -6,6 +6,7 @@ import { httpClient } from '../../../common/http.js'
 import { getUuidIfExists, usernameNotExists } from '../common/utility.js'
 
 interface UrchinTag {
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case field required by the Urchin API
   tag_type: string
   reason: string
 }
@@ -42,6 +43,7 @@ export default class Urchin extends ChatCommandHandler {
           player: uuid
         },
         headers: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the Urchin API
           'X-API-Key': urchinApiKey
         }
       })

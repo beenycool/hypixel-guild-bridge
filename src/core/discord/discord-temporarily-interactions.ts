@@ -40,8 +40,8 @@ export class DiscordTemporarilyInteractions {
             entry.messageId,
             entry.channelId,
             Math.floor(entry.createdAt / 1000),
-            entry.type ?? null,
-            entry.bridgeId ?? null
+            entry.type ?? undefined,
+            entry.bridgeId ?? undefined
           ]
         )
       }

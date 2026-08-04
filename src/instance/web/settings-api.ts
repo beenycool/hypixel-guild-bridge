@@ -16,10 +16,10 @@ type SettingObject = Record<string, Primitive | Primitive[] | Record<string, Pri
 
 const PREFIX = '/api/bridges'
 
-function string_(s: unknown, d = ''): string {
+function stringValue(s: unknown, d = ''): string {
   if (typeof s === 'string') return s
   if (s === undefined || s === null) return d
-  return String(s)
+  return String(s as string | number | boolean)
 }
 
 function bool(s: unknown, d = false): boolean {
@@ -33,7 +33,7 @@ function boolOrUndefined(s: unknown): boolean | undefined {
   return true
 }
 
-function number_(s: unknown, d = 0): number {
+function numberValue(s: unknown, d = 0): number {
   if (typeof s === 'number' && Number.isFinite(s)) return s
   if (typeof s === 'string') {
     const n = Number(s)
@@ -46,7 +46,7 @@ function array(s: unknown): string[] {
   if (Array.isArray(s)) return s.map(String)
   if (typeof s === 'string') {
     try {
-      const p = JSON.parse(s)
+      const p = JSON.parse(s) as unknown
       return Array.isArray(p) ? p.map(String) : []
     } catch {
       return [s]
@@ -66,7 +66,7 @@ export class SettingsApiHandler {
     if (!rawUrl) return false
 
     const [pathPart] = rawUrl.split('?')
-    if (!pathPart?.startsWith(PREFIX)) return false
+    if (!pathPart.startsWith(PREFIX)) return false
 
     const method = (request.method ?? 'GET').toUpperCase()
     const segments = pathPart
@@ -75,11 +75,11 @@ export class SettingsApiHandler {
       .filter(Boolean)
 
     const permission = this.verifyAuth(request, response)
-    if (permission === null) return true
+    if (permission === undefined) return true
 
     // GET /api/bridges (list all bridges)
     if (method === 'GET' && segments.length === 0) {
-      await this.handleBridgesList(response)
+      this.handleBridgesList(response)
       return true
     }
 
@@ -91,7 +91,7 @@ export class SettingsApiHandler {
       }
       const body = await this.readJsonBody(request as never, response)
       if (body === undefined) return true
-      await this.handleCreateBridge(response, body as { bridgeId?: unknown })
+      this.handleCreateBridge(response, body as { bridgeId?: unknown })
       return true
     }
 
@@ -101,7 +101,7 @@ export class SettingsApiHandler {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
-      await this.handleBridgeGet(response, segments[0])
+      this.handleBridgeGet(response, segments[0])
       return true
     }
 
@@ -111,7 +111,7 @@ export class SettingsApiHandler {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
-      await this.handleDelete(response, segments[0])
+      this.handleDelete(response, segments[0])
       return true
     }
 
@@ -133,7 +133,7 @@ export class SettingsApiHandler {
       }
       const body = await this.readJsonBody(request as never, response)
       if (body === undefined) return true
-      await this.handlePut(response, segments[0], segments[2], body as SettingObject)
+      this.handlePut(response, segments[0], segments[2], body as SettingObject)
       return true
     }
 
@@ -141,34 +141,32 @@ export class SettingsApiHandler {
     return true
   }
 
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | null {
+  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
     const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return null
+    if (!webConfig?.signingSecret) return undefined
     const authHeader = request.headers.authorization
     const tokens = buildTokenSet(webConfig)
     const result = verifyToken(tokens, authHeader)
     if (result.ok) return result.permission
     sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-    return null
+    return undefined
   }
 
-  private async handleBridgesList(response: http.ServerResponse): Promise<void> {
+  private handleBridgesList(response: http.ServerResponse): void {
     try {
       const bridgeConfigurations = this.application.core.bridgeConfigurations
       const bridgeIds = bridgeConfigurations.getAllBridgeIds()
-      const bridges = await Promise.all(
-        bridgeIds.map(async (id) => {
-          const settings = bridgeConfigurations.getAllSettings(id)
-          return { id, ...settings }
-        })
-      )
+      const bridges = bridgeIds.map((id) => {
+        const settings = bridgeConfigurations.getAllSettings(id)
+        return { id, ...settings }
+      })
       sendSuccess(response, bridges)
     } catch (error: unknown) {
       sendError(response, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to list bridges', 500)
     }
   }
 
-  private async handleBridgeGet(response: http.ServerResponse, bridgeId: string): Promise<void> {
+  private handleBridgeGet(response: http.ServerResponse, bridgeId: string): void {
     const ids = this.application.core.bridgeConfigurations.getAllBridgeIds()
     if (!ids.includes(bridgeId)) {
       sendError(response, 'NOT_FOUND', 'Bridge not found', 404)
@@ -189,59 +187,56 @@ export class SettingsApiHandler {
 
     // Collect channel IDs for name resolution
     const channelIds = new Set<string>()
-    for (const id of array((categories.channels as SettingObject)?.publicChannelIds)) channelIds.add(id)
-    for (const id of array((categories.channels as SettingObject)?.officerChannelIds)) channelIds.add(id)
-    for (const id of array((categories.channels as SettingObject)?.loggerChannelIds)) channelIds.add(id)
-    for (const id of array((categories.channels as SettingObject)?.promoteChannelIds)) channelIds.add(id)
-    for (const id of array((categories.channels as SettingObject)?.chatSummaryChannelIds)) channelIds.add(id)
-    for (const id of array((categories.rankup as SettingObject)?.notificationChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject | undefined)?.publicChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject | undefined)?.officerChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject | undefined)?.loggerChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject | undefined)?.promoteChannelIds)) channelIds.add(id)
+    for (const id of array((categories.channels as SettingObject | undefined)?.chatSummaryChannelIds))
+      channelIds.add(id)
+    for (const id of array((categories.rankup as SettingObject | undefined)?.notificationChannelIds)) channelIds.add(id)
 
     // Collect role IDs for name resolution
     const roleIds = new Set<string>()
-    for (const id of array((categories.staffRoles as SettingObject)?.helperRoleIds)) roleIds.add(id)
-    for (const id of array((categories.staffRoles as SettingObject)?.officerRoleIds)) roleIds.add(id)
-    for (const id of array((categories.staffRoles as SettingObject)?.ownerRoleIds)) roleIds.add(id)
-    for (const id of array((categories.staffRoles as SettingObject)?.joinRequestRoleIds)) roleIds.add(id)
+    for (const id of array((categories.staffRoles as SettingObject | undefined)?.helperRoleIds)) roleIds.add(id)
+    for (const id of array((categories.staffRoles as SettingObject | undefined)?.officerRoleIds)) roleIds.add(id)
+    for (const id of array((categories.staffRoles as SettingObject | undefined)?.ownerRoleIds)) roleIds.add(id)
+    for (const id of array((categories.staffRoles as SettingObject | undefined)?.joinRequestRoleIds)) roleIds.add(id)
 
-    const resolvedChannels: { id: string; name: string | null }[] = []
-    const client = this.application.discordInstance?.getClient?.()
+    const resolvedChannels: { id: string; name: string | undefined }[] = []
+    const client = this.application.discordInstance.getClient()
     for (const id of channelIds) {
-      let name: string | null = null
-      if (client) {
-        try {
-          const ch = await client.channels.fetch(id).catch(() => undefined)
-          if (ch && 'name' in ch) name = (ch as { name: string }).name
-        } catch {
-          // not resolvable
-        }
+      let name: string | undefined
+      try {
+        const ch = await client.channels.fetch(id).catch(() => undefined)
+        if (ch && 'name' in ch) name = (ch as { name: string }).name
+      } catch {
+        // not resolvable
       }
       resolvedChannels.push({ id, name })
     }
 
-    const resolvedRoles: { id: string; name: string | null }[] = []
+    const resolvedRoles: { id: string; name: string | undefined }[] = []
     for (const id of roleIds) {
-      let name: string | null = null
-      if (client) {
-        try {
-          // Roles are guild-scoped, try every guild cache and fetch
-          for (const [, guild] of client.guilds.cache) {
-            let role = guild.roles.cache.get(id)
-            if (!role) {
-              try {
-                const fetched = await guild.roles.fetch(id)
-                if (fetched) role = fetched
-              } catch {
-                // not in this guild
-              }
-            }
-            if (role) {
-              name = role.name
-              break
+      let name: string | undefined
+      try {
+        // Roles are guild-scoped, try every guild cache and fetch
+        for (const [, guild] of client.guilds.cache) {
+          let role = guild.roles.cache.get(id)
+          if (!role) {
+            try {
+              const fetched = await guild.roles.fetch(id)
+              if (fetched) role = fetched
+            } catch {
+              // not in this guild
             }
           }
-        } catch {
-          // not resolvable
+          if (role) {
+            name = role.name
+            break
+          }
         }
+      } catch {
+        // not resolvable
       }
       resolvedRoles.push({ id, name })
     }
@@ -260,6 +255,7 @@ export class SettingsApiHandler {
       if (botUuid) {
         try {
           const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getGuild('player', ...) returns null at runtime for players without a guild despite the Promise<Guild> typing
           if (guild) guildRanks = guild.ranks.map((r) => r.name)
         } catch {
           // fail gracefully
@@ -292,12 +288,7 @@ export class SettingsApiHandler {
     })
   }
 
-  private async handlePut(
-    response: http.ServerResponse,
-    bridgeId: string,
-    category: string,
-    body: SettingObject
-  ): Promise<void> {
+  private handlePut(response: http.ServerResponse, bridgeId: string, category: string, body: SettingObject): void {
     const ids = this.application.core.bridgeConfigurations.getAllBridgeIds()
     if (!ids.includes(bridgeId)) {
       sendError(response, 'NOT_FOUND', 'Bridge not found', 404)
@@ -332,34 +323,34 @@ export class SettingsApiHandler {
           cfg.setAlwaysReplyReaction(bridgeId, bool(body.alwaysReply))
           cfg.setEnforceVerification(bridgeId, bool(body.enforceVerification))
           cfg.setTextToImage(bridgeId, bool(body.minecraftTextImages))
-          cfg.setLanguage(bridgeId, string_(body.language) || undefined)
-          cfg.setBotUsernameOverride(bridgeId, string_(body.botUsernameOverride) || undefined)
+          cfg.setLanguage(bridgeId, stringValue(body.language) || undefined)
+          cfg.setBotUsernameOverride(bridgeId, stringValue(body.botUsernameOverride) || undefined)
           break
         }
         case 'minecraftEvents': {
           cfg.setGuildOnline(bridgeId, bool(body.memberOnline))
           cfg.setGuildOffline(bridgeId, bool(body.memberOffline))
           cfg.setPersistGuildOnlineOffline(bridgeId, bool(body.persistOnlineOffline))
-          const deleteAfter = number_(body.deleteAfterSeconds, 300)
+          const deleteAfter = numberValue(body.deleteAfterSeconds, 300)
           cfg.setDurationTemporarilyInteractions(bridgeId, Duration.seconds(deleteAfter))
-          cfg.setMaxTemporarilyInteractions(bridgeId, number_(body.maxEvents, 10))
+          cfg.setMaxTemporarilyInteractions(bridgeId, numberValue(body.maxEvents, 10))
           cfg.setPersistGuildJoinLeave(bridgeId, bool(body.persistJoinLeave))
           const deleteJoinLeaveAfter = Math.max(
             86_400,
-            Math.min(604_800, number_(body.deleteJoinLeaveAfterSeconds, 172_800))
+            Math.min(604_800, numberValue(body.deleteJoinLeaveAfterSeconds, 172_800))
           ) // 2 days in seconds, clamped to 1-7 days
           cfg.setDurationJoinLeaveInteractions(bridgeId, Duration.seconds(deleteJoinLeaveAfter))
           cfg.setRandomChatterEnabled(bridgeId, bool(body.chatterEnabled))
-          cfg.setRandomChatterIntervalMinutes(bridgeId, number_(body.chatterIntervalMinutes, 15))
-          cfg.setRandomChatterMinimumOnlinePlayers(bridgeId, number_(body.chatterMinOnlinePlayers, 1))
+          cfg.setRandomChatterIntervalMinutes(bridgeId, numberValue(body.chatterIntervalMinutes, 15))
+          cfg.setRandomChatterMinimumOnlinePlayers(bridgeId, numberValue(body.chatterMinOnlinePlayers, 1))
           cfg.setRandomChatterIncludePlayerName(bridgeId, bool(body.chatterUseBotName))
           cfg.setRandomChatterMessages(bridgeId, array(body.chatterMessages))
-          cfg.setRandomChatterAntiRepeatLength(bridgeId, number_(body.chatterAntiRepeatLength, 5))
-          cfg.setRandomChatterQuietWindowMinutes(bridgeId, number_(body.chatterQuietWindowMinutes, 2))
+          cfg.setRandomChatterAntiRepeatLength(bridgeId, numberValue(body.chatterAntiRepeatLength, 5))
+          cfg.setRandomChatterQuietWindowMinutes(bridgeId, numberValue(body.chatterQuietWindowMinutes, 2))
           cfg.setWelcomeOnlineEnabled(bridgeId, bool(body.welcomeOnlineEnabled))
           cfg.setWelcomeOnlineMessages(
             bridgeId,
-            (body.welcomeOnlineMessages as never as { uuid: string; message: string }[]) || []
+            (body.welcomeOnlineMessages as never as { uuid: string; message: string }[] | undefined) ?? []
           )
           break
         }
@@ -367,15 +358,21 @@ export class SettingsApiHandler {
           cfg.setJoinGuildReaction(bridgeId, bool(body.guildJoinReaction))
           cfg.setLeaveGuildReaction(bridgeId, bool(body.guildLeaveReaction))
           cfg.setKickGuildReaction(bridgeId, bool(body.guildKickReaction))
-          cfg.setJoinReactionEmojiType(bridgeId, string_(body.joinDiscordReaction, 'none'))
-          cfg.setLeaveReactionEmojiType(bridgeId, string_(body.leaveDiscordReaction, 'none'))
+          cfg.setJoinReactionEmojiType(bridgeId, stringValue(body.joinDiscordReaction, 'none'))
+          cfg.setLeaveReactionEmojiType(bridgeId, stringValue(body.leaveDiscordReaction, 'none'))
           cfg.setAnnounceMutedPlayer(bridgeId, bool(body.announcePlayerMuted))
           break
         }
         case 'moderation': {
           cfg.setHeatPunishmentEnabled(bridgeId, boolOrUndefined(body.heatPunishmentsEnabled))
-          cfg.setKicksPerDay(bridgeId, body.heatKicksPerDay == undefined ? undefined : number_(body.heatKicksPerDay))
-          cfg.setMutesPerDay(bridgeId, body.heatMutesPerDay == undefined ? undefined : number_(body.heatMutesPerDay))
+          cfg.setKicksPerDay(
+            bridgeId,
+            body.heatKicksPerDay == undefined ? undefined : numberValue(body.heatKicksPerDay)
+          )
+          cfg.setMutesPerDay(
+            bridgeId,
+            body.heatMutesPerDay == undefined ? undefined : numberValue(body.heatMutesPerDay)
+          )
           cfg.setImmuneDiscordUsers(bridgeId, array(body.immuneDiscordUserIds))
           cfg.setImmuneMojangPlayers(bridgeId, array(body.immuneMojangPlayers))
           cfg.setProfanityEnabled(bridgeId, boolOrUndefined(body.profanityFilterEnabled))
@@ -383,19 +380,19 @@ export class SettingsApiHandler {
         }
         case 'chatCommands': {
           cfg.setCommandsEnabled(bridgeId, boolOrUndefined(body.commandsEnabled))
-          cfg.setCommandPrefix(bridgeId, string_(body.chatCommandPrefix) || undefined)
-          cfg.setPassthroughPrefix(bridgeId, string_(body.passthroughPrefix) || undefined)
+          cfg.setCommandPrefix(bridgeId, stringValue(body.chatCommandPrefix) || undefined)
+          cfg.setPassthroughPrefix(bridgeId, stringValue(body.passthroughPrefix) || undefined)
           cfg.setPassthroughCommands(bridgeId, array(body.passthroughCommands))
-          cfg.setInsultMode(bridgeId, string_(body.insultMode) || undefined)
+          cfg.setInsultMode(bridgeId, stringValue(body.insultMode) || undefined)
           break
         }
         case 'rankup': {
           cfg.setRankupEnabled(bridgeId, bool(body.enabled))
           cfg.setRankupManualReview(bridgeId, bool(body.manualReview))
-          cfg.setRankupNotificationCooldown(bridgeId, number_(body.notificationCooldown))
+          cfg.setRankupNotificationCooldown(bridgeId, numberValue(body.notificationCooldown))
           cfg.setRankupNotificationChannelIds(bridgeId, array(body.notificationChannelIds))
-          cfg.setRankupScheduleDay(bridgeId, number_(body.scheduleDay, -1))
-          cfg.setRankupScheduleHour(bridgeId, number_(body.scheduleHour, -1))
+          cfg.setRankupScheduleDay(bridgeId, numberValue(body.scheduleDay, -1))
+          cfg.setRankupScheduleHour(bridgeId, numberValue(body.scheduleHour, -1))
           cfg.setRankupRules(bridgeId, body.promotionRules as never)
           cfg.setRankupDemotionRules(bridgeId, body.demotionRules as never)
           cfg.setRankupExcludedRanks(bridgeId, array(body.excludedRanks))
@@ -411,16 +408,16 @@ export class SettingsApiHandler {
         }
         case 'tournament': {
           cfg.setTournamentEnabled(bridgeId, bool(body.enabled))
-          cfg.setTournamentNotificationChannelId(bridgeId, string_(body.notificationChannelId))
-          cfg.setTournamentDefaultDeadlineHours(bridgeId, number_(body.defaultDeadlineHours, 48))
-          cfg.setTournamentDefaultBestOf(bridgeId, number_(body.defaultBestOf, 1))
+          cfg.setTournamentNotificationChannelId(bridgeId, stringValue(body.notificationChannelId))
+          cfg.setTournamentDefaultDeadlineHours(bridgeId, numberValue(body.defaultDeadlineHours, 48))
+          cfg.setTournamentDefaultBestOf(bridgeId, numberValue(body.defaultBestOf, 1))
           cfg.setTournamentAnnounceMc(bridgeId, bool(body.announceMc))
-          cfg.setTournamentCheckinWindowMinutes(bridgeId, number_(body.checkinWindowMinutes, 60))
-          cfg.setTournamentMinParticipants(bridgeId, number_(body.minParticipants, 4))
-          cfg.setTournamentMaxExtensionHours(bridgeId, number_(body.maxExtensionHours, 24))
+          cfg.setTournamentCheckinWindowMinutes(bridgeId, numberValue(body.checkinWindowMinutes, 60))
+          cfg.setTournamentMinParticipants(bridgeId, numberValue(body.minParticipants, 4))
+          cfg.setTournamentMaxExtensionHours(bridgeId, numberValue(body.maxExtensionHours, 24))
           cfg.setTournamentAutoCheckin(bridgeId, bool(body.autoCheckin))
-          cfg.setTournamentCategoryId(bridgeId, string_(body.categoryId) || undefined)
-          cfg.setTournamentDefaultBracketFormat(bridgeId, string_(body.bracketFormat, 'single-elim'))
+          cfg.setTournamentCategoryId(bridgeId, stringValue(body.categoryId) || undefined)
+          cfg.setTournamentDefaultBracketFormat(bridgeId, stringValue(body.bracketFormat, 'single-elim'))
           cfg.setTournamentValidGameTypes(bridgeId, array(body.validGameTypes))
           break
         }
@@ -437,7 +434,7 @@ export class SettingsApiHandler {
     }
   }
 
-  private async handleCreateBridge(response: http.ServerResponse, body: { bridgeId?: unknown }): Promise<void> {
+  private handleCreateBridge(response: http.ServerResponse, body: { bridgeId?: unknown } | null | undefined): void {
     const rawId = body?.bridgeId
     if (typeof rawId !== 'string' || rawId.trim().length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'Missing or invalid bridgeId', 400)
@@ -467,12 +464,12 @@ export class SettingsApiHandler {
     }
 
     this.application.core.bridgeConfigurations.addBridgeId(bridgeId)
-    await this.application.bridgeResolver.rebuildLookupMaps()
+    this.application.bridgeResolver.rebuildLookupMaps()
 
     sendSuccess(response, { success: true, bridgeId })
   }
 
-  private async handleDelete(response: http.ServerResponse, bridgeId: string): Promise<void> {
+  private handleDelete(response: http.ServerResponse, bridgeId: string): void {
     const ids = this.application.core.bridgeConfigurations.getAllBridgeIds()
     if (!ids.includes(bridgeId)) {
       sendError(response, 'NOT_FOUND', 'Bridge not found', 404)
@@ -480,14 +477,11 @@ export class SettingsApiHandler {
     }
 
     this.application.core.bridgeConfigurations.removeBridgeId(bridgeId)
-    await this.application.bridgeResolver.rebuildLookupMaps()
+    this.application.bridgeResolver.rebuildLookupMaps()
     sendSuccess(response, { success: true })
   }
 
-  private async readJsonBody(
-    request: http.IncomingMessage,
-    response: http.ServerResponse
-  ): Promise<unknown | undefined> {
+  private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
     let raw: string
     try {
       raw = await this.readBody(request)

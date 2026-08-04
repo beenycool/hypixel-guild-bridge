@@ -13,32 +13,34 @@ export function signToken(payload: TokenPayload, secret: string): string {
   return `${data}.${sig}`
 }
 
-export function verifySignedToken(token: string, secret: string): TokenPayload | null {
+export function verifySignedToken(token: string, secret: string): TokenPayload | undefined {
   const dot = token.indexOf('.')
-  if (dot === -1) return null
+  if (dot === -1) return undefined
 
   const data = token.slice(0, dot)
   const sig = token.slice(dot + 1)
-  if (!data || !sig) return null
+  if (!data || !sig) return undefined
 
   const expected = createHmac('sha256', secret).update(data).digest('base64url')
-  if (sig.length !== expected.length) return null
+  if (sig.length !== expected.length) return undefined
 
   try {
-    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
+    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return undefined
   } catch {
-    return null
+    return undefined
   }
 
   try {
     const raw = Buffer.from(data, 'base64url').toString()
-    const payload: TokenPayload = JSON.parse(raw)
+    const parsed = JSON.parse(raw) as unknown
+    if (typeof parsed !== 'object' || !parsed) return undefined
+    const payload = parsed as Partial<TokenPayload>
     if (typeof payload.sub !== 'string' || typeof payload.perm !== 'number' || typeof payload.exp !== 'number') {
-      return null
+      return undefined
     }
-    if (payload.exp < Math.floor(Date.now() / 1000)) return null
-    return payload
+    if (payload.exp < Math.floor(Date.now() / 1000)) return undefined
+    return payload as TokenPayload
   } catch {
-    return null
+    return undefined
   }
 }

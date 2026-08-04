@@ -113,13 +113,13 @@ export class TournamentApiHandler {
       return true
     }
 
-    // GET /api/tournament/categories (Discord category channels for the guild)
+    // GET /api/tournament/categories?bridgeId=<id> (Discord category channels for the bridge's guild)
     if (pathPart === `${TournamentPrefix}/categories`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      this.handleCategories(response)
+      await this.handleCategories(request, response)
       return true
     }
 
@@ -709,7 +709,12 @@ export class TournamentApiHandler {
     }
 
     const discordInstance = this.application.discordInstance
-    const guild = discordInstance.getClient().guilds.cache.first()
+    const queryBridgeId = query.get('bridgeId')
+    const bridgeGuild =
+      queryBridgeId !== null && queryBridgeId.length > 0
+        ? await this.application.core.tournamentManager.resolveGuildForBridge(queryBridgeId).catch(() => undefined)
+        : undefined
+    const guild = bridgeGuild ?? discordInstance.getClient().guilds.cache.first()
     const now = Date.now()
     const resolved: Record<string, unknown> = {}
     const pending: string[] = []
@@ -734,10 +739,15 @@ export class TournamentApiHandler {
     sendSuccess(response, resolved)
   }
 
-  private handleCategories(response: http.ServerResponse): void {
+  private async handleCategories(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
     try {
-      const client = this.application.discordInstance.getClient()
-      const guild = client.guilds.cache.first()
+      const rawUrl = request.url ?? ''
+      const query = new URLSearchParams(rawUrl.split('?')[1] ?? '')
+      const bridgeId = query.get('bridgeId')
+      const guild =
+        bridgeId !== null && bridgeId.length > 0
+          ? await this.application.core.tournamentManager.resolveGuildForBridge(bridgeId)
+          : undefined
       if (guild === undefined) {
         sendSuccess(response, [])
         return
@@ -761,25 +771,7 @@ export class TournamentApiHandler {
     const body = await this.readJsonBody(request, response)
     if (body === undefined) return
 
-    const guildId = body.guildId
-    if (typeof guildId !== 'string') {
-      const client = this.application.discordInstance.getClient()
-      const guild = client.guilds.cache.first()
-      if (guild === undefined) {
-        sendError(response, 'VALIDATION_ERROR', 'guildId is required and no Discord guild available', 400)
-        return
-      }
-      try {
-        await this.application.core.tournamentManager.startTournament(tournamentId, guild.id)
-        sendSuccess(response, { success: true })
-        return
-      } catch (error: unknown) {
-        this.logger.error('Failed to start tournament:', error)
-        sendError(response, 'INTERNAL_ERROR', String(error), 500)
-        return
-      }
-    }
-
+    const guildId = typeof body.guildId === 'string' ? body.guildId : undefined
     try {
       await this.application.core.tournamentManager.startTournament(tournamentId, guildId)
       sendSuccess(response, { success: true })
@@ -1267,12 +1259,18 @@ export class TournamentApiHandler {
       }
 
       if (autoStart) {
-        const client = this.application.discordInstance.getClient()
-        const guild = client.guilds.cache.first()
-        const guildId = typeof body.guildId === 'string' && body.guildId.length > 0 ? body.guildId : guild?.id
+        const bridgeGuild = await this.application.core.tournamentManager
+          .resolveGuildForBridge(bridgeId)
+          .catch(() => undefined)
+        const guildId = bridgeGuild?.id ?? (typeof body.guildId === 'string' ? body.guildId : undefined)
         if (guildId === undefined) {
           await this.application.core.tournamentManager.cancelTournament(tournament.id).catch(() => undefined)
-          sendError(response, 'VALIDATION_ERROR', 'guildId is required and no Discord guild available', 400)
+          sendError(
+            response,
+            'VALIDATION_ERROR',
+            `Could not resolve a Discord guild for bridge "${bridgeId}". Configure the bridge's channels or pass guildId.`,
+            400
+          )
           return
         }
         try {

@@ -31,6 +31,9 @@ export class PendingReviewManager {
 
   constructor(
     private readonly databaseManager: DatabaseManager,
+    // Payloads mirror the ApplicationEvents declarations in common/application-event.ts; a
+    // narrower type here would break the re-emit in core.ts which narrows per event name.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous event payloads
     private readonly onEvent?: (type: string, data: any) => void
   ) {
     this.databaseManager.registerCleaner(() => {
