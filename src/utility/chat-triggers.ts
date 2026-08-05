@@ -104,6 +104,23 @@ export const InviteAcceptChat: RegexChat = {
   ]
 }
 
+export const PartyLeaveChat: RegexChat = {
+  success: [/^You left the party\./, /^The party was disbanded\./, /^You have been kicked from the party\./],
+  failure: [/^You are not in a party!/, /^You can't leave a party while in a game!/]
+}
+
+export const PartyAcceptChat: RegexChat = {
+  success: [/^You are now in a party with .*\./, /^You joined .*'s party\./],
+  failure: [
+    ...GeneralChat.failure,
+    /^You are already in a party!/,
+    /^You can't join a party while in a game!/,
+    /^(?:\[[+A-Z]{1,10}] )*(\w{3,32}) is not online!/,
+    /^You have blocked (?:\[[+A-Z]{1,10}] )*(\w{3,32})!/,
+    /^This party invite has expired!/
+  ]
+}
+
 export const PrivateMessageChat: RegexChat = {
   success: [...GeneralChat.success, /^To (?:\[[+A-Z]{3,10}] ){0,3}(\w{2,32}): (.{1,128})/g],
   failure: [

@@ -1,10 +1,13 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
+import { PartyInviteRegex, PartyJoinRegex, PartyLeaveRegex } from '../src/instance/minecraft/chat/party-invite.js'
 import {
   InviteAcceptChat,
   KickChat,
   MuteChat,
+  PartyAcceptChat,
+  PartyLeaveChat,
   PrivateMessageChat,
   RankChat,
   UnmuteChat
@@ -202,5 +205,92 @@ await describe('PrivateMessageChat triggers', async () => {
   await it('does not match PM without rank', () => {
     const matched = PrivateMessageChat.success.some((r) => r.test('To Steve: hi'))
     assert.ok(!matched)
+  })
+})
+
+await describe('PartyLeaveChat triggers', async () => {
+  await it('success pattern matches leaving party', () => {
+    const matched = PartyLeaveChat.success.some((r) => r.test('You left the party.'))
+    assert.ok(matched)
+  })
+
+  await it('success pattern matches party disband', () => {
+    const matched = PartyLeaveChat.success.some((r) => r.test('The party was disbanded.'))
+    assert.ok(matched)
+  })
+
+  await it('success pattern matches being kicked', () => {
+    const matched = PartyLeaveChat.success.some((r) => r.test('You have been kicked from the party.'))
+    assert.ok(matched)
+  })
+
+  await it('failure pattern matches not in a party', () => {
+    const matched = PartyLeaveChat.failure.some((r) => r.test('You are not in a party!'))
+    assert.ok(matched)
+  })
+})
+
+await describe('PartyAcceptChat triggers', async () => {
+  await it('success pattern matches joining party', () => {
+    const matched = PartyAcceptChat.success.some((r) => r.test('You are now in a party with Steve.'))
+    assert.ok(matched)
+  })
+
+  await it('success pattern matches joining named party', () => {
+    const matched = PartyAcceptChat.success.some((r) => r.test("You joined Steve's party."))
+    assert.ok(matched)
+  })
+
+  await it('failure pattern matches already in a party', () => {
+    const matched = PartyAcceptChat.failure.some((r) => r.test('You are already in a party!'))
+    assert.ok(matched)
+  })
+
+  await it('failure pattern matches inviter offline', () => {
+    const matched = PartyAcceptChat.failure.some((r) => r.test('Steve is not online!'))
+    assert.ok(matched)
+  })
+})
+
+await describe('Party invite detection regexes', async () => {
+  await it('matches plain invite message', () => {
+    const matched = PartyInviteRegex.some((r) => r.test('Steve has invited you to join their party!'))
+    assert.ok(matched)
+  })
+
+  await it('matches invite with rank prefix', () => {
+    const matched = PartyInviteRegex.some((r) => r.test('[MVP+] Steve has invited you to join their party!'))
+    assert.ok(matched)
+  })
+
+  await it('matches newer invite phrasing', () => {
+    const matched = PartyInviteRegex.some((r) => r.test("You have been invited to join Steve's party!"))
+    assert.ok(matched)
+  })
+
+  await it('extracts inviter username', () => {
+    const username = PartyInviteRegex.map((r) => r.exec('Steve has invited you to join their party!')).find(
+      (m) => m != undefined
+    )?.[1]
+    assert.strictEqual(username, 'Steve')
+  })
+
+  await it('does not match unrelated messages', () => {
+    const matched = PartyInviteRegex.some((r) => r.test('Guild > Steve: welcome to the guild!'))
+    assert.ok(!matched)
+  })
+})
+
+await describe('Party state regexes', async () => {
+  await it('join regex matches created party', () => {
+    assert.ok(PartyJoinRegex.some((r) => r.test('Party created!')))
+  })
+
+  await it('join regex matches now in party', () => {
+    assert.ok(PartyJoinRegex.some((r) => r.test('You are now in a party with Steve.')))
+  })
+
+  await it('leave regex matches left party', () => {
+    assert.ok(PartyLeaveRegex.some((r) => r.test('You left the party.')))
   })
 })
