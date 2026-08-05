@@ -4,6 +4,7 @@ import SubInstance from '../../../common/sub-instance'
 import { SerialExecutor } from '../../../utility/serial-executor.js'
 import { Timeout } from '../../../utility/timeout.js'
 import type ClientSession from '../client-session.js'
+import { updatePartyState } from '../common/party-state.js'
 import type MinecraftInstance from '../minecraft-instance.js'
 
 export default class LimboHandler extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {
@@ -12,6 +13,23 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
 
   private queue = new SerialExecutor()
   private pendingCount = 0
+
+  private inParty = false
+  private readonly minecraftChatListener: (event: { instanceName: string; message: string }) => void
+
+  constructor(clientInstance: MinecraftInstance) {
+    super(clientInstance)
+
+    this.minecraftChatListener = (event) => {
+      if (event.instanceName !== this.clientInstance.instanceName) return
+      this.inParty = updatePartyState(event.message, this.inParty)
+    }
+    this.application.on('minecraftChat', this.minecraftChatListener)
+  }
+
+  override dispose(): void {
+    this.application.off('minecraftChat', this.minecraftChatListener)
+  }
 
   public async acquire(
     timeout: number = LimboHandler.DefaultTimeout,
@@ -31,7 +49,7 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
       })
       .finally(() => {
         this.pendingCount--
-        if (this.empty()) {
+        if (this.empty() && !this.inParty) {
           void this.limbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
         }
       })
@@ -45,11 +63,15 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   override registerEvents(clientSession: ClientSession): void {
     // first spawn packet
     clientSession.client.on('login', () => {
-      if (this.empty()) this.triggerLimbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
+      if (this.empty() && !this.inParty) {
+        this.triggerLimbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
+      }
     })
     // change world packet
     clientSession.client.on('respawn', () => {
-      if (this.empty()) this.triggerLimbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
+      if (this.empty() && !this.inParty) {
+        this.triggerLimbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
+      }
     })
   }
 

@@ -199,6 +199,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     this.punishmentHandler.dispose()
     this.playerMuted.dispose()
     this.gameToggle.dispose()
+    this.limboHandler.dispose()
     this.stateHandler.dispose()
     this.bridge.dispose()
 

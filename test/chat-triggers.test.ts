@@ -7,6 +7,7 @@ import {
   PartyJoinRegex,
   PartyLeaveRegex
 } from '../src/instance/minecraft/chat/party-invite.js'
+import { updatePartyState } from '../src/instance/minecraft/common/party-state.js'
 import {
   InviteAcceptChat,
   KickChat,
@@ -311,5 +312,44 @@ await describe('Party state regexes', async () => {
 
   await it('leave regex matches left party', () => {
     assert.ok(PartyLeaveRegex.some((r) => r.test('You left the party.')))
+  })
+})
+
+await describe('Party state transitions', async () => {
+  await it('joins party on confirmation message', () => {
+    assert.strictEqual(updatePartyState('You are now in a party with Steve.', false), true)
+  })
+
+  await it('joins party on party created', () => {
+    assert.strictEqual(updatePartyState('Party created!', false), true)
+  })
+
+  await it('leaves party on leave message', () => {
+    assert.strictEqual(updatePartyState('You left the party.', true), false)
+  })
+
+  await it('leaves party on disband', () => {
+    assert.strictEqual(updatePartyState('The party was disbanded.', true), false)
+  })
+
+  await it('leaves party on kick', () => {
+    assert.strictEqual(updatePartyState('You have been kicked from the party.', true), false)
+  })
+
+  await it('keeps state on unrelated messages', () => {
+    assert.strictEqual(updatePartyState('Guild > Steve: hello', true), true)
+    assert.strictEqual(updatePartyState('Guild > Steve: hello', false), false)
+  })
+
+  await it('updates state from boxed messages', () => {
+    const boxedJoin = `-----------------------------------------------------\nYou are now in a party with Steve.\n-----------------------------------------------------`
+    assert.strictEqual(updatePartyState(boxedJoin, false), true)
+
+    const boxedLeave = `-----------------------------------------------------\nYou left the party.\n-----------------------------------------------------`
+    assert.strictEqual(updatePartyState(boxedLeave, true), false)
+  })
+
+  await it('invite message does not change party state', () => {
+    assert.strictEqual(updatePartyState('Steve has invited you to join their party!', false), false)
   })
 })
