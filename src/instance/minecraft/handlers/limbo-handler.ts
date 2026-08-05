@@ -22,7 +22,11 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
 
     this.minecraftChatListener = (event) => {
       if (event.instanceName !== this.clientInstance.instanceName) return
+      const previous = this.inParty
       this.inParty = updatePartyState(event.message, this.inParty)
+      if (this.inParty !== previous) {
+        this.logger.info(`[limbo] party state ${previous} -> ${this.inParty} | message: "${event.message}"`)
+      }
     }
     this.application.on('minecraftChat', this.minecraftChatListener)
   }
@@ -49,6 +53,9 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
       })
       .finally(() => {
         this.pendingCount--
+        this.logger.info(
+          `[limbo] acquire released | empty=${this.empty()}, inParty=${this.inParty}, pendingCount=${this.pendingCount}`
+        )
         if (this.empty() && !this.inParty) {
           void this.limbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
         }
@@ -63,12 +70,18 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   override registerEvents(clientSession: ClientSession): void {
     // first spawn packet
     clientSession.client.on('login', () => {
+      this.logger.info(
+        `[limbo] login event | empty=${this.empty()}, inParty=${this.inParty}, pendingCount=${this.pendingCount}`
+      )
       if (this.empty() && !this.inParty) {
         this.triggerLimbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
       }
     })
     // change world packet
     clientSession.client.on('respawn', () => {
+      this.logger.info(
+        `[limbo] respawn event | empty=${this.empty()}, inParty=${this.inParty}, pendingCount=${this.pendingCount}`
+      )
       if (this.empty() && !this.inParty) {
         this.triggerLimbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
       }
@@ -84,6 +97,7 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async limbo(): Promise<void> {
+    this.logger.info(`[limbo] sending /limbo (inParty=${this.inParty})`)
     await this.clientInstance.send('/limbo', MinecraftSendChatPriority.Default, undefined)
   }
 }
