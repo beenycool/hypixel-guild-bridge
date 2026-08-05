@@ -14,6 +14,20 @@ export const PartyLeaveRegex = [
   /^You have been kicked from the party\./
 ]
 
+export function findPartyInvite(message: string): string | undefined {
+  for (const line of message.split('\n')) {
+    for (const regex of PartyInviteRegex) {
+      const match = regex.exec(line)
+      if (match != undefined) return match[1]
+    }
+  }
+  return undefined
+}
+
+function matchesAny(message: string, regexes: RegExp[]): boolean {
+  return message.split('\n').some((line) => regexes.some((regex) => regex.test(line)))
+}
+
 interface PartyInviteModule extends MinecraftChatMessage {
   inParty: boolean
   cooldowns: Map<string, number>
@@ -25,36 +39,60 @@ export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
     const message = context.message
 
-    if (PartyJoinRegex.some((regex) => regex.test(message))) this.inParty = true
-    if (PartyLeaveRegex.some((regex) => regex.test(message))) this.inParty = false
-
-    let inviteMatch: RegExpExecArray | undefined
-    for (const regex of PartyInviteRegex) {
-      const match = regex.exec(message)
-      if (match != undefined) {
-        inviteMatch = match
-        break
-      }
+    const partyRelated = /party|invit/i.test(message)
+    if (partyRelated) {
+      context.logger.info(
+        `[party-invite] party-related message: "${message}" | raw: "${context.rawMessage}" | inParty=${this.inParty}`
+      )
     }
-    if (inviteMatch == undefined) return
 
-    const username = inviteMatch[1]
-    if (context.application.minecraftManager.isMinecraftBot(username)) return
+    if (matchesAny(message, PartyJoinRegex)) this.inParty = true
+    if (matchesAny(message, PartyLeaveRegex)) this.inParty = false
+
+    const username = findPartyInvite(message)
+    if (username == undefined) return
+
+    context.logger.info(`[party-invite] invite detected from ${username} | message: "${message}"`)
+    if (context.application.minecraftManager.isMinecraftBot(username)) {
+      context.logger.info(`[party-invite] ignoring ${username}: is a bridge minecraft bot`)
+      return
+    }
 
     const cooldownUntil = this.cooldowns.get(username.toLowerCase())
-    if (cooldownUntil != undefined && Date.now() < cooldownUntil) return
+    if (cooldownUntil != undefined && Date.now() < cooldownUntil) {
+      context.logger.info(`[party-invite] ignoring ${username}: within cooldown`)
+      return
+    }
 
-    const profile = await context.application.mojangApi.profileByUsername(username).catch(() => undefined)
+    const profile = await context.application.mojangApi
+      .profileByUsername(username)
+      .then((result) => result)
+      .catch((error: unknown) => {
+        context.logger.info(`[party-invite] failed to lookup ${username} on mojang: ${String(error)}`)
+        return
+      })
     if (profile == undefined) return
 
     const botUuid = context.clientInstance.uuid() ?? context.clientInstance.username()
-    if (botUuid == undefined) return
+    if (botUuid == undefined) {
+      context.logger.info(`[party-invite] could not resolve own uuid/username`)
+      return
+    }
 
-    const guild = await context.application.hypixelApi.getGuild('player', botUuid).catch(() => undefined)
+    const guild = await context.application.hypixelApi
+      .getGuild('player', botUuid)
+      .then((result) => result)
+      .catch((error: unknown) => {
+        context.logger.info(`[party-invite] failed to fetch guild: ${String(error)}`)
+        return
+      })
     if (guild == undefined) return
 
     const isGuildMember = guild.members.some(
       (member) => member.uuid.replaceAll('-', '').toLowerCase() === profile.id.replaceAll('-', '').toLowerCase()
+    )
+    context.logger.info(
+      `[party-invite] ${username} (${profile.id}) is${isGuildMember ? '' : ' NOT'} a guild member (guild "${guild.name}", ${guild.members.length} members)`
     )
     if (!isGuildMember) return
 
@@ -68,17 +106,21 @@ export default {
           `/p accept ${username}`,
           username
         ).catch(() => undefined)
-        if (result == undefined) return
+        if (result == undefined) {
+          context.logger.info(`[party-invite] failed to confirm /p accept for ${username}`)
+          return
+        }
 
         const alreadyInParty = result.message.some((entry) => entry.content.includes('already in a party'))
+        context.logger.info(
+          `[party-invite] /p accept result for ${username}: status=${result.status}, messages=${JSON.stringify(result.message.map((entry) => entry.content))}`
+        )
         if (result.status !== 'failed' || !alreadyInParty) {
-          context.logger.info(
-            `Auto-accepted party invite from guild member ${username} (status: ${result.status}, ${result.message[0]?.content ?? 'no response'})`
-          )
           this.cooldowns.set(username.toLowerCase(), Date.now() + 30_000)
           return
         }
 
+        context.logger.info(`[party-invite] ${username}: already in a party, leaving then retrying`)
         await checkChatTriggers(
           context.application,
           context.eventHelper,
@@ -90,9 +132,9 @@ export default {
       }
     }
 
-    context.logger.info(`Received party invite from guild member ${username}`)
+    context.logger.info(`[party-invite] accepting invite from guild member ${username} (inParty=${this.inParty})`)
     if (this.inParty) {
-      await checkChatTriggers(
+      const leaveResult = await checkChatTriggers(
         context.application,
         context.eventHelper,
         PartyLeaveChat,
@@ -100,6 +142,9 @@ export default {
         '/p leave',
         username
       ).catch(() => undefined)
+      context.logger.info(
+        `[party-invite] /p leave result: ${leaveResult == undefined ? 'no confirmation' : `${leaveResult.status} ${JSON.stringify(leaveResult.message.map((entry) => entry.content))}`}`
+      )
     }
     await accept()
   }

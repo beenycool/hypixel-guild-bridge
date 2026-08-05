@@ -1,7 +1,12 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
-import { PartyInviteRegex, PartyJoinRegex, PartyLeaveRegex } from '../src/instance/minecraft/chat/party-invite.js'
+import {
+  findPartyInvite,
+  PartyInviteRegex,
+  PartyJoinRegex,
+  PartyLeaveRegex
+} from '../src/instance/minecraft/chat/party-invite.js'
 import {
   InviteAcceptChat,
   KickChat,
@@ -278,6 +283,20 @@ await describe('Party invite detection regexes', async () => {
   await it('does not match unrelated messages', () => {
     const matched = PartyInviteRegex.some((r) => r.test('Guild > Steve: welcome to the guild!'))
     assert.ok(!matched)
+  })
+
+  await it('matches invite inside a Hypixel separator box', () => {
+    const boxed = `-----------------------------------------------------\nSteve has invited you to join their party!\nYou have 60 seconds to accept. Click here to join!\n-----------------------------------------------------`
+    assert.strictEqual(findPartyInvite(boxed), 'Steve')
+  })
+
+  await it('matches plain single-line invite', () => {
+    assert.strictEqual(findPartyInvite('Steve has invited you to join their party!'), 'Steve')
+  })
+
+  await it('does not extract username from unrelated boxed message', () => {
+    const boxed = `-----------------------------------------------------\nGuild > Steve: welcome!\n-----------------------------------------------------`
+    assert.strictEqual(findPartyInvite(boxed), undefined)
   })
 })
 
