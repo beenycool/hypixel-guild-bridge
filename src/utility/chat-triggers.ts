@@ -110,7 +110,7 @@ export const PartyLeaveChat: RegexChat = {
 }
 
 export const PartyAcceptChat: RegexChat = {
-  success: [/^You are now in a party with .*\./, /^You joined .*'s party\./],
+  success: [/^You are now in a party with .*\./, /^You (?:have )?joined (?:\[[+A-Z]{3,10}] )*\w{3,32}'s party!?/],
   failure: [
     ...GeneralChat.failure,
     /^You are already in a party!/,

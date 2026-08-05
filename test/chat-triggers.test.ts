@@ -247,6 +247,11 @@ await describe('PartyAcceptChat triggers', async () => {
     assert.ok(matched)
   })
 
+  await it('success pattern matches joining party with rank', () => {
+    const matched = PartyAcceptChat.success.some((r) => r.test("You have joined [MVP+] r4kz's party!"))
+    assert.ok(matched)
+  })
+
   await it('failure pattern matches already in a party', () => {
     const matched = PartyAcceptChat.failure.some((r) => r.test('You are already in a party!'))
     assert.ok(matched)
@@ -318,6 +323,14 @@ await describe('Party state regexes', async () => {
 await describe('Party state transitions', async () => {
   await it('joins party on confirmation message', () => {
     assert.strictEqual(updatePartyState('You are now in a party with Steve.', false), true)
+  })
+
+  await it('joins party on real joined message with rank', () => {
+    assert.strictEqual(updatePartyState("You have joined [MVP+] r4kz's party!", false), true)
+  })
+
+  await it('joins party on legacy joined message', () => {
+    assert.strictEqual(updatePartyState("You joined Steve's party.", false), true)
   })
 
   await it('joins party on party created', () => {

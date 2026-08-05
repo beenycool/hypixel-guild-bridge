@@ -3,7 +3,11 @@ export const PartyInviteRegex = [
   /^You have been invited to join (?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32})'s party!/
 ]
 
-export const PartyJoinRegex = [/^Party created!/, /^You are now in a party with /, /^You joined .*'s party\./]
+export const PartyJoinRegex = [
+  /^Party created!/,
+  /^You are now in a party with /,
+  /^You (?:have )?joined (?:\[[+A-Z]{3,10}] )*\w{3,32}'s party!?/
+]
 
 export const PartyLeaveRegex = [
   /^You left the party\./,
