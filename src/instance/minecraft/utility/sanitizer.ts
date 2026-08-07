@@ -21,9 +21,13 @@ export class Sanitizer {
     this.arabicFixer = new ArabicFixer()
   }
 
-  public async sanitizeChatMessage(instanceName: string, message: string): Promise<string> {
+  public async sanitizeChatMessage(
+    instanceName: string,
+    message: string,
+    options?: { maxDescriptionLength?: number }
+  ): Promise<string> {
     message = this.line.process(message)
-    message = await this.link.process(message)
+    message = await this.link.process(message, options)
     message = this.emoji.process(message)
     message = this.ez.process(message)
     message = this.arabicFixer.encode(message)

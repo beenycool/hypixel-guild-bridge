@@ -407,9 +407,20 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
 
     const reply = replyUsername === undefined ? '' : `⇾${replyUsername}`
 
+    const templatePrefixLength = template
+      .replaceAll('{origin}', origin)
+      .replaceAll('{username}', username)
+      .replaceAll('{reply}', reply)
+      .replaceAll('{message}', '').length
+
+    // Reserve room for the command, template prefix and the "sent an image: " marker
+    // so image/video descriptions fit within the 256-character Minecraft message limit.
+    const maxDescriptionLength = Math.max(256 - prefix.length - 2 - templatePrefixLength - 'sent an image: '.length, 10)
+
     const sanitizedMessage = await this.application.minecraftManager.sanitizer.sanitizeChatMessage(
       this.clientInstance.instanceName,
-      message
+      message,
+      { maxDescriptionLength }
     )
 
     const formatted = template
