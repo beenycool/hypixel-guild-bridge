@@ -148,7 +148,7 @@ A shorter version can also be used: `!- rtca`
 | `/list`       | List players in your guild(s)                                                                       |
 | `/log`        | View guild activity logs                                                                            |
 | `/messages`   | Open the Bot Messages page to customize what the bot says                                           |
-| `/nick`       | Set a custom bot username/skin for rendered chat images                                             |
+| `/nick`       | Set a custom username shown in Discord. Use `player:<name>` to change how a specific player's messages appear (their skin is kept); without `player` it changes the bot's name for rendered chat images |
 | `/rank`       | Manage guild member ranks                                                                           |
 | `/reconnect`  | reconnect minecraft clients                                                                         |
 | `/restart`    | Send signal to restart the bridge                                                                   |

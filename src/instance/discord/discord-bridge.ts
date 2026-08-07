@@ -212,13 +212,20 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       instanceName: event.instanceName
     })
     const username = event.user.displayName()
+    const playerOverride =
+      event.instanceType !== InstanceType.Minecraft || event.bridgeId === undefined
+        ? undefined
+        : this.application.core.bridgeConfigurations.getPlayerUsernameOverride(event.bridgeId, username)
 
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
       if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
         const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
-        const withoutPrefix = this.removeGuildPrefix(event.rawMessage)
+        let withoutPrefix = this.removeGuildPrefix(event.rawMessage)
+        if (playerOverride !== undefined) {
+          withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
+        }
         const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
@@ -257,7 +264,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         let displayUsername =
           event.instanceType === InstanceType.Discord && event.replyUsername !== undefined
             ? `${username}⇾${event.replyUsername}`
-            : username
+            : (playerOverride ?? username)
 
         if (this.application.core.applicationConfigurations.getOriginTag()) {
           displayUsername += event.instanceType === InstanceType.Discord ? ` [DC]` : ` [${event.instanceName}]`

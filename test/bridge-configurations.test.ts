@@ -98,5 +98,32 @@ assert.strictEqual(BridgeCfg.getLanguage(BridgeId), undefined)
 // And owner/admin roles
 assert.deepStrictEqual(BridgeCfg.getOwnerRoleIds(BridgeId), [])
 
+// Player username override getter/setter
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'Steve'), undefined)
+BridgeCfg.setPlayerUsernameOverride(BridgeId, 'Steve', 'NotSteve')
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'Steve'), 'NotSteve')
+// Case-insensitive lookup
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'steve'), 'NotSteve')
+// Other players unaffected
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'Alex'), undefined)
+// Overwrite
+BridgeCfg.setPlayerUsernameOverride(BridgeId, 'Steve', 'CoolName')
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'Steve'), 'CoolName')
+// Clear
+BridgeCfg.setPlayerUsernameOverride(BridgeId, 'Steve', undefined)
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'Steve'), undefined)
+
+// Enumerate overrides
+BridgeCfg.setPlayerUsernameOverride(BridgeId, 'Steve', 'NotSteve')
+BridgeCfg.setPlayerUsernameOverride(BridgeId, 'Alex', 'Alex2')
+assert.deepStrictEqual(BridgeCfg.getPlayerUsernameOverrides(BridgeId), { steve: 'NotSteve', alex: 'Alex2' })
+
+// Removal cleans up player username override keys
+BridgeCfg.addBridgeId(BridgeId)
+BridgeCfg.removeBridgeId(BridgeId)
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'Steve'), undefined)
+assert.strictEqual(BridgeCfg.getPlayerUsernameOverride(BridgeId, 'Alex'), undefined)
+assert.deepStrictEqual(BridgeCfg.getPlayerUsernameOverrides(BridgeId), {})
+
 await DatabaseManagerInstance.flushWrites()
 await DatabaseManagerInstance.close()

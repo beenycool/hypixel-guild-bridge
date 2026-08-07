@@ -128,6 +128,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_welcomeOnlineMessages`)
 
     this.configuration.delete(`${bridgeId}_botUsernameOverride`)
+    // Per-bridge player username overrides (keys are dynamic, so enumerate them)
+    for (const key of this.configuration.keysWithPrefix(
+      `${bridgeId}_${BridgeConfigurations.PlayerUsernameOverridePrefix}`
+    )) {
+      this.configuration.delete(key)
+    }
     // Per-bridge language
     this.configuration.delete(`${bridgeId}_language`)
     // Passthrough commands settings
@@ -282,6 +288,48 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
    */
   public setBotUsernameOverride(bridgeId: string, name: string | undefined): void {
     this.setBridgeString('botUsernameOverride', bridgeId, name)
+  }
+
+  // ========== Player Username Overrides ==========
+
+  private static readonly PlayerUsernameOverridePrefix = 'playerUsernameOverride_'
+
+  /**
+   * Get the per-bridge display name override for a Minecraft player.
+   * Returns undefined when no override is set (the real Minecraft username is used).
+   */
+  public getPlayerUsernameOverride(bridgeId: string, playerName: string): string | undefined {
+    const value = this.getBridgeString(
+      `${BridgeConfigurations.PlayerUsernameOverridePrefix}${playerName.toLowerCase()}`,
+      bridgeId
+    )
+    return value === '' ? undefined : value
+  }
+
+  /**
+   * Set the per-bridge display name override for a Minecraft player.
+   * Pass undefined or empty string to clear the override.
+   */
+  public setPlayerUsernameOverride(bridgeId: string, playerName: string, name: string | undefined): void {
+    this.setBridgeString(
+      `${BridgeConfigurations.PlayerUsernameOverridePrefix}${playerName.toLowerCase()}`,
+      bridgeId,
+      name
+    )
+  }
+
+  /**
+   * Get all per-bridge player display name overrides as a map of player name to display name.
+   */
+  public getPlayerUsernameOverrides(bridgeId: string): Record<string, string> {
+    const overrides: Record<string, string> = {}
+    const prefix = `${bridgeId}_${BridgeConfigurations.PlayerUsernameOverridePrefix}`
+    for (const fullKey of this.configuration.keysWithPrefix(prefix)) {
+      const playerName = fullKey.slice(prefix.length)
+      const value = this.configuration.getString(fullKey, '')
+      if (value !== '') overrides[playerName] = value
+    }
+    return overrides
   }
 
   // ========== Language Configuration ==========
@@ -1351,7 +1399,8 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         enforceVerification: this.getEnforceVerification(bridgeId),
         minecraftTextImages: this.getTextToImage(bridgeId),
         language: this.getLanguage(bridgeId) ?? '',
-        botUsernameOverride: this.getBotUsernameOverride(bridgeId) ?? ''
+        botUsernameOverride: this.getBotUsernameOverride(bridgeId) ?? '',
+        playerUsernameOverrides: this.getPlayerUsernameOverrides(bridgeId)
       },
       minecraftEvents: {
         memberOnline: this.getGuildOnline(bridgeId),
