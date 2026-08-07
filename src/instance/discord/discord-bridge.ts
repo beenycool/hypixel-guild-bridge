@@ -362,6 +362,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     let rankTrackerKey: string | undefined
     const isRankChange = event.type === GuildPlayerEventType.Promote || event.type === GuildPlayerEventType.Demote
     const username = event.user.displayName()
+    const playerOverride =
+      event.bridgeId === undefined ||
+      (event.type !== GuildPlayerEventType.Join && event.type !== GuildPlayerEventType.Leave)
+        ? undefined
+        : this.application.core.bridgeConfigurations.getPlayerUsernameOverride(event.bridgeId, username)
 
     if (isRankChange) {
       const parsed = parseRankChange(event.message)
@@ -450,10 +455,13 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     let messages: Message[]
     if (this.messageToImage.shouldRenderImage()) {
-      const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
+      let withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
         /^-+/g,
         ''
       )
+      if (playerOverride !== undefined) {
+        withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
+      }
       const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
       messages = await this.sendImageToChannels(
@@ -486,7 +494,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         }
       }
     } else {
-      const clickableUsername = hyperlink(username, activeEvent.user.profileLink())
+      const clickableUsername = hyperlink(playerOverride ?? username, activeEvent.user.profileLink())
 
       const withoutPrefix = activeEvent.message.replaceAll(/^-+/g, '')
 
