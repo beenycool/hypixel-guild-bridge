@@ -29,6 +29,10 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
     assert.ok(config.enabled)
     this.config = config
 
+    if (config.token === undefined || config.token.length === 0) {
+      this.logger.warn('Prometheus metrics are served without authentication; set prometheus.token to restrict access')
+    }
+
     this.register = new Client.Registry()
     this.register.setDefaultLabels({ app: 'hypixel-guild-bridge' })
     Client.collectDefaultMetrics({ register: this.register })
@@ -75,6 +79,13 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
 
       const route = request.url.split('?')[0]
       if (route === '/metrics') {
+        if (!PrometheusInstance.authorizeMetricsRequest(request, this.config)) {
+          response.writeHead(HttpStatusCode.Unauthorized)
+          response.setHeader('WWW-Authenticate', 'Bearer')
+          response.end()
+          return
+        }
+
         response.setHeader('Content-Type', this.register.contentType)
         this.register
           .metrics()
@@ -94,6 +105,15 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
     })
 
     this.httpServer.listen(this.config.port)
+  }
+
+  private static authorizeMetricsRequest(request: http.IncomingMessage, config: PrometheusConfig): boolean {
+    if (config.token === undefined || config.token.length === 0) {
+      return true
+    }
+
+    const provided = request.headers.authorization
+    return provided === `Bearer ${config.token}`
   }
 
   private async collectMetrics(): Promise<void> {

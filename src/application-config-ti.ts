@@ -21,6 +21,7 @@ export const PrometheusConfig = t.iface([], {
   "port": "number",
   "prefix": "string",
   "exportPerMember": t.opt("boolean"),
+  "token": t.opt("string"),
 });
 
 export const DatabaseConfig = t.iface([], {

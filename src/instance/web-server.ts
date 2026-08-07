@@ -14,7 +14,7 @@ import { InstanceType, MinecraftSendChatPriority, Permission } from '../common/a
 import { Instance } from '../common/instance.js'
 
 import { sendError, sendSuccess } from './web/api-utils.js'
-import { buildTokenSet, verifyToken } from './web/auth.js'
+import { type AuthResult, buildTokenSet, verifyToken } from './web/auth.js'
 import { GuildApiHandler } from './web/guild-api.js'
 import { InactivityApiHandler } from './web/inactivity-api.js'
 import { InstanceApiHandler } from './web/instance-api.js'
@@ -144,6 +144,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
 
+      if (!this.authenticateWebSocketUpgrade(request).ok) {
+        socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
+        socket.destroy()
+        return
+      }
+
       this.wsServer.handleUpgrade(request, socket, head, (client) => {
         this.wsServer.emit('connection', client, request)
       })
@@ -183,6 +189,30 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private isMessageRoute(url: string | undefined): boolean {
     if (!url) return false
     return url.split('?')[0] === '/message'
+  }
+
+  private static readonly WebSocketAuthCookie = 'bridge_token'
+
+  private authenticateWebSocketUpgrade(request: http.IncomingMessage): AuthResult {
+    const token = WebServer.readCookie(request.headers.cookie, WebServer.WebSocketAuthCookie)
+    if (token === undefined) {
+      return { ok: false, reason: 'missing' }
+    }
+    return verifyToken(buildTokenSet(this.config), undefined, token)
+  }
+
+  private static readCookie(cookieHeader: string | undefined, name: string): string | undefined {
+    if (cookieHeader === undefined) return undefined
+    for (const part of cookieHeader.split(';')) {
+      const [key, ...rest] = part.trim().split('=')
+      if (key !== name || rest.length === 0) continue
+      try {
+        return decodeURIComponent(rest.join('='))
+      } catch {
+        return undefined
+      }
+    }
+    return undefined
   }
 
   private async handleHttpRequest(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {

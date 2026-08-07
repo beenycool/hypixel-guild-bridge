@@ -1,5 +1,16 @@
 import { Auth } from './auth.js'
 
+const AUTH_COOKIE = 'bridge_token'
+
+function setAuthCookie(token) {
+  const secure = globalThis.location.protocol === 'https:' ? '; Secure' : ''
+  document.cookie = `${AUTH_COOKIE}=${encodeURIComponent(token)}; Path=/; SameSite=Strict${secure}`
+}
+
+function clearAuthCookie() {
+  document.cookie = `${AUTH_COOKIE}=; Path=/; Max-Age=0`
+}
+
 function connectWS(subscribeType, eventPrefix, onEvent) {
   const proto = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const url = `${proto}//${globalThis.location.host}/message`
@@ -8,6 +19,9 @@ function connectWS(subscribeType, eventPrefix, onEvent) {
   let wsReconnectTimer = null
 
   const connect = () => {
+    const token = Auth.getToken()
+    if (token) setAuthCookie(token)
+    else clearAuthCookie()
     ws = new WebSocket(url)
     ws.addEventListener('open', () => {
       const token = Auth.getToken()

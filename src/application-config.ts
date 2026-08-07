@@ -17,6 +17,7 @@ export interface PrometheusConfig {
   port: number
   prefix: string
   exportPerMember?: boolean
+  token?: string
 }
 
 export interface DatabaseConfig {
