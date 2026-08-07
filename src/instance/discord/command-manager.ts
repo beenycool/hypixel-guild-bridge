@@ -27,12 +27,14 @@ import KickCommand from './commands/kick.js'
 import ListCommand from './commands/list.js'
 import LogCommand from './commands/log.js'
 import MessagesCommand from './commands/messages.js'
+import MuteCommand from './commands/mute.js'
 import NickCommand from './commands/nick.js'
 import RankCommand from './commands/rank.js'
 import ReconnectCommand from './commands/reconnect.js'
 import RestartCommand from './commands/restart.js'
 import SummariseCommand from './commands/summarise.js'
 import TournamentCommand from './commands/tournament-command.js'
+import UnmuteCommand from './commands/unmute.js'
 import {
   getBridgeMinecraftInstanceNames,
   getConnectedBridgeMinecraftInstanceNames
@@ -102,12 +104,14 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       ListCommand,
       LogCommand,
       MessagesCommand,
+      MuteCommand,
       NickCommand,
       RankCommand,
       ReconnectCommand,
       RestartCommand,
       SummariseCommand,
-      TournamentCommand
+      TournamentCommand,
+      UnmuteCommand
     ]
 
     for (const command of toAdd) {

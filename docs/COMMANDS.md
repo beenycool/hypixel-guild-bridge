@@ -148,12 +148,14 @@ A shorter version can also be used: `!- rtca`
 | `/list`       | List players in your guild(s)                                                                       |
 | `/log`        | View guild activity logs                                                                            |
 | `/messages`   | Open the Bot Messages page to customize what the bot says                                           |
-| `/nick`       | Set a custom username shown in Discord. Use `player:<name>` to change how a specific player's messages appear (their skin is kept); without `player` it changes the bot's name for rendered chat images |
+| `/mute`       | Mute a guild member in-game                                                                         |
+| `/nick`       | Set a custom name for rendered chat images / Discord messages                                       |
 | `/rank`       | Manage guild member ranks                                                                           |
 | `/reconnect`  | reconnect minecraft clients                                                                         |
 | `/restart`    | Send signal to restart the bridge                                                                   |
 | `/summarise`  | Manually trigger the daily chat summary generation                                                  |
 | `/tournament` | Player commands for guild tournaments — admin actions are managed in the web dashboard (/dashboard) |
+| `/unmute`     | Unmute a guild member in-game                                                                       |
 
 ---
 
