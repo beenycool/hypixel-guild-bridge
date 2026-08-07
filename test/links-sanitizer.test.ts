@@ -13,13 +13,16 @@ const resolveConfig = {
   getResolveHideLinks: () => true
 } as unknown as ConstructorParameters<typeof LinksSanitizer>[0]
 
-const fakeHttp = (contentType: string, description: string) => {
+const fakeHttp = (contentType: string, description: string, get?: () => Promise<{ data: unknown }>) => {
   const headers: Record<string, string> = { ['content-type']: contentType }
   return {
     head: () => Promise.resolve({ headers }),
-    post: () => Promise.resolve({ data: { choices: [{ message: { content: description } }] } })
+    post: () => Promise.resolve({ data: { choices: [{ message: { content: description } }] } }),
+    get: get ?? (() => Promise.resolve({ data: new ArrayBuffer(0) }))
   } as unknown as ConstructorParameters<typeof LinksSanitizer>[2]
 }
+
+const TINY_PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
 
 await describe('LinksSanitizer hideLink mode', async () => {
   const sanitizer = new LinksSanitizer(hideConfig, undefined)
@@ -125,5 +128,32 @@ await describe('LinksSanitizer resolveLinkHide mode', async () => {
     const sanitizer = new LinksSanitizer(resolveConfig, apiKey, fakeHttp('image/png', 'A castle.'))
     const result = await sanitizer.process('look at https://cdn.example.com/castle.png')
     assert.strictEqual(result, 'look at sent an image: A castle.')
+  })
+
+  await it('converts a gif to a png data url before describing it', async () => {
+    let postedUrl: string | undefined
+    const http = {
+      head: () => Promise.resolve({ headers: { ['content-type']: 'image/gif' } }),
+      post: (url: string, body: { messages: { content: Record<string, { url: string }>[] }[] }) => {
+        postedUrl = body.messages[0].content[1].image_url.url
+        return Promise.resolve({ data: { choices: [{ message: { content: 'A red square.' } }] } })
+      },
+      get: () => Promise.resolve({ data: Buffer.from(TINY_PNG_B64, 'base64') })
+    } as unknown as ConstructorParameters<typeof LinksSanitizer>[2]
+
+    const sanitizer = new LinksSanitizer(resolveConfig, apiKey, http)
+    const result = await sanitizer.process('https://cdn.example.com/spinner.gif')
+    assert.strictEqual(result, 'sent an image: A red square.')
+    assert.ok(postedUrl?.startsWith('data:image/png;base64,'))
+  })
+
+  await it('falls back to (image) when gif conversion fails', async () => {
+    const sanitizer = new LinksSanitizer(
+      resolveConfig,
+      apiKey,
+      fakeHttp('image/gif', 'ignored', () => Promise.reject(new Error('fetch failed')))
+    )
+    const result = await sanitizer.process('https://cdn.example.com/spinner.gif')
+    assert.strictEqual(result, '(image)')
   })
 })

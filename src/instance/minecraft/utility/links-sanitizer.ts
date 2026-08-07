@@ -1,3 +1,5 @@
+import { createCanvas, loadImage } from 'canvas'
+
 import { httpClient } from '../../../common/http.js'
 import type { MinecraftConfigurations } from '../../../core/minecraft/minecraft-configurations'
 import { stufEncode } from '../common/url-encoder.js'
@@ -9,6 +11,7 @@ interface ChatCompletionResponse {
 interface HttpClient {
   head: typeof httpClient.head
   post: typeof httpClient.post
+  get: typeof httpClient.get
 }
 
 interface SanitizerOptions {
@@ -16,6 +19,7 @@ interface SanitizerOptions {
 }
 
 const DEFAULT_DESCRIPTION_LENGTH = 80
+const MAX_GIF_BYTES = 8 * 1024 * 1024
 
 export class LinksSanitizer {
   private readonly http: HttpClient
@@ -76,7 +80,7 @@ export class LinksSanitizer {
 
             const type = contentType.split('/')[0]
             if (type === 'image' || type === 'video') {
-              return await this.describeMedia(part, type, maxDescriptionLength)
+              return await this.describeMedia(part, type, contentType, maxDescriptionLength)
             } else if (contentType.includes('application/pdf')) {
               return '(pdf)'
             }
@@ -94,15 +98,29 @@ export class LinksSanitizer {
     return parts.join(' ')
   }
 
-  private async describeMedia(url: string, type: 'image' | 'video', maxDescriptionLength?: number): Promise<string> {
+  private async describeMedia(
+    url: string,
+    type: 'image' | 'video',
+    contentType: string,
+    maxDescriptionLength?: number
+  ): Promise<string> {
     if (!this.openrouterApiKey) return `(${type})`
 
     const maxLength = maxDescriptionLength ?? DEFAULT_DESCRIPTION_LENGTH
 
     try {
+      let mediaUrl = url
+      if (type === 'image' && contentType.toLowerCase().includes('gif')) {
+        const converted = await this.gifToPngDataUrl(url)
+        if (converted === undefined) return '(image)'
+        mediaUrl = converted
+      }
+
       /* eslint-disable @typescript-eslint/naming-convention -- OpenAI content-block wire format */
       const contentBlock =
-        type === 'video' ? { type: 'video_url', video_url: { url } } : { type: 'image_url', image_url: { url } }
+        type === 'video'
+          ? { type: 'video_url', video_url: { url: mediaUrl } }
+          : { type: 'image_url', image_url: { url: mediaUrl } }
       /* eslint-enable @typescript-eslint/naming-convention */
 
       const response = await this.http.post<ChatCompletionResponse>(
@@ -151,5 +169,27 @@ export class LinksSanitizer {
     const breakIndex = content.lastIndexOf(' ', maxLength - 3)
     const truncateAt = breakIndex > 0 ? breakIndex : maxLength - 3
     return `${content.slice(0, truncateAt)}...`
+  }
+
+  /**
+   * Convert a GIF to a PNG data URL using its first frame.
+   * Vision providers reject GIF input, so GIFs are decoded client-side
+   * with node-canvas before being sent to the model.
+   */
+  private async gifToPngDataUrl(url: string): Promise<string | undefined> {
+    try {
+      const response = await this.http.get<ArrayBuffer>(url, { responseType: 'arraybuffer', timeout: 10_000 })
+      const buffer = Buffer.from(response.data)
+      if (buffer.length === 0 || buffer.length > MAX_GIF_BYTES) return undefined
+
+      const image = await loadImage(buffer)
+      const canvas = createCanvas(image.width, image.height)
+      const context = canvas.getContext('2d')
+      context.drawImage(image, 0, 0)
+
+      return `data:image/png;base64,${canvas.toBuffer('image/png').toString('base64')}`
+    } catch {
+      return undefined
+    }
   }
 }
