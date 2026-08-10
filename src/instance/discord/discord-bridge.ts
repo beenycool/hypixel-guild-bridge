@@ -14,6 +14,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ChannelType as DiscordChannelType,
+  ComponentType,
   escapeMarkdown,
   hyperlink
 } from 'discord.js'
@@ -62,6 +63,12 @@ import type DiscordInstance from './discord-instance.js'
 const DASH_SEPARATOR = '-'.repeat(53) + '\n'
 const GUILD_PREFIXES = ['§2Guild > ', '§3Officer > ', DASH_SEPARATOR]
 const PLAIN_GUILD_PREFIXES = ['Guild > ', 'Officer > ', DASH_SEPARATOR]
+const REQUEST_BUTTON_EXPIRY_MS = 5 * 60 * 1000
+
+interface PendingJoinRequest {
+  messages: Message[]
+  timeout: NodeJS.Timeout
+}
 
 export default class DiscordBridge extends Bridge<DiscordInstance> {
   public readonly messageDeleter: MessageDeleter
@@ -74,6 +81,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   private readonly staticConfig: Readonly<StaticDiscordConfig>
 
   private readonly localCleanups: (() => void)[] = []
+
+  private readonly pendingJoinRequests = new Map<string, PendingJoinRequest>()
 
   private readonly onInstanceReactive = (event: InstanceReactive): void => {
     void this.queue
@@ -110,10 +119,70 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   override dispose(): void {
+    for (const pending of this.pendingJoinRequests.values()) {
+      clearTimeout(pending.timeout)
+    }
+    this.pendingJoinRequests.clear()
+
     for (const cleanup of this.localCleanups) {
       cleanup()
     }
     super.dispose()
+  }
+
+  private joinRequestKey(event: GuildPlayerEvent): string {
+    return `${event.instanceName}:${event.user.mojangProfile().id}`
+  }
+
+  private registerPendingJoinRequest(key: string, messages: Message[]): void {
+    const previous = this.pendingJoinRequests.get(key)
+    if (previous !== undefined) {
+      clearTimeout(previous.timeout)
+    }
+
+    const timeout = setTimeout(() => {
+      this.pendingJoinRequests.delete(key)
+      this.disableJoinRequestButtons(key, messages).catch(
+        this.errorHandler.promiseCatch('disabling join request buttons')
+      )
+    }, REQUEST_BUTTON_EXPIRY_MS)
+
+    this.pendingJoinRequests.set(key, { messages, timeout })
+  }
+
+  private expirePendingJoinRequest(key: string): void {
+    const pending = this.pendingJoinRequests.get(key)
+    if (pending === undefined) return
+
+    clearTimeout(pending.timeout)
+    this.pendingJoinRequests.delete(key)
+    this.disableJoinRequestButtons(key, pending.messages).catch(
+      this.errorHandler.promiseCatch('disabling join request buttons')
+    )
+  }
+
+  private async disableJoinRequestButtons(key: string, messages: Message[]): Promise<void> {
+    await Promise.all(
+      messages.map(async (message) => {
+        const disabledRows = message.components.map((row) => {
+          const builder = new ActionRowBuilder<ButtonBuilder>()
+          if ('components' in row && Array.isArray(row.components)) {
+            for (const component of row.components) {
+              if (component.type === ComponentType.Button) {
+                builder.addComponents(ButtonBuilder.from(component).setDisabled(true))
+              }
+            }
+          }
+          return builder
+        })
+
+        try {
+          await message.edit({ components: disabledRows })
+        } catch (error: unknown) {
+          this.logger.warn(`Failed to disable join request buttons for ${key}`, error)
+        }
+      })
+    )
   }
 
   /**
@@ -454,6 +523,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     let messages: Message[]
+    let requestButtonMessages: Message[] = []
     if (this.messageToImage.shouldRenderImage()) {
       let withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
         /^-+/g,
@@ -485,11 +555,13 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
             .channels.fetch(channelId)
             .catch(() => undefined)
           if (channel?.isSendable()) {
-            await channel.send({
-              ...(pingContent === undefined ? {} : { content: pingContent }),
-              ...(components !== undefined && components.length > 0 ? { components } : {}),
-              allowedMentions: allowedMentions ?? { parse: [] }
-            })
+            requestButtonMessages.push(
+              await channel.send({
+                ...(pingContent === undefined ? {} : { content: pingContent }),
+                ...(components !== undefined && components.length > 0 ? { components } : {}),
+                allowedMentions: allowedMentions ?? { parse: [] }
+              })
+            )
           }
         }
       }
@@ -517,6 +589,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         pingContent,
         allowedMentions
       )
+      if (activeEvent.type === GuildPlayerEventType.Request) {
+        requestButtonMessages = messages
+      }
+    }
+
+    if (activeEvent.type === GuildPlayerEventType.Request && requestButtonMessages.length > 0) {
+      this.registerPendingJoinRequest(this.joinRequestKey(activeEvent), requestButtonMessages)
+    }
+
+    if (activeEvent.type === GuildPlayerEventType.Join) {
+      this.expirePendingJoinRequest(this.joinRequestKey(activeEvent))
     }
 
     if (activeEvent.type === GuildPlayerEventType.Offline || activeEvent.type === GuildPlayerEventType.Online) {

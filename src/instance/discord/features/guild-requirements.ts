@@ -197,11 +197,6 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
-    if (!(await this.ensurePermission(interaction))) {
-      await interaction.editReply('You do not have permission to manage guild join requests.')
-      return
-    }
-
     const parts = interaction.customId.split(':')
     if (parts.length < 4) {
       await interaction.editReply('Invalid button action.')
