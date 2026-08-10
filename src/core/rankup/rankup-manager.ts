@@ -10,11 +10,14 @@ import { NotificationManager } from './notification-manager.js'
 import type { PendingReviewManager } from './pending-review-manager.js'
 import type { RankupDecision } from './rankup-decision.js'
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
 export class RankupManager {
   private readonly bridgeEvaluator: BridgeEvaluator
   private readonly actionDispatcher: ActionDispatcher
   private readonly notificationManager: NotificationManager
   private readonly runningBridges = new Set<string>()
+  private readonly lastRunByBridge = new Map<string, number>()
   private isRunning = false
 
   constructor(
@@ -51,11 +54,11 @@ export class RankupManager {
           this.logger.info(`Bridge ${bridgeId}: rankup disabled, skipping scheduled checkup`)
           continue
         }
-        if (!this.isWithinScheduleWindow(bridgeId)) {
+        if (!this.isDueForScheduleWindow(bridgeId)) {
           const day = this.bridgeConfig.getRankupScheduleDay(bridgeId)
           const hour = this.bridgeConfig.getRankupScheduleHour(bridgeId)
           this.logger.info(
-            `Bridge ${bridgeId}: outside rankup schedule (day ${day} hour ${hour} UK time), skipping scheduled checkup`
+            `Bridge ${bridgeId}: rankup checkup not due yet (schedule day ${day} hour ${hour} UK time), skipping scheduled checkup`
           )
           continue
         }
@@ -68,23 +71,44 @@ export class RankupManager {
     }
   }
 
-  private isWithinScheduleWindow(bridgeId: string): boolean {
+  /**
+   * A scheduled bridge is due when the configured window (day/hour UK time) has started and no
+   * checkup has run since the most recent occurrence of that window. This catches up automatically:
+   * if the process was down or an hourly tick was missed when the window passed, the next tick
+   * still runs the checkup instead of waiting a full week.
+   */
+  private isDueForScheduleWindow(bridgeId: string): boolean {
     const day = this.bridgeConfig.getRankupScheduleDay(bridgeId)
     const hour = this.bridgeConfig.getRankupScheduleHour(bridgeId)
     if (day < 0 || hour < 0) return true
 
-    const parts = new Intl.DateTimeFormat('en-GB', {
+    const scheduledTs = this.lastScheduledOccurrence(WEEKDAYS[day], hour, new Date())
+    if (scheduledTs === undefined) return true
+
+    return Date.now() >= scheduledTs && (this.lastRunByBridge.get(bridgeId) ?? 0) < scheduledTs
+  }
+
+  /**
+   * Finds the timestamp of the most recent occurrence of the given UK weekday/hour (e.g. "Sun 19:00").
+   * Scans back up to 8 days in 15-minute steps so DST transitions cannot cause a missed window.
+   */
+  private lastScheduledOccurrence(weekdayShort: string, hour: number, now: Date): number | undefined {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Europe/London',
       weekday: 'short',
       hour: 'numeric',
+      minute: 'numeric',
       hourCycle: 'h23'
-    }).formatToParts(new Date())
-    const weekday = parts.find((part) => part.type === 'weekday')?.value
-    const currentHour = Number(parts.find((part) => part.type === 'hour')?.value)
-    if (weekday === undefined || Number.isNaN(currentHour)) return false
-
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    return weekdays[day] === weekday && currentHour === hour
+    })
+    const start = Math.floor(now.getTime() / 3_600_000) * 3_600_000
+    for (let ts = start; ts > start - 8 * 86_400_000; ts -= 15 * 60_000) {
+      const parts = formatter.formatToParts(new Date(ts))
+      const weekday = parts.find((part) => part.type === 'weekday')?.value
+      const partHour = Number(parts.find((part) => part.type === 'hour')?.value)
+      const minute = Number(parts.find((part) => part.type === 'minute')?.value)
+      if (weekday === weekdayShort && partHour === hour && minute === 0) return ts
+    }
+    return undefined
   }
 
   public async runTaskForBridge(bridgeId: string): Promise<void> {
@@ -97,6 +121,7 @@ export class RankupManager {
     this.runningBridges.add(bridgeId)
     try {
       await this.bridgeEvaluator.processBridge(bridgeId)
+      this.lastRunByBridge.set(bridgeId, Date.now())
     } catch (error) {
       this.logger.error(`Error in RankupManager task for bridge ${bridgeId}:`, error)
     } finally {
