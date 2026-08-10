@@ -62,6 +62,7 @@ export class BridgeEvaluator {
     const officerChannels = this.bridgeConfig.getOfficerChannelIds(bridgeId)
     const configuredNotificationChannels = this.bridgeConfig.getRankupNotificationChannelIds(bridgeId)
     const notificationChannels = officerChannels.length > 0 ? officerChannels : configuredNotificationChannels
+    const pingUserIds = this.bridgeConfig.getRankupPingUserIds(bridgeId)
     const cooldownHours = this.bridgeConfig.getRankupNotificationCooldown(bridgeId)
 
     const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
@@ -193,7 +194,12 @@ export class BridgeEvaluator {
     const unnotified = pending.filter((p) => isNotificationDue(p.notifiedAt, cooldownMs, now))
 
     if (unnotified.length > 0 && notificationChannels.length > 0) {
-      const sent = await this.notificationManager.sendReviewNotification(bridgeId, notificationChannels, unnotified)
+      const sent = await this.notificationManager.sendReviewNotification(
+        bridgeId,
+        notificationChannels,
+        unnotified,
+        pingUserIds
+      )
 
       if (sent) {
         for (const r of unnotified) {

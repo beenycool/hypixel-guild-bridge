@@ -1052,6 +1052,22 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   /**
+   * Get Discord user IDs to ping in rankup review notifications
+   */
+  public getRankupPingUserIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_rankupPingUserIds`, [])
+  }
+
+  /**
+   * Set Discord user IDs to ping in rankup review notifications
+   */
+  public setRankupPingUserIds(bridgeId: string, userIds: string[]): void {
+    this.setConfig(bridgeId, `${bridgeId}_rankupPingUserIds`, userIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_rankupPingUserIds`, userIds)
+    })
+  }
+
+  /**
    * Get the day of the week the rankup check is restricted to (0=Sunday..6=Saturday, -1 = no restriction)
    */
   public getRankupScheduleDay(bridgeId: string): number {
@@ -1451,6 +1467,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         manualReview: this.getRankupManualReview(bridgeId),
         notificationCooldown: this.getRankupNotificationCooldown(bridgeId),
         notificationChannelIds: this.getRankupNotificationChannelIds(bridgeId),
+        pingUserIds: this.getRankupPingUserIds(bridgeId),
         scheduleDay: this.getRankupScheduleDay(bridgeId),
         scheduleHour: this.getRankupScheduleHour(bridgeId),
         promotionRules: this.getRankupRules(bridgeId),

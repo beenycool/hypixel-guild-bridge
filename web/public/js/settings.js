@@ -799,6 +799,13 @@ const CATEGORIES = [
         placeholder: 'Channel ID\u2026',
         hint: 'Discord channel IDs to send notifications to'
       },
+      {
+        t: 'tag',
+        id: 'pingUserIds',
+        label: 'Ping Users',
+        placeholder: 'User ID\u2026',
+        hint: 'Discord user IDs to ping when reviews are pending'
+      },
       { t: 'promotionRules', id: 'promotionRules' },
       { t: 'demotionRules', id: 'demotionRules' },
       {
