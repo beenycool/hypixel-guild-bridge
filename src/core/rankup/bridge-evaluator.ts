@@ -123,6 +123,23 @@ export class BridgeEvaluator {
 
       let decision: RankupDecision
 
+      const daysInGuild = (Date.now() - member.joinedAt.getTime()) / (1000 * 60 * 60 * 24)
+      const matchedPromotion =
+        result.action === 'promote'
+          ? promotionRules.find((rule) => rule.targetRank.toLowerCase() === result.targetRank.toLowerCase())
+          : undefined
+      const matchedDemotion =
+        result.action === 'demote' || result.action === 'kick' || result.action === 'notify'
+          ? demotionRules.find((rule) => rule.fromRank.toLowerCase() === member.rank.toLowerCase())
+          : undefined
+      const reviewStats = {
+        weeklyGexp: member.weeklyExperience,
+        requiredGexp: matchedPromotion?.minWeeklyGexp ?? matchedDemotion?.maxWeeklyGexp,
+        daysInGuild,
+        minDaysInGuild: matchedPromotion?.minDaysInGuild,
+        daysSinceLastSeen: stats.daysSinceLastSeen
+      }
+
       switch (result.action) {
         case 'promote': {
           decision = {
@@ -158,7 +175,15 @@ export class BridgeEvaluator {
 
       if (manualReview && decision.kind !== 'notify') {
         if (decision.kind === 'kick') {
-          this.pendingManager.addReview(bridgeId, decision.uuid, decision.currentRank, 'Kick', 'kick', decision.reason)
+          this.pendingManager.addReview(
+            bridgeId,
+            decision.uuid,
+            decision.currentRank,
+            'Kick',
+            'kick',
+            decision.reason,
+            reviewStats
+          )
         } else {
           this.pendingManager.addReview(
             bridgeId,
@@ -166,7 +191,8 @@ export class BridgeEvaluator {
             decision.currentRank,
             decision.targetRank,
             decision.kind,
-            decision.reason
+            decision.reason,
+            reviewStats
           )
         }
       } else {

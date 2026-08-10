@@ -10,6 +10,11 @@ export interface PendingReview {
   reason: string
   createdAt: number
   notifiedAt: number | undefined
+  weeklyGexp?: number
+  requiredGexp?: number
+  daysInGuild?: number
+  minDaysInGuild?: number
+  daysSinceLastSeen?: number
 }
 
 export interface RankupHistoryEntry {
@@ -70,7 +75,14 @@ export class PendingReviewManager {
     currentRank: string,
     proposedRank: string,
     action: 'promote' | 'demote' | 'kick',
-    reason: string
+    reason: string,
+    stats?: {
+      weeklyGexp?: number
+      requiredGexp?: number
+      daysInGuild?: number
+      minDaysInGuild?: number
+      daysSinceLastSeen?: number
+    }
   ): void {
     const existing = [...this.reviews.values()].find((review) => review.bridgeId === bridgeId && review.uuid === uuid)
     const review: PendingReview = {
@@ -82,7 +94,12 @@ export class PendingReviewManager {
       action,
       reason,
       createdAt: Math.floor(Date.now() / 1000),
-      notifiedAt: undefined
+      notifiedAt: undefined,
+      weeklyGexp: stats?.weeklyGexp,
+      requiredGexp: stats?.requiredGexp,
+      daysInGuild: stats?.daysInGuild,
+      minDaysInGuild: stats?.minDaysInGuild,
+      daysSinceLastSeen: stats?.daysSinceLastSeen
     }
     this.reviews.set(review.id, review)
     this.onEvent?.('reviewAdded', { bridgeId, review })
@@ -90,15 +107,21 @@ export class PendingReviewManager {
     this.databaseManager.enqueueWrite(`saving rankup review ${bridgeId}:${uuid}`, async (database) => {
       await database.query(
         `INSERT INTO "rankupPendingReviews"
-          ("id", "bridgeId", "uuid", "currentRank", "proposedRank", "action", "reason", "createdAt", "notifiedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          ("id", "bridgeId", "uuid", "currentRank", "proposedRank", "action", "reason", "createdAt", "notifiedAt",
+           "weeklyGexp", "requiredGexp", "daysInGuild", "minDaysInGuild", "daysSinceLastSeen")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          ON CONFLICT ("bridgeId", "uuid") DO UPDATE SET
            "currentRank" = EXCLUDED."currentRank",
            "proposedRank" = EXCLUDED."proposedRank",
            "action" = EXCLUDED."action",
            "reason" = EXCLUDED."reason",
            "createdAt" = EXCLUDED."createdAt",
-           "notifiedAt" = EXCLUDED."notifiedAt"`,
+           "notifiedAt" = EXCLUDED."notifiedAt",
+           "weeklyGexp" = EXCLUDED."weeklyGexp",
+           "requiredGexp" = EXCLUDED."requiredGexp",
+           "daysInGuild" = EXCLUDED."daysInGuild",
+           "minDaysInGuild" = EXCLUDED."minDaysInGuild",
+           "daysSinceLastSeen" = EXCLUDED."daysSinceLastSeen"`,
         [
           review.id,
           review.bridgeId,
@@ -108,7 +131,12 @@ export class PendingReviewManager {
           review.action,
           review.reason,
           review.createdAt,
-          review.notifiedAt
+          review.notifiedAt,
+          review.weeklyGexp,
+          review.requiredGexp,
+          review.daysInGuild,
+          review.minDaysInGuild,
+          review.daysSinceLastSeen
         ]
       )
     })

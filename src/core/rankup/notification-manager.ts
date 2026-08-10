@@ -67,18 +67,43 @@ export class NotificationManager {
       }
     }
 
-    // Rebuild fields with names
+    const formatMemberLine = (review: PendingReview): string => {
+      const name = uuidToName.get(review.uuid) ?? review.uuid
+      const transition =
+        review.action === 'kick' ? `${review.currentRank} ➜ **Kick**` : `${review.currentRank} ➜ ${review.proposedRank}`
+
+      const details: string[] = []
+      if (review.weeklyGexp !== undefined) {
+        const formatted = review.weeklyGexp.toLocaleString('en-US')
+        if (review.requiredGexp !== undefined && review.requiredGexp > 0) {
+          const percent = Math.min(100, Math.round((review.weeklyGexp / review.requiredGexp) * 100))
+          details.push(`Weekly GEXP: ${formatted} / ${review.requiredGexp.toLocaleString('en-US')} (${percent}%)`)
+        } else {
+          details.push(`Weekly GEXP: ${formatted}`)
+        }
+      }
+      if (review.daysInGuild !== undefined) {
+        details.push(`${review.daysInGuild.toFixed(0)} days in guild`)
+      }
+      if (review.daysSinceLastSeen !== undefined) {
+        details.push(`last seen ${review.daysSinceLastSeen.toFixed(1)}d ago`)
+      }
+
+      const detailLine = details.length > 0 ? `\n   ${details.join(' • ')}` : ''
+      return `• **${name}**: ${transition}${detailLine}`
+    }
+
     const field1 =
       reviews
         .filter((r) => r.action === 'promote')
-        .map((r) => `• **${uuidToName.get(r.uuid)}**: ${r.currentRank} ➜ ${r.proposedRank}`)
+        .map((review) => formatMemberLine(review))
         .slice(0, 10)
         .join('\n') || 'None'
 
     const field2 =
       reviews
         .filter((r) => ['demote', 'kick'].includes(r.action))
-        .map((r) => `• **${uuidToName.get(r.uuid)}**: ${r.currentRank} ➜ ${r.proposedRank || 'Kick'}`)
+        .map((review) => formatMemberLine(review))
         .slice(0, 10)
         .join('\n') || 'None'
 

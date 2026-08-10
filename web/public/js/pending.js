@@ -105,6 +105,26 @@ function buildCard(review) {
 
   const notified = review.notifiedAt == undefined ? '' : '<span class="badge badge-info">Notified</span>'
 
+  const statsLines = []
+  if (review.weeklyGexp != undefined) {
+    const formatted = Number(review.weeklyGexp).toLocaleString('en-US')
+    if (review.requiredGexp != undefined && Number(review.requiredGexp) > 0) {
+      const percent = Math.min(100, Math.round((Number(review.weeklyGexp) / Number(review.requiredGexp)) * 100))
+      statsLines.push(
+        `Weekly GEXP: <b>${formatted}</b> / ${Number(review.requiredGexp).toLocaleString('en-US')} (${percent}%)`
+      )
+    } else {
+      statsLines.push(`Weekly GEXP: <b>${formatted}</b>`)
+    }
+  }
+  if (review.daysInGuild != undefined) statsLines.push(`${Math.floor(Number(review.daysInGuild))} days in guild`)
+  if (review.daysSinceLastSeen != undefined)
+    statsLines.push(`last seen ${Number(review.daysSinceLastSeen).toFixed(1)}d ago`)
+
+  const statsHtml = statsLines.length
+    ? `<div class="text-xs text-secondary mb-sm" style="line-height:1.6">${statsLines.join('<br>')}</div>`
+    : ''
+
   const avatarUrl = review.uuid ? `https://cravatar.eu/helmavatar/${review.uuid}/32.png` : ''
   const avatarHtml = avatarUrl
     ? `<img class="avatar" src="${avatarUrl}" alt="" loading="lazy" width="20" height="20" style="border-radius:50%;vertical-align:middle;margin-right:6px">`
@@ -117,6 +137,7 @@ function buildCard(review) {
       <div class="card-body">
         <div class="flex-center gap-sm mb-sm text-mono">${transition}</div>
         <div class="text-sm text-secondary mb-sm">${Ui.escapeHtml(review.reason || 'No reason provided.')}</div>
+        ${statsHtml}
       </div>
       <div class="flex flex-between mb-sm">
         <div class="flex flex-column gap-xs">
