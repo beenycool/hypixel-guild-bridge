@@ -405,6 +405,9 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     const originTag = this.application.core.applicationConfigurations.getOriginTag()
     const origin = originTag ? (instanceType === InstanceType.Discord ? `[DC] ` : `[${instanceName}] `) : ''
 
+    const sanitizer = this.application.minecraftManager.sanitizer
+    username = sanitizer.sanitizeDots(username)
+    replyUsername = replyUsername === undefined ? undefined : sanitizer.sanitizeDots(replyUsername)
     const reply = replyUsername === undefined ? '' : `⇾${replyUsername}`
 
     const templatePrefixLength = template
@@ -417,11 +420,9 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     // so image/video descriptions fit within the 256-character Minecraft message limit.
     const maxDescriptionLength = Math.max(256 - prefix.length - 2 - templatePrefixLength - 'sent an image: '.length, 10)
 
-    const sanitizedMessage = await this.application.minecraftManager.sanitizer.sanitizeChatMessage(
-      this.clientInstance.instanceName,
-      message,
-      { maxDescriptionLength }
-    )
+    const sanitizedMessage = await sanitizer.sanitizeChatMessage(this.clientInstance.instanceName, message, {
+      maxDescriptionLength
+    })
 
     const formatted = template
       .replaceAll('{origin}', origin)

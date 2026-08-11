@@ -1,4 +1,9 @@
-import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
+import {
+  ChannelType,
+  Color,
+  GuildPlayerEventType,
+  MinecraftSendChatPriority
+} from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
 export default {
@@ -22,6 +27,12 @@ export default {
         message: `${username} has requested to join the guild!`,
         rawMessage: context.rawMessage
       })
+
+      for (const command of [`!bw ${username}`, `!b ${username}`, `!d ${username}`]) {
+        await context.application
+          .sendMinecraft([context.instanceName], MinecraftSendChatPriority.Default, undefined, `/oc ${command}`)
+          .catch(context.errorHandler.promiseCatch(`sending ${command} for join request`))
+      }
     }
   }
 } satisfies MinecraftChatMessage
