@@ -112,6 +112,10 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
     return this.database.getGuildMessagesLeaderboard(ignores, currentDate - 30 * 24 * 60 * 60 * 1000, currentDate)
   }
 
+  public getMessages(from: number, to: number): TotalMessagesLeaderboard[] {
+    return this.database.getGuildMessagesLeaderboard(this.database.getBotUuids(), from, to)
+  }
+
   public getMinecraftMessages30Days(limit: number): { top: MessagesLeaderboard[]; total: number } {
     const currentDate = Date.now()
     const ignores = this.database.getBotUuids()

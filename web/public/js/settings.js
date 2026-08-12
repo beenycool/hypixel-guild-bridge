@@ -14,6 +14,7 @@ let isSaving = false
 let isLoading = false
 let ws = null
 let listenersAttached = false
+let globalProfanity = { whitelist: [], blacklist: [] }
 const channelNameMap = new Map()
 const tagInputRegistry = new Map()
 const roleNameMap = new Map()
@@ -125,7 +126,7 @@ const CATEGORIES = [
               'GEXP threshold checking \u2014 /gexp-check',
               'Connect / disconnect Minecraft \u2014 /disconnect, /reconnect',
               'Toggle chat commands \u2014 !toggle',
-              'Web dashboard & profanity mgmt \u2014 /dashboard, /profanity',
+              'Full web dashboard & profanity management',
               'Cross-bridge chat moderation \u2014 !qmute, !qunmute, !qmuted'
             ],
             missing: [
@@ -715,12 +716,20 @@ const CATEGORIES = [
             hint: '0 falls back to global default.'
           },
           {
-            id: 'profanityList',
-            t: 'link',
-            label: 'Profanity List',
-            description: 'Manage the global profanity list with the /profanity Discord command.',
-            href: null,
-            icon: '\u270E'
+            id: 'profanityWhitelist',
+            t: 'tag',
+            label: 'Profanity Whitelist',
+            hint: 'Words that bypass the filter (global, applies to all bridges).',
+            placeholder: 'word\u2026',
+            max: 100
+          },
+          {
+            id: 'profanityBlacklist',
+            t: 'tag',
+            label: 'Profanity Blacklist',
+            hint: 'Words filtered in addition to the built-in list (global, applies to all bridges).',
+            placeholder: 'word\u2026',
+            max: 100
           }
         ]
       }
@@ -955,6 +964,42 @@ const CATEGORIES = [
     ]
   },
   {
+    key: 'statsChannels',
+    name: 'Stats Channel Topic',
+    icon: '📊',
+    description: 'Auto-update the channel topic with live guild stats on an interval.',
+    fields: [
+      {
+        id: 'enabled',
+        t: 'boolean',
+        label: 'Enable Stats Topic',
+        hint: 'Master toggle for updating the channel topic.'
+      },
+      {
+        id: 'channelIds',
+        t: 'tag',
+        label: 'Channels',
+        hint: 'Text channels whose topic is updated with the rendered template.',
+        placeholder: 'Channel ID\u2026',
+        channelLabel: true
+      },
+      {
+        id: 'template',
+        t: 'textarea',
+        label: 'Topic Template',
+        hint: 'Placeholders: {guildName} {guildLevel} {guildXP} {guildWeeklyXP} {guildMembers} {guildExp24h} {topGameGexp} {topChatter} {topChatterCount} {messagesToday} {botStatuses} {botUptime} {discordMembers} {discordChannels} {discordRoles}. Example: {guildName} | {guildExp24h} EXP (24h) | {topGameGexp} | 🗣 {topChatter} {topChatterCount} | {botStatuses}'
+      },
+      {
+        id: 'updateIntervalMinutes',
+        t: 'number',
+        label: 'Update Interval (minutes)',
+        hint: 'How often the topic is refreshed (1\u20131440).',
+        min: 1,
+        max: 1440
+      }
+    ]
+  },
+  {
     key: 'dangerZone',
     name: 'Danger Zone',
     icon: '\u2620',
@@ -1179,7 +1224,7 @@ function renderLinkCard(field) {
       <span class="settings-link-card-icon">${esc(field.icon || '\u2197')}</span>
       <span class="settings-link-card-body">
         <span class="settings-link-card-title">${esc(field.label)}</span>
-        <span class="settings-link-card-desc">${esc(field.description || 'Use the Discord /' + (field.command || 'command') + ' command to manage this list.')}</span>
+        <span class="settings-link-card-desc">${esc(field.description || '')}</span>
       </span>
     </div>`
 }
@@ -1396,6 +1441,10 @@ function readDemotionRows() {
 
 function renderCategoryPanel(cat) {
   const data = categoryData(cat.key)
+  if (cat.key === 'moderation') {
+    data.profanityWhitelist = globalProfanity.whitelist || []
+    data.profanityBlacklist = globalProfanity.blacklist || []
+  }
   let bodyHTML = ''
 
   for (const f of cat.fields) {
@@ -1891,6 +1940,7 @@ async function saveCategory() {
   try {
     const payload = readCategoryState(cat)
     const url = `/api/bridges/${encodeURIComponent(currentBridgeId)}/settings/${encodeURIComponent(cat.key)}`
+    const previousSnapshot = savedSnapshot
     await Api.apiPut(url, payload)
     if (cat.key === 'translations') rawData.translationOverrides = payload.overrides || {}
     else {
@@ -1898,6 +1948,22 @@ async function saveCategory() {
       rawData.categories[cat.key] = payload
     }
     savedSnapshot = serializeCategory(cat, payload)
+    if (cat.key === 'moderation') {
+      try {
+        await Api.apiPut('/api/moderation/profanity', {
+          whitelist: payload.profanityWhitelist || [],
+          blacklist: payload.profanityBlacklist || []
+        })
+        globalProfanity = {
+          whitelist: payload.profanityWhitelist || [],
+          blacklist: payload.profanityBlacklist || []
+        }
+      } catch (error) {
+        savedSnapshot = previousSnapshot
+        Ui.showToast(`Failed to save profanity list: ${error?.message || String(error)}`, 'error')
+        return
+      }
+    }
     isDirty = false
     updateDirtyUI()
     Ui.showToast(`${cat.name} saved`, 'success')
@@ -1998,6 +2064,11 @@ async function loadSettingsWithAuth() {
   try {
     const res = await Api.apiGet(`/api/bridges/${encodeURIComponent(currentBridgeId)}/settings`)
     rawData = res || {}
+    try {
+      globalProfanity = (await Api.apiGet('/api/moderation/profanity')) || { whitelist: [], blacklist: [] }
+    } catch {
+      globalProfanity = { whitelist: [], blacklist: [] }
+    }
     rebuildChannelNameMap(rawData)
     rebuildRoleNameMap(rawData)
     isLoading = false
@@ -2263,7 +2334,7 @@ async function bootstrap() {
     await Ui.populateBridgeSelector(document.querySelector('#bridge-select'), onBridgeChange)
     if (!currentBridgeId) {
       showPanel(
-        '<div class="empty-state"><div class="empty-state-text">No bridges available. Create one via the Discord /settings command.</div></div>'
+        '<div class="empty-state"><div class="empty-state-text">No bridges available. Create one with the button below.</div></div>'
       )
     }
   }

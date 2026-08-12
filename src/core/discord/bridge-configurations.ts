@@ -158,6 +158,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_tournamentDefaultBracketFormat`)
     this.configuration.delete(`${bridgeId}_tournamentValidGameTypes`)
 
+    // Stats channel topic settings
+    this.configuration.delete(`${bridgeId}_statsTopicEnabled`)
+    this.configuration.delete(`${bridgeId}_statsTopicTemplate`)
+    this.configuration.delete(`${bridgeId}_statsTopicChannelIds`)
+    this.configuration.delete(`${bridgeId}_statsTopicUpdateIntervalMinutes`)
+
     // Notify listeners that a bridge was removed so utilities can cleanup memory
     if (this.onChange) {
       try {
@@ -1385,6 +1391,68 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setString(`${bridgeId}_translationOverrides`, JSON.stringify(overrides))
   }
 
+  // ========== Stats Channel Topic ==========
+
+  /**
+   * Get whether the stats channel topic is enabled for a specific bridge
+   */
+  public getStatsTopicEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_statsTopicEnabled`, false)
+  }
+
+  /**
+   * Set whether the stats channel topic is enabled for a specific bridge
+   */
+  public setStatsTopicEnabled(bridgeId: string, enabled: boolean): void {
+    this.configuration.setBoolean(`${bridgeId}_statsTopicEnabled`, enabled)
+  }
+
+  /**
+   * Get the stats channel topic template for a specific bridge
+   */
+  public getStatsTopicTemplate(bridgeId: string): string {
+    return this.configuration.getString(`${bridgeId}_statsTopicTemplate`, '')
+  }
+
+  /**
+   * Set the stats channel topic template for a specific bridge
+   */
+  public setStatsTopicTemplate(bridgeId: string, template: string | undefined): void {
+    if (template === undefined || template === '') {
+      this.configuration.delete(`${bridgeId}_statsTopicTemplate`)
+    } else {
+      this.configuration.setString(`${bridgeId}_statsTopicTemplate`, template)
+    }
+  }
+
+  /**
+   * Get channel IDs whose topic is updated for a specific bridge
+   */
+  public getStatsTopicChannelIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_statsTopicChannelIds`, [])
+  }
+
+  /**
+   * Set channel IDs whose topic is updated for a specific bridge
+   */
+  public setStatsTopicChannelIds(bridgeId: string, channelIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_statsTopicChannelIds`, channelIds)
+  }
+
+  /**
+   * Get the stats topic update interval in minutes for a specific bridge
+   */
+  public getStatsTopicUpdateIntervalMinutes(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_statsTopicUpdateIntervalMinutes`, 5)
+  }
+
+  /**
+   * Set the stats topic update interval in minutes for a specific bridge
+   */
+  public setStatsTopicUpdateIntervalMinutes(bridgeId: string, minutes: number): void {
+    this.configuration.setNumber(`${bridgeId}_statsTopicUpdateIntervalMinutes`, minutes)
+  }
+
   // ========== Bulk settings reader ==========
 
   public getAllSettings(bridgeId: string): Record<string, unknown> {
@@ -1488,6 +1556,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         categoryId: this.getTournamentCategoryId(bridgeId),
         bracketFormat: this.getTournamentDefaultBracketFormat(bridgeId),
         validGameTypes: this.getTournamentValidGameTypes(bridgeId)
+      },
+      statsChannels: {
+        enabled: this.getStatsTopicEnabled(bridgeId),
+        template: this.getStatsTopicTemplate(bridgeId),
+        channelIds: this.getStatsTopicChannelIds(bridgeId),
+        updateIntervalMinutes: this.getStatsTopicUpdateIntervalMinutes(bridgeId)
       }
     }
   }

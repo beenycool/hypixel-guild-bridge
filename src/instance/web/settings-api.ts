@@ -194,6 +194,7 @@ export class SettingsApiHandler {
     for (const id of array((categories.channels as SettingObject | undefined)?.chatSummaryChannelIds))
       channelIds.add(id)
     for (const id of array((categories.rankup as SettingObject | undefined)?.notificationChannelIds)) channelIds.add(id)
+    for (const id of array((categories.statsChannels as SettingObject | undefined)?.channelIds)) channelIds.add(id)
 
     // Collect role IDs for name resolution
     const roleIds = new Set<string>()
@@ -420,6 +421,13 @@ export class SettingsApiHandler {
           cfg.setTournamentCategoryId(bridgeId, stringValue(body.categoryId) || undefined)
           cfg.setTournamentDefaultBracketFormat(bridgeId, stringValue(body.bracketFormat, 'single-elim'))
           cfg.setTournamentValidGameTypes(bridgeId, array(body.validGameTypes))
+          break
+        }
+        case 'statsChannels': {
+          cfg.setStatsTopicEnabled(bridgeId, bool(body.enabled))
+          cfg.setStatsTopicTemplate(bridgeId, stringValue(body.template) || undefined)
+          cfg.setStatsTopicChannelIds(bridgeId, array(body.channelIds))
+          cfg.setStatsTopicUpdateIntervalMinutes(bridgeId, numberValue(body.updateIntervalMinutes, 5))
           break
         }
         default: {
