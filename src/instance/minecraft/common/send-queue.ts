@@ -36,7 +36,41 @@ const CommandTypeSleep: Record<CommandType, number> = {
   [CommandType.GuildCommand]: 2000
 }
 
+/**
+ * Tracks chat messages recently sent by the bridge's Minecraft instances.
+ * Shared across all instances so the echo of a command sent by one instance
+ * can be recognized (and suppressed) even when observed by another instance.
+ */
+export class SentChatMessages {
+  private static readonly Ttl = 10_000
+
+  private readonly entries: { message: string; time: number }[] = []
+
+  public record(message: string): void {
+    this.entries.push({ message, time: Date.now() })
+  }
+
+  public has(message: string): boolean {
+    const cutoff = Date.now() - SentChatMessages.Ttl
+    let found = false
+    for (let index = this.entries.length - 1; index >= 0; index--) {
+      const entry = this.entries[index]
+      if (entry.time < cutoff) {
+        this.entries.splice(index, 1)
+      } else if (entry.message === message) {
+        found = true
+      }
+    }
+    return found
+  }
+}
+
 export class SendQueue {
+  private static readonly GuildChatChannels = [
+    { type: ChannelType.Public, prefix: '/gc ' },
+    { type: ChannelType.Officer, prefix: '/oc ' }
+  ] as const
+
   private priorityQueue = new PriorityQueue()
 
   public readonly lastId = new Map<CommandType, string>()
@@ -46,29 +80,33 @@ export class SendQueue {
 
   constructor(
     private readonly errorHandler: UnexpectedErrorHandler,
-    private readonly sender: (command: string) => void
+    private readonly sender: (command: string) => void,
+    private readonly sentChatMessages: SentChatMessages
   ) {
     void this.startCycle().catch(errorHandler.promiseCatch('queuing commands via minecraft instance'))
   }
 
-  public notifyChatEvent(channel: ChannelType, message: string): void {
-    if (this.entryContext === undefined) return
-    const channels = [
-      { type: ChannelType.Public, prefix: '/gc ' },
-      { type: ChannelType.Officer, prefix: '/oc ' }
-    ]
+  /**
+   * Returns true if the given chat message is the echo of a command this bridge
+   * recently sent in that channel, skipping the inter-command delay accordingly.
+   */
+  public notifyChatEvent(channel: ChannelType, message: string): boolean {
+    const entryContext = this.entryContext
+    if (entryContext !== undefined) {
+      const entryCommand = entryContext.entry.command
+      for (const potentialChannel of SendQueue.GuildChatChannels) {
+        if (channel !== potentialChannel.type) continue
+        if (!entryCommand.toLowerCase().startsWith(potentialChannel.prefix)) continue
 
-    const entryCommand = this.entryContext.entry.command
-    for (const potentialChannel of channels) {
-      if (channel !== potentialChannel.type) continue
-      if (!entryCommand.toLowerCase().startsWith(potentialChannel.prefix)) continue
-
-      const entryMessage = entryCommand.slice(potentialChannel.prefix.length)
-      if (entryMessage === message) {
-        this.entryContext.skip = true
-        this.entryContext.sleep?.resolve()
+        if (entryCommand.slice(potentialChannel.prefix.length) === message) {
+          entryContext.skip = true
+          entryContext.sleep?.resolve()
+          return true
+        }
       }
     }
+
+    return this.sentChatMessages.has(message)
   }
 
   public async queue(command: string, priority: MinecraftSendChatPriority, eventId: string | undefined): Promise<void> {
@@ -81,6 +119,7 @@ export class SendQueue {
         }
       }
       this.sender(command)
+      this.recordSentChatMessage(command)
       return
     }
 
@@ -89,6 +128,14 @@ export class SendQueue {
       this.priorityQueue.add(entry)
       this.notify()
     })
+  }
+
+  private recordSentChatMessage(command: string): void {
+    for (const potentialChannel of SendQueue.GuildChatChannels) {
+      if (command.toLowerCase().startsWith(potentialChannel.prefix)) {
+        this.sentChatMessages.record(command.slice(potentialChannel.prefix.length))
+      }
+    }
   }
 
   private notify(): void {
@@ -112,6 +159,7 @@ export class SendQueue {
         }
       }
       this.sender(entryToExecute.command)
+      this.recordSentChatMessage(entryToExecute.command)
       entryToExecute.resolve()
 
       await this.sleepBetweenCommands(entryToExecute)

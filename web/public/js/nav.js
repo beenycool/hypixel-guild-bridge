@@ -1,4 +1,6 @@
+import { Api } from './api.js'
 import { Auth } from './auth.js'
+import { Ws } from './ws.js'
 
 const NAV_ITEMS = [
   {
@@ -23,15 +25,164 @@ const NAV_ITEMS = [
   }
 ]
 
-function getActivePage() {
-  const path = globalThis.location.pathname
-  const filename = path.split('/').pop() || 'index.html'
-  for (const section of NAV_ITEMS) {
+const PendingBadgePermissions = new Set(['owner', 'admin', 'helper'])
+const BackToTopThreshold = 400
+const DesktopBreakpoint = 820
+
+let badgeElement = null
+let badgeCount = null
+let badgeSubscription = null
+
+function findActive(sections) {
+  const filename = (globalThis.location.pathname.split('/').pop() || 'index.html').toLowerCase()
+  for (const section of sections) {
     for (const item of section.items) {
-      if (item.href === filename) return item.key
+      if (item.href === filename) return { section, item }
     }
   }
-  return 'overview'
+  return null
+}
+
+function breadcrumbSeparator() {
+  const separator = document.createElement('span')
+  separator.className = 'breadcrumb-sep'
+  separator.setAttribute('aria-hidden', 'true')
+  separator.textContent = '\u203A'
+  return separator
+}
+
+function renderBreadcrumbs(active) {
+  const container = document.querySelector('.app-container')
+  if (!container || !active) return
+
+  const crumbs = document.createElement('nav')
+  crumbs.className = 'breadcrumbs'
+  crumbs.setAttribute('aria-label', 'Breadcrumb')
+
+  const home = document.createElement('a')
+  home.className = 'breadcrumb-link'
+  home.href = 'index.html'
+  home.textContent = 'Dashboard'
+  crumbs.append(home)
+
+  const section = document.createElement('span')
+  section.className = 'breadcrumb-segment'
+  section.textContent = active.section.label
+  crumbs.append(breadcrumbSeparator(), section)
+
+  const current = document.createElement('span')
+  current.className = 'breadcrumb-current'
+  current.setAttribute('aria-current', 'page')
+  current.textContent = active.item.name
+  crumbs.append(breadcrumbSeparator(), current)
+
+  container.prepend(crumbs)
+}
+
+function initBackToTop() {
+  const button = document.createElement('button')
+  button.id = 'back-to-top'
+  button.className = 'back-to-top'
+  button.type = 'button'
+  button.setAttribute('aria-label', 'Back to top')
+  button.textContent = '\u2191'
+  document.body.append(button)
+
+  let visible = false
+  const update = () => {
+    const show = globalThis.scrollY > BackToTopThreshold
+    if (show !== visible) {
+      visible = show
+      button.classList.toggle('visible', show)
+    }
+  }
+  button.addEventListener('click', () => {
+    globalThis.scrollTo({ top: 0, behavior: 'smooth' })
+  })
+  globalThis.addEventListener('scroll', update, { passive: true })
+  update()
+}
+
+function setPendingBadge(count) {
+  badgeCount = count
+  if (!badgeElement) return
+  if (count > 0) {
+    badgeElement.textContent = count > 99 ? '99+' : String(count)
+    badgeElement.classList.remove('hidden')
+  } else {
+    badgeElement.classList.add('hidden')
+  }
+}
+
+async function refreshPendingCount() {
+  try {
+    const data = await Api.apiGet('/api/rankup/bridges')
+    const bridges = data && Array.isArray(data.bridges) ? data.bridges : []
+    setPendingBadge(bridges.reduce((sum, bridge) => sum + (Number(bridge.pendingCount) || 0), 0))
+  } catch {
+    setPendingBadge(0)
+  }
+}
+
+function startPendingBadge() {
+  if (!badgeElement || badgeSubscription) return
+  badgeSubscription = Ws.connectRankupWS((type, data) => {
+    switch (type) {
+      case 'error':
+        setPendingBadge(0)
+        break
+      case 'rankup.snapshot': {
+        const bridges = (data && data.bridges) || {}
+        const total = Object.values(bridges).reduce((sum, bridge) => {
+          return sum + ((bridge && bridge.pending && bridge.pending.length) || 0)
+        }, 0)
+        setPendingBadge(total)
+        break
+      }
+      case 'rankup.reviewAdded':
+        if (badgeCount !== null) setPendingBadge(badgeCount + 1)
+        break
+      case 'rankup.reviewRemoved':
+        if (badgeCount !== null) setPendingBadge(Math.max(0, badgeCount - 1))
+        break
+      case 'rankup.bridgeConfigChanged':
+        refreshPendingCount()
+        break
+    }
+  })
+}
+
+function initDrawer(toggle, itemsContainer) {
+  const backdrop = document.createElement('div')
+  backdrop.className = 'nav-backdrop'
+  document.body.append(backdrop)
+
+  const closeDrawer = () => {
+    if (!itemsContainer.classList.contains('open')) return
+    itemsContainer.classList.remove('open')
+    backdrop.classList.remove('visible')
+    document.body.classList.remove('no-scroll')
+    toggle.setAttribute('aria-expanded', 'false')
+    toggle.textContent = '\u2630'
+  }
+
+  toggle.addEventListener('click', () => {
+    const isOpen = itemsContainer.classList.toggle('open')
+    backdrop.classList.toggle('visible', isOpen)
+    document.body.classList.toggle('no-scroll', isOpen)
+    toggle.setAttribute('aria-expanded', String(isOpen))
+    toggle.textContent = isOpen ? '\u2715' : '\u2630'
+  })
+
+  backdrop.addEventListener('click', closeDrawer)
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer()
+  })
+
+  globalThis.addEventListener('resize', () => {
+    if (globalThis.innerWidth > DesktopBreakpoint) closeDrawer()
+  })
 }
 
 export function initNav() {
@@ -39,12 +190,14 @@ export function initNav() {
   if (!navHost) return
 
   const permission = Auth.getPermission()
-  const activePage = getActivePage()
 
   const sections = NAV_ITEMS.map((s) => ({ ...s, items: [...s.items] }))
   if (permission === 'owner' || permission === 'admin') {
     sections[0].items.unshift({ name: 'Settings', href: 'settings.html', key: 'settings' })
   }
+
+  const active = findActive(sections)
+  const activeKey = active ? active.item.key : 'overview'
 
   const nav = document.createElement('nav')
   nav.className = 'nav'
@@ -58,9 +211,10 @@ export function initNav() {
   const toggle = document.createElement('button')
   toggle.className = 'nav-toggle'
   toggle.id = 'nav-toggle'
+  toggle.type = 'button'
   toggle.setAttribute('aria-label', 'Toggle navigation')
   toggle.setAttribute('aria-expanded', 'false')
-  toggle.innerHTML = '\u2630'
+  toggle.textContent = '\u2630'
   nav.append(toggle)
 
   const itemsContainer = document.createElement('div')
@@ -74,12 +228,16 @@ export function initNav() {
 
     for (const item of section.items) {
       const link = document.createElement('a')
-      const itemClass = activePage === item.key ? 'nav-item active' : 'nav-item'
-      link.className = 'nav-link ' + itemClass
+      link.className = 'nav-link nav-item' + (activeKey === item.key ? ' active' : '')
       link.href = item.href
       link.textContent = item.name
-      if (activePage === item.key) {
+      if (activeKey === item.key) {
         link.setAttribute('aria-current', 'page')
+      }
+      if (item.key === 'pending' && PendingBadgePermissions.has(permission)) {
+        badgeElement = document.createElement('span')
+        badgeElement.className = 'nav-badge hidden'
+        link.append(badgeElement)
       }
       itemsContainer.append(link)
     }
@@ -100,6 +258,7 @@ export function initNav() {
   const disconnectButton = document.createElement('button')
   disconnectButton.className = 'btn btn-secondary btn-sm'
   disconnectButton.id = 'app-nav-disconnect'
+  disconnectButton.type = 'button'
   disconnectButton.textContent = 'Disconnect'
   disconnectButton.addEventListener('click', () => {
     Auth.disconnect()
@@ -109,22 +268,9 @@ export function initNav() {
   nav.append(navRight)
   navHost.append(nav)
 
-  toggle.addEventListener('click', () => {
-    const isOpen = itemsContainer.classList.toggle('open')
-    toggle.setAttribute('aria-expanded', String(isOpen))
-  })
-
-  document.addEventListener('click', (e) => {
-    if (!navHost.contains(e.target) && itemsContainer.classList.contains('open')) {
-      itemsContainer.classList.remove('open')
-      toggle.setAttribute('aria-expanded', 'false')
-    }
-  })
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && itemsContainer.classList.contains('open')) {
-      itemsContainer.classList.remove('open')
-      toggle.setAttribute('aria-expanded', 'false')
-    }
-  })
+  initDrawer(toggle, itemsContainer)
+  renderBreadcrumbs(active)
+  initBackToTop()
+  startPendingBadge()
+  globalThis.addEventListener('authsuccess', startPendingBadge, { once: true })
 }

@@ -5,11 +5,18 @@ import { InstanceType, type MinecraftSelfBroadcast } from '../../common/applicat
 import { Instance, InternalInstancePrefix } from '../../common/instance.js'
 import type { MinecraftInstanceConfig } from '../../core/minecraft/sessions-manager'
 
+import { SentChatMessages } from './common/send-queue.js'
 import MinecraftInstance from './minecraft-instance.js'
 import { Sanitizer } from './utility/sanitizer.js'
 
 export class MinecraftManager extends Instance<InstanceType.Utility> {
   public sanitizer: Sanitizer
+
+  /**
+   * Shared history of chat messages recently sent by any Minecraft instance.
+   * Used to recognize the echo of own commands in guild chat.
+   */
+  public readonly sentChatMessages = new SentChatMessages()
 
   private readonly instances = new Set<MinecraftInstance>()
   private readonly minecraftBots = new Map<string, MinecraftSelfBroadcast>()

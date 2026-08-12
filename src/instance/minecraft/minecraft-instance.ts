@@ -71,9 +71,13 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
     this.messageAssociation = new MessageAssociation()
     this.bridge = new MinecraftBridge(app, this, this.logger, this.errorHandler, this.messageAssociation)
-    this.sendQueue = new SendQueue(this.errorHandler, (command) => {
-      this.sendNow(command)
-    })
+    this.sendQueue = new SendQueue(
+      this.errorHandler,
+      (command) => {
+        this.sendNow(command)
+      },
+      app.minecraftManager.sentChatMessages
+    )
 
     this.stateHandler = new StateHandler(this)
     this.selfbroadcastHandler = new SelfbroadcastHandler(this)
@@ -247,8 +251,8 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return this.latestTabPingMs
   }
 
-  notifyChatEvent(channel: ChannelType, message: string): void {
-    this.sendQueue.notifyChatEvent(channel, message)
+  notifyChatEvent(channel: ChannelType, message: string): boolean {
+    return this.sendQueue.notifyChatEvent(channel, message)
   }
 
   /**
