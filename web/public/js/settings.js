@@ -815,6 +815,37 @@ const CATEGORIES = [
         placeholder: 'User ID\u2026',
         hint: 'Discord user IDs to ping when reviews are pending'
       },
+      {
+        t: 'section',
+        title: 'Schedule',
+        collapsible: true,
+        children: [
+          {
+            t: 'preset',
+            id: 'scheduleDay',
+            label: 'Schedule Day (UK time)',
+            allowEmpty: true,
+            options: [
+              { label: 'Sunday', value: '0' },
+              { label: 'Monday', value: '1' },
+              { label: 'Tuesday', value: '2' },
+              { label: 'Wednesday', value: '3' },
+              { label: 'Thursday', value: '4' },
+              { label: 'Friday', value: '5' },
+              { label: 'Saturday', value: '6' }
+            ],
+            hint: 'Rankup checkup only runs on this day of the week. Leave empty for no day restriction.'
+          },
+          {
+            t: 'preset',
+            id: 'scheduleHour',
+            label: 'Schedule Hour (UK time)',
+            allowEmpty: true,
+            options: Array.from({ length: 24 }, (_, hour) => ({ label: `${hour}:00`, value: String(hour) })),
+            hint: 'Rankup checkup only runs at this hour. Leave empty for no hour restriction.'
+          }
+        ]
+      },
       { t: 'promotionRules', id: 'promotionRules' },
       { t: 'demotionRules', id: 'demotionRules' },
       {
@@ -1128,10 +1159,13 @@ function fieldRowHTML(field, value, data) {
     }
     case 'preset': {
       const options = collectPresetOptions(field)
+      const current = value === undefined || value === null ? '' : String(value)
       const optionsHtml =
         (field.allowEmpty ? '<option value="">(default)</option>' : '') +
         options
-          .map((o) => `<option value="${esc(o.value)}"${o.value === value ? ' selected' : ''}>${esc(o.label)}</option>`)
+          .map(
+            (o) => `<option value="${esc(o.value)}"${o.value === current ? ' selected' : ''}>${esc(o.label)}</option>`
+          )
           .join('')
       control = `<select class="select" data-field="${esc(id)}">${optionsHtml}</select>`
       break

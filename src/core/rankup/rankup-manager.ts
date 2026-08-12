@@ -37,6 +37,10 @@ export class RankupManager {
       logger
     )
 
+    for (const bridgeId of bridgeConfig.getAllBridgeIds()) {
+      this.lastRunByBridge.set(bridgeId, bridgeConfig.getRankupLastRunAt(bridgeId))
+    }
+
     setInterval(() => {
       this.runTask().catch((error: unknown) => {
         this.logger.error('Error in RankupManager scheduled task:', error)
@@ -121,7 +125,9 @@ export class RankupManager {
     this.runningBridges.add(bridgeId)
     try {
       await this.bridgeEvaluator.processBridge(bridgeId)
-      this.lastRunByBridge.set(bridgeId, Date.now())
+      const now = Date.now()
+      this.lastRunByBridge.set(bridgeId, now)
+      this.bridgeConfig.setRankupLastRunAt(bridgeId, Math.floor(now / 1000))
     } catch (error) {
       this.logger.error(`Error in RankupManager task for bridge ${bridgeId}:`, error)
     } finally {

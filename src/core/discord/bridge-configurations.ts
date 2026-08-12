@@ -148,6 +148,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_rankupDemotionRules`)
     this.configuration.delete(`${bridgeId}_rankupExcludedRanks`)
     this.configuration.delete(`${bridgeId}_rankupExcludedPlayers`)
+    this.configuration.delete(`${bridgeId}_rankupScheduleDay`)
+    this.configuration.delete(`${bridgeId}_rankupScheduleHour`)
+    this.configuration.delete(`${bridgeId}_rankupLastRunAt`)
 
     // Tournament settings
     this.configuration.delete(`${bridgeId}_tournamentEnabled`)
@@ -1103,6 +1106,20 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.setConfig(bridgeId, `${bridgeId}_rankupScheduleHour`, hour, () => {
       this.configuration.setNumber(`${bridgeId}_rankupScheduleHour`, hour)
     })
+  }
+
+  /**
+   * Get the unix timestamp (seconds) of the last completed rankup checkup for a bridge
+   */
+  public getRankupLastRunAt(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_rankupLastRunAt`, -1)
+  }
+
+  /**
+   * Set the unix timestamp (seconds) of the last completed rankup checkup for a bridge
+   */
+  public setRankupLastRunAt(bridgeId: string, timestamp: number): void {
+    this.configuration.setNumber(`${bridgeId}_rankupLastRunAt`, timestamp)
   }
 
   /**
