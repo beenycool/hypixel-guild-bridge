@@ -28,6 +28,7 @@ const HotmXpTable = [0, 0, 3000, 9000, 25_000, 60_000, 100_000, 150_000, 210_000
 export default class Skyblock extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['skyblock', 'sb', 'stats'],
       description: "Returns a player's skyblock stats",
       example: `skyblock %s`

@@ -7,6 +7,7 @@ import { formatStatNumber, shortenNumber } from '../common/utility'
 export default class Cops extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['copsandcrims', 'cac', 'mcgo', 'cops'],
       description: "Returns a player's Cops and Crims stats",
       example: `cops %s`

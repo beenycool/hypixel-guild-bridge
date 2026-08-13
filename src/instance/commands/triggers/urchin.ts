@@ -20,6 +20,7 @@ interface UrchinResponse {
 export default class Urchin extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Player',
       triggers: ['urchin', 'blacklist', 'tags'],
       description: 'Check a player for Urchin blacklist tags.',
       example: 'urchin %s'

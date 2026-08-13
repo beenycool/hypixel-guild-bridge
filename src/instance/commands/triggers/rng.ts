@@ -32,6 +32,7 @@ export default class Rng extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['rng'],
       description: 'Returns a random number between a range',
       example: `rng 1 5`

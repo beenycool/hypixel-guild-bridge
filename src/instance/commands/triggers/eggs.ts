@@ -2,6 +2,7 @@ import type { SkyblockV2Member } from 'hypixel-api-reborn'
 
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import { shortenNumber } from '../common/utility'
 
 export default class Eggs extends SkyblockPlayerCommand {
   private static readonly DivineEggs = ['vega', 'starfire', 'orion', 'aurora', 'celestia']
@@ -20,8 +21,8 @@ export default class Eggs extends SkyblockPlayerCommand {
   ]
   constructor() {
     super({
-      triggers: ['eggs', 'egg'],
-      description: "Returns a player's skyblock easter eggs stats",
+      triggers: ['eggs', 'egg', 'cf', 'chocolate', 'chocolates'],
+      description: "Returns a player's skyblock easter eggs and chocolate stats",
       example: `eggs %s`
     })
   }
@@ -61,6 +62,11 @@ export default class Eggs extends SkyblockPlayerCommand {
       }
     }
 
-    return `${username} has collected ${totalEggs} chocolate eggs and unlocked ${mythicEggs} mythics and ${divineEggs} divines for a total of ${uniqueEggs}/512 rabbits`
+    const chocolateSpent = easter?.shop?.chocolate_spent ?? 0
+    return (
+      `${username} has collected ${totalEggs} chocolate eggs and unlocked ${mythicEggs} mythics and ${divineEggs} divines ` +
+      `for a total of ${uniqueEggs}/512 rabbits. ` +
+      `Produced ${shortenNumber(totalChocolate)} chocolate, spent ${shortenNumber(chocolateSpent)}.`
+    )
   }
 }

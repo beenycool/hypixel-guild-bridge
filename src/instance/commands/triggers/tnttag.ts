@@ -7,6 +7,7 @@ import { shortenNumber } from '../common/utility'
 export default class Tnttag extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['tnttag'],
       description: "Returns a player's TNT Tag stats",
       example: `tnttag %s`

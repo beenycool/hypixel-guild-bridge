@@ -29,6 +29,7 @@ function formatWs(mode: string, count: number): string {
 export default class WinstreakCommand extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['ws', 'winstreak'],
       description: 'Show winstreaks for a player.',
       example: 'ws %s'

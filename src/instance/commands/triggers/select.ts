@@ -5,6 +5,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class Select extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['select', 'ifl'],
       description: 'Randomly select an online guild member',
       example: `select great person!`

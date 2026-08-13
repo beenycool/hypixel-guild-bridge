@@ -5,6 +5,7 @@ import { getUuidIfExists, playerNeverPlayedSkyblock, shortenNumber, usernameNotE
 export default class Purse extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['purse', 'bank', 'coins', 'coin'],
       description: "Returns a player's skyblock coins",
       example: `purse %s`

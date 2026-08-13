@@ -13,6 +13,7 @@ import { getUuidIfExists, usernameNotExists } from '../common/utility'
 export default class Guild extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['guild', 'guildOf', 'g'],
       description: "Returns a player's guild, if they're in one",
       example: `g %s`

@@ -10,6 +10,7 @@ export default class AuctionHouse extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Utility',
       triggers: ['auction', 'ah', 'auctions'],
       description: "Returns a player's active auctions",
       example: `auction %s`

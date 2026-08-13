@@ -12,6 +12,7 @@ import {
 export default class Skills extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['skills', 'skill', 'sa'],
       description: 'Skills and Skill Average of specified user.',
       example: `skills %s`

@@ -10,6 +10,7 @@ const CalculusAliases = new Set(['calculus', 'calculas', 'calc'])
 export default class Asian extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['asian'],
       description: 'Challenge yourself with math! Use calculus for calculus problems.',
       example: `asian %s`

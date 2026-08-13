@@ -5,6 +5,7 @@ import { formatTime } from '../../../utility/shared-utility'
 export default class Starfall extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['starfall', 'star', 'sf'],
       description: 'When is the next Skyblock Starfall event',
       example: `starfall`

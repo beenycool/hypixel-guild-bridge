@@ -7,6 +7,7 @@ import { shortenNumber } from '../common/utility'
 export default class Blitz extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['blitz', 'hungergames', 'hg', 'sg'],
       description: "Returns a player's Blitz Survival Games stats",
       example: `blitz %s`

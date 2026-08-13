@@ -100,6 +100,12 @@ export interface ApplicationEvents {
   pendingReviewAdded: Readonly<{ bridgeId: string; review: PendingReview }>
   pendingReviewRemoved: Readonly<{ bridgeId: string; id: number }>
   pendingHistoryAppended: Readonly<{ bridgeId: string; entry: RankupHistoryEntry }>
+
+  /**
+   * Request the Minecraft instance to start a join-request interview for a player.
+   * Emitted by Discord commands/buttons; handled by the Minecraft instance.
+   */
+  joinInterviewRequest: Readonly<{ instanceName: string; username: string }>
 }
 
 /**

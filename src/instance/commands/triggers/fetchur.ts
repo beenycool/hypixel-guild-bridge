@@ -18,6 +18,7 @@ export default class Fetchur extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['fetchur', 'fetcher'],
       description: 'Show what Fetchur NPC is requesting',
       example: `fetchur`

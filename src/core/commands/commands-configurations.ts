@@ -96,7 +96,7 @@ export class CommandsConfigurations {
   }
 
   /**
-   * Get the list of users muted from cross-bridge chat (!q)
+   * Get the list of users muted from cross-bridge chat (!chat)
    * @returns Array of muted users with their expiration timestamps
    */
   public getQMutedUsers(): { username: string; expirationTime: number }[] {

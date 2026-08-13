@@ -7,6 +7,7 @@ import { shortenNumber } from '../common/utility'
 export default class Murdermystery extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['murdermystery', 'mm', 'murder'],
       description: "Returns a player's Murder Mystery stats",
       example: `mm %s`

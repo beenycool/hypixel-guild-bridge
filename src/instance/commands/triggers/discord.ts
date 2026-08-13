@@ -5,6 +5,7 @@ import { playerNeverPlayedHypixel, usernameNotExists } from '../common/utility'
 export default class Discord extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['discord', 'dc'],
       description: "Returns a player's Discord social",
       example: `dc %s`

@@ -6,6 +6,7 @@ import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 export default class HypixelLevel extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Player',
       triggers: ['hlevel', 'hypixellevel', 'hlvl'],
       description: "Returns a player's Hypixel common stats",
       example: `hlevel %s`

@@ -166,6 +166,7 @@ interface ArcadeStats {
 export default class Arcade extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: [
         'arcade',
         'arc',

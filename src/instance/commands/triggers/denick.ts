@@ -9,6 +9,7 @@ export default class Denick extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Player',
       triggers: ['denick', 'denicker'],
       description: 'Denick players by their finals/beds stats in Bedwars',
       example: 'denick finals 1500'

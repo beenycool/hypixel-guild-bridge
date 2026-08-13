@@ -4,6 +4,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class Explain extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Utility',
       triggers: ['explain', 'e'],
       description: 'Returns an explanation of the bot',
       example: `explain`

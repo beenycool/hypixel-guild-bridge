@@ -31,6 +31,7 @@ export default class Buildbattle extends HypixelPlayerCommand {
 
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['buildbattle', 'build', 'bb'],
       description: "Returns a player's Build Battle common stats",
       example: `bb %s`

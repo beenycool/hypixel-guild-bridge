@@ -6,6 +6,7 @@ import { beautifyInstanceName } from '../../../utility/shared-utility'
 export default class List extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['list', 'ls'],
       description: 'List online members in a guild',
       example: `list [GuildName] [page]`

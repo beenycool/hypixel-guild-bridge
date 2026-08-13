@@ -4,6 +4,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class Praise extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['praise'],
       description: 'praise a player',
       example: `praise %s`

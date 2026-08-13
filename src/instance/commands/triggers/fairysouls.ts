@@ -11,6 +11,7 @@ import {
 export default class FairySouls extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['fairysouls', 'fs'],
       description: 'Fairy Souls of specified user.',
       example: `fairysouls %s`

@@ -6,6 +6,7 @@ import Duels from './duels.js'
 export default class Bow extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['bow'],
       description: "Shortcut for 'duels bow' (bow duels stats)",
       example: `bow %s`

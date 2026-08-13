@@ -7,6 +7,7 @@ import type { TournamentMatch, TournamentPlayer } from '../../../core/tournament
 export default class Tournament extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['tournament', 'tour', 't'],
       description: 'Tournament commands — join, checkin, report, forfeit, bracket, status',
       example: 'tournament join'

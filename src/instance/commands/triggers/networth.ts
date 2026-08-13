@@ -17,6 +17,7 @@ interface NetworthTypes {
 export default class Networth extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['networth', 'nw'],
       description: 'Networth of specified user.',
       example: `networth %s`

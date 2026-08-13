@@ -7,6 +7,7 @@ import { formatStatNumber, shortenNumber } from '../common/utility'
 export default class Woolwars extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['woolwars', 'ww'],
       description: "Returns a player's Wool Wars stats",
       example: `ww %s`

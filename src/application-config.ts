@@ -87,6 +87,29 @@ export interface GuildRequirementsConfig {
   autoAccept?: boolean
 }
 
+/**
+ * Configuration for interviewing players that request to join the guild.
+ * When enabled, the bot friends the player, parties them and asks the
+ * configured questions via party chat, relaying the answers to officer chat.
+ */
+export interface InterviewConfig {
+  /**
+   * Whether to automatically start the interview when a join request is detected.
+   * The /interrogate command and the Interrogate button always work when this config exists.
+   */
+  enabled?: boolean
+  /**
+   * The questions to ask the applicant via party chat.
+   * @default ['Who are you?', 'Why do you want to join the guild?']
+   */
+  questions?: string[]
+  /**
+   * How long to wait for a party join or an answer before aborting. Milliseconds.
+   * @default 300000
+   */
+  timeoutMs?: number
+}
+
 export interface InactivityConfig {
   enabled: boolean
   maxDays: number
@@ -134,6 +157,10 @@ export interface BridgeConfig {
      */
     officerChannelIds: string[]
   }
+  /**
+   * Optional join-request interview configuration for this bridge.
+   */
+  interview?: InterviewConfig
 }
 
 export interface TournamentConfig {

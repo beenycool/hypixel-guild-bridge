@@ -495,7 +495,7 @@ class SessionCommand extends ChatCommandHandler {
   private readonly period: Period
 
   constructor(trigger: string, period: Period, description: string) {
-    super({ triggers: [trigger], description, example: `${trigger} %s` })
+    super({ category: 'Utility', triggers: [trigger], description, example: `${trigger} %s` })
     this.period = period
   }
 

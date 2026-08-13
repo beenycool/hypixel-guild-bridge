@@ -33,6 +33,7 @@ const Answers = [
 export default class EightBallCommand extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['8ball', '8balls', '8', 'ball', 'balls', '8b'],
       description: 'Returns a basic 8 ball response',
       example: `8b am I cool?`

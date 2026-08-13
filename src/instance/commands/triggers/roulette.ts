@@ -27,6 +27,7 @@ export default class Roulette extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['roulette', 'rr'],
       description: 'Try your luck for a 15 minute mute',
       example: `rr`

@@ -5,6 +5,10 @@ import { type ChatCommandContext, ChatCommandHandler } from '../../../common/com
 import { getSelectedSkyblockProfileRaw, getUuidIfExists, playerNeverPlayedSkyblock, usernameNotExists } from './utility'
 
 export abstract class SkyblockPlayerCommand extends ChatCommandHandler {
+  protected constructor(options: { triggers: string[]; description: string; example: string }) {
+    super({ ...options, category: 'SkyBlock' })
+  }
+
   protected resolveUsername(context: ChatCommandContext): string {
     return context.args[0] ?? context.username
   }

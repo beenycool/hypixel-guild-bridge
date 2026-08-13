@@ -6,6 +6,7 @@ import { httpClient } from '../../../common/http.js'
 export default class DadJoke extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['dadjoke', 'joke', 'dad'],
       description: 'Show you a random dad joke',
       example: 'dadjoke'

@@ -10,6 +10,7 @@ enum CommandOptions {
 export default class RockPaperScissors extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['rps'],
       description: 'Play rock, paper, scissors against the bot',
       example: `rps rock`

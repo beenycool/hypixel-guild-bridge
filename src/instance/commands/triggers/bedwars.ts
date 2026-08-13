@@ -10,6 +10,7 @@ export default class Bedwars extends HypixelPlayerCommand {
   private static readonly ValidModes: readonly BedwarsMode[] = ['overall', 'solo', 'doubles', 'threes', 'fours', '4v4']
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['bedwars', 'bw', 'bws'],
       description: "Returns a player's Bed Wars stats with optional mode filter",
       example: `bw [mode] %s`

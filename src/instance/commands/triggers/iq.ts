@@ -27,6 +27,7 @@ function parseIqScore(content: string): number {
 export default class Iq extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['iq'],
       description: "Returns a player's IQ (0-200)",
       example: 'iq %s'

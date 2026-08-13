@@ -7,6 +7,7 @@ import { shortenNumber } from '../common/utility'
 export default class Droppers extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['dropper', 'droppers'],
       description: "Returns a player's Dropper stats",
       example: `dropper %s`

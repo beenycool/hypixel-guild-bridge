@@ -4,6 +4,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class Chattermute extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Utility',
       triggers: ['chattermute'],
       description: 'Pause random chatter until you log out or run this command again',
       example: 'chattermute'

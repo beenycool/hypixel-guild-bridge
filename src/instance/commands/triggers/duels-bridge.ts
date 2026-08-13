@@ -7,6 +7,7 @@ import Duels from './duels.js'
 export default class DuelsBridge extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['b'],
       description:
         "Shortcut for 'duels bridge' (bridge duels stats). Supports sub-modes: 1v1/solo, 2v2/duos, 3v3, 4v4, 2v2v2v2/4teams2, 3v3v3v3/4teams3",

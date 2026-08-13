@@ -12,6 +12,7 @@ import {
 export default class Garden extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['garden'],
       description: "Returns a player's garden stats",
       example: `garden %s`

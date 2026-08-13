@@ -12,6 +12,7 @@ export default class Unlink extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Utility',
       triggers: ['unlink'],
       description: 'Unlink Minecraft account from Discord',
       example: 'unlink'

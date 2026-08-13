@@ -5,6 +5,7 @@ import { getUuidIfExists, usernameNotExists } from '../common/utility'
 export default class PointsAll extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Utility',
       triggers: ['points', 'point', 'allpoints', 'allpoint', 'pointall', 'pointsall'],
       description: "Returns user's all time activity points ",
       example: `points %s`

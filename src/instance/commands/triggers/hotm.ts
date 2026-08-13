@@ -5,6 +5,7 @@ import { getSelectedSkyblockProfile, getUuidIfExists, usernameNotExists } from '
 export default class HeartOfTheMountain extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['hotm', 'powder'],
       description: "Returns a player's hotm and powder",
       example: `hotm %s`

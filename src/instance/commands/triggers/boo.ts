@@ -13,6 +13,7 @@ export default class Boo extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['boo'],
       description: '/boo a player in-game',
       example: `boo %s`

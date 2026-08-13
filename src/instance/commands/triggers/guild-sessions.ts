@@ -30,6 +30,7 @@ function fmtCompact(n: number): string {
 export default class GuildSessions extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['guildstats', 'gstats', 'gactivity'],
       description: 'Show guild activity stats for a period.',
       example: 'guildstats weekly'

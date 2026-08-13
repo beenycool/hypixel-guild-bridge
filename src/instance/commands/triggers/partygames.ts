@@ -7,6 +7,7 @@ import { shortenNumber } from '../common/utility'
 export default class PartyGames extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['partygames', 'pg'],
       description: "Returns a player's Party Games stats",
       example: `pg %s`

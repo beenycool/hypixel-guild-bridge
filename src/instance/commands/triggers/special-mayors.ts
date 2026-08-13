@@ -6,6 +6,7 @@ import { capitalize } from '../common/utility'
 export default class SpecialMayors extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['specialmayors', 'specialmayor', 'smayor', 'smayors', 'derpy', 'jerry', 'scorpius'],
       description: 'Show when Skyblock special mayors are coming',
       example: `smayors`

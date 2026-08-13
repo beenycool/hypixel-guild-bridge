@@ -18,6 +18,7 @@ import { type AuthResult, buildTokenSet, verifyToken } from './web/auth.js'
 import { GuildApiHandler } from './web/guild-api.js'
 import { InactivityApiHandler } from './web/inactivity-api.js'
 import { InstanceApiHandler } from './web/instance-api.js'
+import { ModerationApiHandler } from './web/moderation-api.js'
 import { PlayerApiHandler } from './web/player-api.js'
 import { PunishmentsApiHandler } from './web/punishments-api.js'
 import { RankupApiHandler } from './web/rankup-api.js'
@@ -105,6 +106,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly guildApi: GuildApiHandler
   private readonly inactivityApi: InactivityApiHandler
   private readonly instanceApi: InstanceApiHandler
+  private readonly moderationApi: ModerationApiHandler
   private readonly playerApi: PlayerApiHandler
   private readonly punishmentsApi: PunishmentsApiHandler
   private readonly rankupApi: RankupApiHandler
@@ -166,6 +168,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     this.guildApi = new GuildApiHandler(application, this.logger)
     this.inactivityApi = new InactivityApiHandler(application, this.logger)
     this.instanceApi = new InstanceApiHandler(application, this.logger)
+    this.moderationApi = new ModerationApiHandler(application, this.logger)
     this.playerApi = new PlayerApiHandler(application, this.logger)
     this.punishmentsApi = new PunishmentsApiHandler(application, this.logger)
     this.rankupApi = new RankupApiHandler(application, this.logger)
@@ -323,6 +326,11 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     if (route.startsWith('/api/instance')) {
       await this.instanceApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/moderation')) {
+      await this.moderationApi.handle(request, response)
       return
     }
 

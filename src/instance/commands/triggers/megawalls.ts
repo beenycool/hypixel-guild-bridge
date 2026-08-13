@@ -7,6 +7,7 @@ import { formatStatNumber, shortenNumber } from '../common/utility'
 export default class Megawalls extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['megawalls'],
       description: "Returns a player's Megawalls stats",
       example: `mw %s`

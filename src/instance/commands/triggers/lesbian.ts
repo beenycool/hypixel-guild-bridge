@@ -8,6 +8,7 @@ function percentage(): number {
 export default class Lesbian extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['lesbian', 'lesbianism'],
       description: 'Check how lesbian a player is',
       example: 'lesbian %s'

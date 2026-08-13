@@ -7,8 +7,8 @@ import { playerNeverEnteredCrimson, shortenNumber } from '../common/utility'
 export default class Crimson extends SkyblockPlayerCommand {
   constructor() {
     super({
-      triggers: ['crimson', 'nether', 'isle'],
-      description: "Returns a player's Crimson Isle stats",
+      triggers: ['crimson', 'nether', 'isle', 'rep', 'reputation', 'faction'],
+      description: "Returns a player's Crimson Isle stats (faction, reputation, Kuudra)",
       example: `crimson %s`
     })
   }

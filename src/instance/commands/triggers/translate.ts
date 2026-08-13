@@ -115,6 +115,7 @@ export function parseTargetLanguage(argumentsList: string[]): { language: string
 export default class Translate extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Utility',
       triggers: ['translate', 'tr'],
       description: 'Translates text to a target language',
       example: 'translate %s french hello world'

@@ -14,6 +14,7 @@ import { httpClient } from '../../../common/http.js'
 export default class Weight extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Player',
       triggers: ['weight', 'w'],
       description: "Returns a player's senither weight",
       example: `w %s`

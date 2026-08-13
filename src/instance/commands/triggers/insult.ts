@@ -4,6 +4,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class Insult extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['insult'],
       description: 'insult a player',
       example: `insult %s`

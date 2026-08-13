@@ -25,6 +25,7 @@ export default class Mute extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['mute'],
       description: 'mute a random online person for 5 minutes for no good reason',
       example: `mute`

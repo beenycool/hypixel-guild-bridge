@@ -91,6 +91,12 @@ export const GuildRequirementsConfig = t.iface([], {
   "autoAccept": t.opt("boolean"),
 });
 
+export const InterviewConfig = t.iface([], {
+  "enabled": t.opt("boolean"),
+  "questions": t.opt(t.array("string")),
+  "timeoutMs": t.opt("number"),
+});
+
 export const InactivityConfig = t.iface([], {
   "enabled": "boolean",
   "maxDays": "number",
@@ -125,6 +131,7 @@ export const BridgeConfig = t.iface([], {
     "publicChannelIds": t.array("string"),
     "officerChannelIds": t.array("string"),
   }),
+  "interview": t.opt("InterviewConfig"),
 });
 
 export const TournamentConfig = t.iface([], {
@@ -187,6 +194,7 @@ const exportedTypeSuite: t.ITypeSuite = {
   VerificationConfig,
   GuildRequirementsThresholds,
   GuildRequirementsConfig,
+  InterviewConfig,
   InactivityConfig,
   SkyblockEventsConfig,
   HypixelUpdatesConfig,

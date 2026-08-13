@@ -7,6 +7,7 @@ import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 export default class Player extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Player',
       triggers: ['player', 'general'],
       description: 'Get Hypixel player stats.',
       example: `player %s`

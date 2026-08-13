@@ -5,8 +5,9 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class QMute extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Moderation',
       triggers: ['qm'],
-      description: 'Mute a user from using cross-bridge chat (!q)',
+      description: 'Mute a user from using cross-bridge chat (!chat)',
       example: `qm aidn5 30`
     })
   }

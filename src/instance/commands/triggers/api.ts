@@ -5,6 +5,7 @@ import { getUuidIfExists, playerNeverPlayedSkyblock, usernameNotExists } from '.
 export default class Api extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Utility',
       triggers: ['api'],
       description: "Returns a player's skyblock API status",
       example: `api %s`

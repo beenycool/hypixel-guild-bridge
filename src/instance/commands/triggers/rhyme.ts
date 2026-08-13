@@ -16,6 +16,7 @@ const rateLimiter = new SlidingWindowRateLimiter([
 export default class Rhyme extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['rhyme'],
       description: 'Finds rhyming words and generates a short couplet using AI',
       example: 'rhyme hello'

@@ -7,6 +7,7 @@ import { shortenNumber } from '../common/utility'
 export default class Quakecraft extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['quakecraft', 'quake', 'qc'],
       description: "Returns a player's Quakecraft stats",
       example: `quakecraft %s`

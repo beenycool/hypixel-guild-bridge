@@ -45,6 +45,7 @@ class PartyList extends ChatCommandHandler {
 
   constructor(partyManager: PartyManager) {
     super({
+      category: 'Guild',
       triggers: ['parties', 'party', 'listparty', 'listpartys', 'listparties', 'plist'],
       description: 'List all active parties in guild',
       example: `parties`

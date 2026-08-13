@@ -23,6 +23,7 @@ export default class DevelopmentExcuse extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['devexcuse', 'devexc', 'dev'],
       description: "Show you a random excuse for why this bot isn't working",
       example: 'devexcuse'

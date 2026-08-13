@@ -21,6 +21,7 @@ interface AcceptRequestPayload {
 
 export default class GuildRequirements extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   private static readonly AcceptButtonPrefix = 'guild-req-accept'
+  private static readonly InterrogateButtonPrefix = 'guild-req-interrogate'
 
   constructor(clientInstance: DiscordInstance) {
     super(clientInstance)
@@ -41,6 +42,14 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
         return
       }
 
+      const interrogatePayload = this.parseInterrogateButton(interaction.customId)
+      if (interrogatePayload) {
+        void this.handleInterrogateButton(interaction, interrogatePayload).catch(
+          this.errorHandler.promiseCatch('handling guild join request interrogate button')
+        )
+        return
+      }
+
       const payload = this.parseAcceptButton(interaction.customId)
       if (!payload) return
 
@@ -52,6 +61,19 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
   private parseAcceptButton(customId: string): AcceptRequestPayload | undefined {
     if (!customId.startsWith(`${GuildRequirements.AcceptButtonPrefix}:`)) return undefined
+
+    const parts = customId.split(':')
+    if (parts.length < 3) return undefined
+
+    const instanceName = parts[1]
+    const username = parts.slice(2).join(':')
+    if (!instanceName || !username) return undefined
+
+    return { instanceName, username }
+  }
+
+  private parseInterrogateButton(customId: string): AcceptRequestPayload | undefined {
+    if (!customId.startsWith(`${GuildRequirements.InterrogateButtonPrefix}:`)) return undefined
 
     const parts = customId.split(':')
     if (parts.length < 3) return undefined
@@ -120,7 +142,11 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
       new ButtonBuilder()
         .setCustomId(this.buildAcceptButtonId(event.instanceName, username))
         .setLabel('Accept Request')
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(this.buildInterrogateButtonId(event.instanceName, username))
+        .setLabel('Interrogate')
+        .setStyle(ButtonStyle.Secondary)
     )
 
     for (const channelId of channelIds) {
@@ -166,6 +192,46 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     }
   }
 
+  private async handleInterrogateButton(
+    interaction: ButtonInteraction,
+    payload: AcceptRequestPayload
+  ): Promise<void> {
+    if (!interaction.inGuild()) {
+      await interaction.reply({ content: 'This action can only be used in a server.' })
+      return
+    }
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral })
+
+    if (!(await this.ensurePermission(interaction))) {
+      await interaction.editReply('You do not have permission to interrogate guild requests.')
+      return
+    }
+
+    const error = this.checkInterviewEnabled(payload.instanceName)
+    if (error !== undefined) {
+      await interaction.editReply(error)
+      return
+    }
+
+    await this.application.emit('joinInterviewRequest', {
+      instanceName: payload.instanceName,
+      username: payload.username
+    })
+    await interaction.editReply(
+      `Started interrogation of ${escapeMarkdown(payload.username)} on \`${payload.instanceName}\`. Answers will be relayed to officer chat.`
+    )
+  }
+
+  private checkInterviewEnabled(instanceName: string): string | undefined {
+    const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(instanceName)
+    const bridge = this.application.config.bridges?.find((config) => config.id === bridgeId)
+    if (bridge?.interview === undefined) {
+      return 'The interview feature is not enabled for this bridge. Add an `interview` section to the bridge config in config.yaml.'
+    }
+    return undefined
+  }
+
   private async ensurePermission(interaction: ButtonInteraction): Promise<boolean> {
     const permission = await this.clientInstance.resolvePermission(interaction.user.id)
     return permission >= Permission.Helper
@@ -173,6 +239,10 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
   private buildAcceptButtonId(instanceName: string, username: string): string {
     return `${GuildRequirements.AcceptButtonPrefix}:${instanceName}:${username}`
+  }
+
+  private buildInterrogateButtonId(instanceName: string, username: string): string {
+    return `${GuildRequirements.InterrogateButtonPrefix}:${instanceName}:${username}`
   }
 
   private async sendAcceptCommand(instanceName: string, username: string): Promise<void> {

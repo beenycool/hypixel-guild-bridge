@@ -23,6 +23,7 @@ interface GuildData {
 export default class GuildExperience extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['guildexp', 'gexp'],
       description: 'Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]',
       example: `gexp daily %s`

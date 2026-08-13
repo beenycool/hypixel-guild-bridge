@@ -4,6 +4,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class GtopCommand extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Guild',
       triggers: ['gtop', 'topgexp'],
       description: 'Shows the top 5 GEXP earners in the guild for today',
       example: 'gtop'

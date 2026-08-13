@@ -25,6 +25,7 @@ const withTimeout = async <T>(promise: Promise<T>, ms = 2000): Promise<T | undef
 export default class Status extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Player',
       triggers: ['status', 'stalk'],
       description: "Show a player's Hypixel status and current location",
       example: `status %s`

@@ -7,6 +7,7 @@ import { formatStatNumber, shortenNumber } from '../common/utility'
 export default class Pit extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['pit', 'thepit'],
       description: "Returns a player's Pit stats",
       example: `pit %s`

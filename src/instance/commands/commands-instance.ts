@@ -30,11 +30,9 @@ import Buildbattle from './triggers/buildbattle'
 import Calculate from './triggers/calculate.js'
 import Catacomb from './triggers/catacomb.js'
 import Chattermute from './triggers/chattermute.js'
-import Chocolate from './triggers/chocolate'
 import Collection from './triggers/collection'
 import Cops from './triggers/cops.js'
 import Crimson from './triggers/crimson.js'
-import CurrentDungeon from './triggers/current-dungeon.js'
 import DadJoke from './triggers/dadjoke.js'
 import DarkAuction from './triggers/darkauction.js'
 import Denick from './triggers/denick.js'
@@ -45,7 +43,6 @@ import Droppers from './triggers/droppers.js'
 import DuelsBridge from './triggers/duels-bridge.js'
 import Duels from './triggers/duels.js'
 import Eggs from './triggers/eggs'
-import Election from './triggers/election.js'
 import Essence from './triggers/essence.js'
 import Execute from './triggers/execute.js'
 import Explain from './triggers/explain.js'
@@ -76,7 +73,6 @@ import Networth from './triggers/networth.js'
 import Paintball from './triggers/paintball.js'
 import PartyManager from './triggers/party.js'
 import PartyGames from './triggers/partygames.js'
-import PersonalBest from './triggers/personal-best.js'
 import Ping from './triggers/ping.js'
 import Pit from './triggers/pit.js'
 import Player from './triggers/player.js'
@@ -90,14 +86,10 @@ import QMuted from './triggers/qmuted.js'
 import Quakecraft from './triggers/quakecraft.js'
 import QUnmute from './triggers/qunmute.js'
 import Racism from './triggers/racism.js'
-import Reputation from './triggers/reputation.js'
 import Rhyme from './triggers/rhyme.js'
 import Rng from './triggers/rng.js'
 import RockPaperScissors from './triggers/rock-paper-scissors.js'
 import Roulette from './triggers/roulette.js'
-import RunsToClassAverage from './triggers/runs-to-class-average.js'
-import Runs from './triggers/runs.js'
-import Secrets from './triggers/secrets.js'
 import Select from './triggers/select'
 import SessionCommands from './triggers/sessions.js'
 import Skills from './triggers/skills.js'
@@ -153,11 +145,9 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Calculate(),
       new Catacomb(),
       new Chattermute(),
-      new Chocolate(),
       new Collection(),
       new Cops(),
       new Crimson(),
-      new CurrentDungeon(),
       new DadJoke(),
       new Denick(),
       new DarkAuction(),
@@ -166,7 +156,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Dojo(),
       new Droppers(),
       new Eggs(),
-      new Election(),
       new EightBallCommand(),
       new Essence(),
       new Execute(),
@@ -199,7 +188,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       ...new SessionCommands().resolveCommands(),
       new PartyGames(),
       new Paintball(),
-      new PersonalBest(),
       new Ping(),
       new Pit(),
       new Player(),
@@ -213,14 +201,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new QUnmute(),
       new Racism(),
       new Quakecraft(),
-      new Reputation(),
       new Rhyme(),
       new Rng(),
       new RockPaperScissors(),
       new Roulette(),
-      new Runs(),
-      new RunsToClassAverage(),
-      new Secrets(),
       new Select(),
       new Skills(),
       new Skyblock(),

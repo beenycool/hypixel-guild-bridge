@@ -38,6 +38,7 @@ export default class Vengeance extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['vengeance', 'v'],
       description: 'Try your luck against another player for a 15 minute mute',
       example: `v %s`

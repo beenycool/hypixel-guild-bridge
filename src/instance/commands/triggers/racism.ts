@@ -4,6 +4,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class Racism extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['racism'],
       description: 'Check how racist a player is',
       example: `racism %s`

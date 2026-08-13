@@ -45,6 +45,7 @@ export default class Unscramble extends ChatCommandHandler {
 
   constructor() {
     super({
+      category: 'Fun',
       triggers: ['unscramble', 'unscrambleme', 'us'],
       description: 'Unscramble the word and type it in chat to win!',
       example: `unscramble [length]`

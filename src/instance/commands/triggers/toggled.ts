@@ -4,6 +4,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 export default class Toggled extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Moderation',
       triggers: ['toggled', 'disabled'],
       description: 'Show disabled commands',
       example: `disabled`

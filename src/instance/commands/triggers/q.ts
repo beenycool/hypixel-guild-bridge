@@ -45,9 +45,10 @@ function checkRateLimit(key: string): { allowed: boolean; retryAfterMs: number }
 export default class QCommand extends ChatCommandHandler {
   constructor() {
     super({
-      triggers: ['q'],
+      category: 'Utility',
+      triggers: ['chat', 'q'],
       description: 'Send a one-time message to a different bridge, or list available bridges',
-      example: `q list | q blockops hello everyone!`
+      example: `chat list | chat blockops hello everyone!`
     })
   }
 

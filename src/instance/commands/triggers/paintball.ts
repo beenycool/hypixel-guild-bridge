@@ -7,6 +7,7 @@ import { formatStatNumber, shortenNumber } from '../common/utility'
 export default class Paintball extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['paintball'],
       description: "Returns a player's Paintball stats",
       example: `paintball %s`

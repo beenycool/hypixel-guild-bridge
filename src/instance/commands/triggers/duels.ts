@@ -227,6 +227,7 @@ export default class Duels extends HypixelPlayerCommand {
 
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['duels', 'duel', 'd'],
       description: "Returns a player's Duels stats with optional mode filter",
       example: `duels [mode] %s`

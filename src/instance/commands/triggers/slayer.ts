@@ -37,6 +37,7 @@ type SlayerSummary = Record<SlayerType, SlayerLevel>
 export default class SlayerCommand extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'SkyBlock',
       triggers: ['slayer', 'slayers'],
       description: 'Slayer of specified user.',
       example: `slayer %s`

@@ -75,6 +75,7 @@ export default class Skywars extends HypixelPlayerCommand {
 
   constructor() {
     super({
+      category: 'Minigames',
       triggers: ['skywars', 'skywar', 'sw'],
       description: "Returns a player's SkyWars stats",
       example: `sw %s`

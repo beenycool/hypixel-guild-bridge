@@ -4,6 +4,7 @@ import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
 export default class Ping extends HypixelPlayerCommand {
   constructor() {
     super({
+      category: 'Player',
       triggers: ['ping'],
       description: "Returns a player's Hypixel ping (network latency)",
       example: 'ping %s'

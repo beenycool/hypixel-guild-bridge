@@ -7,6 +7,7 @@ import { formatStatNumber, getUuidIfExists, playerNeverPlayedSkyblock, usernameN
 export default class Level extends ChatCommandHandler {
   constructor() {
     super({
+      category: 'Player',
       triggers: ['level', 'lvl', 'l'],
       description: "Returns a player's skyblock level",
       example: `lvl %s`
