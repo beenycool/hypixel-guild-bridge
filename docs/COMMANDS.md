@@ -15,14 +15,14 @@ Most [Soopy commands](https://soopy.dev/commands) are supported and can be used 
 A shorter version can also be used: `!- rtca`
 
 | Command         | Description                                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------------------- |
 | `8ball`         | Returns a basic 8 ball response                                                                                                      |
 | `accessories`   | Returns a player's accessory bag stats                                                                                               |
 | `api`           | Returns a player's skyblock API status                                                                                               |
 | `arcade`        | Returns a player's Arcade games stats with optional game mode filter                                                                 |
 | `asian`         | Challenge yourself with math! Use calculus for calculus problems.                                                                    |
 | `auction`       | Returns a player's active auctions                                                                                                   |
-| `bedwars`       | Returns a player's Bed Wars stats with optional mode filter                                                                          |
+| `bedwars`       | Returns a player's Bed Wars stats with optional mode filter, or stat changes with daily/weekly/monthly (e.g. !bw weekly PlayerName)  |
 | `be`            | Returns a player's Bestiary stats                                                                                                    |
 | `bits`          | Returns the best bit items to purchase for the most profit.                                                                          |
 | `blitz`         | Returns a player's Blitz Survival Games stats                                                                                        |
@@ -57,7 +57,7 @@ A shorter version can also be used: `!- rtca`
 | `gtop`          | Shows the top 5 GEXP earners in the guild for today                                                                                  |
 | `guildstats`    | Show guild activity stats for a period.                                                                                              |
 | `guild`         | Returns a player's guild, if they're in one                                                                                          |
-| `guildexp`      | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]                                                    |
+| `guildexp`      | Guild experience of specified user. Usage: gexp [daily                                                                               | weekly | monthly] [username] |
 | `help`          | Shows available command categories and how to use commands                                                                           |
 | `hotm`          | Returns a player's hotm and powder                                                                                                   |
 | `hlevel`        | Returns a player's Hypixel common stats                                                                                              |
