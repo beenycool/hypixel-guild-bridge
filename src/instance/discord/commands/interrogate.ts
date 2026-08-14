@@ -12,7 +12,7 @@ export default {
   getCommandBuilder: () =>
     new SlashCommandBuilder()
       .setName('interrogate')
-      .setDescription('Start a party-chat interview with a player that requested to join the guild')
+      .setDescription('Ask a player that requested to join the guild if they are an alt via private message')
       .addStringOption(
         new SlashCommandStringOption()
           .setName('username')
@@ -44,9 +44,19 @@ export default {
       return
     }
 
+    const minecraftInstance = context.application.minecraftManager
+      .getAllInstances()
+      .find((inst) => inst.instanceName.toLowerCase() === instance.toLowerCase())
+    if (minecraftInstance === undefined || minecraftInstance.isInterviewing(username)) {
+      await context.interaction.editReply(
+        `\`${escapeMarkdown(username)}\` already has an active interview on \`${instance}\`.`
+      )
+      return
+    }
+
     await context.application.emit('joinInterviewRequest', { instanceName: instance, username })
     await context.interaction.editReply(
-      `Interrogation started for \`${escapeMarkdown(username)}\` on \`${instance}\`. Answers will be relayed to officer chat.`
+      `Interrogation started for \`${escapeMarkdown(username)}\` on \`${instance}\`. They will be asked if they are an alt via private message. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
     )
   },
   autoComplete: async function (context) {

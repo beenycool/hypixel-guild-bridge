@@ -21,6 +21,7 @@ import MessageAssociation from './common/message-association.js'
 import { resolveProxyIfExist } from './common/proxy-handler.js'
 import { CommandType, SendQueue } from './common/send-queue.js'
 import GameTogglesHandler from './handlers/game-toggles-handler.js'
+import JoinInterviewHandler from './handlers/join-interview-handler.js'
 import LimboHandler from './handlers/limbo-handler.js'
 import PlayerMuted from './handlers/player-muted.js'
 import PunishmentHandler from './handlers/punishment-handler'
@@ -46,6 +47,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private reactionHandler: Reaction
   private playerMuted: PlayerMuted
   private limboHandler: LimboHandler
+  private joinInterviewHandler: JoinInterviewHandler
 
   private readonly messageAssociation: MessageAssociation
   private readonly bridge: MinecraftBridge
@@ -87,6 +89,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     this.limboHandler = new LimboHandler(this)
     this.reactionHandler = new Reaction(this)
     this.playerMuted = new PlayerMuted(this)
+    this.joinInterviewHandler = new JoinInterviewHandler(this)
   }
 
   override async signal(type: InstanceSignalType): Promise<void> {
@@ -113,6 +116,10 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
   public async acquireLimbo(): Promise<Timeout<void>> {
     return this.limboHandler.acquire()
+  }
+
+  public isInterviewing(username: string): boolean {
+    return this.joinInterviewHandler.isInterviewing(username)
   }
 
   async connect(): Promise<void> {

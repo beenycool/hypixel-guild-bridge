@@ -4,6 +4,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, escapeMark
 import type { GuildRequirementsConfig } from '../../../application-config.js'
 import type { GuildPlayerEvent, InstanceType } from '../../../common/application-event.js'
 import { GuildPlayerEventType, MinecraftSendChatPriority, Permission } from '../../../common/application-event.js'
+import { Status } from '../../../common/connectable-instance.js'
 import SubInstance from '../../../common/sub-instance'
 import { checkChatTriggers, InviteAcceptChat } from '../../../utility/chat-triggers.js'
 import { formatChatTriggerResponse } from '../common/chattrigger-format.js'
@@ -192,10 +193,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     }
   }
 
-  private async handleInterrogateButton(
-    interaction: ButtonInteraction,
-    payload: AcceptRequestPayload
-  ): Promise<void> {
+  private async handleInterrogateButton(interaction: ButtonInteraction, payload: AcceptRequestPayload): Promise<void> {
     if (!interaction.inGuild()) {
       await interaction.reply({ content: 'This action can only be used in a server.' })
       return
@@ -214,12 +212,26 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
       return
     }
 
+    const instance = this.application.minecraftManager
+      .getAllInstances()
+      .find((inst) => inst.instanceName.toLowerCase() === payload.instanceName.toLowerCase())
+    if (instance === undefined || instance.currentStatus() !== Status.Connected) {
+      await interaction.editReply(`The Minecraft bot \`${payload.instanceName}\` is not connected.`)
+      return
+    }
+    if (instance.isInterviewing(payload.username)) {
+      await interaction.editReply(
+        `${escapeMarkdown(payload.username)} already has an active interview on \`${payload.instanceName}\`.`
+      )
+      return
+    }
+
     await this.application.emit('joinInterviewRequest', {
       instanceName: payload.instanceName,
       username: payload.username
     })
     await interaction.editReply(
-      `Started interrogation of ${escapeMarkdown(payload.username)} on \`${payload.instanceName}\`. Answers will be relayed to officer chat.`
+      `Started interrogation of ${escapeMarkdown(payload.username)} on \`${payload.instanceName}\`. They will be asked if they are an alt via private message. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
     )
   }
 

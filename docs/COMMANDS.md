@@ -134,7 +134,7 @@ A shorter version can also be used: `!- rtca`
 | `/dashboard`   | Open the web dashboard for bridge management                                                        |
 | `/disconnect`  | disconnect minecraft clients                                                                        |
 | `/execute`     | execute command in-game via Minecraft client                                                        |
-| `/interrogate` | Start a party-chat interview with a player that requested to join the guild                         |
+| `/interrogate` | Ask a player that requested to join the guild if they are an alt via private message |
 | `/invite`      | invite player to the guild in-game                                                                  |
 | `/join`        | Instruct the Minecraft account to join a guild.                                                     |
 | `/kick`        | kick player from the guild in-game                                                                  |

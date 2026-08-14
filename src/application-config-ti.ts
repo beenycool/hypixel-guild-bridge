@@ -93,7 +93,7 @@ export const GuildRequirementsConfig = t.iface([], {
 
 export const InterviewConfig = t.iface([], {
   "enabled": t.opt("boolean"),
-  "questions": t.opt(t.array("string")),
+  "question": t.opt("string"),
   "timeoutMs": t.opt("number"),
 });
 
