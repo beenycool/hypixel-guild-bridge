@@ -337,6 +337,14 @@ await describe('Party state transitions', async () => {
     assert.strictEqual(updatePartyState('Party created!', false), true)
   })
 
+  await it('joins party when a member joins the party (leader-side)', () => {
+    assert.strictEqual(updatePartyState('libi_xox joined the party.', false), true)
+  })
+
+  await it('joins party when a ranked member joins the party (leader-side)', () => {
+    assert.strictEqual(updatePartyState('[MVP+] Steve joined the party.', false), true)
+  })
+
   await it('leaves party on leave message', () => {
     assert.strictEqual(updatePartyState('You left the party.', true), false)
   })

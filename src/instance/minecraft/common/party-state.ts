@@ -6,7 +6,8 @@ export const PartyInviteRegex = [
 export const PartyJoinRegex = [
   /^Party created!/,
   /^You are now in a party with /,
-  /^You (?:have )?joined (?:\[[+A-Z]{3,10}] )*\w{3,32}'s party!?/
+  /^You (?:have )?joined (?:\[[+A-Z]{3,10}] )*\w{3,32}'s party!?/,
+  /^(?:\[[+A-Z]{3,10}] ){0,3}\w{3,32} joined the party\./
 ]
 
 /**

@@ -175,8 +175,6 @@ export default class JoinInterviewHandler extends SubInstance<
         continue
       }
 
-      if (!this.isInParty(event.instanceName)) continue
-
       const match = JoinInterviewHandler.PartyChatRegex.exec(message)
       if (match === null) continue
       const [, username, playerMessage] = match
