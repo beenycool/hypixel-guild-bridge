@@ -330,6 +330,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
         await interaction.editReply('Failed to accept the request. Check logs for details.')
       }
     } else if (action === 'deny') {
+      await this.application.emit('interviewDenied', { instanceName, username })
       await interaction.editReply({ content: `Denied join request for ${escapeMarkdown(username)}.` })
       if (interaction.channel?.isSendable()) {
         await interaction.channel.send({

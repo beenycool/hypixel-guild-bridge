@@ -59,6 +59,12 @@ export default class JoinInterviewHandler extends SubInstance<
       )
     })
 
+    this.application.on('interviewDenied', (event) => {
+      void this.onInterviewDenied(event.instanceName, event.username).catch(
+        this.errorHandler.promiseCatch('handling join interview denial')
+      )
+    })
+
     this.application.on('minecraftChat', (event) => {
       void this.onMinecraftChat(event).catch(this.errorHandler.promiseCatch('handling minecraft chat for interview'))
     })
@@ -117,6 +123,20 @@ export default class JoinInterviewHandler extends SubInstance<
     if (this.resolveInterviewConfig() === undefined) return
 
     await this.startInterview(instanceName, username)
+  }
+
+  private async onInterviewDenied(instanceName: string, username: string): Promise<void> {
+    if (instanceName !== this.clientInstance.instanceName) return
+
+    const session = this.sessions.get(username.toLowerCase())
+    if (session === undefined) return
+
+    await this.sendCommand(
+      instanceName,
+      `/pc Your request to join the guild was denied.`,
+      MinecraftSendChatPriority.High
+    )
+    await this.finish(session, `Interview with ${session.username} ended: join request denied.`)
   }
 
   private async startInterview(instanceName: string, username: string): Promise<void> {
@@ -202,6 +222,7 @@ export default class JoinInterviewHandler extends SubInstance<
         break
       }
       case ChannelType.Officer: {
+        if (event.instanceType !== InstanceType.Discord) return
         await this.onOfficerMessage(this.clientInstance.instanceName, event.message)
         break
       }

@@ -425,6 +425,19 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     })
     if (channels.length === 0) return
 
+    if (this.messageToImage.shouldRenderImage()) {
+      const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Officer)}{skin} ${event.message}`
+      try {
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: event.username
+        })
+        await this.sendImageToChannels(`interview-${event.instanceName}-${event.username}`, channels, image)
+        return
+      } catch (error: unknown) {
+        this.logger.error('Failed to render interview message as image', error)
+      }
+    }
+
     const client = this.clientInstance.getClient()
     for (const channelId of channels) {
       try {

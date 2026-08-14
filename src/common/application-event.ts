@@ -112,6 +112,13 @@ export interface ApplicationEvents {
    * Emitted by the Minecraft interview handler; handled by the Discord instance.
    */
   interviewMessage: Readonly<{ bridgeId: string; instanceName: string; username: string; message: string }>
+
+  /**
+   * Notify the Minecraft interview handler that a join request was denied,
+   * so it can tell the player in party chat and disband the party.
+   * Emitted by Discord buttons; handled by the Minecraft instance.
+   */
+  interviewDenied: Readonly<{ instanceName: string; username: string }>
 }
 
 /**
