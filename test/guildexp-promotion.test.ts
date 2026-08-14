@@ -145,4 +145,45 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
       "Steve's Weekly Guild Experience: 90,000. Next rank [Officer]: 90,000 / 80,000 GEXP & 3/7 days in guild."
     )
   })
+
+  await it('formats next rank progress when command originates from Discord (instance lookup fails, bridgeId on event)', () => {
+    const member = {
+      uuid: 'uuid-1',
+      rank: 'Member',
+      joinedAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      weeklyExperience: 45_000
+    }
+    const guild = {
+      ranks: [
+        { name: 'Member', priority: 1 },
+        { name: 'Officer', priority: 2 }
+      ]
+    }
+    const mockContext = {
+      message: { instanceName: 'discord', bridgeId: 'bridge-1' },
+      app: {
+        bridgeResolver: {
+          getBridgeIdForInstance: () => undefined
+        },
+        core: {
+          bridgeConfigurations: {
+            getRankupRules: () => [
+              { targetRank: 'Officer', minWeeklyGexp: 80_000, minDaysInGuild: 7, minOnlineHours: 0 }
+            ],
+            getRankupDemotionRules: () => [],
+            getRankupExcludedRanks: () => [],
+            getRankupExcludedPlayers: () => [],
+            getRankupEnabled: () => true,
+            getRankupManualReview: () => false
+          }
+        }
+      }
+    }
+
+    const result = command.formatResponse('Steve', 'weekly', member, mockContext, guild)
+    assert.strictEqual(
+      result,
+      "Steve's Weekly Guild Experience: 45,000. Next rank [Officer]: 45,000 / 80,000 GEXP (35,000 needed)."
+    )
+  })
 })

@@ -104,7 +104,8 @@ export default class GuildExperience extends ChatCommandHandler {
   }
 
   private getPromotionInfo(context: ChatCommandContext, guild: GuildData, member: GuildMemberData): string {
-    const bridgeId = context.app.bridgeResolver.getBridgeIdForInstance(context.message.instanceName)
+    const bridgeId =
+      context.app.bridgeResolver.getBridgeIdForInstance(context.message.instanceName) ?? context.message.bridgeId
     if (!bridgeId) return ''
 
     const bridgeConfig = context.app.core.bridgeConfigurations
