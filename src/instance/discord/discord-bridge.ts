@@ -90,6 +90,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       .catch(this.errorHandler.promiseCatch('handling event instanceReactive'))
   }
 
+  private readonly onInterviewMessage = (event: {
+    bridgeId: string
+    instanceName: string
+    username: string
+    message: string
+  }): void => {
+    void this.queue
+      .run(() => this.onInterviewMessageEvent(event))
+      .catch(this.errorHandler.promiseCatch('handling interview message'))
+  }
+
   constructor(
     application: Application,
     clientInstance: DiscordInstance,
@@ -115,6 +126,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     this.application.on('instanceReactive', this.onInstanceReactive)
     this.localCleanups.push(() => {
       this.application.off('instanceReactive', this.onInstanceReactive)
+    })
+
+    this.application.on('interviewMessage', this.onInterviewMessage)
+    this.localCleanups.push(() => {
+      this.application.off('interviewMessage', this.onInterviewMessage)
     })
   }
 
@@ -394,6 +410,33 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     } catch (error) {
       this.logger.warn('Failed to resolve Discord mentions for Minecraft chat', error)
       return undefined
+    }
+  }
+
+  async onInterviewMessageEvent(event: {
+    bridgeId: string
+    instanceName: string
+    username: string
+    message: string
+  }): Promise<void> {
+    const channels = this.resolveChannelsForEvent([ChannelType.Officer], event.bridgeId, {
+      kind: 'interview',
+      instanceName: event.instanceName
+    })
+    if (channels.length === 0) return
+
+    const client = this.clientInstance.getClient()
+    for (const channelId of channels) {
+      try {
+        const channel = await client.channels.fetch(channelId)
+        if (!channel?.isSendable()) continue
+        await channel.send({
+          content: `🔎 **${event.username}** ${event.message}`,
+          allowedMentions: { parse: [] }
+        })
+      } catch (error: unknown) {
+        this.logger.error(`Failed to send interview message to ${channelId}`, error)
+      }
     }
   }
 

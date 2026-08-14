@@ -144,6 +144,7 @@ export default class JoinInterviewHandler extends SubInstance<
     this.logger.info(`[interview] starting interview with ${username} on ${instanceName}`)
     await this.sendOfficer(
       instanceName,
+      username,
       `Started interview with ${username}. They will be asked: ${session.question}. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
     )
 
@@ -217,7 +218,11 @@ export default class JoinInterviewHandler extends SubInstance<
 
   private async onPlayerMessage(instanceName: string, session: InterviewSession, message: string): Promise<void> {
     this.armTimeout(session)
-    await this.sendOfficer(instanceName, `${session.username} answered (${session.question}) -> ${message}`)
+    await this.sendOfficer(
+      instanceName,
+      session.username,
+      `${session.username} answered (${session.question}) -> ${message}`
+    )
   }
 
   private async onOfficerMessage(instanceName: string, message: string): Promise<void> {
@@ -253,7 +258,7 @@ export default class JoinInterviewHandler extends SubInstance<
     this.sessions.delete(key)
     if (session.timeoutId !== undefined) clearTimeout(session.timeoutId)
 
-    if (message !== undefined) await this.sendOfficer(this.clientInstance.instanceName, message)
+    if (message !== undefined) await this.sendOfficer(this.clientInstance.instanceName, session.username, message)
     if (this.isInParty(this.clientInstance.instanceName)) {
       await this.sendCommand(this.clientInstance.instanceName, '/p disband', MinecraftSendChatPriority.High)
     }
@@ -263,8 +268,17 @@ export default class JoinInterviewHandler extends SubInstance<
     return this.inParty.get(instanceName) ?? false
   }
 
-  private async sendOfficer(instanceName: string, message: string): Promise<void> {
+  private async sendOfficer(instanceName: string, username: string, message: string): Promise<void> {
     await this.sendCommand(instanceName, `/oc [Interview] ${message}`, MinecraftSendChatPriority.Default)
+
+    const bridgeId = this.clientInstance.bridgeId
+    if (bridgeId === undefined) return
+    await this.application.emit('interviewMessage', {
+      bridgeId: bridgeId,
+      instanceName: instanceName,
+      username: username,
+      message: message
+    })
   }
 
   private async sendCommand(instanceName: string, command: string, priority: MinecraftSendChatPriority): Promise<void> {

@@ -106,6 +106,12 @@ export interface ApplicationEvents {
    * Emitted by Discord commands/buttons; handled by the Minecraft instance.
    */
   joinInterviewRequest: Readonly<{ instanceName: string; username: string }>
+
+  /**
+   * Relay an interview message (started/answered/aborted) to the bridge's officer channels.
+   * Emitted by the Minecraft interview handler; handled by the Discord instance.
+   */
+  interviewMessage: Readonly<{ bridgeId: string; instanceName: string; username: string; message: string }>
 }
 
 /**
