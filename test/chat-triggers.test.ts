@@ -366,3 +366,39 @@ await describe('Party state transitions', async () => {
     assert.strictEqual(updatePartyState('Steve has invited you to join their party!', false), false)
   })
 })
+
+await describe('Join request detection', async () => {
+  const JoinRequestRegex = /(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) has requested to join the Guild/g
+
+  await it('matches boxed message with rank', () => {
+    const boxed = `-----------------------------------------------------\n              [MVP+] Steve has requested to join the Guild\n-----------------------------------------------------`
+    JoinRequestRegex.lastIndex = 0
+    const match = JoinRequestRegex.exec(boxed)
+    assert.strictEqual(match?.[1], 'Steve')
+  })
+
+  await it('matches boxed message without rank (non-ranked alt)', () => {
+    const boxed = `-----------------------------------------------------\n              Alt has requested to join the Guild\n-----------------------------------------------------`
+    JoinRequestRegex.lastIndex = 0
+    const match = JoinRequestRegex.exec(boxed)
+    assert.strictEqual(match?.[1], 'Alt')
+  })
+
+  await it('matches plain message with exclamation', () => {
+    JoinRequestRegex.lastIndex = 0
+    const match = JoinRequestRegex.exec('[VIP] Steve has requested to join the Guild!')
+    assert.strictEqual(match?.[1], 'Steve')
+  })
+
+  await it('does not match unrelated messages', () => {
+    for (const message of [
+      'Steve joined the guild!',
+      'You have requested to join the guild!',
+      'Party created!',
+      'Guild > Steve: hello'
+    ]) {
+      JoinRequestRegex.lastIndex = 0
+      assert.strictEqual(JoinRequestRegex.exec(message)?.[1], undefined, `should not match: ${message}`)
+    }
+  })
+})

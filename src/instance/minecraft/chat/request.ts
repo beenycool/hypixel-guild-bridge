@@ -8,10 +8,13 @@ import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-
 
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^-{53}\n\[[+A-Za-z]{3,10}] {0,3}(\w{3,32}) has requested to join the Guild/g
+    // Boxed Hypixel message, centered with leading spaces; rank prefix is
+    // optional (non-ranked players have no [rank] prefix).
+    const regex = /(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) has requested to join the Guild/g
 
     const match = regex.exec(context.message)
     if (match != undefined) {
+      context.logger.info(`[join-request] detected request from ${match[1]} | message: "${context.message}"`)
       const username = match[1]
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)
       const user = await context.application.core.initializeMinecraftUser({ name: username, id: uuid }, {})
@@ -33,6 +36,8 @@ export default {
           .sendMinecraft([context.instanceName], MinecraftSendChatPriority.Default, undefined, `/oc ${command}`)
           .catch(context.errorHandler.promiseCatch(`sending ${command} for join request`))
       }
+    } else if (context.message.includes('requested to join')) {
+      context.logger.debug(`[join-request] near-miss message: "${context.message}"`)
     }
   }
 } satisfies MinecraftChatMessage
