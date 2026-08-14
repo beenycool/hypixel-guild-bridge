@@ -486,26 +486,27 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     let allowedMentions: MessageMentionOptions | undefined
 
     if (activeEvent.type === GuildPlayerEventType.Request) {
-      const bridgeId = activeEvent.bridgeId
-      const roleIds = [
-        ...(bridgeId === undefined
-          ? []
-          : [
-              ...this.application.core.bridgeConfigurations.getJoinRequestRoleIds(bridgeId),
-              ...this.application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
-              ...this.application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
-              ...this.application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
-            ]),
-        ...this.application.core.discordConfigurations.getJoinRequestRoleIds(),
-        ...this.application.core.discordConfigurations.getOfficerRoleIds(),
-        ...this.application.core.discordConfigurations.getHelperRoleIds(),
-        ...this.application.core.discordConfigurations.getOwnerRoleIds()
-      ]
-      const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
-      if (uniqueRoleIds.length > 0) {
-        pingContent = uniqueRoleIds.map((id) => `<@&${id}>`).join(' ')
-        allowedMentions = { parse: [], roles: uniqueRoleIds }
-      }
+      // TEMPORARILY DISABLED: join-request role pings. Re-enable by restoring the block below.
+      // const bridgeId = activeEvent.bridgeId
+      // const roleIds = [
+      //   ...(bridgeId === undefined
+      //     ? []
+      //     : [
+      //         ...this.application.core.bridgeConfigurations.getJoinRequestRoleIds(bridgeId),
+      //         ...this.application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
+      //         ...this.application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
+      //         ...this.application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
+      //       ]),
+      //   ...this.application.core.discordConfigurations.getJoinRequestRoleIds(),
+      //   ...this.application.core.discordConfigurations.getOfficerRoleIds(),
+      //   ...this.application.core.discordConfigurations.getHelperRoleIds(),
+      //   ...this.application.core.discordConfigurations.getOwnerRoleIds()
+      // ]
+      // const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
+      // if (uniqueRoleIds.length > 0) {
+      //   pingContent = uniqueRoleIds.map((id) => `<@&${id}>`).join(' ')
+      //   allowedMentions = { parse: [], roles: uniqueRoleIds }
+      // }
 
       const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
