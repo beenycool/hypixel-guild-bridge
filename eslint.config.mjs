@@ -21,7 +21,8 @@ export default [
       'web/public/js', // legacy browser JS, not part of the TypeScript project
       '**/*-ti.ts',
       'package-lock.json',
-      'eslint.config.mjs'
+      'eslint.config.mjs',
+      'scripts/prune-minecraft-data.mjs'
     ]
   },
   eslint.configs.recommended,

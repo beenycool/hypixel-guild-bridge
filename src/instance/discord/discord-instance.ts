@@ -69,6 +69,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
         GuildStickerManager: { maxSize: 0 },
         MessageManager: {
           maxSize: 5,
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- with Partials.Message the author can be null at runtime
           keepOverLimit: (message: Message) => message.author?.id === message.client.user.id
         },
         PresenceManager: { maxSize: 0 },
