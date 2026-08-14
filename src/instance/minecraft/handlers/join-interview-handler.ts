@@ -165,7 +165,7 @@ export default class JoinInterviewHandler extends SubInstance<
     await this.sendOfficer(
       instanceName,
       username,
-      `Started interview with ${username}. They will be asked: ${session.question}. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
+      `Started interview with ${username}. They will be asked: ${session.question}. Reply in the Discord officer channel to talk with them.`
     )
 
     if (this.isInParty(instanceName)) {

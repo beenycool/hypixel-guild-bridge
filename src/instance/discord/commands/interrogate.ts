@@ -61,7 +61,7 @@ export default {
 
     await context.application.emit('joinInterviewRequest', { instanceName: instance, username })
     await context.interaction.editReply(
-      `Interrogation started for \`${escapeMarkdown(username)}\` on \`${instance}\`. They will be asked if they are an alt via private message. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
+      `Interrogation started for \`${escapeMarkdown(username)}\` on \`${instance}\`. They will be asked in party chat. Reply in the Discord officer channel to talk with them.`
     )
   },
   autoComplete: async function (context) {

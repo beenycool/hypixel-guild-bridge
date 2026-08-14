@@ -231,7 +231,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
       username: payload.username
     })
     await interaction.editReply(
-      `Started interrogation of ${escapeMarkdown(payload.username)} on \`${payload.instanceName}\`. They will be asked if they are an alt via private message. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
+      `Started interrogation of ${escapeMarkdown(payload.username)} on \`${payload.instanceName}\`. They will be asked in party chat. Reply in the Discord officer channel to talk with them.`
     )
   }
 
