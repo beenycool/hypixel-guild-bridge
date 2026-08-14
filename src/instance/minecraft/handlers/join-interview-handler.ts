@@ -239,11 +239,7 @@ export default class JoinInterviewHandler extends SubInstance<
 
   private async onPlayerMessage(instanceName: string, session: InterviewSession, message: string): Promise<void> {
     this.armTimeout(session)
-    await this.sendOfficer(
-      instanceName,
-      session.username,
-      `${session.username} answered (${session.question}) -> ${message}`
-    )
+    await this.sendOfficer(instanceName, session.username, `${session.username}: ${message}`)
   }
 
   private async onOfficerMessage(instanceName: string, message: string): Promise<void> {
