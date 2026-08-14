@@ -12,6 +12,7 @@
     "start": "node --import tsx/esm index.ts",
     "start:prod": "node build/index.js",
     "build": "npx tsc",
+    "heroku-postbuild": "echo skipping tsc build - app runs via tsx at runtime",
     "postinstall": "node scripts/prune-minecraft-data.mjs",
     "generate-code": "npx ts-interface-builder src/application-config.ts",
     "generate-docs": "node --import tsx/esm scripts/generate-documentation.ts",
