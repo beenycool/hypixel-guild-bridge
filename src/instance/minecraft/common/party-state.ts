@@ -9,6 +9,22 @@ export const PartyJoinRegex = [
   /^You (?:have )?joined (?:\[[+A-Z]{3,10}] )*\w{3,32}'s party!?/
 ]
 
+/**
+ * Message shown to the party leader when another player accepts the invite
+ * and joins the party.
+ */
+export const PartyMemberJoinedRegex = [/^(?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32}) joined the party!?/]
+
+export function findPartyMemberJoined(message: string): string | undefined {
+  for (const line of message.split('\n')) {
+    for (const regex of PartyMemberJoinedRegex) {
+      const match = regex.exec(line)
+      if (match != undefined) return match[1]
+    }
+  }
+  return undefined
+}
+
 export const PartyLeaveRegex = [
   /^You left the party\./,
   /^The party was disbanded\./,

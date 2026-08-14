@@ -1,5 +1,5 @@
 import type { InterviewConfig } from '../../../application-config.js'
-import type { ChatEvent, GuildPlayerEvent } from '../../../common/application-event.js'
+import type { ChatEvent, GuildPlayerEvent, MinecraftRawChatEvent } from '../../../common/application-event.js'
 import {
   ChannelType,
   GuildPlayerEventType,
@@ -9,21 +9,25 @@ import {
 import { Status } from '../../../common/connectable-instance.js'
 import SubInstance from '../../../common/sub-instance'
 import type ClientSession from '../client-session.js'
+import { findPartyMemberJoined, updatePartyState } from '../common/party-state.js'
 import type MinecraftInstance from '../minecraft-instance.js'
 
 interface InterviewSession {
   username: string
+  question: string
+  /** Waiting for the applicant to accept the party invite. */
+  awaitingJoin: boolean
   timeoutMs: number
   timeoutId: ReturnType<typeof setTimeout> | undefined
 }
 
 /**
  * Asks players that request to join the guild whether they are an alt.
- * The bot friends the applicant and asks the configured question via private
- * message, relaying every answer to officer chat. Officers can reply in
- * officer chat (in-game or on Discord) and the bot relays their response back
- * to the player via PM. Officer messages prefixed with `-` are excluded from
- * being relayed to the player.
+ * The bot invites the applicant to a party and messages them telling them to
+ * accept, then asks the configured question via party chat. Answers are
+ * relayed to officer chat. Officers can reply in officer chat (in-game or on
+ * Discord) and the bot relays their response back via party chat. Officer
+ * messages prefixed with `-` are excluded from being relayed.
  * Can be triggered automatically on a join request or manually via the
  * /interrogate command / the Interrogate button on the join request embed.
  */
@@ -36,7 +40,11 @@ export default class JoinInterviewHandler extends SubInstance<
   private static readonly DefaultTimeoutMs = 10 * 60_000
   private static readonly ExcludePrefix = '-'
 
+  /** Party chat lines look like "[MVP+] username: message" (optionally prefixed with "Party > "). */
+  private static readonly PartyChatRegex = /^(?:Party > )?(?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32}): (.{1,256})$/
+
   private readonly sessions = new Map<string, InterviewSession>()
+  private readonly inParty = new Map<string, boolean>()
 
   constructor(clientInstance: MinecraftInstance) {
     super(clientInstance)
@@ -51,6 +59,10 @@ export default class JoinInterviewHandler extends SubInstance<
       )
     })
 
+    this.application.on('minecraftChat', (event) => {
+      void this.onMinecraftChat(event).catch(this.errorHandler.promiseCatch('handling minecraft chat for interview'))
+    })
+
     this.application.on('chat', (event) => {
       void this.onChat(event).catch(this.errorHandler.promiseCatch('handling chat for interview'))
     })
@@ -60,8 +72,21 @@ export default class JoinInterviewHandler extends SubInstance<
     const bridgeId = this.clientInstance.bridgeId
     if (bridgeId === undefined) return undefined
 
+    const dynamic = this.resolveDynamicInterviewConfig(bridgeId)
+    if (dynamic !== undefined) return dynamic
+
     const bridge = this.application.config.bridges?.find((config) => config.id === bridgeId)
     return bridge?.interview
+  }
+
+  private resolveDynamicInterviewConfig(bridgeId: string): InterviewConfig | undefined {
+    const config = this.application.core.bridgeConfigurations
+    if (!config.getInterviewEnabled(bridgeId) && config.getInterviewQuestion(bridgeId) === '') return undefined
+    return {
+      enabled: config.getInterviewEnabled(bridgeId),
+      question: config.getInterviewQuestion(bridgeId) || undefined,
+      timeoutMs: config.getInterviewTimeoutMs(bridgeId)
+    }
   }
 
   public isInterviewing(username: string): boolean {
@@ -108,22 +133,59 @@ export default class JoinInterviewHandler extends SubInstance<
 
     const session: InterviewSession = {
       username: username,
+      question: config.question ?? JoinInterviewHandler.DefaultQuestion,
+      awaitingJoin: true,
       timeoutMs: config.timeoutMs ?? JoinInterviewHandler.DefaultTimeoutMs,
       timeoutId: undefined
     }
     this.sessions.set(key, session)
     this.armTimeout(session)
 
-    const question = config.question ?? JoinInterviewHandler.DefaultQuestion
-
     this.logger.info(`[interview] starting interview with ${username} on ${instanceName}`)
     await this.sendOfficer(
       instanceName,
-      `Started interview with ${username}. Asked: ${question}. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
+      `Started interview with ${username}. They will be asked: ${session.question}. Reply in officer chat to talk with them; prefix your message with \`-\` to keep it internal.`
     )
 
-    await this.sendCommand(instanceName, `/friend add ${username}`, MinecraftSendChatPriority.High)
-    await this.sendCommand(instanceName, `/msg ${username} ${question}`, MinecraftSendChatPriority.High)
+    if (this.isInParty(instanceName)) {
+      await this.sendCommand(instanceName, '/p leave', MinecraftSendChatPriority.High)
+    }
+    await this.sendCommand(instanceName, `/party invite ${username}`, MinecraftSendChatPriority.High)
+    await this.sendCommand(
+      instanceName,
+      `/msg ${username} Please accept the party invite to start the interview.`,
+      MinecraftSendChatPriority.High
+    )
+  }
+
+  private async onMinecraftChat(event: MinecraftRawChatEvent): Promise<void> {
+    if (event.instanceName !== this.clientInstance.instanceName) return
+
+    const message = event.message
+    this.inParty.set(event.instanceName, updatePartyState(message, this.isInParty(event.instanceName)))
+
+    for (const session of this.sessions.values()) {
+      if (session.awaitingJoin) {
+        const joinedUser = findPartyMemberJoined(message)
+        if (joinedUser !== undefined && joinedUser.toLowerCase() === session.username.toLowerCase()) {
+          session.awaitingJoin = false
+          this.logger.info(`[interview] ${session.username} joined the party on ${event.instanceName}`)
+          await this.askQuestion(event.instanceName, session)
+        }
+        continue
+      }
+
+      if (!this.isInParty(event.instanceName)) continue
+
+      const match = JoinInterviewHandler.PartyChatRegex.exec(message)
+      if (match === null) continue
+      const [, username, playerMessage] = match
+      if (username.toLowerCase() !== session.username.toLowerCase()) continue
+      if (this.application.minecraftManager.isMinecraftBot(username)) continue
+
+      this.logger.debug(`[interview] party chat from ${username}: "${playerMessage}"`)
+      await this.onPlayerMessage(event.instanceName, session, playerMessage.trim())
+    }
   }
 
   private async onChat(event: ChatEvent): Promise<void> {
@@ -150,9 +212,14 @@ export default class JoinInterviewHandler extends SubInstance<
     }
   }
 
+  private async askQuestion(instanceName: string, session: InterviewSession): Promise<void> {
+    this.armTimeout(session)
+    await this.sendCommand(instanceName, `/pc ${session.question}`, MinecraftSendChatPriority.Default)
+  }
+
   private async onPlayerMessage(instanceName: string, session: InterviewSession, message: string): Promise<void> {
     this.armTimeout(session)
-    await this.sendOfficer(instanceName, `${session.username}: ${message}`)
+    await this.sendOfficer(instanceName, `${session.username} answered (${session.question}) -> ${message}`)
   }
 
   private async onOfficerMessage(instanceName: string, message: string): Promise<void> {
@@ -161,7 +228,7 @@ export default class JoinInterviewHandler extends SubInstance<
 
     for (const session of this.sessions.values()) {
       this.armTimeout(session)
-      await this.sendCommand(instanceName, `/msg ${session.username} ${message}`, MinecraftSendChatPriority.Default)
+      await this.sendCommand(instanceName, `/pc ${message}`, MinecraftSendChatPriority.Default)
     }
   }
 
@@ -176,7 +243,10 @@ export default class JoinInterviewHandler extends SubInstance<
   private async onTimeout(session: InterviewSession): Promise<void> {
     if (!this.sessions.has(session.username.toLowerCase())) return
 
-    await this.finish(session, `Interview with ${session.username} aborted: no response.`)
+    const reason = session.awaitingJoin
+      ? 'did not accept the party invite in time (offline, already in a party, or party invites disabled)'
+      : `did not answer in time`
+    await this.finish(session, `Interview with ${session.username} aborted: ${reason}.`)
   }
 
   private async finish(session: InterviewSession, message: string | undefined): Promise<void> {
@@ -186,6 +256,13 @@ export default class JoinInterviewHandler extends SubInstance<
     if (session.timeoutId !== undefined) clearTimeout(session.timeoutId)
 
     if (message !== undefined) await this.sendOfficer(this.clientInstance.instanceName, message)
+    if (this.isInParty(this.clientInstance.instanceName)) {
+      await this.sendCommand(this.clientInstance.instanceName, '/p disband', MinecraftSendChatPriority.High)
+    }
+  }
+
+  private isInParty(instanceName: string): boolean {
+    return this.inParty.get(instanceName) ?? false
   }
 
   private async sendOfficer(instanceName: string, message: string): Promise<void> {

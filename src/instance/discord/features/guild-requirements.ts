@@ -237,9 +237,13 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
   private checkInterviewEnabled(instanceName: string): string | undefined {
     const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(instanceName)
+    if (bridgeId !== undefined) {
+      const config = this.application.core.bridgeConfigurations
+      if (config.getInterviewEnabled(bridgeId) || config.getInterviewQuestion(bridgeId) !== '') return undefined
+    }
     const bridge = this.application.config.bridges?.find((config) => config.id === bridgeId)
     if (bridge?.interview === undefined) {
-      return 'The interview feature is not enabled for this bridge. Add an `interview` section to the bridge config in config.yaml.'
+      return 'The interview feature is not enabled for this bridge. Enable it in the web dashboard settings.'
     }
     return undefined
   }

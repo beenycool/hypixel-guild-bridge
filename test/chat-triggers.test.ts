@@ -7,7 +7,7 @@ import {
   PartyJoinRegex,
   PartyLeaveRegex
 } from '../src/instance/minecraft/chat/party-invite.js'
-import { updatePartyState } from '../src/instance/minecraft/common/party-state.js'
+import { findPartyMemberJoined, updatePartyState } from '../src/instance/minecraft/common/party-state.js'
 import {
   InviteAcceptChat,
   KickChat,
@@ -364,6 +364,32 @@ await describe('Party state transitions', async () => {
 
   await it('invite message does not change party state', () => {
     assert.strictEqual(updatePartyState('Steve has invited you to join their party!', false), false)
+  })
+})
+
+await describe('Party member joined detection', async () => {
+  await it('extracts username from plain join message', () => {
+    assert.strictEqual(findPartyMemberJoined('Steve joined the party!'), 'Steve')
+  })
+
+  await it('extracts username from ranked join message', () => {
+    assert.strictEqual(findPartyMemberJoined('[MVP+] Steve joined the party!'), 'Steve')
+  })
+
+  await it('extracts username from double ranked join message', () => {
+    assert.strictEqual(findPartyMemberJoined('[MVP++] [MVP+] Steve joined the party!'), 'Steve')
+  })
+
+  await it('returns undefined for unrelated messages', () => {
+    assert.strictEqual(findPartyMemberJoined('Party created!'), undefined)
+    assert.strictEqual(findPartyMemberJoined('You are now in a party with Steve.'), undefined)
+    assert.strictEqual(findPartyMemberJoined('You left the party.'), undefined)
+    assert.strictEqual(findPartyMemberJoined('Guild > Steve: hello'), undefined)
+  })
+
+  await it('extracts username from boxed messages', () => {
+    const boxed = `-----------------------------------------------------\n[MVP+] Steve joined the party!\n-----------------------------------------------------`
+    assert.strictEqual(findPartyMemberJoined(boxed), 'Steve')
   })
 })
 

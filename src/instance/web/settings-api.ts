@@ -434,6 +434,12 @@ export class SettingsApiHandler {
           cfg.setStatsTopicUpdateIntervalMinutes(bridgeId, numberValue(body.updateIntervalMinutes, 5))
           break
         }
+        case 'interview': {
+          cfg.setInterviewEnabled(bridgeId, bool(body.enabled))
+          cfg.setInterviewQuestion(bridgeId, stringValue(body.question) || undefined)
+          cfg.setInterviewTimeoutMs(bridgeId, numberValue(body.timeoutMs, 600_000))
+          break
+        }
         default: {
           sendError(response, 'NOT_FOUND', `Unknown category: ${category}`, 404)
           return

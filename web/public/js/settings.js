@@ -1031,6 +1031,37 @@ const CATEGORIES = [
     ]
   },
   {
+    key: 'interview',
+    name: 'Join Request Interview',
+    icon: '\u{1F50E}',
+    description:
+      'Interrogate join-request applicants. The bot invites the player to a party, messages them to accept, and asks the question in party chat, relaying answers to officer chat. The Interrogate button on join-request embeds always works when this config exists.',
+    fields: [
+      {
+        id: 'enabled',
+        t: 'boolean',
+        label: 'Auto-Interview Join Requests',
+        hint: 'Automatically interrogate every player that requests to join the guild.'
+      },
+      {
+        id: 'question',
+        t: 'text',
+        label: 'Question',
+        hint: 'Asked in party chat. Default: Are you an alt of an existing guild member?',
+        placeholder: 'Are you an alt of an existing guild member?',
+        max: 200
+      },
+      {
+        id: 'timeoutMs',
+        t: 'number',
+        label: 'Timeout (ms)',
+        hint: 'Abort the interview after this much inactivity (default 600000).',
+        min: 30_000,
+        max: 3_600_000
+      }
+    ]
+  },
+  {
     key: 'dangerZone',
     name: 'Danger Zone',
     icon: '\u2620',

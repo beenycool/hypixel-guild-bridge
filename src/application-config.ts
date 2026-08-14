@@ -89,9 +89,9 @@ export interface GuildRequirementsConfig {
 
 /**
  * Configuration for interviewing players that request to join the guild.
- * When enabled, the bot friends the player, asks whether they are an alt via
- * private message, and relays the answers to officer chat. Officers can reply
- * in officer chat and the bot relays their response back to the player via PM.
+ * When enabled, the bot invites the player to a party and asks the configured
+ * question via party chat, relaying answers to officer chat. Officers can
+ * reply in officer chat and the bot relays their response back via party chat.
  */
 export interface InterviewConfig {
   /**
@@ -100,12 +100,12 @@ export interface InterviewConfig {
    */
   enabled?: boolean
   /**
-   * The question to ask the applicant via private message.
+   * The question to ask the applicant via party chat.
    * @default 'Are you an alt of an existing guild member?'
    */
   question?: string
   /**
-   * How long to wait for a private message reply or an officer response before
+   * How long to wait for the applicant to join the party or answer before
    * aborting. Milliseconds.
    * @default 600000
    */

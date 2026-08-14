@@ -12,7 +12,7 @@ export default {
   getCommandBuilder: () =>
     new SlashCommandBuilder()
       .setName('interrogate')
-      .setDescription('Ask a player that requested to join the guild if they are an alt via private message')
+      .setDescription('Party-invite a player that requested to join the guild and ask if they are an alt')
       .addStringOption(
         new SlashCommandStringOption()
           .setName('username')
@@ -36,10 +36,15 @@ export default {
     }
 
     const bridgeId = context.application.bridgeResolver.getBridgeIdForInstance(instance)
-    const bridge = context.application.config.bridges?.find((config) => config.id === bridgeId)
-    if (bridge?.interview === undefined) {
+    const dynamicInterviewEnabled =
+      bridgeId !== undefined &&
+      (context.application.core.bridgeConfigurations.getInterviewEnabled(bridgeId) ||
+        context.application.core.bridgeConfigurations.getInterviewQuestion(bridgeId) !== '')
+    const staticInterviewEnabled =
+      context.application.config.bridges?.find((b) => b.id === bridgeId)?.interview !== undefined
+    if (!dynamicInterviewEnabled && !staticInterviewEnabled) {
       await context.interaction.editReply(
-        'The interview feature is not enabled for this bridge. Add an `interview` section to the bridge config in config.yaml.'
+        'The interview feature is not enabled for this bridge. Enable it in the web dashboard settings.'
       )
       return
     }

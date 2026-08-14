@@ -518,7 +518,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           .setCustomId(`join-request:deny:${activeEvent.instanceName}:${username}`)
           .setLabel('Deny Request')
           .setStyle(ButtonStyle.Danger)
-          .setEmoji('❌')
+          .setEmoji('❌'),
+        new ButtonBuilder()
+          .setCustomId(`guild-req-interrogate:${activeEvent.instanceName}:${username}`)
+          .setLabel('Interrogate')
+          .setStyle(ButtonStyle.Secondary)
+          .setEmoji('🔎')
       )
       components = [actionRow]
     }

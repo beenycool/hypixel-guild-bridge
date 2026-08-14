@@ -167,6 +167,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_statsTopicChannelIds`)
     this.configuration.delete(`${bridgeId}_statsTopicUpdateIntervalMinutes`)
 
+    // Interview settings
+    this.configuration.delete(`${bridgeId}_interviewEnabled`)
+    this.configuration.delete(`${bridgeId}_interviewQuestion`)
+    this.configuration.delete(`${bridgeId}_interviewTimeoutMs`)
+
     // Notify listeners that a bridge was removed so utilities can cleanup memory
     if (this.onChange) {
       try {
@@ -1470,6 +1475,55 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setNumber(`${bridgeId}_statsTopicUpdateIntervalMinutes`, minutes)
   }
 
+  // ========== Interview Configurations ==========
+
+  /**
+   * Get whether the join-request interview is enabled for a bridge.
+   * When enabled, the bot automatically interviews players that request to join.
+   * The Interrogate button on join-request embeds always works when this config exists.
+   */
+  public getInterviewEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_interviewEnabled`, false)
+  }
+
+  /**
+   * Set whether the join-request interview is enabled for a bridge
+   */
+  public setInterviewEnabled(bridgeId: string, enabled: boolean): void {
+    this.setConfig(bridgeId, `${bridgeId}_interviewEnabled`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_interviewEnabled`, enabled)
+    })
+  }
+
+  /**
+   * Get the question asked to join-request applicants via private message.
+   */
+  public getInterviewQuestion(bridgeId: string): string {
+    return this.getBridgeString('interviewQuestion', bridgeId)
+  }
+
+  /**
+   * Set the question asked to join-request applicants via private message.
+   */
+  public setInterviewQuestion(bridgeId: string, question: string | undefined): void {
+    this.setBridgeString('interviewQuestion', bridgeId, question)
+  }
+
+  /**
+   * Get the interview inactivity timeout in milliseconds.
+   */
+  public getInterviewTimeoutMs(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_interviewTimeoutMs`, 600_000)
+  }
+
+  /**
+   * Set the interview inactivity timeout in milliseconds.
+   */
+  public setInterviewTimeoutMs(bridgeId: string, timeoutMs: number): void {
+    const normalized = Number.isFinite(timeoutMs) && timeoutMs > 0 ? Math.floor(timeoutMs) : 600_000
+    this.configuration.setNumber(`${bridgeId}_interviewTimeoutMs`, normalized)
+  }
+
   // ========== Bulk settings reader ==========
 
   public getAllSettings(bridgeId: string): Record<string, unknown> {
@@ -1579,6 +1633,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         template: this.getStatsTopicTemplate(bridgeId),
         channelIds: this.getStatsTopicChannelIds(bridgeId),
         updateIntervalMinutes: this.getStatsTopicUpdateIntervalMinutes(bridgeId)
+      },
+      interview: {
+        enabled: this.getInterviewEnabled(bridgeId),
+        question: this.getInterviewQuestion(bridgeId),
+        timeoutMs: this.getInterviewTimeoutMs(bridgeId)
       }
     }
   }
