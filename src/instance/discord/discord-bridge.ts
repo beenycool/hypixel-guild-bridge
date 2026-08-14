@@ -426,7 +426,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     if (channels.length === 0) return
 
     if (this.messageToImage.shouldRenderImage()) {
-      const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Officer)}{skin} ${event.message}`
+      const formattedMessage = `§9Party §8> {skin} ${event.message}`
       try {
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.username
