@@ -217,10 +217,39 @@
   "instance.hypixel.status": "[HYPIXEL STATUS] {{title}} | {{link}}",
   "instance.hypixel.statusUpdate": "[HYPIXEL STATUS UPDATE] {{title}} | {{update}}",
   "instance.hypixel.alpha": "[ALPHA] Alpha Hypixel is open, current player count: {{count}}",
-  "commands.mute.game": "{{json}}",
-  "commands.blackjack.win": "{{json}}",
-  "commands.blackjack.lose": "{{json}}",
-  "commands.blackjack.draw": "{{json}}",
+  "commands.mute.game": [
+    "Muting {{target}} cause why not!",
+    "{{target}} was randomly selected to win the ultimate prize: a mute :D",
+    "Oh no. Guess we did it this time by getting {{target}} muted",
+    "{{target}}, go bite {{username}} for getting you muted!",
+    "What a wonderful gift. from {{username}} to {{target}}, a random mute for absolutely no reason!",
+    "{{target}} seems down lately. Imma mute them :>",
+    "{{username}} did you seriously just execute this command? Fine. {{target}}, you are muted!",
+    "{{username}} -> {{target}} attack!",
+    "{{username}}, would you dare using the command again? :>",
+    "{{username}}, this is russian roulette but with mandatory participating. Also {{target}} just died.",
+    "{{target}} has nothing to say any time soon... :3",
+    "I muted someone, but who? :)"
+  ],
+  "commands.blackjack.win": [
+    "{{username}} you beat the house!",
+    "{{username}} 21? Lucky or skilled?",
+    "{{username}} cashes out a win!",
+    "{{username}}, the dealer has been destroyed.",
+    "{{username}} walks away richer in pride."
+  ],
+  "commands.blackjack.lose": [
+    "{{username}} went bust!",
+    "{{username}} the house always wins.",
+    "{{username}} got dealt a bad hand.",
+    "{{username}} should probably stick to mining.",
+    "{{username}} loses and it hurts."
+  ],
+  "commands.blackjack.draw": [
+    "{{username}} and the dealer push! Nobody wins.",
+    "{{username}}, a tie against the dealer. How anticlimactic.",
+    "{{username}} and the dealer settle for a draw."
+  ],
 
   "instance.reaction.block": "The message has been blocked by Hypixel for breaking its rules.",
   "instance.reaction.advertise": "The message has been blocked by Hypixel for advertising.",

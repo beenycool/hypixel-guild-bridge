@@ -113,7 +113,9 @@ export default class Blackjack extends ChatCommandHandler {
 
   private win(context: ChatCommandContext, result: string): string {
     this.activeGames.delete(context.username)
-    return `${this.message(context, 'win').replaceAll('{username}', context.username)} ${result}`
+    return `${this.message(context, 'win')
+      .replaceAll('{{username}}', context.username)
+      .replaceAll('{username}', context.username)} ${result}`
   }
 
   private lose(context: ChatCommandContext, result: string): string {
@@ -130,12 +132,16 @@ export default class Blackjack extends ChatCommandHandler {
         context.logger.error('Failed to mute blackjack loser', error)
       })
 
-    return `${this.message(context, 'lose').replaceAll('{username}', context.username)} ${result}`
+    return `${this.message(context, 'lose')
+      .replaceAll('{{username}}', context.username)
+      .replaceAll('{username}', context.username)} ${result}`
   }
 
   private draw(context: ChatCommandContext, result: string): string {
     this.activeGames.delete(context.username)
-    return `${this.message(context, 'draw').replaceAll('{username}', context.username)} ${result}`
+    return `${this.message(context, 'draw')
+      .replaceAll('{{username}}', context.username)
+      .replaceAll('{username}', context.username)} ${result}`
   }
 
   private render(context: ChatCommandContext, game: BlackjackGame, status: string): string {
@@ -148,30 +154,18 @@ export default class Blackjack extends ChatCommandHandler {
 
   private message(context: ChatCommandContext, key: 'win' | 'lose' | 'draw'): string {
     const translator = context.app.getTranslatorForBridge(context.message.bridgeId)
-    const override = translator(`commands.blackjack.${key}`)
-    if (override && override !== `commands.blackjack.${key}`) {
-      try {
-        const messages = JSON.parse(override) as string[]
-        return messages[Math.floor(Math.random() * messages.length)]
-      } catch {
-        return override
-      }
-    }
-
-    const languageConfigurations = context.app.core.languageConfigurations
+    const override = translator(`commands.blackjack.${key}`, { returnObjects: true })
     let messages: string[]
-    switch (key) {
-      case 'win': {
-        messages = languageConfigurations.getCommandBlackjackWin()
-        break
+    if (Array.isArray(override)) {
+      messages = override
+    } else if (override && override !== `commands.blackjack.${key}`) {
+      try {
+        messages = JSON.parse(override) as string[]
+      } catch {
+        messages = [override]
       }
-      case 'lose': {
-        messages = languageConfigurations.getCommandBlackjackLose()
-        break
-      }
-      default: {
-        messages = languageConfigurations.getCommandBlackjackDraw()
-      }
+    } else {
+      messages = context.app.i18n.t(($) => $[`commands.blackjack.${key}`], { returnObjects: true })
     }
     return messages[Math.floor(Math.random() * messages.length)]
   }
