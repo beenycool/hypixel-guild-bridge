@@ -21,8 +21,8 @@ import BlacklistCommand from './commands/blacklist.js'
 import DashboardCommand from './commands/dashboard.js'
 import DisconnectCommand from './commands/disconnect.js'
 import ExecuteCommand from './commands/execute.js'
-import InviteCommand from './commands/invite.js'
 import InterrogateCommand from './commands/interrogate.js'
+import InviteCommand from './commands/invite.js'
 import JoinCommand from './commands/join.js'
 import KickCommand from './commands/kick.js'
 import ListCommand from './commands/list.js'
@@ -372,16 +372,11 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
   }
 
   private getChannelType(channelId: string, bridgeId?: string): ChannelType | undefined {
-    if (bridgeId !== undefined) {
-      const type = this.application.bridgeResolver.getChannelTypeForChannel(channelId)
-      if (type === 'public') return ChannelType.Public
-      if (type === 'officer') return ChannelType.Officer
-      return undefined
-    }
+    if (bridgeId === undefined) return undefined
 
-    const config = this.application.core.discordConfigurations
-    if (config.getPublicChannelIds().includes(channelId)) return ChannelType.Public
-    if (config.getOfficerChannelIds().includes(channelId)) return ChannelType.Officer
+    const type = this.application.bridgeResolver.getChannelTypeForChannel(channelId)
+    if (type === 'public') return ChannelType.Public
+    if (type === 'officer') return ChannelType.Officer
     return undefined
   }
 

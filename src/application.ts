@@ -153,7 +153,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
     this.core = new Core(this)
     this.mojangApi = this.core.mojangApi
-    this.bridgeResolver = new BridgeResolver(this.config.bridges)
+    this.bridgeResolver = new BridgeResolver()
 
     this.bridgeResolver.setDynamicConfig(this.core.bridgeConfigurations)
 
@@ -242,13 +242,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       overrides = this.core.bridgeConfigurations.getTranslationOverrides(bridgeId)
     }
 
-    let staticLang: string | undefined
-    if (bridgeId !== undefined && this.config.bridges !== undefined) {
-      const bridgeCfg = this.config.bridges.find((b) => b.id === bridgeId)
-      staticLang = bridgeCfg?.language
-    }
-
-    const chosenLang = dynamicLang ?? staticLang
+    const chosenLang = dynamicLang
 
     const translate = (
       keyOrSelector: string | ((t: (key: string) => string) => string),

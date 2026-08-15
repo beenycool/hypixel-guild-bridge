@@ -14,18 +14,20 @@ export default class LoggerManager extends SubInstance<DiscordInstance, Instance
     this.application.on('guildPlayer', async (event) => {
       if (event.type == GuildPlayerEventType.Online || event.type == GuildPlayerEventType.Offline) return
 
-      await this.send(`Guild > ${event.instanceName}: ${event.message}`).catch(
+      const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+      if (bridgeId === undefined) return
+
+      await this.send(`Guild > ${event.instanceName}: ${event.message}`, bridgeId).catch(
         this.errorHandler.promiseCatch('handling guildPlayer event')
       )
     })
   }
 
-  private async send(message: string): Promise<void> {
+  private async send(message: string, bridgeId: string): Promise<void> {
     const currentStatus = this.clientInstance.currentStatus()
     if (currentStatus === Status.Ended) return
 
-    const config = this.application.core.discordConfigurations
-    const channels = config.getLoggerChannelIds()
+    const channels = this.application.core.bridgeConfigurations.getLoggerChannelIds(bridgeId)
     const client = this.clientInstance.getClient()
 
     for (const channelId of channels) {

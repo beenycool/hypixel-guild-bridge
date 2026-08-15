@@ -13,14 +13,11 @@ async function notifyStaffForUnlinkedUser(
   description: string
 ): Promise<void> {
   try {
-    const { bridgeConfigurations, discordConfigurations } = context.application.core
+    const { bridgeConfigurations } = context.application.core
     const roleIds = [
       ...bridgeConfigurations.getOfficerRoleIds(bridgeId),
       ...bridgeConfigurations.getHelperRoleIds(bridgeId),
-      ...bridgeConfigurations.getOwnerRoleIds(bridgeId),
-      ...discordConfigurations.getOfficerRoleIds(),
-      ...discordConfigurations.getHelperRoleIds(),
-      ...discordConfigurations.getOwnerRoleIds()
+      ...bridgeConfigurations.getOwnerRoleIds(bridgeId)
     ]
     const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
 
@@ -108,27 +105,23 @@ export default {
     let bridgeId = context.bridgeId
 
     if (bridgeId === undefined) {
-      if (context.application.bridgeResolver.isMultiBridgeEnabled()) {
-        const guild =
-          context.interaction.guild ??
-          (context.interaction.guildId === null
-            ? undefined
-            : await context.interaction.client.guilds.fetch(context.interaction.guildId).catch(() => undefined))
-        if (guild !== undefined) {
-          const guildBridgeIds = new Set<string>()
-          for (const [, channel] of guild.channels.cache) {
-            const bid = context.application.bridgeResolver.getBridgeIdForChannel(channel.id)
-            if (bid !== undefined) guildBridgeIds.add(bid)
-          }
-          if (guildBridgeIds.size === 1) {
-            bridgeId = [...guildBridgeIds][0]
-            context.application.logger.info(
-              `Discord /tournament ${subcommand}: resolved bridgeId=${bridgeId} from guild=${guild.id}`
-            )
-          }
+      const guild =
+        context.interaction.guild ??
+        (context.interaction.guildId === null
+          ? undefined
+          : await context.interaction.client.guilds.fetch(context.interaction.guildId).catch(() => undefined))
+      if (guild !== undefined) {
+        const guildBridgeIds = new Set<string>()
+        for (const [, channel] of guild.channels.cache) {
+          const bid = context.application.bridgeResolver.getBridgeIdForChannel(channel.id)
+          if (bid !== undefined) guildBridgeIds.add(bid)
         }
-      } else {
-        bridgeId = 'default'
+        if (guildBridgeIds.size === 1) {
+          bridgeId = [...guildBridgeIds][0]
+          context.application.logger.info(
+            `Discord /tournament ${subcommand}: resolved bridgeId=${bridgeId} from guild=${guild.id}`
+          )
+        }
       }
     }
 

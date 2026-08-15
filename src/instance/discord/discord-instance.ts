@@ -208,29 +208,18 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
   }
 
   private resolvePrivilegeLevel(roles: string[], bridgeId?: string): Permission {
-    if (bridgeId !== undefined) {
-      const bridgeConfig = this.application.core.bridgeConfigurations
-      if (roles.some((role) => bridgeConfig.getOwnerRoleIds(bridgeId).includes(role))) {
-        return Permission.Owner
-      }
+    if (bridgeId === undefined) return Permission.Anyone
 
-      if (roles.some((role) => bridgeConfig.getHelperRoleIds(bridgeId).includes(role))) {
-        return Permission.Helper
-      }
-
-      return Permission.Anyone
-    }
-
-    const config = this.application.core.discordConfigurations
-    if (roles.some((role) => config.getOwnerRoleIds().includes(role))) {
+    const bridgeConfig = this.application.core.bridgeConfigurations
+    if (roles.some((role) => bridgeConfig.getOwnerRoleIds(bridgeId).includes(role))) {
       return Permission.Owner
     }
 
-    if (roles.some((role) => config.getOfficerRoleIds().includes(role))) {
+    if (roles.some((role) => bridgeConfig.getOfficerRoleIds(bridgeId).includes(role))) {
       return Permission.Officer
     }
 
-    if (roles.some((role) => config.getHelperRoleIds().includes(role))) {
+    if (roles.some((role) => bridgeConfig.getHelperRoleIds(bridgeId).includes(role))) {
       return Permission.Helper
     }
 

@@ -112,14 +112,11 @@ export default class TournamentSignup extends SubInstance<DiscordInstance, Insta
     description: string
   ): Promise<void> {
     try {
-      const { bridgeConfigurations, discordConfigurations } = this.application.core
+      const { bridgeConfigurations } = this.application.core
       const roleIds = [
         ...bridgeConfigurations.getOfficerRoleIds(bridgeId),
         ...bridgeConfigurations.getHelperRoleIds(bridgeId),
-        ...bridgeConfigurations.getOwnerRoleIds(bridgeId),
-        ...discordConfigurations.getOfficerRoleIds(),
-        ...discordConfigurations.getHelperRoleIds(),
-        ...discordConfigurations.getOwnerRoleIds()
+        ...bridgeConfigurations.getOwnerRoleIds(bridgeId)
       ]
       const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
 

@@ -43,45 +43,38 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private async onMessage(event: Message): Promise<void> {
     if (event.author.bot) return
 
-    const config = this.application.core.discordConfigurations
     const bridgeResolver = this.application.bridgeResolver
 
     const bridgeId = bridgeResolver.getBridgeIdForChannel(event.channel.id)
     const bridgeChannelType = bridgeResolver.getChannelTypeForChannel(event.channel.id)
 
     let channelType: ChannelType
-    if (bridgeResolver.isMultiBridgeEnabled() && bridgeChannelType !== undefined) {
-      channelType = bridgeChannelType === 'public' ? ChannelType.Public : ChannelType.Officer
-    } else if (config.getPublicChannelIds().includes(event.channel.id)) {
+    if (bridgeChannelType === 'public') {
       channelType = ChannelType.Public
-    } else if (config.getOfficerChannelIds().includes(event.channel.id)) {
+    } else if (bridgeChannelType === 'officer') {
       channelType = ChannelType.Officer
     } else if (event.guildId) {
-      if (bridgeResolver.isMultiBridgeEnabled()) {
-        const now = Date.now()
-        const last = this.lastUnmappedChannelWarn.get(event.channel.id) ?? 0
-        const suppressMs = 5 * 60 * 1000
-        if (now - last > suppressMs) {
-          this.lastUnmappedChannelWarn.set(event.channel.id, now)
-          const suppressed = this.unmappedChannelSuppressed.get(event.channel.id) ?? 0
-          this.unmappedChannelSuppressed.set(event.channel.id, 0)
-          if (suppressed > 0) {
-            this.logger.warn(
-              `Ignoring guild message in unmapped channel ${event.channel.id} while multi-bridge routing is enabled (suppressed ${suppressed} similar warnings in the last ${Math.floor(
-                suppressMs / 1000
-              )}s)`
-            )
-          } else {
-            this.logger.warn(
-              `Ignoring guild message in unmapped channel ${event.channel.id} while multi-bridge routing is enabled`
-            )
-          }
-        } else {
-          this.unmappedChannelSuppressed.set(
-            event.channel.id,
-            (this.unmappedChannelSuppressed.get(event.channel.id) ?? 0) + 1
+      const now = Date.now()
+      const last = this.lastUnmappedChannelWarn.get(event.channel.id) ?? 0
+      const suppressMs = 5 * 60 * 1000
+      if (now - last > suppressMs) {
+        this.lastUnmappedChannelWarn.set(event.channel.id, now)
+        const suppressed = this.unmappedChannelSuppressed.get(event.channel.id) ?? 0
+        this.unmappedChannelSuppressed.set(event.channel.id, 0)
+        if (suppressed > 0) {
+          this.logger.warn(
+            `Ignoring guild message in unmapped channel ${event.channel.id} (suppressed ${suppressed} similar warnings in the last ${Math.floor(
+              suppressMs / 1000
+            )}s)`
           )
+        } else {
+          this.logger.warn(`Ignoring guild message in unmapped channel ${event.channel.id}`)
         }
+      } else {
+        this.unmappedChannelSuppressed.set(
+          event.channel.id,
+          (this.unmappedChannelSuppressed.get(event.channel.id) ?? 0) + 1
+        )
       }
       return
     } else {
@@ -91,7 +84,9 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const userProfile = this.clientInstance.profileByUser(event.author, event.member ?? undefined)
     const user = await this.application.core.initializeDiscordUser(userProfile, {})
 
-    if (!user.verified() && config.getEnforceVerification()) {
+    const enforce =
+      bridgeId !== undefined && this.application.core.bridgeConfigurations.getEnforceVerification(bridgeId)
+    if (!user.verified() && enforce) {
       const emoji = this.clientInstance.emojiHandler.emojiByName.get(UnverifiedReaction.name)
       if (emoji !== undefined) await event.react(emoji)
 

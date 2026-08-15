@@ -25,7 +25,6 @@ import { ChatMessagesService } from './chat-messages'
 import { CommandsConfigurations } from './commands/commands-configurations'
 import { ConfigurationsManager } from './configurations'
 import { BridgeConfigurations } from './discord/bridge-configurations'
-import { DiscordConfigurations } from './discord/discord-configurations'
 import { DiscordEmojis } from './discord/discord-emojis'
 import { DiscordTemporarilyInteractions } from './discord/discord-temporarily-interactions'
 import { InstanceHistoryButton } from './discord/instance-history-button'
@@ -67,7 +66,6 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly verification: Verification
 
   public readonly bridgeConfigurations: BridgeConfigurations
-  public readonly discordConfigurations: DiscordConfigurations
   public readonly discordTemporarilyInteractions: DiscordTemporarilyInteractions
   public readonly discordInstanceHistoryButton: InstanceHistoryButton
   public readonly discordEmojis: DiscordEmojis
@@ -109,10 +107,8 @@ export class Core extends Instance<InstanceType.Core> {
         this.logger.error(error)
       })
     })
-    this.discordConfigurations = new DiscordConfigurations(this.configurationsManager)
     this.discordTemporarilyInteractions = new DiscordTemporarilyInteractions(
       this.databaseManager,
-      this.discordConfigurations,
       this.bridgeConfigurations
     )
     this.discordInstanceHistoryButton = new InstanceHistoryButton(this.databaseManager)

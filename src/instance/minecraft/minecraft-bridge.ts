@@ -47,17 +47,13 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
   }
 
   private shouldProcessEvent(event: { bridgeId?: string }, isStrictChat = false): boolean {
-    if (this.application.bridgeResolver.isMultiBridgeEnabled()) {
-      const instanceBridgeId = this.clientInstance.bridgeId
+    const instanceBridgeId = this.clientInstance.bridgeId
 
-      if (isStrictChat && (event.bridgeId === undefined || instanceBridgeId === undefined)) return false
+    if (isStrictChat && (event.bridgeId === undefined || instanceBridgeId === undefined)) return false
 
-      if (event.bridgeId === undefined) return true
+    if (event.bridgeId === undefined) return true
 
-      return instanceBridgeId === event.bridgeId
-    }
-
-    return this.application.bridgeResolver.shouldProcessEvent(event.bridgeId, this.clientInstance.instanceName)
+    return instanceBridgeId === event.bridgeId
   }
 
   private disconnectReason: { type: InstanceMessageType; value: string | undefined } | undefined

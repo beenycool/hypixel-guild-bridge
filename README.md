@@ -76,6 +76,7 @@ git clone https://github.com/aidn3/hypixel-guild-discord-bridge
 
 Everything else is managed from the **web dashboard** and stored in the database (no restart required):
 
+- **Bridges are multi-bridge only.** At least one bridge must exist in the database (create it on the `Settings` page) before any Minecraft instance or Discord channel is routed. Instances/channels not assigned to a bridge are ignored with a warning.
 - Per-bridge settings (channels, staff roles, chat commands, rankup automation, tournaments, moderation, translations, interviews, stats topics): `Settings` page
 - Global API keys (`urchinApiKey`, `openrouterApiKey`, `openrouterModel`): `App Settings` page — fields left empty fall back to `config.yaml`
 - Inactivity rules, punishments, verification, pending reviews: dedicated dashboard pages

@@ -100,22 +100,6 @@ export interface InactivityConfig {
   channelIds: string[]
 }
 
-export interface BridgeConfig {
-  id: string
-
-  language?: string
-
-  minecraftInstanceNames: string[]
-
-  discord: {
-    publicChannelIds: string[]
-
-    officerChannelIds: string[]
-  }
-
-  interview?: InterviewConfig
-}
-
 export interface TournamentConfig {
   categoryId: string
   roundDeadlineDays: number
@@ -143,7 +127,6 @@ export interface ApplicationConfig {
   guildRequirements?: GuildRequirementsConfig
   inactivity?: InactivityConfig
 
-  bridges?: BridgeConfig[]
   tournament?: TournamentConfig
   lunarClient?: LunarClientConfig
 }

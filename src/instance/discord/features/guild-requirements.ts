@@ -123,7 +123,10 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     const client = this.clientInstance.getClient()
     if (!client.isReady()) return
 
-    const channelIds = this.application.core.discordConfigurations.getLoggerChannelIds()
+    const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+    if (bridgeId === undefined) return
+
+    const channelIds = this.application.core.bridgeConfigurations.getLoggerChannelIds(bridgeId)
     if (channelIds.length === 0) {
       this.logger.warn('Guild requirements enabled but no logger channels are configured.')
       return
@@ -237,15 +240,13 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
   private checkInterviewEnabled(instanceName: string): string | undefined {
     const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(instanceName)
-    if (bridgeId !== undefined) {
-      const config = this.application.core.bridgeConfigurations
-      if (config.getInterviewEnabled(bridgeId) || config.getInterviewQuestion(bridgeId) !== '') return undefined
-    }
-    const bridge = this.application.config.bridges?.find((config) => config.id === bridgeId)
-    if (bridge?.interview === undefined) {
+    if (bridgeId === undefined) {
       return 'The interview feature is not enabled for this bridge. Enable it in the web dashboard settings.'
     }
-    return undefined
+
+    const config = this.application.core.bridgeConfigurations
+    if (config.getInterviewEnabled(bridgeId) || config.getInterviewQuestion(bridgeId) !== '') return undefined
+    return 'The interview feature is not enabled for this bridge. Enable it in the web dashboard settings.'
   }
 
   private async ensurePermission(interaction: ButtonInteraction): Promise<boolean> {

@@ -4,10 +4,6 @@ import { Status } from '../../../common/connectable-instance.js'
 function getBridgeMinecraftInstances(application: Application, bridgeId?: string) {
   const instances = application.minecraftManager.getAllInstances()
 
-  if (!application.bridgeResolver.isMultiBridgeEnabled()) {
-    return instances
-  }
-
   if (bridgeId === undefined) {
     return []
   }
@@ -33,11 +29,9 @@ export function getFirstConnectedBridgeMinecraftInstanceName(
 }
 
 export function getBridgeMinecraftInstanceError(application: Application, bridgeId?: string): string {
-  if (application.bridgeResolver.isMultiBridgeEnabled() && bridgeId === undefined) {
+  if (bridgeId === undefined) {
     return 'This command must be used in a configured bridge channel.'
   }
 
-  return application.bridgeResolver.isMultiBridgeEnabled()
-    ? 'No connected Minecraft instance is available for this bridge.'
-    : 'No connected Minecraft instance is available.'
+  return 'No connected Minecraft instance is available for this bridge.'
 }

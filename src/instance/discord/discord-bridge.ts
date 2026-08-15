@@ -205,26 +205,19 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       (routingHint === undefined ? undefined : bridgeResolver.getBridgeIdForInstance(routingHint.instanceName))
 
     let results: string[]
-    if (bridgeResolver.isMultiBridgeEnabled()) {
-      if (effectiveBridgeId !== undefined) {
-        results = this.resolveBridgeScopedChannels(channels, effectiveBridgeId)
-      } else if (routingHint?.kind === 'broadcast') {
-        results = this.resolveAllBridgeChannels(channels)
-      } else if (routingHint === undefined) {
-        results = this.resolveChannels(channels)
-      } else {
-        results = []
-      }
+    if (routingHint?.kind === 'broadcast') {
+      results = this.resolveAllBridgeChannels(channels)
+    } else if (effectiveBridgeId === undefined) {
+      results = []
     } else {
-      results = this.resolveChannels(channels)
+      results = this.resolveBridgeScopedChannels(channels, effectiveBridgeId)
     }
 
     const targetsGuildSurface = channels.includes(ChannelType.Public) || channels.includes(ChannelType.Officer)
     if (targetsGuildSurface && results.length === 0 && routingHint !== undefined) {
       this.logger.warn(
         `Discord routing (${routingHint.kind}): no target channels for instance="${routingHint.instanceName}" ` +
-          `(event.bridgeId=${bridgeId ?? 'undefined'}, effectiveBridgeId=${effectiveBridgeId ?? 'undefined'}, ` +
-          `multiBridge=${String(bridgeResolver.isMultiBridgeEnabled())}). ` +
+          `(event.bridgeId=${bridgeId ?? 'undefined'}, effectiveBridgeId=${effectiveBridgeId ?? 'undefined'}). ` +
           `Configure this Minecraft instance on a bridge and set public/officer channel IDs in /settings.`
       )
     }
@@ -387,9 +380,18 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     )
       return
 
-    const config = this.application.core.discordConfigurations
-    if (event.type === GuildPlayerEventType.Online && !config.getGuildOnline()) return
-    if (event.type === GuildPlayerEventType.Offline && !config.getGuildOffline()) return
+    const effectiveBridgeId =
+      event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+    if (effectiveBridgeId === undefined) {
+      this.logger.warn(
+        `Discord bridge: dropping guildPlayer event (${event.type}) for unmapped instance "${event.instanceName}"`
+      )
+      return
+    }
+
+    const bridgeConfigurations = this.application.core.bridgeConfigurations
+    if (event.type === GuildPlayerEventType.Online && !bridgeConfigurations.getGuildOnline(effectiveBridgeId)) return
+    if (event.type === GuildPlayerEventType.Offline && !bridgeConfigurations.getGuildOffline(effectiveBridgeId)) return
 
     if (event.type === GuildPlayerEventType.Mute) {
       const game =
@@ -405,8 +407,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     if (event.type === GuildPlayerEventType.Leave || event.type === GuildPlayerEventType.Kick) {
       const userId = event.user.mojangProfile().id
-      const bridgeId = event.bridgeId ?? 'default'
-      const key = `${bridgeId}:${userId}`
+      const key = `${effectiveBridgeId}:${userId}`
       this.rankCompactTracker.delete(key)
     }
 
@@ -415,17 +416,15 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     const isRankChange = event.type === GuildPlayerEventType.Promote || event.type === GuildPlayerEventType.Demote
     const username = event.user.displayName()
     const playerOverride =
-      event.bridgeId === undefined ||
-      (event.type !== GuildPlayerEventType.Join && event.type !== GuildPlayerEventType.Leave)
+      event.type !== GuildPlayerEventType.Join && event.type !== GuildPlayerEventType.Leave
         ? undefined
-        : this.application.core.bridgeConfigurations.getPlayerUsernameOverride(event.bridgeId, username)
+        : bridgeConfigurations.getPlayerUsernameOverride(effectiveBridgeId, username)
 
     if (isRankChange) {
       const parsed = parseRankChange(event.message)
       if (parsed !== undefined) {
         const userId = event.user.mojangProfile().id
-        const bridgeId = event.bridgeId ?? 'default'
-        rankTrackerKey = `${bridgeId}:${userId}`
+        rankTrackerKey = `${effectiveBridgeId}:${userId}`
         const existing = this.rankCompactTracker.get(rankTrackerKey)
 
         if (existing !== undefined) {
@@ -541,9 +540,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     if (activeEvent.type === GuildPlayerEventType.Offline || activeEvent.type === GuildPlayerEventType.Online) {
       const shouldPersist =
-        this.application.bridgeResolver.isMultiBridgeEnabled() && activeEvent.bridgeId !== undefined
-          ? this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(activeEvent.bridgeId)
-          : false
+        activeEvent.bridgeId === undefined
+          ? false
+          : this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(activeEvent.bridgeId)
       if (!shouldPersist) {
         const currentTime = Date.now()
         const entries = messages.map((message) => ({
@@ -559,9 +558,9 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     if (activeEvent.type === GuildPlayerEventType.Join || activeEvent.type === GuildPlayerEventType.Leave) {
       const shouldPersist =
-        this.application.bridgeResolver.isMultiBridgeEnabled() && activeEvent.bridgeId !== undefined
-          ? this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(activeEvent.bridgeId)
-          : false
+        activeEvent.bridgeId === undefined
+          ? false
+          : this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(activeEvent.bridgeId)
       if (!shouldPersist) {
         const currentTime = Date.now()
         const entries = messages.map((message) => ({
@@ -576,8 +575,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     let promoteImageMessages: Message[] = []
-    if (activeEvent.type === GuildPlayerEventType.Promote && activeEvent.bridgeId !== undefined) {
-      const promoteChannelIds = this.application.core.bridgeConfigurations.getPromoteChannelIds(activeEvent.bridgeId)
+    if (activeEvent.type === GuildPlayerEventType.Promote) {
+      const promoteChannelIds = this.application.core.bridgeConfigurations.getPromoteChannelIds(effectiveBridgeId)
       if (promoteChannelIds.length > 0) {
         const withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
           /^-+/g,
@@ -763,16 +762,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       })
       await this.sendImageToChannels(event.eventId, channels, image)
     }
-  }
-
-  private resolveChannels(channels: ChannelType[]): string[] {
-    const config = this.application.core.discordConfigurations
-
-    const results: string[] = []
-    if (channels.includes(ChannelType.Public)) results.push(...config.getPublicChannelIds())
-    if (channels.includes(ChannelType.Officer)) results.push(...config.getOfficerChannelIds())
-
-    return results
   }
 
   async onCommand(event: CommandEvent): Promise<void> {

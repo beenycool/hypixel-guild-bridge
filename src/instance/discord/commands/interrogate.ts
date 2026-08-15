@@ -40,9 +40,7 @@ export default {
       bridgeId !== undefined &&
       (context.application.core.bridgeConfigurations.getInterviewEnabled(bridgeId) ||
         context.application.core.bridgeConfigurations.getInterviewQuestion(bridgeId) !== '')
-    const staticInterviewEnabled =
-      context.application.config.bridges?.find((b) => b.id === bridgeId)?.interview !== undefined
-    if (!dynamicInterviewEnabled && !staticInterviewEnabled) {
+    if (!dynamicInterviewEnabled) {
       await context.interaction.editReply(
         'The interview feature is not enabled for this bridge. Enable it in the web dashboard settings.'
       )

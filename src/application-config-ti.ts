@@ -102,17 +102,6 @@ export const InactivityConfig = t.iface([], {
   "channelIds": t.array("string"),
 });
 
-export const BridgeConfig = t.iface([], {
-  "id": "string",
-  "language": t.opt("string"),
-  "minecraftInstanceNames": t.array("string"),
-  "discord": t.iface([], {
-    "publicChannelIds": t.array("string"),
-    "officerChannelIds": t.array("string"),
-  }),
-  "interview": t.opt("InterviewConfig"),
-});
-
 export const TournamentConfig = t.iface([], {
   "categoryId": "string",
   "roundDeadlineDays": "number",
@@ -139,7 +128,6 @@ export const ApplicationConfig = t.iface([], {
   "verification": t.opt("VerificationConfig"),
   "guildRequirements": t.opt("GuildRequirementsConfig"),
   "inactivity": t.opt("InactivityConfig"),
-  "bridges": t.opt(t.array("BridgeConfig")),
   "tournament": t.opt("TournamentConfig"),
   "lunarClient": t.opt("LunarClientConfig"),
 });
@@ -159,7 +147,6 @@ const exportedTypeSuite: t.ITypeSuite = {
   GuildRequirementsConfig,
   InterviewConfig,
   InactivityConfig,
-  BridgeConfig,
   TournamentConfig,
   LunarClientConfig,
   ApplicationConfig,

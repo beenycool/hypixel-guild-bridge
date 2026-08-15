@@ -1,14 +1,12 @@
 import type { DatabaseManager } from '../../common/database-manager'
 
 import type { BridgeConfigurations } from './bridge-configurations'
-import type { DiscordConfigurations } from './discord-configurations'
 
 export class DiscordTemporarilyInteractions {
   private readonly entries = new Map<string, DiscordMessage>()
 
   constructor(
     private readonly databaseManager: DatabaseManager,
-    private readonly discordConfigurations: DiscordConfigurations,
     private readonly bridgeConfigurations: BridgeConfigurations
   ) {}
 
@@ -50,9 +48,7 @@ export class DiscordTemporarilyInteractions {
 
   public findToDelete(): DiscordMessage[] {
     const currentTime = Date.now()
-    const maxInteractions = this.discordConfigurations.getMaxTemporarilyInteractions()
-    const onlineOfflineDuration = this.discordConfigurations.getDurationTemporarilyInteractions()
-    const joinLeaveDuration = this.discordConfigurations.getDurationJoinLeaveInteractions()
+    const maxInteractions = 5
 
     const allInteractions = [...this.entries.values()]
       .map((entry) => ({ ...entry }))
@@ -63,18 +59,14 @@ export class DiscordTemporarilyInteractions {
     const interactionsCount = new Map<string, number>()
     for (const interaction of allInteractions) {
       if (interaction.type === 'join-leave') {
-        const duration = interaction.bridgeId
-          ? this.bridgeConfigurations.getDurationJoinLeaveInteractions(interaction.bridgeId)
-          : joinLeaveDuration
+        const duration = this.bridgeConfigurations.getDurationJoinLeaveInteractions(interaction.bridgeId ?? '')
         if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
           toDelete.push(interaction)
         }
         continue
       }
 
-      const duration = interaction.bridgeId
-        ? this.bridgeConfigurations.getDurationTemporarilyInteractions(interaction.bridgeId)
-        : onlineOfflineDuration
+      const duration = this.bridgeConfigurations.getDurationTemporarilyInteractions(interaction.bridgeId ?? '')
       if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
         toDelete.push(interaction)
         continue

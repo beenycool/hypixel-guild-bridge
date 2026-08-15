@@ -91,7 +91,7 @@ export default {
     const onlyOnline = context.interaction.options.getSubcommand() === 'online'
 
     let bridgeId = context.bridgeId
-    if (bridgeId === undefined && context.application.bridgeResolver.isMultiBridgeEnabled()) {
+    if (bridgeId === undefined) {
       const guild =
         context.interaction.guild ??
         (context.interaction.guildId === null

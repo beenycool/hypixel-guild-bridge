@@ -70,10 +70,6 @@ export default class QCommand extends ChatCommandHandler {
       }
     }
 
-    if (!context.app.bridgeResolver.isMultiBridgeEnabled()) {
-      return `${context.username}, cross-bridge messaging is only available in multi-bridge mode.`
-    }
-
     if (context.args.length === 1 && context.args[0] === 'list') {
       const bridgeIds = context.app.core.bridgeConfigurations.getAllBridgeIds()
       if (bridgeIds.length === 0) {

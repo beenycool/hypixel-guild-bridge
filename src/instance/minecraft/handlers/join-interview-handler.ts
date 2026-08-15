@@ -67,11 +67,7 @@ export default class JoinInterviewHandler extends SubInstance<
     const bridgeId = this.clientInstance.bridgeId
     if (bridgeId === undefined) return undefined
 
-    const dynamic = this.resolveDynamicInterviewConfig(bridgeId)
-    if (dynamic !== undefined) return dynamic
-
-    const bridge = this.application.config.bridges?.find((config) => config.id === bridgeId)
-    return bridge?.interview
+    return this.resolveDynamicInterviewConfig(bridgeId)
   }
 
   private resolveDynamicInterviewConfig(bridgeId: string): InterviewConfig | undefined {
