@@ -15,8 +15,7 @@ export class NotificationManager {
   public async sendReviewNotification(
     bridgeId: string,
     channelIds: string[],
-    reviews: PendingReview[],
-    pingUserIds: string[] = []
+    reviews: PendingReview[]
   ): Promise<boolean> {
     if (reviews.length === 0) return false
 
@@ -101,14 +100,13 @@ export class NotificationManager {
     embed.setFields({ name: 'Promotions', value: field1 }, { name: 'Demotions/Kicks', value: field2 })
 
     let allSent = true
-    const pingContent = pingUserIds.map((userId) => `<@${userId}>`).join(' ')
     for (const channelId of channelIds) {
       const instance = this.application.discordInstance
       const client = instance.getClient()
       const channel = await client.channels.fetch(channelId).catch(() => undefined)
       if (channel?.isSendable()) {
         try {
-          await channel.send({ content: pingContent, embeds: [embed] })
+          await channel.send({ embeds: [embed] })
         } catch (error: unknown) {
           allSent = false
           this.logger.error(
