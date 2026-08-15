@@ -33,7 +33,6 @@ export const DatabaseConfig = t.iface([], {
 export const WebConfig = t.iface([], {
   "enabled": "boolean",
   "port": "number",
-  "token": "string",
   "signingSecret": t.opt("string"),
   "minecraftInstance": t.opt("string"),
 });

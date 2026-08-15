@@ -14,6 +14,7 @@ import { InstanceType, MinecraftSendChatPriority, Permission } from '../common/a
 import { Instance } from '../common/instance.js'
 
 import { sendError, sendSuccess } from './web/api-utils.js'
+import { AppSettingsApiHandler } from './web/app-settings-api.js'
 import { type AuthResult, buildTokenSet, verifyToken } from './web/auth.js'
 import { GuildApiHandler } from './web/guild-api.js'
 import { InactivityApiHandler } from './web/inactivity-api.js'
@@ -103,6 +104,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly wsServer: WebSocketServer
   private readonly connections = new Set<WebSocket>()
   private readonly config: WebConfig
+  private readonly appSettingsApi: AppSettingsApiHandler
   private readonly guildApi: GuildApiHandler
   private readonly inactivityApi: InactivityApiHandler
   private readonly instanceApi: InstanceApiHandler
@@ -165,6 +167,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       this.broadcastChat(event)
     })
 
+    this.appSettingsApi = new AppSettingsApiHandler(application, this.logger)
     this.guildApi = new GuildApiHandler(application, this.logger)
     this.inactivityApi = new InactivityApiHandler(application, this.logger)
     this.instanceApi = new InstanceApiHandler(application, this.logger)
@@ -346,6 +349,11 @@ export default class WebServer extends Instance<InstanceType.Utility> {
 
     if (route.startsWith('/api/bridges')) {
       await this.settingsApi.handle(request, response)
+      return
+    }
+
+    if (route.startsWith('/api/app-settings')) {
+      await this.appSettingsApi.handle(request, response)
       return
     }
 

@@ -21,7 +21,10 @@ const NAV_ITEMS = [
   },
   {
     label: 'System',
-    items: [{ name: 'Status', href: 'status.html', key: 'status' }]
+    items: [
+      { name: 'Status', href: 'status.html', key: 'status' },
+      { name: 'App Settings', href: 'app-settings.html', key: 'app-settings' }
+    ]
   }
 ]
 
@@ -194,6 +197,9 @@ export function initNav() {
   const sections = NAV_ITEMS.map((s) => ({ ...s, items: [...s.items] }))
   if (permission === 'owner' || permission === 'admin') {
     sections[0].items.unshift({ name: 'Settings', href: 'settings.html', key: 'settings' })
+  }
+  if (permission !== 'owner' && permission !== 'admin') {
+    sections[2].items = sections[2].items.filter((item) => item.key !== 'app-settings')
   }
 
   const active = findActive(sections)

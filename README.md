@@ -60,7 +60,25 @@ git clone https://github.com/aidn3/hypixel-guild-discord-bridge
 - Explore the project files and copy the contents of `config_example.yaml` into `config.yaml`
 - Open `config.yaml` and fill in the information (Security: `config.yaml` contains sensitive information. Keep it safe!)
 - In `config.yaml` fill out `general.hypixelApiKey` and `discord.key` and `discord.adminIds` (IDs should be strings; numeric IDs will be coerced to strings)
-- (Optional) for **Advanced users only:** Edit other options in `config.yaml` to fine tune the bridge
+
+### config.yaml vs. web dashboard
+
+`config.yaml` only holds **bootstrap** settings that are needed before the database and web server are available:
+
+| Setting | Purpose |
+| --- | --- |
+| `general.hypixelApiKey` | Hypixel API access |
+| `discord.key` | Discord bot token |
+| `discord.adminIds` | Admin permission (fallback for web auth) |
+| `web.*` | Web server port + `signingSecret` for dashboard auth |
+| `prometheus.*` | Metrics endpoint |
+| `database.*` | Database connection |
+
+Everything else is managed from the **web dashboard** and stored in the database (no restart required):
+
+- Per-bridge settings (channels, staff roles, chat commands, rankup automation, tournaments, moderation, translations, interviews, stats topics): `Settings` page
+- Global API keys (`urchinApiKey`, `openrouterApiKey`, `openrouterModel`): `App Settings` page — fields left empty fall back to `config.yaml`
+- Inactivity rules, punishments, verification, pending reviews: dedicated dashboard pages
 
 ### Install And Run
 

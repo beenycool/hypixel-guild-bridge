@@ -77,15 +77,15 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   }
 
   public get urchinApiKey(): string | undefined {
-    return this.config.general.urchinApiKey
+    return this.core.appSettings.getUrchinApiKey()
   }
 
   public get openrouterApiKey(): string | undefined {
-    return this.config.general.openrouterApiKey
+    return this.core.appSettings.getOpenrouterApiKey()
   }
 
   public get openrouterModel(): string | undefined {
-    return this.config.general.openrouterModel
+    return this.core.appSettings.getOpenrouterModel()
   }
 
   public get chatSummarySchedulerInstance(): ChatSummaryScheduler {

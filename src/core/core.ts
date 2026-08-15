@@ -19,6 +19,7 @@ import type {
 } from '../common/user'
 import { User } from '../common/user'
 
+import { AppSettingsManager } from './app-settings'
 import { ApplicationConfigurations } from './application-configurations'
 import { ChatMessagesService } from './chat-messages'
 import { CommandsConfigurations } from './commands/commands-configurations'
@@ -87,6 +88,7 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly languageConfigurations: LanguageConfigurations
   public readonly commandsConfigurations: CommandsConfigurations
   public readonly spontaneousEventsConfigurations: SpontaneousEventsConfigurations
+  public readonly appSettings: AppSettingsManager
 
   public readonly chatMessages: ChatMessagesService
 
@@ -154,6 +156,7 @@ export class Core extends Instance<InstanceType.Core> {
     this.languageConfigurations = new LanguageConfigurations(this.configurationsManager)
     this.commandsConfigurations = new CommandsConfigurations(this.configurationsManager)
     this.spontaneousEventsConfigurations = new SpontaneousEventsConfigurations(this.configurationsManager)
+    this.appSettings = new AppSettingsManager(this.databaseManager, application.config, this.logger)
 
     this.minecraftConfigurations = new MinecraftConfigurations(this.configurationsManager)
     this.minecraftSessions = new SessionsManager(this.databaseManager, this.logger)
@@ -253,6 +256,7 @@ export class Core extends Instance<InstanceType.Core> {
   private async initialize(): Promise<void> {
     await initializeCoreDatabase(this.databaseManager)
     await this.configurationsManager.load()
+    await this.appSettings.load()
     await this.verification.load()
     await this.mojangApi.load()
     await this.minecraftAccounts.load()

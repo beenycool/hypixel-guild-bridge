@@ -29,7 +29,6 @@ export interface DatabaseConfig {
 export interface WebConfig {
   enabled: boolean
   port: number
-  token: string
   signingSecret?: string
   minecraftInstance?: string
 }
