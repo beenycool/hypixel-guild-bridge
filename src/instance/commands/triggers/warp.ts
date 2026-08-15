@@ -36,9 +36,6 @@ function createStopwatch(): Stopwatch {
 }
 
 export default class Warp extends ChatCommandHandler {
-  private static readonly CommandCoolDown = 60_000
-  private lastCommandExecutionAt = 0
-
   constructor() {
     super({
       category: 'Guild',
@@ -53,13 +50,6 @@ export default class Warp extends ChatCommandHandler {
       return this.getExample(context.commandPrefix)
     }
 
-    const currentTime = Date.now()
-    if (this.lastCommandExecutionAt + Warp.CommandCoolDown > currentTime) {
-      const remainingSeconds = Math.floor((this.lastCommandExecutionAt + Warp.CommandCoolDown - currentTime) / 1000)
-      context.logger.info(`[warp] blocked by cooldown, ${remainingSeconds}s remaining`)
-      return `Can use command again in ${remainingSeconds} seconds.`
-    }
-
     const username = context.args[0]
     const instance = this.getActiveMinecraftInstanceName(
       context.app.minecraftManager,
@@ -69,8 +59,6 @@ export default class Warp extends ChatCommandHandler {
       context.logger.info(`[warp] no active connected Minecraft instance to use`)
       return `No active connected Minecraft account exists to use`
     }
-
-    this.lastCommandExecutionAt = currentTime
 
     context.logger.info(`[warp] started | username=${username} | instance=${instance.instanceName}`)
     const response = await this.warpPlayer(instance, context, username)
@@ -110,20 +98,14 @@ export default class Warp extends ChatCommandHandler {
     await instance.send('/lobby', MinecraftSendChatPriority.High, undefined)
     stopwatch.log(context, '/lobby')
 
-    await sleep(2000)
-    stopwatch.log(context, 'sleep(2000)')
-
-    await instance.send('/skyblock', MinecraftSendChatPriority.High, undefined)
-    stopwatch.log(context, '/skyblock')
-
-    await sleep(12_000)
-    stopwatch.log(context, 'sleep(12000)')
+    await sleep(3000)
+    stopwatch.log(context, 'sleep(3000)')
 
     await instance.send('/hub', MinecraftSendChatPriority.High, undefined)
     stopwatch.log(context, '/hub')
 
-    await sleep(2000)
-    stopwatch.log(context, 'sleep(2000)')
+    await sleep(1500)
+    stopwatch.log(context, 'sleep(1500)')
 
     const errorMessage = await this.awaitPartyStatus(context.app, instance, context, username)
     stopwatch.log(context, 'awaitPartyStatus (invite wait)')
@@ -160,7 +142,7 @@ export default class Warp extends ChatCommandHandler {
     username: string
   ): Promise<string | undefined> {
     const inviteSentAt = Date.now()
-    const timeout = new Timeout<string | undefined>(30_000, "Player didn't accept the invite.")
+    const timeout = new Timeout<string | undefined>(60_000, "Player didn't accept the invite.")
 
     const chatListener = async (event: MinecraftRawChatEvent) => {
       if (event.instanceName !== instance.instanceName) return
@@ -201,7 +183,7 @@ export default class Warp extends ChatCommandHandler {
 
     application.on('minecraftChat', chatListener)
 
-    await instance.send(`/party invite ${username} ${username}`, MinecraftSendChatPriority.High, undefined)
+    await instance.send(`/party invite ${username}`, MinecraftSendChatPriority.High, undefined)
 
     const result = await timeout.wait()
     application.off('minecraftChat', chatListener)
