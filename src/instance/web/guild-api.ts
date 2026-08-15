@@ -42,7 +42,6 @@ export class GuildApiHandler {
     const permission = this.verifyAuth(request, response)
     if (permission === undefined) return true
 
-    // GET /api/guild/overview
     if (pathPart === `${GuildPrefix}/overview`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -52,7 +51,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // GET /api/guild/members
     if (pathPart === `${GuildPrefix}/members`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -62,7 +60,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // GET /api/guild/log
     if (pathPart === `${GuildPrefix}/log`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -72,7 +69,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // POST /api/guild/member/accept
     if (pathPart === `${GuildPrefix}/member/accept`) {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -86,7 +82,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // POST /api/guild/member/invite
     if (pathPart === `${GuildPrefix}/member/invite`) {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -100,7 +95,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // POST /api/guild/member/promote
     if (pathPart === `${GuildPrefix}/member/promote`) {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -114,7 +108,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // POST /api/guild/member/demote
     if (pathPart === `${GuildPrefix}/member/demote`) {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -128,7 +121,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // POST /api/guild/member/setrank
     if (pathPart === `${GuildPrefix}/member/setrank`) {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -142,7 +134,6 @@ export class GuildApiHandler {
       return true
     }
 
-    // POST /api/guild/blacklist
     if (pathPart === `${GuildPrefix}/blacklist`) {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -203,9 +194,7 @@ export class GuildApiHandler {
           try {
             const profile = await this.application.mojangApi.profileByUuid(m.uuid)
             name = profile.name
-          } catch {
-            // keep uuid as name
-          }
+          } catch {}
           return {
             uuid: m.uuid,
             name,

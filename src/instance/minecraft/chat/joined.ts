@@ -5,8 +5,6 @@ import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-
 
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    // Message sounds too generic.
-    // raw message is used to also detect formatting to increase false positives
     const regex = /^§aYou joined §6[\w\W]+§a!$/g
 
     const match = regex.exec(context.rawMessage)

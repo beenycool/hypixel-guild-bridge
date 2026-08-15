@@ -68,7 +68,6 @@ export function parseCustomId(customId: string): TournamentButtonCustomId | unde
 
       break
     }
-    // No default
   }
 
   return { action, tournamentId, messageId, matchId, playerId }

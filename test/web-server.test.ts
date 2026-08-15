@@ -9,21 +9,11 @@ import WebServer from '../src/instance/web-server.js'
 await describe('web server /health', async () => {
   await it('returns status ok, uptime number and version', async () => {
     const app = {
-      emit: () => {
-        /* noop */
-      },
-      on: () => {
-        /* noop */
-      },
-      onAny: () => {
-        /* noop */
-      },
-      addShutdownListener: () => {
-        /* noop */
-      },
-      sendMinecraft: async () => {
-        /* noop */
-      },
+      emit: () => {},
+      on: () => {},
+      onAny: () => {},
+      addShutdownListener: () => {},
+      sendMinecraft: async () => {},
       getInstancesNames: () => [],
       i18n: { t: () => '' },
       discordInstance: {
@@ -37,9 +27,7 @@ await describe('web server /health', async () => {
       },
       core: {
         databaseManager: {
-          execute: async () => {
-            /* noop */
-          },
+          execute: async () => {},
           getPoolStatus: () => ({
             connected: true,
             latencyMs: 5

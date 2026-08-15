@@ -201,12 +201,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     )
   }
 
-  /**
-   * Resolve channels for an event based on its bridgeId.
-   * Uses event.bridgeId, or resolves from the Minecraft instance name when the event omits it.
-   * In multi-bridge mode, routed guild-surface traffic fails closed when no bridge applies,
-   * while global broadcasts fan out across all configured bridges.
-   */
   private resolveChannelsForEvent(
     channels: ChannelType[],
     bridgeId: string | undefined,
@@ -355,9 +349,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           displayUsername += event.instanceType === InstanceType.Discord ? ` [DC]` : ` [${event.instanceName}]`
         }
 
-        // Webhook username must be non-empty (and <= 80 chars). Some internal/system events can
-        // end up with an empty/whitespace display name; in that case, omit overrides so Discord
-        // shows the webhook's default name (similar to JS bot-mode behavior).
         const normalizedUsername = displayUsername.trim()
         const safeUsername = normalizedUsername.length > 0 ? normalizedUsername.slice(0, 80) : undefined
 
@@ -542,28 +533,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     let allowedMentions: MessageMentionOptions | undefined
 
     if (activeEvent.type === GuildPlayerEventType.Request) {
-      // TEMPORARILY DISABLED: join-request role pings. Re-enable by restoring the block below.
-      // const bridgeId = activeEvent.bridgeId
-      // const roleIds = [
-      //   ...(bridgeId === undefined
-      //     ? []
-      //     : [
-      //         ...this.application.core.bridgeConfigurations.getJoinRequestRoleIds(bridgeId),
-      //         ...this.application.core.bridgeConfigurations.getOfficerRoleIds(bridgeId),
-      //         ...this.application.core.bridgeConfigurations.getHelperRoleIds(bridgeId),
-      //         ...this.application.core.bridgeConfigurations.getOwnerRoleIds(bridgeId)
-      //       ]),
-      //   ...this.application.core.discordConfigurations.getJoinRequestRoleIds(),
-      //   ...this.application.core.discordConfigurations.getOfficerRoleIds(),
-      //   ...this.application.core.discordConfigurations.getHelperRoleIds(),
-      //   ...this.application.core.discordConfigurations.getOwnerRoleIds()
-      // ]
-      // const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
-      // if (uniqueRoleIds.length > 0) {
-      //   pingContent = uniqueRoleIds.map((id) => `<@&${id}>`).join(' ')
-      //   allowedMentions = { parse: [], roles: uniqueRoleIds }
-      // }
-
       const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`join-request:accept:${activeEvent.instanceName}:${username}`)
@@ -1011,8 +980,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       this.assignAvatar(embed, event.user)
     }
 
-    // all enums are unique and must unique for this to work.
-    // the other solutions is just too complicated
     if ('type' in event && event.type === MinecraftReactiveEventType.RequireGuild && guildId !== undefined) {
       const commands = await this.clientInstance
         .getClient()

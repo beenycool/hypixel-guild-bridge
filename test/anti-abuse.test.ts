@@ -3,7 +3,6 @@ import { describe, it } from 'node:test'
 
 import { AntiAbuse } from '../src/core/tournament/anti-abuse.js'
 
-// The signup limiter only uses in-memory state, so the database manager is a stub.
 const mockDatabase = {}
 
 await describe('AntiAbuse', async () => {

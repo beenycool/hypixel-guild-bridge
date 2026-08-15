@@ -1,4 +1,3 @@
-/* ===== Navigation ===== */
 .nav {
   position: fixed;
   top: 0;
@@ -94,7 +93,6 @@ body {
   padding-top: 56px;
 }
 
-/* ===== Breadcrumbs ===== */
 .breadcrumbs {
   display: flex;
   align-items: center;
@@ -130,7 +128,6 @@ body {
   font-weight: 600;
 }
 
-/* ===== Pending review badge ===== */
 .nav-badge {
   display: inline-flex;
   align-items: center;
@@ -148,7 +145,6 @@ body {
   vertical-align: middle;
 }
 
-/* ===== Back to top ===== */
 .back-to-top {
   position: fixed;
   right: 24px;
@@ -186,7 +182,6 @@ body {
   border-color: var(--accent-cyan);
 }
 
-/* ===== Mobile drawer backdrop ===== */
 .nav-backdrop {
   display: none;
   position: fixed;
@@ -257,7 +252,6 @@ body.no-scroll {
   }
 }
 
-/* ===== Status indicator ===== */
 .status-indicator {
   display: inline-block;
   font-size: 12px;

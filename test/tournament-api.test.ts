@@ -40,9 +40,7 @@ class FakeRequest extends EventEmitter {
     this.headers = {}
   }
 
-  setEncoding(): void {
-    /* noop */
-  }
+  setEncoding(): void {}
 
   feedBody(body: string): void {
     if (body.length > 0) this.emit('data', body)
@@ -149,9 +147,7 @@ function setupTest(): FakeHarness {
         getTournamentDefaultDeadlineHours: (): number => defaults.deadlineHours,
         getTournamentCheckinWindowMinutes: (): number => defaults.checkinMinutes,
         getTournamentDefaultBracketFormat: (): string => defaults.bracketFormat,
-        setTournamentCategoryId: (): void => {
-          /* noop */
-        }
+        setTournamentCategoryId: (): void => {}
       },
       tournamentManager: {
         auditLogger: {
@@ -184,32 +180,16 @@ function setupTest(): FakeHarness {
     }
   } as unknown as Application
   const logger: Logger = {
-    trace: () => {
-      /* noop */
-    },
-    debug: () => {
-      /* noop */
-    },
-    info: () => {
-      /* noop */
-    },
-    warn: () => {
-      /* noop */
-    },
-    error: () => {
-      /* noop */
-    },
-    fatal: () => {
-      /* noop */
-    },
+    trace: () => {},
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+    fatal: () => {},
     level: 'off',
     isLevelEnabled: () => false,
-    log: () => {
-      /* noop */
-    },
-    setLevel: () => {
-      /* noop */
-    },
+    log: () => {},
+    setLevel: () => {},
     getLevel: () => 'off'
   } as unknown as Logger
   const handler = new TournamentApiHandler(app, logger)

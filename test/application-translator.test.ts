@@ -34,7 +34,6 @@ function makeFakeApp(dynamicLang?: string, staticLang?: string) {
   return { app: app as unknown as Application, calls }
 }
 
-// Dynamic should override static
 {
   const { app, calls } = makeFakeApp('de', 'en')
   const translator = app.getTranslatorForBridge('bridge1')
@@ -43,7 +42,6 @@ function makeFakeApp(dynamicLang?: string, staticLang?: string) {
   assert.strictEqual(calls.length, 1)
 }
 
-// Static used when dynamic undefined
 {
   const { app, calls } = makeFakeApp(undefined, 'ar')
   const translator = app.getTranslatorForBridge('bridge1')
@@ -52,7 +50,6 @@ function makeFakeApp(dynamicLang?: string, staticLang?: string) {
   assert.strictEqual(calls.length, 1)
 }
 
-// Fallback to global when neither defined
 {
   const { app, calls } = makeFakeApp(undefined, undefined)
   const translator = app.getTranslatorForBridge('bridge1')

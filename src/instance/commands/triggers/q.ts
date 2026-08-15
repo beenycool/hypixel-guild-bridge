@@ -69,7 +69,6 @@ export default class QCommand extends ChatCommandHandler {
       return `${context.username}, available bridges: ${withMarkers.join(', ')}`
     }
 
-    // Check if user is muted from cross-bridge chat
     const mutedUsers = context.app.core.commandsConfigurations.getQMutedUsers()
     const currentTime = Date.now()
     const isMuted = mutedUsers.some(
@@ -101,7 +100,6 @@ export default class QCommand extends ChatCommandHandler {
       return `${context.username}, no bridges are configured.`
     }
 
-    // Find the best matching bridge ID using similarity scoring
     let bestBridgeId: string | undefined
     let bestScore = -1
 
@@ -113,12 +111,10 @@ export default class QCommand extends ChatCommandHandler {
       }
     }
 
-    // Require at least a minimal match (score > 0 means some overlap or similarity)
     if (bestBridgeId === undefined || bestScore <= 0) {
       return `${context.username}, no bridge matching "${query}" was found.`
     }
 
-    // Prevent sending to the same bridge the user is currently in
     const sourceBridgeId = context.message.bridgeId
     if (sourceBridgeId !== undefined && bestBridgeId.toLowerCase() === sourceBridgeId.toLowerCase()) {
       return `${context.username}, you are already in that bridge.`
@@ -126,9 +122,6 @@ export default class QCommand extends ChatCommandHandler {
 
     const enrichedMessage = sourceBridgeId ? `${message} (from ${sourceBridgeId})` : message
 
-    // Emit chat event — DiscordBridge renders it as a Minecraft-style image in destination Discord,
-    // MinecraftBridge forwards to destination Minecraft instances.
-    // The guild echo is suppressed by public.ts's bot-message filter (no duplicate).
     const rawMessage = `§2Guild > §f${context.username}: ${enrichedMessage}`
     const baseEvent = context.eventHelper.fillBaseEvent()
     await context.app.emit('chat', {

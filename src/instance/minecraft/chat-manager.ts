@@ -93,7 +93,7 @@ export default class ChatManager extends SubInstance<MinecraftInstance, Instance
         })
       }
     } else {
-      assert.ok(message) // old packet means message exists
+      assert.ok(message)
       resultMessage = clientSession.prismChat.fromNotch(message)
     }
 

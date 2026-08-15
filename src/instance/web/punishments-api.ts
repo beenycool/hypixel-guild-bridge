@@ -95,9 +95,7 @@ export class PunishmentsApiHandler {
           try {
             const profile = await this.application.mojangApi.profileByUuid(p.userId)
             name = profile.name
-          } catch {
-            // not resolvable
-          }
+          } catch {}
           return {
             ...p,
             name,

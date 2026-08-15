@@ -59,33 +59,28 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     this.application.addShutdownListener(() => {
       this.stop()
     })
-    // Record recent public guild chat activity to implement a "quiet window"
+
     this.application.on('chat', (event) => {
       try {
         if (event.channelType !== ChannelType.Public) return
 
         const bId = event.bridgeId
         if (bId === undefined) {
-          // Legacy global event: mark activity for all known bridges
           for (const id of this.application.core.bridgeConfigurations.getAllBridgeIds()) {
             this.lastActivityAt.set(id, event.createdAt)
           }
         } else {
           this.lastActivityAt.set(bId, event.createdAt)
         }
-      } catch {
-        // swallow errors from observer
-      }
+      } catch {}
     })
-    // Clear pausedBy when the paused Minecraft player goes offline
+
     this.application.on('guildPlayer', this.guildPlayerListener)
-    // Listen for bridge removals to cleanup in-memory maps for that bridge
+
     this.application.on('bridgeConfigChanged', (event) => {
       try {
-        // When a bridge is removed, BridgeConfigurations.removeBridgeId deletes its keys.
-        // We receive bridgeConfigChanged events for other changes as well; only act when bridgeId matches and key indicates removal.
         if (
-          (event.key === 'remove_bridge' || event.key.startsWith(`${event.bridgeId}_`)) && // If the bridge was removed (no longer present in list), clear memory for it
+          (event.key === 'remove_bridge' || event.key.startsWith(`${event.bridgeId}_`)) &&
           !this.application.core.bridgeConfigurations.getAllBridgeIds().includes(event.bridgeId)
         ) {
           this.lastSentAt.delete(event.bridgeId)
@@ -93,9 +88,7 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
           this.antiRepeatMemory.delete(event.bridgeId)
           this.lastActivityAt.delete(event.bridgeId)
         }
-      } catch {
-        // swallow errors from cleanup
-      }
+      } catch {}
     })
   }
 
@@ -133,7 +126,6 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     const minOnline = bridgeConfig.getRandomChatterMinimumOnlinePlayers(bridgeId)
     const includeName = bridgeConfig.getRandomChatterIncludePlayerName(bridgeId)
 
-    // Quiet window: do not send if recent real guild activity happened for this bridge
     const quietMinutes = bridgeConfig.getRandomChatterQuietWindowMinutes(bridgeId)
     if (quietMinutes > 0) {
       const lastActivity = this.lastActivityAt.get(bridgeId)
@@ -141,11 +133,9 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
         return
     }
 
-    // Get guild list from guildManager for this bridge's configured minecraft instances.
     const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
     if (instanceNames.length === 0) return
 
-    // Choose the first configured Minecraft instance that exists and is connected
     let chosenInstance: string | undefined
     const mcInstances = this.application.minecraftManager.getAllInstances()
     for (const instName of instanceNames) {
@@ -174,11 +164,10 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     const onlineMembers = guild.members.filter((m) => m.online)
     if (onlineMembers.length < minOnline) return
 
-    // Anti-repeat selection: prefer messages not seen in the last N sends for this bridge
     const antiRepeatLength = bridgeConfig.getRandomChatterAntiRepeatLength(bridgeId)
     const memory = this.antiRepeatMemory.get(bridgeId) ?? []
     let candidates = messages.filter((m) => !memory.includes(m))
-    if (candidates.length === 0) candidates = messages // fallback when all messages are in recent memory
+    if (candidates.length === 0) candidates = messages
     const raw = candidates[Math.floor(Math.random() * candidates.length)]
     let message = raw
     let pickedName: string | undefined
@@ -190,7 +179,6 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       message = `${pickedName}: ${raw}`
     }
 
-    // Ensure message length is acceptable for Discord
     if (message.length > 2000) {
       this.logger.warn(
         `random-chatter message too long for bridge ${bridgeId} (${message.length} chars). Truncating to 2000 chars.`
@@ -227,7 +215,6 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       }
     })
 
-    // update anti-repeat memory
     if (antiRepeatLength > 0) {
       const nextMem = [...(this.antiRepeatMemory.get(bridgeId) ?? [])]
       nextMem.push(raw)
@@ -242,10 +229,6 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
     this.nextSendAt.set(bridgeId, Date.now() + jitteredIntervalMs)
   }
 
-  /**
-   * Send a single test random chatter for the given bridge and return structured result.
-   * This ignores interval checks but respects paused state.
-   */
   public async sendTest(bridgeId: string): Promise<{ sent: boolean; message?: string; reason?: string }> {
     try {
       const bridgeConfig = this.application.core.bridgeConfigurations
@@ -264,7 +247,6 @@ export class RandomChatter extends Instance<InstanceType.Utility> {
       const instanceNames = bridgeConfig.getMinecraftInstances(bridgeId)
       if (instanceNames.length === 0) return { sent: false, reason: 'no_instances_configured' }
 
-      // choose a connected instance
       let chosenInstance: string | undefined
       const mcInstances = this.application.minecraftManager.getAllInstances()
       for (const instName of instanceNames) {

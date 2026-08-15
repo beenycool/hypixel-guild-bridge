@@ -149,10 +149,7 @@ export async function checkChatTriggers(
     status: 'error',
     message: []
   }
-  /*
-  Only success is counted, so failure and any error message
-  can properly propagate for diagnostic purposes
-   */
+
   let successCount = 0
 
   const chatListener = function (event: MinecraftRawChatEvent): void {

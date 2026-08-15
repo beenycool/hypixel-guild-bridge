@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 
-import { InstanceType } from '../../common/application-event'
+import type { InstanceType } from '../../common/application-event'
 import { Status } from '../../common/connectable-instance'
 import type { DatabaseManager } from '../../common/database-manager'
 import SubInstance from '../../common/sub-instance'
@@ -60,11 +60,6 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
     this.application.on('minecraftSelfBroadcast', (): void => {
       ranksResolver.refresh()
     })
-    this.application.on('instanceAnnouncement', (event): void => {
-      if (event.instanceType === InstanceType.Minecraft) {
-        ranksResolver.refresh()
-      }
-    })
 
     this.databaseManager.registerCleaner(() => {
       const oldestTimestamp = Math.floor((Date.now() - Autocomplete.MaxLife.toMilliseconds()) / 1000)
@@ -107,7 +102,6 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
 
     query = query.replaceAll(/[%_]/g, '').toLowerCase()
 
-    // Try startsWith first
     const startsWithResult = await this.databaseManager.queryRows<{ content: string }>(
       `SELECT "content" FROM "${table}" WHERE "loweredContent" LIKE $1 LIMIT $2`,
       [query + '%', limit]
@@ -118,7 +112,6 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
       return result
     }
 
-    // Fallback to contains
     const containsResult = await this.databaseManager.queryRows<{ content: string }>(
       `SELECT "content" FROM "${table}" WHERE "loweredContent" LIKE $1 AND "loweredContent" NOT LIKE $2 LIMIT $3`,
       ['%' + query + '%', query + '%', limit - result.length]

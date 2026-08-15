@@ -25,7 +25,6 @@ await describe('Arcade triggers and argument parsing', async () => {
   })
 
   await it('correctly parses direct command arguments', () => {
-    // parseArgs is private; expose it through a minimal typed view instead of `any`.
     const arcade = new Arcade() as unknown as {
       parseArgs(context: { commandPrefix: string; username: string; args: string[]; message: { message: string } }): {
         subcommand: string
@@ -33,7 +32,6 @@ await describe('Arcade triggers and argument parsing', async () => {
       }
     }
 
-    // !football PlayerName
     const context1 = {
       commandPrefix: '!',
       username: 'CallerUser',
@@ -44,7 +42,6 @@ await describe('Arcade triggers and argument parsing', async () => {
     assert.strictEqual(result1.subcommand, 'football')
     assert.strictEqual(result1.username, 'PlayerName')
 
-    // !soccer
     const context2 = {
       commandPrefix: '!',
       username: 'CallerUser',
@@ -55,7 +52,6 @@ await describe('Arcade triggers and argument parsing', async () => {
     assert.strictEqual(result2.subcommand, 'football')
     assert.strictEqual(result2.username, 'CallerUser')
 
-    // !arcade football PlayerName
     const context3 = {
       commandPrefix: '!',
       username: 'CallerUser',
@@ -66,7 +62,6 @@ await describe('Arcade triggers and argument parsing', async () => {
     assert.strictEqual(result3.subcommand, 'football')
     assert.strictEqual(result3.username, 'PlayerName')
 
-    // !arcade PlayerName
     const context4 = {
       commandPrefix: '!',
       username: 'CallerUser',

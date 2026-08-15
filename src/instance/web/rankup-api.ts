@@ -599,9 +599,7 @@ export class RankupApiHandler {
         try {
           const profile = await this.application.mojangApi.profileByUuid(uuid)
           names.set(uuid, profile.name)
-        } catch {
-          // UUID not resolvable; name stays undefined
-        }
+        } catch {}
       })
     )
     return items.map((item) => ({ ...item, name: names.get(item.uuid) }))

@@ -8,8 +8,6 @@ import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-
 
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    // Boxed Hypixel message, centered with leading spaces; rank prefix is
-    // optional (non-ranked players have no [rank] prefix).
     const regex = /(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) has requested to join the Guild/g
 
     const match = regex.exec(context.message)

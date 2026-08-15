@@ -20,10 +20,6 @@ export function generateAesKey(): Buffer {
   return crypto.randomBytes(16)
 }
 
-export function generateNonce(length = 16): Buffer {
-  return crypto.randomBytes(length)
-}
-
 export function rsaEncryptPkcs1(data: Buffer, derPubKey: Buffer): Buffer {
   const keyObject = crypto.createPublicKey({
     key: derPubKey,

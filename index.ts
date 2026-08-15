@@ -62,8 +62,6 @@ try {
 }
 const Logger = Logger4js.configure(loggerConfig).getLogger('Main')
 
-// Default to port 80 if no port is provided (common in containers).
-// We also export INTERNAL_PORT so the application config can use ${INTERNAL_PORT}.
 const ExternalPort = Number(process.env.PORT ?? 80)
 const InternalPort = Number(process.env.INTERNAL_PORT ?? 9091)
 const PrometheusPort = Number(process.env.PROMETHEUS_PORT ?? 9090)
@@ -76,17 +74,12 @@ Logger.info('Environment:')
 Logger.info(`PORT: ${process.env.PORT}`)
 Logger.info(`INTERNAL_PORT: ${process.env.INTERNAL_PORT}`)
 
-// Start a lightweight health/proxy server immediately so load balancers get fast `/health`/`/uptime`.
-// It listens on the external port (PORT) and responds 200 on `/uptime` quickly.
-// All other requests are proxied to the internal application port (INTERNAL_PORT) so
-// the real web server can boot on the internal port without exposing the slow startup window.
 const ProcessStartTime = Date.now()
 
 const HealthServer = http.createServer((request, response) => {
   try {
     const url = request.url ?? '/'
     if (url.split('?')[0] === '/uptime' || url.split('?')[0] === '/health') {
-      // Respond immediately for probes
       response.writeHead(200, { ['Content-Type']: 'application/json' })
       response.end(
         JSON.stringify({
@@ -98,12 +91,10 @@ const HealthServer = http.createServer((request, response) => {
       return
     }
 
-    // Proxy /metrics and /ping to Prometheus (runs on its own port)
     const pathname = url.split('?')[0]
     if (pathname === '/metrics' || pathname === '/ping') {
       const metricsToken = process.env.GRAFANA_METRICS_TOKEN
       if (!metricsToken) {
-        // No token configured — deny by default to avoid accidental exposure
         response.writeHead(401, { ['Content-Type']: 'text/plain' })
         response.end('Unauthorized — set GRAFANA_METRICS_TOKEN to enable metrics endpoint')
         return
@@ -147,9 +138,7 @@ const HealthServer = http.createServer((request, response) => {
   }
 })
 
-HealthServer.on('clientError', () => {
-  // ignore occasional client errors from probes
-})
+HealthServer.on('clientError', () => {})
 
 HealthServer.on('upgrade', (request, socket, head) => {
   const pathname = request.url ? request.url.split('?')[0] : '/'
@@ -225,10 +214,6 @@ const ConfigPath = ((): string => {
 })()
 let config: ReturnType<typeof loadApplicationConfig>
 
-// Priority order for loading configuration:
-// 1. CONFIG_B64 - base64-encoded YAML/JSON (recommended for platforms that strip newlines)
-// 2. CONFIG - raw YAML/JSON string
-// 3. config file on disk (default: ./config.yaml)
 if (process.env.CONFIG_B64) {
   Logger.info('Loading configuration from base64 environment variable "CONFIG_B64"')
   try {
@@ -280,10 +265,8 @@ try {
 
   const loggers = new Map<string, Logger4js.Logger>()
 
-  // Environment toggle to enable full JSON event dumps for debugging
   const EventTrace = Boolean(process.env.EVENT_TRACE ?? process.env.LOG_EVENT_JSON)
 
-  // Events considered "noisy" (high-volume chat-like events) — emit concise summaries instead
   const NoisyEvents = new Set([
     'minecraftChat',
     'chat',
@@ -293,14 +276,13 @@ try {
     'minecraftSelfBroadcast'
   ])
 
-  // Events that should always be fully logged with JSON payload
   const LoggedEvents = new Set(['error', 'instanceStatus', 'bridgeConfigChanged'])
 
   function stripColorCodesAndNormalize(s: unknown): string {
     if (s == undefined) return ''
     if (typeof s !== 'string' && typeof s !== 'number' && typeof s !== 'boolean') return ''
     const inputString = String(s)
-    // Strip common Minecraft color codes (e.g. §a) and collapse whitespace
+
     return inputString
       .replaceAll(/\u00A7[0-9a-fk-or]/gi, '')
       .replaceAll(/\s+/g, ' ')
@@ -329,7 +311,6 @@ try {
       const createdAt = eventData.createdAt ?? eventData.timestamp
       const totalMembers = eventData.totalMembers ?? eventData.memberCount
 
-      // Prefer commonly used message fields
       const rawMessage = eventData.message ?? eventData.rawMessage ?? eventData.text ?? eventData.content ?? ''
       const clean = truncate(stripColorCodesAndNormalize(rawMessage), 120)
 
@@ -340,7 +321,7 @@ try {
       return parts.join(' ')
     } catch (error) {
       Logger.debug('formatEventSummary error:', error)
-      // Fallback to safe JSON if something unexpected happens
+
       try {
         return `[${name}] ${JSON.stringify(event)}`
       } catch {
@@ -353,13 +334,11 @@ try {
     const eventData = event as EventSummaryData
     const instanceName = eventData.instanceName ?? 'unknown'
 
-    // Skip guild list parsing lines (they're just /guild list output, not game chat)
     if (name === 'minecraftChat') {
       const message = eventData.message ?? eventData.rawMessage ?? ''
       if (isGuildListLine(message)) return
     }
 
-    // Skip events that are neither in the whitelist nor in the noisy set
     if (!LoggedEvents.has(name) && !NoisyEvents.has(name)) return
 
     let instanceLogger = loggers.get(instanceName)
@@ -368,9 +347,7 @@ try {
       loggers.set(instanceName, instanceLogger)
     }
 
-    // If EventTrace is enabled, keep the previous full-JSON behaviour for debugging
     if (EventTrace) {
-      // try to stringify safely
       try {
         instanceLogger.info(`[${name}] ${JSON.stringify(event)}`)
       } catch {
@@ -379,7 +356,6 @@ try {
       return
     }
 
-    // For noisy events, emit a short, human-friendly summary. Whitelisted events get full JSON.
     if (NoisyEvents.has(name)) {
       instanceLogger.info(formatEventSummary(name, event))
     } else if (LoggedEvents.has(name)) {

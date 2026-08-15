@@ -12,7 +12,7 @@ import type DiscordInstance from './discord-instance.js'
 export default class ChatManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   private static readonly WarnVerificationEvery = 10 * 60 * 1000
   private readonly lastVerificationWarn = new Map<string, number>()
-  // Throttle repeated warnings for unmapped channels to reduce log spam
+
   private readonly lastUnmappedChannelWarn = new Map<string, number>()
   private readonly unmappedChannelSuppressed = new Map<string, number>()
 
@@ -45,13 +45,11 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const config = this.application.core.discordConfigurations
     const bridgeResolver = this.application.bridgeResolver
 
-    // First, check if this channel belongs to a specific bridge
     const bridgeId = bridgeResolver.getBridgeIdForChannel(event.channel.id)
     const bridgeChannelType = bridgeResolver.getChannelTypeForChannel(event.channel.id)
 
     let channelType: ChannelType
     if (bridgeResolver.isMultiBridgeEnabled() && bridgeChannelType !== undefined) {
-      // Multi-bridge mode: use the bridge-specific channel type
       channelType = bridgeChannelType === 'public' ? ChannelType.Public : ChannelType.Officer
     } else if (config.getPublicChannelIds().includes(event.channel.id)) {
       channelType = ChannelType.Public
@@ -61,9 +59,8 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       if (bridgeResolver.isMultiBridgeEnabled()) {
         const now = Date.now()
         const last = this.lastUnmappedChannelWarn.get(event.channel.id) ?? 0
-        const suppressMs = 5 * 60 * 1000 // 5 minutes
+        const suppressMs = 5 * 60 * 1000
         if (now - last > suppressMs) {
-          // Log the warning and reset suppressed counter
           this.lastUnmappedChannelWarn.set(event.channel.id, now)
           const suppressed = this.unmappedChannelSuppressed.get(event.channel.id) ?? 0
           this.unmappedChannelSuppressed.set(event.channel.id, 0)
@@ -79,7 +76,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
             )
           }
         } else {
-          // increment suppressed counter
           this.unmappedChannelSuppressed.set(
             event.channel.id,
             (this.unmappedChannelSuppressed.get(event.channel.id) ?? 0) + 1
@@ -122,9 +118,8 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const content = this.cleanMessage(event)
     if (content.length === 0) return
 
-    // Check if this is a passthrough command that should be sent directly to in-game chat
     if (await this.handlePassthroughCommand(event, content, channelType, bridgeId)) {
-      return // Message was handled as a passthrough command
+      return
     }
 
     const fillBaseEvent = this.eventHelper.fillBaseEvent()
@@ -136,16 +131,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     const { filteredMessage, changed } = this.application.core.filterProfanityForBridge(content, bridgeId)
     if (changed) {
-      await this.application.emit('profanityWarning', {
-        ...fillBaseEvent,
-
-        channelType: channelType,
-
-        user: user,
-        originalMessage: content,
-        filteredMessage: filteredMessage
-      })
-
       const emoji = this.clientInstance.emojiHandler.emojiByName.get(FilteredReaction.name)
       if (emoji !== undefined) await event.react(emoji)
     }
@@ -206,11 +191,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     return content
   }
 
-  /**
-   * Handle passthrough commands - commands that are forwarded directly to in-game chat
-   * without the bridge formatting (e.g., !bw, !sw for in-game stat bots).
-   * Returns true if the message was handled as a passthrough command.
-   */
   private sweepWarningMaps(): void {
     const now = Date.now()
     const maxAge = 24 * 60 * 60 * 1000
@@ -227,36 +207,29 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     channelType: ChannelType,
     bridgeId: string | undefined
   ): Promise<boolean> {
-    // Only handle public channel messages for passthrough
     if (channelType !== ChannelType.Public) return false
 
     const bridgeConfig = this.application.core.bridgeConfigurations
     const globalCommandsConfig = this.application.core.commandsConfigurations
 
-    // Get passthrough prefix (bridge-specific or global)
     const passthroughPrefix =
       bridgeId === undefined
         ? globalCommandsConfig.getPassthroughPrefix()
         : (bridgeConfig.getPassthroughPrefix(bridgeId) ?? globalCommandsConfig.getPassthroughPrefix())
 
-    // Check if message starts with passthrough prefix
     if (!content.startsWith(passthroughPrefix)) return false
 
-    // Get passthrough commands list (bridge-specific takes priority over global)
     const passthroughCommands =
       bridgeId !== undefined && bridgeConfig.getPassthroughCommands(bridgeId).length > 0
         ? bridgeConfig.getPassthroughCommands(bridgeId)
         : globalCommandsConfig.getPassthroughCommands()
 
-    // If no passthrough commands configured, don't handle
     if (passthroughCommands.length === 0) return false
 
-    // Extract the command name (first word after prefix)
     const messageWithoutPrefix = content.slice(passthroughPrefix.length)
     const commandName = messageWithoutPrefix.split(/\s+/)[0]?.toLowerCase()
     if (!commandName) return false
 
-    // Check if command is in passthrough list
     const isPassthroughCommand = passthroughCommands.some((cmd) => cmd.toLowerCase() === commandName)
     if (!isPassthroughCommand) return false
 
@@ -267,7 +240,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       return true
     }
 
-    // Get instances to send to (based on bridge if applicable)
     const instances = this.application
       .getInstancesNames(InstanceType.Minecraft)
       .filter((name) => this.application.bridgeResolver.shouldProcessEvent(bridgeId, name))
@@ -277,7 +249,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       return false
     }
 
-    // Send the command directly to in-game guild chat without bridge formatting
     const gcCommand = `/gc ${content}`
     await this.application.sendMinecraft(instances, MinecraftSendChatPriority.Default, undefined, gcCommand)
 

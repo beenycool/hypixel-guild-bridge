@@ -9,7 +9,7 @@ import Duration from './duration'
 export function sufficeToTime(suffice: string): number {
   suffice = suffice.toLowerCase().trim()
 
-  if (suffice === 's' || suffice.length === 0) return 1 // default
+  if (suffice === 's' || suffice.length === 0) return 1
   if (suffice === 'm') return 60
   if (suffice === 'h') return 60 * 60
   if (suffice === 'd') return 60 * 60 * 24
@@ -51,7 +51,7 @@ export function formatTime(milliseconds: number, maxPrecision = 2): string {
 
   let result = ''
   let variablesSet = 0
-  let remaining = Math.floor(milliseconds / 1000) // milli to seconds
+  let remaining = Math.floor(milliseconds / 1000)
 
   const years = Math.floor(remaining / Year)
   if (years > 0) {
@@ -91,7 +91,6 @@ export async function sleep(ms: number): Promise<void> {
 
 export async function gracefullyExitProcess(exitCode: number): Promise<void> {
   const timeout = sleep(30_000).then(() => {
-    // fallback to normal console if it fails to flush logs
     // eslint-disable-next-line no-restricted-syntax
     console.warn('Logger flush timed out. Exiting...')
     process.exit(exitCode)
@@ -104,28 +103,16 @@ export async function gracefullyExitProcess(exitCode: number): Promise<void> {
   await timeout
 }
 
-/**
- * Convert duration number to a duration with prefix
- * @param duration time in milliseconds
- * @return a duration with prefix capped at 1 month. Result always 60 or bigger.
- */
 export function durationToMinecraftDuration(duration: number): string {
-  // 30 day in seconds
-  // Max allowed duration in minecraft. It is a hard limit from server side
   const MaxDuration = 2_592_000
-  // 1 minute in seconds. hard limit too
+
   const MinDuration = 60
-  const Prefix = 's' // for "seconds"
+  const Prefix = 's'
 
   const maxTime = Math.min(MaxDuration, Math.floor(duration / 1000))
   return `${Math.max(maxTime, MinDuration)}${Prefix}`
 }
 
-/**
- * Used to convert instanceName to a human-readable one.
- * Most instanceNames are either lowercased or contain metadata such as prefixes.
- * This function aimed to beautify the instanceName and prepare for human display.
- */
 export function beautifyInstanceName(instanceName: string): string {
   instanceName = instanceName.startsWith(InternalInstancePrefix)
     ? instanceName.slice(InternalInstancePrefix.length)
@@ -144,16 +131,6 @@ export function beautifyInstanceName(instanceName: string): string {
   return instanceName
 }
 
-/**
- * Return a sorted list from best match to least.
- *
- * The results are sorted alphabetically by:
- * - matching the query with the start of a query
- * - matching any part of a username with the query
- *
- * @param query the usernames to look for
- * @param collection collection to look up the query in
- */
 export function relativeTime(timestamp: number, includeSuffix = true): string {
   const diff = timestamp - Date.now()
   const absSeconds = Math.floor(Math.abs(diff) / 1000)

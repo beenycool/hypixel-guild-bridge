@@ -9,9 +9,7 @@ import type Application from '../src/application.js'
 import type { PendingReview, RankupHistoryEntry } from '../src/core/rankup/pending-review-manager.js'
 import { RankupApiHandler } from '../src/instance/web/rankup-api.js'
 
-const noop = (): void => {
-  /* No-op fake implementation. */
-}
+const noop = (): void => {}
 
 // eslint-disable-next-line unicorn/prefer-event-target -- fake mimics node http.IncomingMessage, which is an EventEmitter
 class FakeRequest extends EventEmitter {
@@ -26,9 +24,7 @@ class FakeRequest extends EventEmitter {
     this.headers = {}
   }
 
-  setEncoding(): void {
-    /* No-op: the request fake emits plain string chunks. */
-  }
+  setEncoding(): void {}
 
   feedBody(body: string): void {
     if (body.length > 0) this.emit('data', body)
@@ -133,13 +129,9 @@ function createFakePendingReviewManager(overrides: Partial<FakePendingReviewMana
 
 function createFakeRankupManager(): FakeRankupManager {
   return {
-    runTaskForBridge: async () => {
-      /* No-op fake. */
-    },
+    runTaskForBridge: async () => {},
     runTaskCalls: [],
-    approveReview: async () => {
-      /* No-op fake. */
-    },
+    approveReview: async () => {},
     approveCalls: []
   }
 }

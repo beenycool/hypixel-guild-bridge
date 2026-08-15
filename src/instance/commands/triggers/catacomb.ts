@@ -29,7 +29,6 @@ type DungeonClass = (typeof DungeonClasses)[number]
 
 type DungeonView = 'stats' | 'last' | 'pb' | 'runs' | 'secrets' | 'rtca'
 
-// Credit: https://adjectils.com/dungeon.html
 const FloorsBaseExp = {
   m7: 300_000,
   m6: 110_000,
@@ -59,10 +58,6 @@ const ViewTriggers: Partial<Record<string, DungeonView>> = {
   rtca: 'rtca'
 }
 
-/**
- * Resolves which dungeon view a command invocation should show, based on the
- * used trigger and the first argument (subcommand).
- */
 export function resolveDungeonView(commandTrigger: string, argumentValues: string[]): DungeonView {
   const directView = ViewTriggers[commandTrigger.toLowerCase()]
   if (directView !== undefined) return directView
@@ -210,7 +205,6 @@ export default class Catacomb extends SkyblockPlayerCommand {
     if (runs === undefined || runs.length === 0) return `${username} hasn't done any dungeon runs lately.`
 
     if (runs.length > 1) {
-      // runs aren't always chronologically ordered
       runs = runs.toSorted((a, b) => b.completion_ts - a.completion_ts)
     }
 
@@ -341,7 +335,6 @@ export default class Catacomb extends SkyblockPlayerCommand {
       }
     }
 
-    // check for highest S+ master mode
     if (dungeon.master_catacombs.fastest_time_s_plus) {
       let selectedFloor: DungeonFloors | undefined = undefined
       for (const floorName of Object.keys(dungeon.master_catacombs.fastest_time_s_plus).toReversed()) {
@@ -360,7 +353,6 @@ export default class Catacomb extends SkyblockPlayerCommand {
       }
     }
 
-    // check for highest S+ normal mode
     if (dungeon.catacombs.fastest_time_s_plus) {
       let selectedFloor: DungeonFloors | undefined = undefined
       for (const floorName of Object.keys(dungeon.catacombs.fastest_time_s_plus).toReversed()) {
@@ -540,16 +532,6 @@ export default class Catacomb extends SkyblockPlayerCommand {
     const toxophilite = profile.essence?.perks?.toxophilite ?? 0
     const diamondInTheRough = profile.essence?.perks?.diamond_in_the_rough ?? 0
 
-    /*
-     * Bonuses:
-     * - Scarf Shards 20%
-     * - Scarf accessory Grimoire 6%
-     * - 50% XP boost when did runs on selected floor maxed at 26 runs (50% on MM) (https://wiki.hypixel.net/Dungeoneering#Dungeoneering_XP_Gain)
-     * - 10% Expert Ring
-     * - 2% Maxed Hecatomb Enchantment
-     *
-     *  All stats are set to max assuming that the player who is using the command is already prepared to do hundreds of runs
-     */
     const GlobalBoost = 0.2 + 0.06 + 0.5 + 0.1 + 0.02
     const additionalBoost = await this.getAdditionalBoost(context)
 
@@ -630,7 +612,7 @@ export default class Catacomb extends SkyblockPlayerCommand {
 
     const government = await context.app.hypixelApi.getSkyblockGovernment({ raw: true })
     if (government.mayor.key === 'aura') {
-      totalBoost += 0.55 // It is 55% instead of 50%. Why? I don't know. Maybe bugged
+      totalBoost += 0.55
     } else if (government.mayor.key === 'derpy') {
       totalBoost += 0.5
     }

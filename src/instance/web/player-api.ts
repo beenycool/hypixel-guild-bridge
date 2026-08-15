@@ -116,17 +116,13 @@ export class PlayerApiHandler {
           joinedAt: member.joinedAt.getTime()
         }
       }
-    } catch {
-      // guild lookup not critical
-    }
+    } catch {}
 
     let skyblockProfiles: unknown[] | undefined
     try {
       const raw = await this.application.hypixelApi.getSkyblockProfiles(uuid, { raw: true })
       skyblockProfiles = raw as unknown as unknown[]
-    } catch {
-      // skyblock not critical
-    }
+    } catch {}
 
     sendSuccess(response, {
       uuid,

@@ -69,9 +69,7 @@ export default class Vengeance extends ChatCommandHandler {
     const targetUser = await context.app.core.initializeMinecraftUser(mojangProfile, {})
 
     let messages: string[]
-    // 3% to win.
-    // 47% to lose.
-    // 49% to draw.
+
     if (this.won()) {
       await targetUser.mute(
         context.eventHelper.fillBaseEvent(),
@@ -138,8 +136,6 @@ export default class Vengeance extends ChatCommandHandler {
     let currentChance = chance
 
     if (this.countSinceLastWin > increasedChanceAfter) {
-      // This function has a starting point of (0,0) and goes to (inf,1)
-      // with an increasingly faster slope with every step
       currentChance += -(1 / ((this.countSinceLastWin - increasedChanceAfter) / 24 + 1)) + 1
     }
     if (this.countSinceLastWin >= guaranteedOn) {

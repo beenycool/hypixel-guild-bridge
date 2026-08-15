@@ -38,7 +38,7 @@ export class AuditLogger {
           tournamentId,
           action,
           actorDiscordId,
-          // pg converts undefined to NULL for nullable columns
+
           targetMatchId ?? undefined,
           targetUuid ?? undefined,
           metadata ? JSON.stringify(metadata) : undefined

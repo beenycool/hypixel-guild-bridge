@@ -73,18 +73,6 @@ interface StoredProfile {
   name: string
 }
 
-/**
- * Conducts the full Microsoft IAS auth flow and returns a minecraft-protocol compatible
- * custom auth function. The flow:
- * 1. Refresh Microsoft token using stored IAS refresh token
- * 2. Authenticate with Xbox Live
- * 3. Authorize with XSTS
- * 4. Login to Minecraft Services
- * 5. Verify entitlements and get profile
- *
- * Tokens are cached to avoid unnecessary refreshes. The Minecraft access token is reused
- * until expiry; the Microsoft refresh token is stored and rotated on each full refresh.
- */
 export function createIasAuthFunction(options: IasAuthOptions): (client: Client, clientOptions: ClientOptions) => void {
   return (client: Client, clientOptions: ClientOptions): void => {
     void authenticate(client, clientOptions, options).catch((error: unknown) => {
@@ -106,19 +94,17 @@ async function authenticate(client: Client, clientOptions: ClientOptions, option
   let mcToken = getStoredMcToken(cache, instanceName)
   let profile = getStoredProfile(cache, instanceName)
 
-  // Reuse cached MC token if still valid
   if (!mcToken || Date.now() >= mcToken.expiresAt) {
     const microsoftToken = await refreshMicrosoftToken(refreshToken)
-    // Store the new refresh token (Microsoft rotates it on each refresh)
+
     storeRefreshToken(cache, instanceName, microsoftToken.refresh_token)
 
     const xblToken = await authenticateXboxLive(microsoftToken.access_token)
     const { token: xstsToken, uhs } = await authorizeXsts(xblToken.Token)
     mcToken = await loginToMinecraft(uhs, xstsToken)
 
-    // Cache the MC token
     storeMcToken(cache, instanceName, mcToken)
-    // Clear stale profile so we re-fetch
+
     profile = undefined
   }
 
@@ -267,7 +253,6 @@ async function loginToMinecraft(uhs: string, xstsToken: string): Promise<StoredM
 
   const data = (await response.json()) as MinecraftLoginResponse
 
-  // Expire 60 seconds early to avoid edge cases
   const expiresInMs = (data.expires_in - 60) * 1000
 
   return {
@@ -346,11 +331,4 @@ function storeProfile(cache: IasAuthCache, instanceName: string, profile: Stored
     id: profile.id,
     name: profile.name
   })
-}
-
-/**
- * Store an IAS refresh token so the auth module can use it on subsequent connections.
- */
-export function storeIasRefreshToken(cache: IasAuthCache, instanceName: string, refreshToken: string): void {
-  storeRefreshToken(cache, instanceName, refreshToken)
 }

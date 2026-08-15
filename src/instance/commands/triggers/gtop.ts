@@ -37,9 +37,7 @@ export default class GtopCommand extends ChatCommandHandler {
         try {
           const profile = await context.app.mojangApi.profileByUuid(entry.uuid)
           name = profile.name
-        } catch {
-          // fallback to uuid
-        }
+        } catch {}
         return `${index + 1}. ${name} (${entry.exp.toLocaleString()} EXP)`
       })
     )

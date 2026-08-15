@@ -56,8 +56,6 @@ export default class PrometheusInstance extends Instance<InstanceType.Prometheus
       this.applicationMetrics.onCommandEvent(event)
     })
 
-    // Collect metrics periodically in background so scrapes return instantly
-    // Also trigger an immediate collection on startup
     setImmediate(() => {
       void this.collectMetrics().catch((error: unknown) => {
         this.logger.error('Initial metric collection failed', error)

@@ -93,7 +93,6 @@ export class TournamentApiHandler {
       return true
     }
 
-    // GET /api/tournament/active?bridgeId=<id> (active tournament for a bridge)
     if (pathPart === `${TournamentPrefix}/active`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -103,7 +102,6 @@ export class TournamentApiHandler {
       return true
     }
 
-    // GET /api/tournament/users?ids=<id1>,<id2> (resolve Discord IDs to usernames/avatars)
     if (pathPart === `${TournamentPrefix}/users`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -113,7 +111,6 @@ export class TournamentApiHandler {
       return true
     }
 
-    // GET /api/tournament/categories?bridgeId=<id> (Discord category channels for the bridge's guild)
     if (pathPart === `${TournamentPrefix}/categories`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -123,7 +120,6 @@ export class TournamentApiHandler {
       return true
     }
 
-    // POST /api/tournament (create new tournament, no id in path)
     if (pathPart === TournamentPrefix || pathPart === TournamentPrefix + '/') {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -137,7 +133,6 @@ export class TournamentApiHandler {
       return true
     }
 
-    // POST /api/tournament/test/create (create a test tournament with fake players)
     if (pathPart === `${TournamentPrefix}/test/create`) {
       if (method !== 'POST') {
         this.sendMethodNotAllowed(response, ['POST'])
@@ -570,7 +565,6 @@ export class TournamentApiHandler {
 
     const config = this.application.core.bridgeConfigurations
 
-    // Omitted values fall back to bridge settings, mirroring /tournament create
     const bestOf = typeof body.bestOf === 'number' ? body.bestOf : config.getTournamentDefaultBestOf(bridgeId)
     if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0) {
       sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive odd integer (e.g. 1, 3, 5)', 400)
@@ -638,8 +632,6 @@ export class TournamentApiHandler {
         bracketFormat
       )
 
-      // Post a signup announcement with Join/Leave buttons in the tournament
-      // notification channel, mirroring the removed Discord /tournament create.
       try {
         const notificationChannelId = config.getTournamentNotificationChannelId(bridgeId)
         if (notificationChannelId) {
@@ -896,8 +888,6 @@ export class TournamentApiHandler {
       return
     }
 
-    // Post a check-in announcement with a Check In button in the notification
-    // channel, mirroring the removed Discord /tournament open-checkin.
     try {
       const tournament = await this.application.core.tournamentManager.getTournament(tournamentId)
       if (tournament !== undefined) {
@@ -1245,7 +1235,6 @@ export class TournamentApiHandler {
         { name, gameType, bestOf, playerCount, deadline, autoStart, categoryId, source: 'web' }
       )
 
-      // Seed fake players, mirroring the removed Discord /tournament test.
       const now = Math.floor(Date.now() / 1000)
       const status = autoStart ? PlayerStatus.CheckedIn : PlayerStatus.Registered
       const checkedInAt = autoStart ? now : undefined

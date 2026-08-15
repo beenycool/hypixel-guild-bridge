@@ -175,9 +175,7 @@ export class InactivityApiHandler {
           try {
             const profile = await this.application.mojangApi.profileByUuid(entry.uuid)
             name = profile.name
-          } catch {
-            // not resolvable
-          }
+          } catch {}
           return {
             id: entry.uuid,
             uuid: entry.uuid,

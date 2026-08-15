@@ -109,16 +109,6 @@ const gameRegistries: Record<string, GameRegistry> = {
   }
 }
 
-export function getSupportedGames(): string[] {
-  return Object.keys(gameRegistries).toSorted()
-}
-
-export function getStatsForGame(game: string): string[] {
-  const registry = gameRegistries[game]
-  if (!registry) return []
-  return Object.keys(registry)
-}
-
 export function getStatLabel(game: string, stat: string): string | undefined {
   return gameRegistries[game]?.[stat]?.label
 }
@@ -133,14 +123,6 @@ export function extractStatValue(player: Player, game: string, stat: string): nu
 
 export function formatStatValue(value: number, decimals: number): string {
   return decimals > 0 ? value.toFixed(decimals) : Math.floor(value).toLocaleString()
-}
-
-export function isValidStat(game: string, stat: string): boolean {
-  return gameRegistries[game]?.[stat] !== undefined
-}
-
-export function isValidGame(game: string): boolean {
-  return gameRegistries[game] !== undefined
 }
 
 export function getSmartThreshold(stat: string, currentValue: number): number {

@@ -372,7 +372,6 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
       return
     }
 
-    // Automatically post evidence into the thread if thread exists
     if (activeMatch.discordThreadId !== undefined) {
       try {
         const client = this.clientInstance.getClient()
@@ -384,21 +383,17 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
             })
             .catch(() => undefined)
         }
-      } catch {
-        // Thread fetch fail, ignore
-      }
+      } catch {}
     }
 
     const targetWins = Math.ceil(tournament.bestOf / 2)
 
-    // Player 1 claims Player 1 won
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player1Id, activeMatch.player1Id, targetWins, 0)
       .catch((error: unknown) => {
         this.application.logger.error(`TournamentTestPanel: dispute submitReport p1 failed`, error)
       })
 
-    // Player 2 claims Player 2 won
     await this.application.core.tournamentManager.matchManager
       .submitReport(activeMatch.id, activeMatch.player2Id, activeMatch.player2Id, 0, targetWins)
       .catch((error: unknown) => {

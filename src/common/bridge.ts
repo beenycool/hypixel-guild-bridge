@@ -18,15 +18,6 @@ import type {
 import type { Instance } from './instance.js'
 import type UnexpectedErrorHandler from './unexpected-error-handler.js'
 
-/**
- * Wraps an event handler so execution is serialized through the bridge queue
- * and any rejection is routed to the error handler instead of floating.
- * @param queue the serial executor that serializes bridge event handling
- * @param errorHandler receives promise rejections from the handler
- * @param action the bridge callback to invoke for each event
- * @param context label describing the handled event type for error reporting
- * @returns a handler suitable for registering on the application event bus
- */
 function createSerializedEventHandler<E>(
   queue: SerialExecutor,
   errorHandler: UnexpectedErrorHandler,
@@ -38,10 +29,6 @@ function createSerializedEventHandler<E>(
   }
 }
 
-/**
- * Abstract class with abstract callback functions that must be implemented
- * to integrate bridge to other services. Use this class as a base when connecting two services.
- */
 export default abstract class Bridge<K extends Instance<InstanceType>> {
   protected readonly application: Application
   protected readonly clientInstance: K

@@ -101,9 +101,6 @@ export class ConfigManager<T extends object> {
     return resultObject
   }
 
-  /**
-   * Mark {@link #data} changed. So they are eligible for auto save routine.
-   */
   public markDirty(): void {
     this.dirty = true
   }

@@ -4,7 +4,6 @@ import { describe, it } from 'node:test'
 import GuildExperience from '../src/instance/commands/triggers/guildexp.js'
 
 await describe('GuildExperience Promotion & Next Rank Checks', async () => {
-  // formatResponse is private; expose it through a minimal typed view instead of `any`.
   const command = new GuildExperience() as unknown as {
     formatResponse(...callArguments: unknown[]): string
   }
@@ -51,9 +50,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
         }
       },
       logger: {
-        error: () => {
-          /* noop */
-        }
+        error: () => {}
       }
     }
 
@@ -109,7 +106,7 @@ await describe('GuildExperience Promotion & Next Rank Checks', async () => {
     const member = {
       uuid: 'uuid-1',
       rank: 'Member',
-      joinedAt: Date.now() - 3 * 24 * 60 * 60 * 1000, // 3 days in guild
+      joinedAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
       weeklyExperience: 90_000
     }
     const guild = {

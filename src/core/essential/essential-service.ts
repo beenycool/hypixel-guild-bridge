@@ -98,10 +98,8 @@ export class EssentialService {
     const sharedSecret = generateSharedSecret()
     const serverId = computeEssentialSessionHash(sharedSecret)
 
-    // Step 1: Mojang joinServer
     await this.joinMojangServer(accessToken, uuid, serverId)
 
-    // Step 2: Open WebSocket with Essential auth headers
     const authString = Buffer.from(username + ':' + sharedSecret.toString('binary'), 'binary').toString('base64')
 
     return new Promise<void>((resolve, reject) => {
@@ -132,7 +130,6 @@ export class EssentialService {
         this.packetNameMap.clear()
         this.nextOutgoingTypeId = 1
 
-        // Register our outgoing SubscriptionUpdatePacket
         this.registerOutgoingPacketType('subscription.SubscriptionUpdatePacket')
         resolved = true
         resolve()
@@ -160,7 +157,6 @@ export class EssentialService {
       const packet = decodePacket(data)
 
       if (packet.typeId === 0) {
-        // Packet type registration
         const name = (packet.json as { a: string }).a
         const id = (packet.json as { b: number }).b
         this.packetTypeMap.set(id, name)
@@ -171,7 +167,6 @@ export class EssentialService {
       const packetName = this.packetTypeMap.get(packet.typeId)
 
       if (packetName === 'connection.ConnectionKeepAlivePacket') {
-        // Respond to keep-alive with same packetId
         this.sendPacket(packet.typeId, packet.packetId, {})
         return
       }
@@ -187,9 +182,7 @@ export class EssentialService {
           callback(status === 'ONLINE')
         }
       }
-    } catch {
-      // Ignore malformed packets
-    }
+    } catch {}
   }
 
   private async queryPlayerStatus(uuid: string): Promise<boolean> {
@@ -198,19 +191,17 @@ export class EssentialService {
       throw new Error('SubscriptionUpdatePacket type not registered')
     }
 
-    // Subscribe to the UUID
     this.sendPacket(subscriptionTypeId, '', {
       a: [uuid],
       b: false,
       c: true
     })
 
-    // Wait for profile status response
     const normalizedUuid = uuid.replaceAll('-', '').toLowerCase()
     return new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => {
         this.pendingStatusRequests.delete(normalizedUuid)
-        // No response within timeout means player is likely not on Essential
+
         resolve(false)
       }, 10_000)
 

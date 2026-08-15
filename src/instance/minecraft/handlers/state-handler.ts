@@ -36,11 +36,9 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   override registerEvents(clientSession: ClientSession): void {
-    // Clear any existing timeout and reset auth code tracking
     this.clearConnectionTimeout()
     this.authenticationCodeRequested = false
 
-    // Listen for authentication code requests
     this.instanceStatusListener = (event: InstanceStatus) => {
       if (
         event.instanceName === this.clientInstance.instanceName &&
@@ -51,9 +49,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     }
     this.application.on('instanceStatus', this.instanceStatusListener)
 
-    // Start connection timeout - if we don't connect within the timeout period, force disconnect
     this.connectionTimeoutId = setTimeout(() => {
-      // Remove the listener when timeout fires
       this.clearInstanceStatusListener()
 
       if (this.clientInstance.currentStatus() === Status.Connecting && !this.loggedIn) {
@@ -62,26 +58,23 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
           : `Connection timeout after ${StateHandler.ConnectionTimeout.toSeconds()} seconds. Forcing disconnect and retry.`
 
         this.logger.warn(timeoutMessage)
-        // Force disconnect to trigger retry
+
         clientSession.client.end('Connection timeout - authentication or connection took too long')
       }
     }, StateHandler.ConnectionTimeout.toMilliseconds())
 
-    // this will only be called after the player receives spawn packet
     clientSession.client.on('login', () => {
       this.clearConnectionTimeout()
       void this.onLogin().catch(this.errorHandler.promiseCatch('handling login event from Minecraft'))
       this.loggedIn = true
     })
 
-    // this will always be called when connection closes
     clientSession.client.on('end', (reason: string) => {
       this.clearConnectionTimeout()
       void this.onEnd(clientSession, reason).catch(this.errorHandler.promiseCatch('handling end event from Minecraft'))
       this.loggedIn = false
     })
 
-    // depends on protocol version. One of these will be called
     clientSession.client.on('kick_disconnect', (packet: { reason: string }) => {
       const formattedReason = clientSession.prismChat.fromNotch(packet.reason)
       void this.onKicked(formattedReason.toString()).catch(
@@ -144,7 +137,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     } else if (reason === QuitOwnVolition) {
       // eslint-disable-next-line unicorn/prefer-ternary
       if (clientSession.silentQuit) {
-        //TODO: properly handle silent quit
         await this.clientInstance.setAndBroadcastNewStatus(Status.Ended)
       } else {
         await this.clientInstance.setAndBroadcastNewStatus(Status.Ended)
@@ -187,10 +179,9 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
         type: messageType,
         value: reason
       })
-      // "Your version (1.17.1) of Minecraft is disabled on Hypixel due to compatibility issues."
     } else if (reason.includes('of Minecraft is disabled on Hypixel due to compatibility issues')) {
       messageType = InstanceMessageType.MinecraftIncompatible
-      // possible kick messages that are accounted for
+
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
         type: messageType,
         value: reason
@@ -256,7 +247,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       messageType = InstanceMessageType.MinecraftProxyBroken
       await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
         type: messageType,
-        value: error.toString() // TODO: give a proper proxy error instead of this
+        value: error.toString()
       })
       await this.tryRestarting()
     } else if (

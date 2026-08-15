@@ -174,11 +174,11 @@ await describe('BracketVisualizer', async () => {
 
     assert.ok(buffer instanceof Buffer)
     assert.ok(buffer.length > 0)
-    // Check PNG signature header (\x89PNG)
+
     assert.equal(buffer[0], 0x89)
-    assert.equal(buffer[1], 0x50) // P
-    assert.equal(buffer[2], 0x4e) // N
-    assert.equal(buffer[3], 0x47) // G
+    assert.equal(buffer[1], 0x50)
+    assert.equal(buffer[2], 0x4e)
+    assert.equal(buffer[3], 0x47)
   })
 
   await it('should build a valid bracket PNG for multi-round tournaments', () => {

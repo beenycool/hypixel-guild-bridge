@@ -3,14 +3,14 @@ import { escapeMarkdown } from 'discord.js'
 
 const MentionTokenRegex = /\B@([^\s@]{1,32})/g
 const DisallowedMentions = new Set(['everyone', 'here'])
-/** Cap REST `guild.members.search` calls per message to reduce rate-limit risk. */
+
 const MaxMemberSearchTokens = 5
 
 const ResolvedMentionsCache = new Map<string, { userId: string; timestamp: number }>()
-const CacheTTL = 60 * 60 * 1000 // 1 hour
+const CacheTTL = 60 * 60 * 1000
 
 const MinecraftNameCache = new Map<string, { userId: string; timestamp: number }>()
-const MinecraftNameCacheTTL = 60 * 60 * 1000 // 1 hour
+const MinecraftNameCacheTTL = 60 * 60 * 1000
 
 export interface ResolvedDiscordMentions {
   content: string
@@ -69,7 +69,6 @@ export async function resolveDiscordMentionsInMessage(
     }
   }
 
-  // Fallback: try resolving unmatched tokens as Minecraft usernames
   if (resolveMinecraftName !== undefined) {
     for (const [lowered, token] of searchEntries) {
       if (tokenToUserId.has(lowered)) continue
@@ -87,7 +86,6 @@ export async function resolveDiscordMentionsInMessage(
     }
   }
 
-  // Clean old cache entries occasionally
   if (ResolvedMentionsCache.size > 500) {
     const now = Date.now()
     for (const [key, value] of ResolvedMentionsCache.entries()) {

@@ -125,9 +125,6 @@ export class Configuration {
     return existed
   }
 
-  /**
-   * Get all cached configuration keys starting with the given prefix.
-   */
   public keysWithPrefix(prefix: string): string[] {
     return [...this.cache.keys()].filter((key) => key.startsWith(prefix))
   }

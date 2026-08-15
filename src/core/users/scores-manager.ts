@@ -262,10 +262,6 @@ export default class ScoresManager extends SubInstance<Core, InstanceType.Core, 
   }
 
   private async migrateUsernames(): Promise<void> {
-    /**
-     * Only migrate from the last 30 days since Mojang locks username for up to 30 days before releasing it to the public
-     * Within 30 days period, there won't be conflict between players UUID
-     */
     const oldestTimestamp = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60
 
     const usernames = this.database.getLegacyUsernames(oldestTimestamp)

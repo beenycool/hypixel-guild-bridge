@@ -14,7 +14,6 @@ export default class Praise extends ChatCommandHandler {
   handler(context: ChatCommandContext): string {
     const givenUsername = context.args[0] ?? context.username
 
-    // easter egg
     if (Math.random() <= 0.01) {
       const bridgeId = context.message.bridgeId
       const insultMode =

@@ -36,11 +36,6 @@ const CommandTypeSleep: Record<CommandType, number> = {
   [CommandType.GuildCommand]: 2000
 }
 
-/**
- * Tracks chat messages recently sent by the bridge's Minecraft instances.
- * Shared across all instances so the echo of a command sent by one instance
- * can be recognized (and suppressed) even when observed by another instance.
- */
 export class SentChatMessages {
   private static readonly Ttl = 10_000
 
@@ -86,10 +81,6 @@ export class SendQueue {
     void this.startCycle().catch(errorHandler.promiseCatch('queuing commands via minecraft instance'))
   }
 
-  /**
-   * Returns true if the given chat message is the echo of a command this bridge
-   * recently sent in that channel, skipping the inter-command delay accordingly.
-   */
   public notifyChatEvent(channel: ChannelType, message: string): boolean {
     const entryContext = this.entryContext
     if (entryContext !== undefined) {
@@ -147,7 +138,7 @@ export class SendQueue {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (true) {
       while (this.priorityQueue.empty()) {
-        this.threadSleep = new Timeout(~(1 << 31)) // max 32bit integer
+        this.threadSleep = new Timeout(~(1 << 31))
         await this.threadSleep.wait()
       }
 
@@ -190,7 +181,6 @@ export class SendQueue {
       if (context.skip) maxSleep = Math.min(...allTimes)
       if (sleptSoFar >= maxSleep) return
 
-      // timestamp used to account for async/await lag
       const currentTimestamp = Date.now()
       context.sleep = new Timeout<void>(maxSleep - sleptSoFar)
       await context.sleep.wait()

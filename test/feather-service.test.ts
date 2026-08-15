@@ -6,9 +6,7 @@ import type { Logger } from 'log4js'
 import type Application from '../src/application.js'
 import { FeatherService } from '../src/core/feather/feather-service.js'
 
-const noop = (): void => {
-  /* noop */
-}
+const noop = (): void => {}
 
 await test('FeatherService returns undefined when no connected instance is available', async () => {
   const dummyLogger: Logger = {

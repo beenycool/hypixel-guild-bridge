@@ -15,22 +15,12 @@ import type MinecraftInstance from '../minecraft-instance.js'
 interface InterviewSession {
   username: string
   question: string
-  /** Waiting for the applicant to accept the party invite. */
+
   awaitingJoin: boolean
   timeoutMs: number
   timeoutId: ReturnType<typeof setTimeout> | undefined
 }
 
-/**
- * Asks players that request to join the guild whether they are an alt.
- * The bot invites the applicant to a party and messages them telling them to
- * accept, then asks the configured question via party chat. Answers are
- * relayed to officer chat. Officers can reply in officer chat (in-game or on
- * Discord) and the bot relays their response back via party chat. Officer
- * messages prefixed with `-` are excluded from being relayed.
- * Can be triggered automatically on a join request or manually via the
- * /interrogate command / the Interrogate button on the join request embed.
- */
 export default class JoinInterviewHandler extends SubInstance<
   MinecraftInstance,
   InstanceType.Minecraft,
@@ -40,7 +30,6 @@ export default class JoinInterviewHandler extends SubInstance<
   private static readonly DefaultTimeoutMs = 10 * 60_000
   private static readonly ExcludePrefix = '-'
 
-  /** Party chat lines look like "[MVP+] username: message" (optionally prefixed with "Party > "). */
   private static readonly PartyChatRegex = /^(?:Party > )?(?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32}): (.{1,256})$/
 
   private readonly sessions = new Map<string, InterviewSession>()

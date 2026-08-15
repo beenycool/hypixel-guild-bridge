@@ -41,7 +41,6 @@ export function resolveProxyIfExist(
     }
   }
 
-  // TODO: Enable agent in the future if ever needed
   return { connect }
 }
 
@@ -96,15 +95,6 @@ function createSocksConnectFunction(
         client.emit('connect')
       })
       .catch((error: unknown) => {
-        /*
-         * This is a workaround to problems with proxy.
-         * When proxy encounters a problem DURING the connecting phase,
-         * the instance will just enter a deadlock.
-         * The only resolution is to pass an error
-         * and detect that specific error from the error handler side.
-         *
-         * This specific error message is detected and handled at: ../handlers/error-handler.ts
-         */
         client.emit('error', new Error(QuitProxyError, { cause: error }))
 
         logger.warn('ending minecraft session if any exist')

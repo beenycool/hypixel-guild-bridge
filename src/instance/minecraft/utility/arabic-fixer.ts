@@ -17,7 +17,7 @@ export default class ArabicFixer {
   }
 
   private regexSegment(message: string): { content: string; isArabic: boolean }[] {
-    message = message.trim() // needed to simplify detecting "filler"
+    message = message.trim()
 
     const segments: { content: string; isArabic: boolean }[] = []
     const regex = /(?!\s)[\s\u0600-\u06FF\u200C\u200F\uFB8A]+(?![\u0600-\u06FF\u200C\u200F\uFB8A])/gm
@@ -79,7 +79,6 @@ export default class ArabicFixer {
     return newMessage
   }
 
-  // Credit: https://github.com/omd0/Arabic-Fixer
   static compilePatterns(): { regex: RegExp; replace: string }[] {
     const nonJoinerLetters = 'ﺬآداﺇﺁﺃﺎﺈﺂﺄرﺮزﺰژﮋذﺲﺶﺺﺾوﭗﺚﺖﺞﭻﺢﺦﺐﻂﻆﻊﻎﻒﻖﮏﮓﻚﻞﻢﻦﻮﻪﻰﺊﻲﺪﻼﻻﻺﻹﻶﻵﻸﻷﷺﷲﺔﻪﺅ'
     const nospaceAfter = String.raw`(?!\s|$|^)`
@@ -89,16 +88,16 @@ export default class ArabicFixer {
     const JoinerRegex = String.raw`(?<!\s\w[^` + nonJoinerLetters + '])'
 
     const allRules: { regex: RegExp; replace: string }[] = []
-    allRules.push({ regex: new RegExp(spaceAfter + 'الله', 'g'), replace: 'ﷲ' }) //الله
-    allRules.push({ regex: new RegExp(spaceAfter + 'الله' + spaceAfter, 'g'), replace: 'ﷲ' }) //الله
-    allRules.push({ regex: new RegExp(spaceAfter + 'صلى', 'g'), replace: 'ﷺ' }) //ﷺ
-    allRules.push({ regex: new RegExp('لإ', 'g'), replace: 'ﻹ' }) //إ
+    allRules.push({ regex: new RegExp(spaceAfter + 'الله', 'g'), replace: 'ﷲ' })
+    allRules.push({ regex: new RegExp(spaceAfter + 'الله' + spaceAfter, 'g'), replace: 'ﷲ' })
+    allRules.push({ regex: new RegExp(spaceAfter + 'صلى', 'g'), replace: 'ﷺ' })
+    allRules.push({ regex: new RegExp('لإ', 'g'), replace: 'ﻹ' })
     allRules.push({ regex: new RegExp(JoinerRegex + 'ﻹ', 'g'), replace: 'ﻺ' })
-    allRules.push({ regex: new RegExp('لآ', 'g'), replace: 'ﻵ' }) //آ
+    allRules.push({ regex: new RegExp('لآ', 'g'), replace: 'ﻵ' })
     allRules.push({ regex: new RegExp(JoinerRegex + 'ﻵ', 'g'), replace: 'ﻶ' })
-    allRules.push({ regex: new RegExp('لأ', 'g'), replace: 'ﻷ' }) //أ
+    allRules.push({ regex: new RegExp('لأ', 'g'), replace: 'ﻷ' })
     allRules.push({ regex: new RegExp(JoinerRegex + 'ﻷ', 'g'), replace: 'ﻸ' })
-    allRules.push({ regex: new RegExp('لا', 'g'), replace: 'ﻻ' }) //ا
+    allRules.push({ regex: new RegExp('لا', 'g'), replace: 'ﻻ' })
     allRules.push({ regex: new RegExp(JoinerRegex + 'ﻼ' + spaceAfter, 'g'), replace: 'ﻼ' })
     allRules.push({ regex: new RegExp(nonJoinerRegex + 'ا', 'g'), replace: 'ﺎ' })
     allRules.push({ regex: new RegExp(nonJoinerRegex + 'ب' + nospaceAfter, 'g'), replace: 'ﺒ' })

@@ -6,14 +6,6 @@ import SubInstance from '../../../common/sub-instance.js'
 import { TournamentStatus } from '../../../core/tournament/types.js'
 import type DiscordInstance from '../discord-instance.js'
 
-/**
- * Handles the Join/Leave buttons attached to the tournament signup
- * announcement posted by `/tournament create`.
- *
- * Custom ID format: `tournament-signup:<bridgeId>:<join|leave>:<tournamentId>`
- * The bridgeId is encoded because the announcement channel is usually not a
- * bridge channel, so it cannot be resolved from the interaction channel.
- */
 export default class TournamentSignup extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   private static readonly Prefix = 'tournament-signup'
 
@@ -114,11 +106,6 @@ export default class TournamentSignup extends SubInstance<DiscordInstance, Insta
     }
   }
 
-  /**
-   * Notifies staff (officer/helper/owner roles) when a user cannot be resolved
-   * from Minecraft to Discord and needs manual help with verification.
-   * Falls back to the tournament notification channel, then the button's channel.
-   */
   private async notifyStaffForUnlinkedUser(
     bridgeId: string,
     interaction: ButtonInteraction,

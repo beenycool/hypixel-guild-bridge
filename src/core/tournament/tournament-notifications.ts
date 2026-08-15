@@ -22,21 +22,15 @@ export interface TournamentResultRow {
 export class TournamentNotifications {
   constructor(private readonly application: Application) {}
 
-  /**
-   * Translate a key using the bridge-specific translator.
-   */
   private t(bridgeId: string, key: string, parameters?: Record<string, unknown>): string {
     try {
       const translator = this.application.getTranslatorForBridge(bridgeId)
       return translator(key, parameters)
     } catch {
-      return key // fallback
+      return key
     }
   }
 
-  /**
-   * Helper to get a connected Minecraft instance for the bridge.
-   */
   private getConnectedMinecraftInstance(bridgeId: string) {
     const instances = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
     for (const name of instances) {
@@ -47,15 +41,12 @@ export class TournamentNotifications {
         return inst
       }
     }
-    // Fallback: any connected instance if none specifically mapped or connected
+
     return this.application.minecraftManager
       .getAllInstances()
       .find((index) => index.currentStatus() === Status.Connected)
   }
 
-  /**
-   * Sends a whisper to a player.
-   */
   public async sendWhisper(bridgeId: string, playerUuid: string, message: string): Promise<boolean> {
     this.application.logger.info(
       `sendWhisper: bridgeId=${bridgeId}, playerUuid=${playerUuid}, message="${message.slice(0, 80)}${message.length > 80 ? '...' : ''}"`
@@ -67,7 +58,6 @@ export class TournamentNotifications {
       return false
     }
 
-    // Resolve name from uuid
     const profile = await this.application.mojangApi.profileByUuid(playerUuid).catch(() => {
       this.application.logger.info(`sendWhisper: Failed to resolve profile for ${playerUuid}`)
       return
@@ -90,9 +80,6 @@ export class TournamentNotifications {
     }
   }
 
-  /**
-   * Sends a public guild chat announcement.
-   */
   public async announceToGuild(bridgeId: string, message: string): Promise<void> {
     this.application.logger.info(
       `announceToGuild: bridgeId=${bridgeId}, message="${message.slice(0, 100)}${message.length > 100 ? '...' : ''}"`
@@ -118,9 +105,6 @@ export class TournamentNotifications {
     }
   }
 
-  /**
-   * Sends a Discord announcement embed to the configured tournament notification channel.
-   */
   public async announceToDiscord(bridgeId: string, embed: EmbedBuilder): Promise<void> {
     this.application.logger.info(`announceToDiscord: bridgeId=${bridgeId}`)
     const channelId = this.application.core.bridgeConfigurations.getTournamentNotificationChannelId(bridgeId)
@@ -139,9 +123,6 @@ export class TournamentNotifications {
     }
   }
 
-  /**
-   * Notify players of a match starting (MC whisper + Discord thread ping).
-   */
   public async notifyMatchStart(
     bridgeId: string,
     match: TournamentMatch,
@@ -174,9 +155,6 @@ export class TournamentNotifications {
     this.application.logger.info(`Match ${match.id}: Notifications sent to both players`)
   }
 
-  /**
-   * Sends a "match ready" ping message into the match thread, mentioning both players.
-   */
   public async notifyMatchReady(
     threadId: string,
     player1: TournamentPlayer,
@@ -196,9 +174,6 @@ export class TournamentNotifications {
     await thread.send({ content: `Your match is ready! ${p1Mention} vs ${p2Mention}` }).catch(() => undefined)
   }
 
-  /**
-   * Posts a final standings embed (top-3 medals + placement table) to the bracket and notification channels.
-   */
   public async announceResults(tournament: Tournament, results: TournamentResultRow[]): Promise<void> {
     this.application.logger.info(`Tournament ${tournament.id}: Announcing results (${results.length} rows)`)
 
@@ -227,9 +202,6 @@ export class TournamentNotifications {
     await this.announceToDiscord(tournament.bridgeId, embed)
   }
 
-  /**
-   * Sends a 24-hour warning for an active match.
-   */
   public async sendDeadlineWarning(
     bridgeId: string,
     match: TournamentMatch,
@@ -240,14 +212,12 @@ export class TournamentNotifications {
   ): Promise<void> {
     this.application.logger.info(`Match ${match.id}: Sending deadline warning to ${p1Name} and ${p2Name}`)
 
-    // 1. MC Whispers
     const mcMessage = this.t(bridgeId, 'tournament.deadline.warning', { opponent: p2Name })
     await this.sendWhisper(bridgeId, p1Uuid, mcMessage)
 
     const mcMessage2 = this.t(bridgeId, 'tournament.deadline.warning', { opponent: p1Name })
     await this.sendWhisper(bridgeId, p2Uuid, mcMessage2)
 
-    // 2. Discord Thread Announcement
     if (match.discordThreadId) {
       this.application.logger.info(`Match ${match.id}: Sending deadline warning to thread ${match.discordThreadId}`)
       const client = this.application.discordInstance.getClient()
@@ -266,9 +236,6 @@ export class TournamentNotifications {
     }
   }
 
-  /**
-   * Alert officers/admins to a dispute.
-   */
   public async notifyDispute(
     bridgeId: string,
     match: TournamentMatch,
@@ -295,7 +262,6 @@ export class TournamentNotifications {
 
     await this.announceToDiscord(bridgeId, embed)
 
-    // Also send an update to the match thread
     if (match.discordThreadId) {
       this.application.logger.info(`Match ${match.id}: Sending dispute alert to thread ${match.discordThreadId}`)
       const client = this.application.discordInstance.getClient()
@@ -313,9 +279,6 @@ export class TournamentNotifications {
     }
   }
 
-  /**
-   * Announce round completion.
-   */
   public async announceRoundComplete(tournament: Tournament, round: number): Promise<void> {
     this.application.logger.info(`Tournament ${tournament.id}: Announcing round ${round} completion`)
 
@@ -334,9 +297,6 @@ export class TournamentNotifications {
     )
   }
 
-  /**
-   * Announce tournament winner.
-   */
   public async announceWinner(tournament: Tournament, winnerName: string): Promise<void> {
     this.application.logger.info(`Tournament ${tournament.id}: Announcing winner — ${winnerName}`)
 
@@ -426,13 +386,10 @@ export class TournamentNotifications {
         .setTitle(`${playerName} is now live!`)
         .setURL(streamUrl)
         .setDescription(`${playerName} is streaming their ${tournamentName} match!`)
-        .setColor(0x91_46_ff) // Twitch purple
+        .setColor(0x91_46_ff)
         .setTimestamp()
 
       await this.announceToDiscord(bridgeId, embed)
-
-      // Also whisper to all tournament participants
-      // (This would need access to tournament players — can be added later)
     } catch (error) {
       this.application.logger.error('Failed to announce stream', error)
     }

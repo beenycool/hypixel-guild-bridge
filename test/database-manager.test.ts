@@ -9,18 +9,10 @@ interface TestDatabaseManager {
 }
 
 const Logger = {
-  debug: () => {
-    /* noop */
-  },
-  info: () => {
-    /* noop */
-  },
-  warn: () => {
-    /* noop */
-  },
-  error: () => {
-    /* noop */
-  }
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {}
 } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
 
 interface FakeApplication {
@@ -34,9 +26,7 @@ function createFakeApplication(databaseUrl?: string, maxConnections?: number): F
   if (databaseUrl !== undefined) config.url = databaseUrl
   if (maxConnections !== undefined) config.maxConnections = maxConnections
   return {
-    addShutdownListener: () => {
-      /* noop */
-    },
+    addShutdownListener: () => {},
     getDatabaseConfig: () => config,
     getConfigFilePath: (name: string) => `/tmp/nonexistent-${name}`
   }

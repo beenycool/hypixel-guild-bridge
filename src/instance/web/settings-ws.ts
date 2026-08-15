@@ -27,9 +27,7 @@ export class SettingsWsEvents {
     this.subscribers.delete(socket)
   }
 
-  public start(): void {
-    // No-op: events are push-based via Application events
-  }
+  public start(): void {}
 
   public stop(): void {
     this.subscribers.clear()

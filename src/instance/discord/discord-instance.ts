@@ -155,7 +155,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
   private cleanUsername(username: string | undefined): string | undefined {
     if (username === undefined) return undefined
 
-    // clear all non ASCII characters
     // eslint-disable-next-line no-control-regex
     username = username.replaceAll(/[^\u0000-\u007F]/g, '')
 
@@ -200,7 +199,6 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
       expiresAt: Date.now() + DiscordInstance.PermissionCacheTtl
     })
 
-    // Evict oldest entry if cache exceeds max size
     if (this.permissionCache.size > DiscordInstance.PermissionCacheMaxSize) {
       const oldestKey = this.permissionCache.keys().next().value
       if (oldestKey !== undefined) this.permissionCache.delete(oldestKey)

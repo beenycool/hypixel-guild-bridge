@@ -10,20 +10,20 @@ await describe('isNotificationDue', async () => {
 
   await it('returns false when within cooldown', () => {
     const now = 100_000_000_000
-    const notifiedAt = 100_000_000_000 // same second as now
+    const notifiedAt = 100_000_000_000
     assert.strictEqual(isNotificationDue(notifiedAt, 60 * 60 * 1000, now), false)
   })
 
   await it('returns false exactly at cooldown boundary', () => {
-    const now = 100_003_600_000 // 1 hour later in ms
-    const notifiedAt = 100_000_000_000 // 1 hour earlier in seconds
+    const now = 100_003_600_000
+    const notifiedAt = 100_000_000_000
     assert.strictEqual(isNotificationDue(notifiedAt, 60 * 60 * 1000, now), false)
   })
 
   await it('returns true when past cooldown', () => {
-    const notifiedAt = 1_000_000_000 // 2001-09-09 in seconds
-    const cooldownMs = 7_200_000 // 2 hours
-    const nowMs = notifiedAt * 1000 + cooldownMs + 1 // 1ms past cooldown
+    const notifiedAt = 1_000_000_000
+    const cooldownMs = 7_200_000
+    const nowMs = notifiedAt * 1000 + cooldownMs + 1
     assert.strictEqual(isNotificationDue(notifiedAt, cooldownMs, nowMs), true)
   })
 })

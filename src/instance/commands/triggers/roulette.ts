@@ -42,10 +42,6 @@ export default class Roulette extends ChatCommandHandler {
       return `${context.username}, Command can only be executed in public chat!`
     }
 
-    // Default behaviour which is just "1/6 chance" is too unreliable
-    // Some even managed to reach 24 win streak.
-    // This will increase the chance of losing and cap the win streak as well
-
     const chance = 1 / 6
     const increasedLoseChanceAfter = 6
     const guaranteedLoseOn = 12
@@ -53,8 +49,6 @@ export default class Roulette extends ChatCommandHandler {
     let currentChance = chance
 
     if (this.countSinceLastLose > increasedLoseChanceAfter) {
-      // This function has a starting point of (0,0) and goes to (inf,1)
-      // with an increasingly faster slope with every step
       currentChance += -(1 / ((this.countSinceLastLose - increasedLoseChanceAfter) / 24 + 1)) + 1
     }
     if (this.countSinceLastLose >= guaranteedLoseOn) {

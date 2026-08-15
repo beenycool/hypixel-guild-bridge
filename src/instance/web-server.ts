@@ -648,7 +648,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     if (Buffer.isBuffer(data)) return data.toString('utf8')
     if (data instanceof ArrayBuffer) return Buffer.from(data).toString('utf8')
     if (Array.isArray(data)) return Buffer.concat(data).toString('utf8')
-    // This should never happen based on RawData type definition, but handle it safely
+
     return Buffer.from(data as Uint8Array).toString('utf8')
   }
 

@@ -109,9 +109,7 @@ export default class AutoLinker extends Instance<InstanceType.Utility> {
             linked++
             break
           }
-        } catch {
-          // member not found or fetch error, skip
-        }
+        } catch {}
       }
     }
 

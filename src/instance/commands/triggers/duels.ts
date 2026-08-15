@@ -45,7 +45,6 @@ interface GamemodeStats {
   WLRatio: number
 }
 
-/** Minimal shape of the raw player payload we read Duels stats from. */
 interface RawPlayerResponse {
   player?: {
     stats?: {
@@ -290,7 +289,6 @@ export default class Duels extends HypixelPlayerCommand {
     }
 
     if (!duelType) {
-      // Overall stats
       const wins = stats.wins
       const losses = stats.losses
       const winstreak = stats.winstreak
@@ -305,7 +303,6 @@ export default class Duels extends HypixelPlayerCommand {
       )
     }
 
-    // Bedwars Duels stats (BW 1v1 and BW Rush)
     if (duelType === 'bedwars_two_one' || duelType === 'bedwars_rush') {
       const rawResponse = (await context.app.hypixelApi
         .getPlayer(player.uuid, { raw: true })
@@ -327,7 +324,6 @@ export default class Duels extends HypixelPlayerCommand {
       )
     }
 
-    // Spleef Duels stats
     if (duelType === 'spleef') {
       const rawResponse = (await context.app.hypixelApi
         .getPlayer(player.uuid, { raw: true })
@@ -348,7 +344,6 @@ export default class Duels extends HypixelPlayerCommand {
       )
     }
 
-    // Bridge sub-mode stats
     if (duelType === 'bridge' && bridgeSubMode !== undefined) {
       if (rawBridgeStats !== undefined) {
         const bridgeData = getBridgeStatsFromRawDuels(rawBridgeStats, bridgeSubMode)
@@ -408,7 +403,6 @@ export default class Duels extends HypixelPlayerCommand {
       )
     }
 
-    // Mode-specific stats
     const modeData = (stats as unknown as Record<string, unknown>)[duelType]
     if (!modeData || typeof modeData !== 'object') {
       return `${givenUsername} has no ${Duels.DuelDisplayNames[duelType]} Duels stats.` + this.formatPingSuffix()

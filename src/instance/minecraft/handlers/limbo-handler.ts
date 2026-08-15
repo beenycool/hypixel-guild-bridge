@@ -68,7 +68,6 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   override registerEvents(clientSession: ClientSession): void {
-    // first spawn packet
     clientSession.client.on('login', () => {
       this.logger.info(
         `[limbo] login event | empty=${this.empty()}, inParty=${this.inParty}, pendingCount=${this.pendingCount}`
@@ -77,7 +76,7 @@ export default class LimboHandler extends SubInstance<MinecraftInstance, Instanc
         this.triggerLimbo().catch(this.errorHandler.promiseCatch('handling /limbo command'))
       }
     })
-    // change world packet
+
     clientSession.client.on('respawn', () => {
       this.logger.info(
         `[limbo] respawn event | empty=${this.empty()}, inParty=${this.inParty}, pendingCount=${this.pendingCount}`

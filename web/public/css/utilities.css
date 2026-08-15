@@ -1,4 +1,3 @@
-/* ===== Layout ===== */
 .app-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -102,7 +101,6 @@
   gap: 24px;
 }
 
-/* ===== Misc utility classes ===== */
 .text-mono {
   font-family: var(--font-mono);
 }

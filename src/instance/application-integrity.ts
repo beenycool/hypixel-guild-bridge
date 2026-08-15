@@ -3,23 +3,6 @@ import type { BaseEvent, InstanceIdentifier } from '../common/application-event.
 import { InstanceType } from '../common/application-event.js'
 import { Instance, InternalInstancePrefix } from '../common/instance.js'
 
-/**
- * Application events communication is based on
- * instance identifiers {@link BaseEvent#instanceName} and {@link BaseEvent#instanceType}.
- *
- * Instances with the same identifiers can result in undefined behaviours.
- * It can range from desync to double responding to same event.
- *
- * This utility can be used before adding a new instance to the application
- * to ensure that an instance identifier is only being used by one instance.
- * Instances include all exposed and internal instances as well as plugins
- * and utilities. Instances across websockets are also included.
- *
- * Integrity checks:
- * - {@link #ensureInstanceUniqueness} checks if a given <code>instanceName</code> already exists
- * - {@link #ensureInstanceName} checks if a given <code>instanceName</code> isn't conformed to regex <code>[\w-]+</code>
- *   (with {@link InternalInstancePrefix} being allowed as a prefix)
- */
 export default class ApplicationIntegrity extends Instance<InstanceType.Utility> {
   private configPaths: string[] = []
 

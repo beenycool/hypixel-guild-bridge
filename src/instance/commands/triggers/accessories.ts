@@ -26,7 +26,6 @@ export default class Accessories extends SkyblockPlayerCommand {
 
     const selectedPower = accessoryStorage.selected_power ?? 'None'
 
-    // Get tuning stats if available
     const tuning = accessoryStorage.tuning.slot_0
     const tuningStats: string[] = []
     if (tuning) {

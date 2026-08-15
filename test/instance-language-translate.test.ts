@@ -18,19 +18,16 @@ const TestTranslator: Translator = (key, options) => {
   return `translated:${extractOptionField(options, 'from') ?? extractOptionField(options, 'to') ?? extractOptionField(options, 'instanceName') ?? ''}`
 }
 
-// message type
 {
   const out = translateInstanceMessage(TestTranslator, InstanceMessageType.MinecraftAuthenticationCode)
   assert.strictEqual(out, 'translated:')
 }
 
-// auth expired
 {
   const out = translateAuthenticationCodeExpired(TestTranslator)
   assert.strictEqual(out, 'translated:')
 }
 
-// status change
 {
   const out = translateInstanceStatus(TestTranslator, { from: Status.Connected, to: Status.Disconnected })
   assert.ok(out.startsWith('translated:'))

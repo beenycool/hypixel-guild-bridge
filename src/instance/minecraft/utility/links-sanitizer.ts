@@ -50,9 +50,7 @@ export class LinksSanitizer {
       .map((part) => {
         try {
           if (part.startsWith('https:') || part.startsWith('http')) return '(link)'
-        } catch {
-          /* ignored */
-        }
+        } catch {}
         return part
       })
       .join(' ')
@@ -171,11 +169,6 @@ export class LinksSanitizer {
     return `${content.slice(0, truncateAt)}...`
   }
 
-  /**
-   * Convert a GIF to a PNG data URL using its first frame.
-   * Vision providers reject GIF input, so GIFs are decoded client-side
-   * with node-canvas before being sent to the model.
-   */
   private async gifToPngDataUrl(url: string): Promise<string | undefined> {
     try {
       const response = await this.http.get<ArrayBuffer>(url, { responseType: 'arraybuffer', timeout: 10_000 })

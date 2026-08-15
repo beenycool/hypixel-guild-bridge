@@ -7,39 +7,6 @@ import type { MojangApi } from '../../../core/users/mojang'
 
 import type { ChatCommandContext } from 'src/common/commands'
 
-export type ApiLookupResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; reason: 'not-found' | 'api-error'; message: string }
-
-export function apiDownMessage(): string {
-  return 'The Hypixel API is currently down. Please try again later.'
-}
-
-export function apiKeyInvalidMessage(): string {
-  return 'The Hypixel API key is invalid. Please check your API key.'
-}
-
-export function apiRateLimitedMessage(): string {
-  return 'The Hypixel API is currently rate-limiting. Please try again later.'
-}
-
-export function inventoryApiOffMessage(username: string): string {
-  return (
-    `I can't see ${username}'s items! ` +
-    `Please go to your Skyblock Menu -> Settings -> API Settings and enable 'Inventory API'.`
-  )
-}
-
-export function classifyHypixelApiError(error: unknown): string | undefined {
-  const status = (error as { response?: { status?: number } }).response?.status
-  if (status === 429) return apiRateLimitedMessage()
-  if (status === 403) return apiKeyInvalidMessage()
-  if (status != undefined && status >= 500) return apiDownMessage()
-  const code = (error as { code?: string }).code
-  if (code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ENOTFOUND') return apiDownMessage()
-  return undefined
-}
-
 export async function getUuidIfExists(mojangApi: MojangApi, username: string): Promise<string | undefined> {
   try {
     const profile = await mojangApi.profileByUsername(username)
@@ -97,7 +64,6 @@ export function getDungeonLevelWithOverflow(experience: number): number {
   const Max50Xp = 569_809_640
 
   if (experience > Max50Xp) {
-    // account for overflow
     const remainingExperience = experience - Max50Xp
     const extraLevels = Math.floor(remainingExperience / PerLevel)
     const fractionLevel = (remainingExperience % PerLevel) / PerLevel
@@ -253,44 +219,12 @@ const DuelsDivisionThresholds: readonly DivisionThreshold[] = [
   { tier: 'Ascended', maxLevel: 50, increment: 10_000 }
 ] as const
 
-// Short mode start wins (used as the canonical baseline).
-// Long mode = short / 2, Overall = short * 2.
 const DivisionStartWins: readonly number[] = [
-  50, // Rookie I
-  100, // Iron I
-  250, // Gold I
-  500, // Diamond I
-  1000, // Master I
-  2000, // Legend I
-  5000, // Grandmaster I
-  10_000, // Godlike I
-  25_000, // Celestial I
-  50_000, // Divine I
-  100_000 // Ascended I
+  50, 100, 250, 500, 1000, 2000, 5000, 10_000, 25_000, 50_000, 100_000
 ] as const
 
-// Short mode increments per level (used as the canonical baseline).
-// Long mode increments = short / 2, Overall increments = short * 2.
-const DivisionIncrements: readonly number[] = [
-  10, // Rookie
-  30, // Iron
-  50, // Gold
-  100, // Diamond
-  200, // Master
-  600, // Legend
-  1000, // Grandmaster
-  3000, // Godlike
-  5000, // Celestial
-  10_000, // Divine
-  10_000 // Ascended
-] as const
+const DivisionIncrements: readonly number[] = [10, 30, 50, 100, 200, 600, 1000, 3000, 5000, 10_000, 10_000] as const
 
-/**
- * The three distinct win-threshold sets Hypixel uses for Duels divisions:
- * - short:   standard modes (Sumo, Classic, Skywars, etc.)
- * - long:    Bridge, Boxing, MegaWalls, NoDebuff, Parkour (thresholds = short / 2)
- * - overall: all-mode combined stats (thresholds = short * 2)
- */
 export type DuelsDivisionMode = 'short' | 'long' | 'overall'
 
 function romanNumeral(romanValue: number): string {
@@ -350,9 +284,6 @@ function romanNumeral(romanValue: number): string {
 }
 
 export function calculateDuelsDivision(wins: number, mode: DuelsDivisionMode): string {
-  // Normalise wins to short-mode equivalents so we can use a single threshold table.
-  // long = short / 2  =>  effectiveWins = wins * 2
-  // overall = short * 2  =>  effectiveWins = wins / 2
   let effectiveWins: number
   if (mode === 'long') {
     effectiveWins = wins * 2

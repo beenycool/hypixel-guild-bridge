@@ -9,15 +9,14 @@ import type Application from '../../../application'
 type Canvas2DContext = NonNullable<ReturnType<Canvas['getContext']>>
 
 export interface MessageImageOptions {
-  /** Username for skin rendering when {skin} placeholder is used */
   username?: string
-  /** Renderer behavior: `default` (current TS) or `js` (match hypixel-discord-chat-bridge) */
+
   renderer?: 'default' | 'js'
-  /** When true, draws a dark panel behind the text (PNG stays transparent if unset) */
+
   withBackground?: boolean
-  /** With `withBackground` or alone: `gradient`, `solid`, or `transparent` */
+
   backgroundStyle?: 'gradient' | 'solid' | 'transparent'
-  /** Custom background color for solid style */
+
   backgroundColor?: string
 }
 
@@ -40,12 +39,11 @@ export default class MessageToImage {
     d: 'rgba(255,85,255,1)',
     e: 'rgba(255,255,85,1)',
     f: 'rgba(255,255,255,1)',
-    /** Minecraft §r reset — same as default chat (white) */
+
     r: 'rgba(255,255,255,1)'
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 
-  /** JS bridge compat: note that §r is mapped to white to prevent color bleeding. */
   private static readonly RgbaColorJs: Record<string, string> = {
     /* eslint-disable @typescript-eslint/naming-convention */
     0: 'rgba(0,0,0,1)',
@@ -68,11 +66,10 @@ export default class MessageToImage {
     /* eslint-enable @typescript-eslint/naming-convention */
   }
 
-  // Exact margin match to source
   private static readonly WidthMargin = 5
   private static readonly SkinSize = 35
   private static readonly CanvasWidth = 1000
-  /** Rightmost x for text (leave margin for shadow) */
+
   private static readonly MaxLinePosition = MessageToImage.CanvasWidth - MessageToImage.WidthMargin
   private static readonly LineAdvance = 40
 
@@ -89,10 +86,6 @@ export default class MessageToImage {
     MessageToImage.FontsRegistered = true
   }
 
-  /**
-   * Split on § / newlines without injecting §r per word (preserves Minecraft color carry-over).
-   * If the string does not start with §, prepend §f so the first run uses default white.
-   */
   private static splitFormattedSegments(message: string): string[] {
     if (message.length === 0) {
       return []
@@ -108,10 +101,6 @@ export default class MessageToImage {
     return parts
   }
 
-  /**
-   * JS bridge compat splitting: inject §r before any space-delimited word without §,
-   * then split by § and newlines.
-   */
   private static splitFormattedSegmentsJs(message: string): string[] {
     if (message.length === 0) return []
 
@@ -125,7 +114,7 @@ export default class MessageToImage {
     }
 
     const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
-    // First entry is always the prefix before the first §.
+
     splitMessage.shift()
     return splitMessage
   }
@@ -220,12 +209,8 @@ export default class MessageToImage {
     const config = this.application.core.discordConfigurations
     if (!config.getTextToImage()) return false
 
-    // BUG: image renderer (PANGO library compiled in C) has trouble recognizing fonts on windows platforms.
-    // running in on windows will spit out errors on process level outside Node.js control
     if (process.platform === 'win32') return false
 
-    // Although it is true for now, might consider checking for cpu arch if problems encountered
-    // since ARM arch sometimes doesn't compile the source code properly
     return true
   }
 
@@ -267,11 +252,6 @@ export default class MessageToImage {
     return pos
   }
 
-  /**
-   * Generate an image from a Minecraft-formatted message
-   * @param message The message with Minecraft color codes (§)
-   * @param options Optional configuration for rendering
-   */
   public async generateMessageImage(message: string, options?: MessageImageOptions): Promise<Buffer> {
     MessageToImage.ensureFontsRegistered()
     if (options?.renderer === 'js') {
@@ -285,7 +265,6 @@ export default class MessageToImage {
 
     this.paintBackgroundIfNeeded(canvas, options)
 
-    // Matching source: 4px shadow, #131313, 40px font
     context.shadowOffsetX = 4
     context.shadowOffsetY = 4
     context.shadowColor = '#131313'
@@ -315,9 +294,6 @@ export default class MessageToImage {
     return canvas.toBuffer()
   }
 
-  /**
-   * Generate a simple synchronous image without async features like skins
-   */
   public generateMessageImageSync(message: string, options?: MessageImageOptions): Buffer {
     MessageToImage.ensureFontsRegistered()
     if (options?.renderer === 'js') {
@@ -331,7 +307,6 @@ export default class MessageToImage {
 
     this.paintBackgroundIfNeeded(canvas, options)
 
-    // Matching source: 4px shadow, #131313, 40px font
     context.shadowOffsetX = 4
     context.shadowOffsetY = 4
     context.shadowColor = '#131313'
@@ -421,9 +396,7 @@ export default class MessageToImage {
           context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
           width += messageWidth
           continue
-        } catch {
-          // fall back to rendering literal text
-        }
+        } catch {}
       }
 
       if (colorCode) {
@@ -439,7 +412,7 @@ export default class MessageToImage {
 
   private generateMessageImageJsSync(message: string, options?: MessageImageOptions): Buffer {
     MessageToImage.ensureFontsRegistered()
-    // JS compat sync renderer intentionally ignores skins (matches how sync is used in TS).
+
     const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
     const canvasHeight = this.getHeightJs(message, undefined, splitMessage)
     const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
@@ -475,22 +448,17 @@ export default class MessageToImage {
     return canvas.toBuffer()
   }
 
-  /** Background only when `withBackground` or `backgroundStyle` is set (default: transparent PNG). */
   private paintBackgroundIfNeeded(canvas: Canvas, options?: MessageImageOptions): void {
     if (options?.withBackground || options?.backgroundStyle) {
       this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
     }
   }
 
-  /**
-   * Apply background styling to canvas
-   */
   private applyBackground(canvas: Canvas, style: 'gradient' | 'solid' | 'transparent', color?: string): void {
     const context = canvas.getContext('2d')
 
     switch (style) {
       case 'gradient': {
-        // Dark Minecraft-style gradient
         const gradient = context.createLinearGradient(0, 0, 0, canvas.height)
         gradient.addColorStop(0, 'rgba(20, 20, 30, 0.95)')
         gradient.addColorStop(0.5, 'rgba(30, 30, 45, 0.95)')
@@ -498,7 +466,6 @@ export default class MessageToImage {
         context.fillStyle = gradient
         context.fillRect(0, 0, canvas.width, canvas.height)
 
-        // Add subtle border
         context.strokeStyle = 'rgba(80, 80, 120, 0.5)'
         context.lineWidth = 2
         context.strokeRect(1, 1, canvas.width - 2, canvas.height - 2)
@@ -510,7 +477,6 @@ export default class MessageToImage {
         break
       }
       case 'transparent': {
-        // No background - intentionally empty
         break
       }
     }

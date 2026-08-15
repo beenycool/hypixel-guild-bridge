@@ -3,9 +3,7 @@ import { describe, it } from 'node:test'
 
 import Application from '../src/application.js'
 
-const noop = (): void => {
-  /* noop */
-}
+const noop = (): void => {}
 const promiseCatch = (): (() => void) => noop
 
 await describe('Application.start', async () => {
@@ -47,23 +45,15 @@ await describe('Application.start', async () => {
       rootDirectory: '/tmp',
       getAllInstances: () => [],
       logger: {
-        debug: () => {
-          /* noop */
-        },
-        info: () => {
-          /* noop */
-        },
-        warn: () => {
-          /* noop */
-        }
+        debug: () => {},
+        info: () => {},
+        warn: () => {}
       },
       errorHandler: {
         promiseCatch
       },
       randomChatter: {
-        start: () => {
-          /* noop */
-        }
+        start: () => {}
       },
       config: { general: {} }
     }

@@ -27,7 +27,6 @@ export class SlidingWindowRateLimiter {
     const now = Date.now()
     const entries = this.timestamps.get(key) ?? []
 
-    // Prune timestamps older than the max window
     const cutoff = now - this.maxWindowMs
     const pruned = entries.filter((t) => t > cutoff)
 
@@ -38,7 +37,6 @@ export class SlidingWindowRateLimiter {
       const windowEntries = pruned.filter((t) => t > windowStart)
 
       if (windowEntries.length >= window.maxRequests) {
-        // Earliest entry in this window determines when a slot opens
         const earliest = windowEntries[windowEntries.length - window.maxRequests]
         const retryAfterMs = earliest + window.windowMs - now
         maxRetryAfterMs = Math.max(maxRetryAfterMs, retryAfterMs)

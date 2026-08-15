@@ -54,28 +54,24 @@ function makeFakeApp(helperRoles: string[], officerRoles: string[], ownerRoles: 
   }
 }
 
-// Roles only
 {
   const app = makeFakeApp(['r1'], ['r2'], ['r3'], [])
   const out = translateNoPermission(app as unknown as Application, Permission.Helper, 'b1')
   assert.strictEqual(out, 'translated:3:0')
 }
 
-// Admins only
 {
   const app = makeFakeApp([], [], [], ['a1'])
   const out = translateNoPermission(app as unknown as Application, Permission.Officer, 'b1')
   assert.strictEqual(out, 'translated:0:1')
 }
 
-// Owner only test
 {
   const app = makeFakeApp([], [], ['r3'], [])
   const out = translateNoPermission(app as unknown as Application, Permission.Owner, 'b1')
   assert.strictEqual(out, 'translated:1:0')
 }
 
-// Both
 {
   const app = makeFakeApp(['r1'], [], [], ['a1'])
   const out = translateNoPermission(app as unknown as Application, Permission.Helper, 'b1')

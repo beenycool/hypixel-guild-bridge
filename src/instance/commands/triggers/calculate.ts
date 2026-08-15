@@ -19,18 +19,12 @@ export default class Calculate extends ChatCommandHandler {
   async handler(context: ChatCommandContext): Promise<string> {
     if (context.args.length === 0) return `${context.username}, example: !calc 1 + 1`
 
-    const expression = context.args
-      .join(' ')
-      .replaceAll(':', '/') // division / ratio support
-      .replaceAll('x', '*') // x is also used for multiplication
-      .replaceAll(',', '') // removes commas from numbers
+    const expression = context.args.join(' ').replaceAll(':', '/').replaceAll('x', '*').replaceAll(',', '')
 
     try {
       const mathjs = await import('mathjs')
       const result = mathjs.evaluate(expression) as number
 
-      // The following if-statement is purely an Easter egg
-      // It can be removed without causing any adverse affects on the bridge
       if (result <= 50 && result >= -50 && Math.random() < 0.2) {
         return `${context.username} haiyaaaaaaaaa this is so easy, you're a disappointment *takes off slipper* (answer: ${result.toLocaleString()})`
       }

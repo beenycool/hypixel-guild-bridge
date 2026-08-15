@@ -90,7 +90,6 @@ export default {
 
     const onlyOnline = context.interaction.options.getSubcommand() === 'online'
 
-    // When used in a non-bridge channel, try to infer the bridge from the Discord guild's channels
     let bridgeId = context.bridgeId
     if (bridgeId === undefined && context.application.bridgeResolver.isMultiBridgeEnabled()) {
       const guild =
@@ -110,7 +109,7 @@ export default {
           context.application.logger.info('[list] resolved bridgeId=%s from guild=%s', bridgeId, guild.id)
         }
       }
-      // If we still couldn't resolve a bridge, show an ephemeral error
+
       if (bridgeId === undefined) {
         await context.interaction.reply({
           embeds: [
@@ -329,10 +328,10 @@ function formatLocation(username: string, link: UserLink | undefined, session: S
   if (session === undefined) return message + ' is *__unknown?__*'
   if (!session.online) return message + ' is *__offline?__*'
 
-  message += '*' // START discord markdown. italic
+  message += '*'
   if (session.game != undefined) message += `playing __${escapeMarkdown(session.game.name)}__`
   if (session.mode != undefined) message += ` in ${escapeMarkdown(session.mode.toLowerCase())}`
-  message += '*' // END discord markdown. italic
+  message += '*'
 
   return message
 }

@@ -208,7 +208,6 @@ export default class GuildOnlineMetrics {
 
     const guildTasks: Promise<unknown>[] = []
     for (const instanceName of instanceNames) {
-      // Guild list (members + online) – independent promise with catch
       guildTasks.push(
         this.getCachedGuildList(instanceName)
           .then((guild) => {
@@ -224,7 +223,6 @@ export default class GuildOnlineMetrics {
       const bot = app.minecraftManager.getMinecraftBots().find((entry) => entry.instanceName === instanceName)
       if (bot === undefined) continue
 
-      // Hypixel API data (GEXP + per-member) – independent promise with catch
       guildTasks.push(
         (async () => {
           const hypixelGuild = await app.hypixelApi.getGuild('player', bot.uuid)
@@ -236,16 +234,13 @@ export default class GuildOnlineMetrics {
 
           if (!this.exportPerMember) return
 
-          // Try to get online status from guild list, but don't fail if disconnected
           let onlineUuids = new Set<string>()
           try {
             const guildList = await this.getCachedGuildList(instanceName)
             const onlineUsernames = guildList.members.filter((member) => member.online).map((member) => member.username)
             const onlineProfiles = await this.resolveOnlineProfiles(onlineUsernames)
             onlineUuids = new Set([...onlineProfiles.values()].filter((uuid): uuid is string => uuid !== undefined))
-          } catch {
-            // Bot disconnected – all members appear offline
-          }
+          } catch {}
 
           const lastSeenRows = await app.core.databaseManager.queryRows<{ memberUuid: string; lastSeenAt: number }>(
             'SELECT "memberUuid", "lastSeenAt" FROM "guildMemberStates" WHERE "instanceName" = $1',
@@ -405,7 +400,6 @@ export default class GuildOnlineMetrics {
     for (const guild of client.guilds.cache.values()) {
       tasks.push(
         (async () => {
-          // Fetch all members first so role.members reflects accurate counts
           await guild.members.fetch().catch(() => undefined)
           const roles = await guild.roles.fetch()
           for (const role of roles.values()) {

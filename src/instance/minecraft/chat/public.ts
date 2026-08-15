@@ -4,7 +4,6 @@ import { getUuidFromGuildChat } from '../common/common'
 
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    // REGEX: Guild > [MVP+] aidn5 [Staff]: hello there.
     const regex = /^Guild > (?:\[([+A-Z]{1,10})] ){0,3}(\w{3,32})(?: \[(\w{1,10})]){0,3}:(.{1,256})/g
 
     const match = regex.exec(context.message)
@@ -40,19 +39,7 @@ export default {
       }
 
       const bridgeId = context.clientInstance.bridgeId
-      const { filteredMessage, changed } = context.application.core.filterProfanityForBridge(playerMessage, bridgeId)
-      if (changed) {
-        await context.application.emit('profanityWarning', {
-          ...context.eventHelper.fillBaseEvent(),
-
-          channelType: ChannelType.Public,
-
-          user: user,
-          originalMessage: playerMessage,
-          filteredMessage: filteredMessage
-        })
-      }
-
+      const { filteredMessage } = context.application.core.filterProfanityForBridge(playerMessage, bridgeId)
       const event = context.eventHelper.fillBaseEvent()
       context.messageAssociation.addMessageId(event.eventId, { channel: ChannelType.Public })
       await context.application.emit('chat', {

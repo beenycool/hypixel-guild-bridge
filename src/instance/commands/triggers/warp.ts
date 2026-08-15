@@ -75,20 +75,14 @@ export default class Warp extends ChatCommandHandler {
     await context.sendFeedback(`Preparing to warp ${username}`)
     const lock = await instance.acquireLimbo()
 
-    // leave any existing party
     await instance.send('/party leave', MinecraftSendChatPriority.High, undefined)
 
-    // exit limbo and go to main lobby. Can't warp from limbo
     await instance.send('/lobby', MinecraftSendChatPriority.High, undefined)
 
-    // Go to Skyblock first before warping.
-    // Person can rejoin if warped to the main lobby
     await sleep(2000)
     await instance.send('/skyblock', MinecraftSendChatPriority.High, undefined)
 
-    // ensure the account is in the hub and not on private island
-    // to prevent being banned for "profile boosting"
-    await sleep(12_000) // need higher cooldown to change between lobbies
+    await sleep(12_000)
     await instance.send('/hub', MinecraftSendChatPriority.High, undefined)
 
     await sleep(2000)
@@ -98,7 +92,7 @@ export default class Warp extends ChatCommandHandler {
       await instance.send('/party disband', MinecraftSendChatPriority.High, undefined)
       await instance.send('/party leave', MinecraftSendChatPriority.High, undefined)
 
-      lock.resolve() // free lock
+      lock.resolve()
 
       return errorMessage
     }
@@ -109,7 +103,7 @@ export default class Warp extends ChatCommandHandler {
     await instance.send('/party disband', MinecraftSendChatPriority.High, undefined)
     await instance.send('/party leave', MinecraftSendChatPriority.High, undefined)
 
-    lock.resolve() // free lock
+    lock.resolve()
 
     return 'Player has been warped out!'
   }
@@ -158,9 +152,7 @@ export default class Warp extends ChatCommandHandler {
     await context.sendFeedback(`Sending party invite to warp ${username}`)
 
     application.on('minecraftChat', chatListener)
-    // Inviting multiple people prevents the bot from accidentally joining the target party
-    // if they sent a party invite to the bot
-    // this is an exploit fix
+
     await instance.send(`/party invite ${username} ${username}`, MinecraftSendChatPriority.High, undefined)
 
     const result = await timeout.wait()

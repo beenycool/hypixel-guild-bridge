@@ -14,16 +14,9 @@ import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance.js'
 
 export default class GameTogglesHandler extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {
-  /*
-   Wait for client to be afk in the world before allowing the routine
-   */
   private static readonly TillReady = Duration.seconds(10)
   private readyRefresh: undefined | NodeJS.Timeout
 
-  /*
-    Periodical check to ensure everything is toggled and ready.
-    Send toggle commands if something isn't proper
-   */
   private static readonly ResendEvery = Duration.seconds(10)
 
   private ready = false
@@ -168,7 +161,6 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
 
     const lock = await this.clientInstance.acquireLimbo()
     try {
-      // exit limbo and go to main lobby, since some settings are only available there
       await this.clientInstance.send('/lobby', MinecraftSendChatPriority.High, undefined)
       await sleep(4000)
 
@@ -179,9 +171,8 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
       if (!config.guildChatEnabled) await this.queueSend('/guild toggle')
       if (!config.guildNotificationsEnabled) await this.queueSend('/guild notifications')
     } finally {
-      // Wait for the server to receive and process commands before releasing lock
       await sleep(5000)
-      // free lock
+
       lock.resolve()
     }
   }
@@ -201,12 +192,11 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
   }
 
   private initializeReadySignal(client: Client): void {
-    // first spawn packet
     client.on('login', () => {
       void this.setPrepared().catch(this.errorHandler.promiseCatch('set game-toggle status to prepared'))
       this.resetReady()
     })
-    // change world packet
+
     client.on('respawn', () => {
       void this.setPrepared().catch(this.errorHandler.promiseCatch('set game-toggle status to prepared'))
       this.resetReady()
@@ -224,7 +214,6 @@ export default class GameTogglesHandler extends SubInstance<MinecraftInstance, I
 
         this.ready = true
 
-        // already waited for the client to be ready
         if (this.singletonPendingCount === 0) {
           this.singletonPendingCount++
           await this.singletonQueue

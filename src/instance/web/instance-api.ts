@@ -42,7 +42,6 @@ export class InstanceApiHandler {
     const permission = this.verifyAuth(request, response)
     if (permission === undefined) return true
 
-    // POST /api/instance/execute
     if (pathPart === `${InstancePrefix}/execute`) {
       if (permission < Permission.Helper) {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
@@ -52,9 +51,6 @@ export class InstanceApiHandler {
       return true
     }
 
-    // POST /api/instance/:name/disconnect
-    // POST /api/instance/:name/reconnect
-    // POST /api/instance/:name/restart
     const rest = pathPart.slice(InstancePrefix.length + 1)
     const segments = rest.split('/')
     if (segments.length !== 2) {

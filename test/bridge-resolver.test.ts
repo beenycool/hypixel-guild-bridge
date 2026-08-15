@@ -9,18 +9,10 @@ import { BridgeConfigurations } from '../src/core/discord/bridge-configurations.
 import { initializeCoreDatabase } from '../src/core/initialize-database.js'
 
 const Logger = {
-  debug: () => {
-    /* noop */
-  },
-  info: () => {
-    /* noop */
-  },
-  warn: () => {
-    /* noop */
-  },
-  error: () => {
-    /* noop */
-  }
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {}
 } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
 
 interface FakeApplication {
@@ -33,13 +25,9 @@ interface FakeApplication {
 function createFakeApplication(databaseUrl: string): FakeApplication {
   return {
     applicationIntegrity: {
-      addConfigPath: () => {
-        /* noop */
-      }
+      addConfigPath: () => {}
     },
-    addShutdownListener: () => {
-      /* noop */
-    },
+    addShutdownListener: () => {},
     getDatabaseConfig: () => ({ url: databaseUrl }),
     getConfigFilePath: (name: string) => `/tmp/nonexistent-${name}`
   }

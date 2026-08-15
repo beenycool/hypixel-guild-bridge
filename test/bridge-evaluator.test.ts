@@ -25,19 +25,11 @@ interface FakeGuild {
 
 function createPendingManager(overrides: Partial<PendingReviewManager> = {}): PendingReviewManager {
   return {
-    removeReviewByUuid: () => {
-      /* noop */
-    },
-    addReview: () => {
-      /* noop */
-    },
-    clearReviewsNotInList: () => {
-      /* noop */
-    },
+    removeReviewByUuid: () => {},
+    addReview: () => {},
+    clearReviewsNotInList: () => {},
     getReviews: () => [],
-    updateNotifiedAt: () => {
-      /* noop */
-    },
+    updateNotifiedAt: () => {},
     ...overrides
   } as unknown as PendingReviewManager
 }
@@ -82,15 +74,9 @@ await describe('BridgeEvaluator', async () => {
   }
 
   const baseLogger: Logger = {
-    info: () => {
-      /* noop */
-    },
-    error: () => {
-      /* noop */
-    },
-    warn: () => {
-      /* noop */
-    }
+    info: () => {},
+    error: () => {},
+    warn: () => {}
   } as unknown as Logger
 
   function createFakeApplication(members: FakeGuildMember[]): Application {

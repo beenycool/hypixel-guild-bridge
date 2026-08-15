@@ -332,9 +332,7 @@ describe('MatchManager score & forfeit validation (pure logic)', () => {
         return Promise.resolve({ allowed: false, reason: 'FLAGGED: Suspicious forfeit pattern' })
       })
 
-      const matchManager = buildMatchManager(queryOne, queryRows, antiAbuse as unknown as AntiAbuse, () => {
-        /* noop */
-      })
+      const matchManager = buildMatchManager(queryOne, queryRows, antiAbuse as unknown as AntiAbuse, () => {})
       await assert.rejects(async () => await matchManager.forfeit(1, 100), /Suspicious forfeit pattern/)
       assert.equal(antiAbuse.recordForfeit.mock.callCount(), 0)
     })
@@ -362,9 +360,7 @@ describe('MatchManager score & forfeit validation (pure logic)', () => {
         return Promise.resolve({ allowed: false, reason: 'FLAGGED: High admin override rate' })
       })
 
-      const matchManager = buildMatchManager(queryOne, queryRows, antiAbuse as unknown as AntiAbuse, () => {
-        /* noop */
-      })
+      const matchManager = buildMatchManager(queryOne, queryRows, antiAbuse as unknown as AntiAbuse, () => {})
       await assert.rejects(async () => {
         await matchManager.adminConfirm(1, 100, 'discord-admin')
       }, /High admin override rate/)
@@ -376,9 +372,7 @@ describe('MatchManager score & forfeit validation (pure logic)', () => {
       const queryRows = mock.fn<(sql: string, values: unknown[]) => Promise<unknown[]>>()
       const antiAbuse = buildAntiAbuseMock()
 
-      const matchManager = buildMatchManager(queryOne, queryRows, antiAbuse as unknown as AntiAbuse, () => {
-        /* noop */
-      })
+      const matchManager = buildMatchManager(queryOne, queryRows, antiAbuse as unknown as AntiAbuse, () => {})
       await matchManager.adminConfirm(1, 100, 'discord-admin')
       await new Promise((resolve) => setImmediate(resolve))
       assert.equal(antiAbuse.recordAdminOverride.mock.callCount(), 1)

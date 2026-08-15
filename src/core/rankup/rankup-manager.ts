@@ -75,12 +75,6 @@ export class RankupManager {
     }
   }
 
-  /**
-   * A scheduled bridge is due when the configured window (day/hour UK time) has started and no
-   * checkup has run since the most recent occurrence of that window. This catches up automatically:
-   * if the process was down or an hourly tick was missed when the window passed, the next tick
-   * still runs the checkup instead of waiting a full week.
-   */
   private isDueForScheduleWindow(bridgeId: string): boolean {
     const day = this.bridgeConfig.getRankupScheduleDay(bridgeId)
     const hour = this.bridgeConfig.getRankupScheduleHour(bridgeId)
@@ -92,10 +86,6 @@ export class RankupManager {
     return Date.now() >= scheduledTs && (this.lastRunByBridge.get(bridgeId) ?? 0) < scheduledTs
   }
 
-  /**
-   * Finds the timestamp of the most recent occurrence of the given UK weekday/hour (e.g. "Sun 19:00").
-   * Scans back up to 8 days in 15-minute steps so DST transitions cannot cause a missed window.
-   */
   private lastScheduledOccurrence(weekdayShort: string, hour: number, now: Date): number | undefined {
     const formatter = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Europe/London',

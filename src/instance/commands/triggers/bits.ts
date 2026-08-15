@@ -62,7 +62,7 @@ const BitItem: Record<string, { bitValue: number; prettyName: string }> = {
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export default class Bits extends ChatCommandHandler {
-  private static readonly UpdatePriceEvery = 5 * 60 * 1000 // 5 minute
+  private static readonly UpdatePriceEvery = 5 * 60 * 1000
   private lastPricesUpdateAt = 0
   private prices: { itemId: string; sellPrice: number }[] = []
 

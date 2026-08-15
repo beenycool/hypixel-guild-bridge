@@ -17,8 +17,8 @@ export default [
       '.idea',
       './logs',
       './config',
-      './build', // compiled output, never linted
-      'web/public/js', // legacy browser JS, not part of the TypeScript project
+      './build',
+      'web/public/js',
       '**/*-ti.ts',
       'package-lock.json',
       'eslint.config.mjs',

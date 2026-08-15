@@ -8,7 +8,6 @@ import type {
   MinecraftReactiveEvent
 } from '../../common/application-event.js'
 
-// location and scope keys are preserved and not renamed like the rest for backwards compatibility
 export default class ApplicationMetrics {
   private readonly chatMetrics
   private readonly commandMetrics

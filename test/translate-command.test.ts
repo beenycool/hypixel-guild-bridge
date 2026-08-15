@@ -16,9 +16,7 @@ function makeMockContext(
       openrouterApiKey: 'test-api-key',
       openrouterModel: undefined,
       logger: {
-        error: () => {
-          /* noop */
-        }
+        error: () => {}
       },
       ...appOverrides
     },
@@ -27,9 +25,7 @@ function makeMockContext(
     username: 'TestUser',
     eventHelper: {} as ChatCommandContext['eventHelper'],
     logger: {
-      error: () => {
-        /* noop */
-      }
+      error: () => {}
     } as unknown as ChatCommandContext['logger'],
     errorHandler: {} as ChatCommandContext['errorHandler'],
     allCommands: [],

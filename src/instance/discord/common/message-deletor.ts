@@ -57,17 +57,6 @@ export default class MessageDeleter {
     const tasks = []
     for (const [channelId, messages] of bulk) {
       for (const message of messages) {
-        /*
-         * direct rest api is used since the library client requires
-         * to first fetch the channel THEN do the delete request.
-         * this cuts it down to a single request.
-         *
-         * Although it is possible to bulk delete messages, it REQUIRES ManageMessages permission in that channel,
-         * even when the messages are owned by the user.
-         * And it has limitations such as: messages must not be older than 14 days and must be between 2 and 100. etc.
-         * Right now, it doesn't make sense to create a complicated setup to ensure everything is working optimally.
-         * So it is left for the future when it is needed.
-         */
         const task = this.deleteMessage(channelId, message)
         tasks.push(task)
       }
@@ -83,7 +72,6 @@ export default class MessageDeleter {
     try {
       await this.client.rest.delete(Routes.channelMessage(channelId, messageId))
     } catch (error) {
-      // Message cleanup is idempotent; Discord returns 10008 if it is already gone.
       if (error instanceof DiscordAPIError && error.code === 10_008) return
       this.errorHandler.promiseCatch(`deleting temporarily event channel=${channelId},message=${messageId}`)(error)
     }

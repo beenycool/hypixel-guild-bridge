@@ -15,14 +15,12 @@ export function loadApplicationConfig(filepath: fs.PathOrFileDescriptor): Applic
 }
 
 export function parseApplicationConfig(fileString: string): ApplicationConfig {
-  // Substitute environment variables in the form of ${VAR_NAME}
   const substitutedString = fileString.replaceAll(/\${(\w+)}/g, (match, p1: string) => {
     return process.env[p1] ?? match
   })
 
   const config = Yaml.parse(substitutedString) as unknown
 
-  // Normalize `discord.adminIds` to strings so YAML numeric literals are accepted
   if (config && typeof config === 'object' && 'discord' in config) {
     const discord = (config as Record<string, unknown>).discord
     if (discord && typeof discord === 'object' && 'adminIds' in discord) {

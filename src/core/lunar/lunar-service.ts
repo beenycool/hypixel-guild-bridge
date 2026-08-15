@@ -44,9 +44,6 @@ export class LunarService {
     this.cache = new NodeCache({ stdTTL: cacheSeconds })
   }
 
-  /**
-   * Retrieves Minecraft credentials (accessToken, uuid, username) from the target (or default connected) MinecraftInstance
-   */
   private getCredentials(): { accessToken: string; uuid: string; username: string } | undefined {
     const instances = this.app.minecraftManager.getAllInstances()
     const targetName = this.instanceName?.toLowerCase()
@@ -62,10 +59,6 @@ export class LunarService {
     return instance?.getLunarCredentials()
   }
 
-  /**
-   * Checks whether a player UUID is online on Lunar Client using SubscribeV2.
-   * Returns true if using Lunar, false if not using Lunar, or undefined if Lunar check is unavailable.
-   */
   public async checkLunarStatus(uuid: string): Promise<boolean | undefined> {
     const cached = this.cache.get<boolean>(uuid)
     if (cached !== undefined) return cached
@@ -261,9 +254,7 @@ export class LunarService {
               callback(message.rpcResponse.output)
             }
           }
-        })().catch(() => {
-          // ignore non-RPC messages
-        })
+        })().catch(() => {})
       })
 
       ws.on('close', (code, reason) => {

@@ -64,10 +64,6 @@ export class AntiAbuse {
     this.logger?.info(`AntiAbuse: Recorded admin override — ${adminDiscordId} (total: ${current + 1})`)
   }
 
-  /**
-   * Check for potential alt accounts in the same tournament.
-   * Cross-references mojang table for shared identifiers.
-   */
   async checkAltAccounts(tournamentId: number, playerUuids: string[]): Promise<AbuseCheckResult> {
     this.logger?.info(
       `AntiAbuse: Checking alt accounts for tournament ${tournamentId} (${playerUuids.length} player(s))`
@@ -93,9 +89,7 @@ export class AntiAbuse {
           return { allowed: false, reason: `FLAGGED: Potential alt accounts sharing IP ${ip}` }
         }
       }
-    } catch {
-      // mojang table may not exist — skip gracefully
-    }
+    } catch {}
 
     return { allowed: true }
   }

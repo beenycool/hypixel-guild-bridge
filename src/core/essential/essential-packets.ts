@@ -1,7 +1,3 @@
-/**
- * Decode an Essential binary WebSocket frame.
- * Layout: int32be typeId | int32be packetIdLen | utf8 packetId | int32be jsonLen | utf8 json
- */
 export function decodePacket(data: Buffer): { typeId: number; packetId: string; json: unknown } {
   let offset = 0
   const typeId = data.readInt32BE(offset)
@@ -17,9 +13,6 @@ export function decodePacket(data: Buffer): { typeId: number; packetId: string; 
   return { typeId, packetId, json }
 }
 
-/**
- * Encode an Essential binary WebSocket frame.
- */
 export function encodePacket(typeId: number, packetId: string, json: unknown): Buffer {
   const packetIdBuf = Buffer.from(packetId, 'utf8')
   const jsonBuf = Buffer.from(JSON.stringify(json), 'utf8')

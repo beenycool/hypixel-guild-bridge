@@ -238,7 +238,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       await this.handle(event).catch(this.errorHandler.promiseCatch('handling chat event'))
     })
 
-    // Start cleanup interval for typo suggestion cooldowns (every 5 minutes)
     this.cooldownCleanupInterval = setInterval(
       () => {
         this.cleanupExpiredCooldowns()
@@ -271,17 +270,14 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
   async disconnect(): Promise<void> {
     await this.setAndBroadcastNewStatus(Status.Ended)
 
-    // Clean up cooldown interval
     clearInterval(this.cooldownCleanupInterval)
 
-    // Clear all cooldowns
     this.typoSuggestionCooldowns.clear()
   }
 
   async handle(event: ChatEvent): Promise<void> {
     if (this.currentStatus() !== Status.Connected) return
 
-    // Deduplicate in-game commands when multiple bots share the same Hypixel guild
     if (event.instanceType === InstanceType.Minecraft) {
       const now = Date.now()
       const dedupKey = `${event.user.displayName()}:${event.message.trim().toLowerCase()}`
@@ -299,12 +295,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       }
     }
 
-    // Resolve bridge-specific settings or fall back to global
     const bridgeId = event.bridgeId
     const bridgeConfig = this.application.core.bridgeConfigurations
     const globalCommandsConfig = this.application.core.commandsConfigurations
 
-    // Check if commands are enabled for this bridge
     const commandsEnabled =
       bridgeId === undefined
         ? globalCommandsConfig.getCommandsEnabled()
@@ -312,7 +306,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     if (!commandsEnabled) return
 
-    // Get the chat prefix for this bridge
     const chatPrefix =
       bridgeId === undefined
         ? globalCommandsConfig.getChatPrefix()
@@ -320,34 +313,28 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     if (!event.message.startsWith(chatPrefix)) return
 
-    // Check for help pattern: !<command> help
     const messageWithoutPrefix = event.message.slice(chatPrefix.length)
     const helpMatch = /^(\S+)\s+help$/i.exec(messageWithoutPrefix)
 
     if (helpMatch) {
       const targetCommandName = helpMatch[1].toLowerCase()
 
-      // Check if explainCommandOnHelp is enabled for this bridge
       const explainCommandOnHelp =
         bridgeId === undefined
           ? globalCommandsConfig.getExplainCommandOnHelp()
           : (bridgeConfig.getExplainCommandOnHelp(bridgeId) ?? globalCommandsConfig.getExplainCommandOnHelp())
 
       if (!explainCommandOnHelp) {
-        // Help explanation is disabled, don't respond
         return
       }
 
-      // Look up the target command
       const targetCommand = findCommandByName(this.commands, targetCommandName)
 
       if (targetCommand) {
-        // Command exists, provide help
         const username = event.user.mojangProfile()?.name ?? event.user.displayName()
         const helpMessage = formatCommandHelp(targetCommand, chatPrefix, username)
         await this.reply(event, 'help', helpMessage)
       } else {
-        // Command doesn't exist, provide suggestions
         const suggestions = getCommandSuggestions(this.commands, targetCommandName, 3)
         let response = `Command "${targetCommandName}" does not exist.`
 
@@ -358,7 +345,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
         await this.reply(event, 'help', response)
       }
 
-      return // Don't process as normal command
+      return
     }
 
     const commandName = event.message.slice(chatPrefix.length).split(' ')[0].toLowerCase()
@@ -366,12 +353,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     const command = this.commands.find((c) => c.triggers.includes(commandName))
     if (command == undefined) {
-      // Command not found, check if we should suggest alternatives
       await this.handleUnknownCommand(event, commandName, chatPrefix)
       return
     }
 
-    // Get disabled commands for this bridge (per-bridge replaces global)
     const disabledCommands =
       bridgeId === undefined
         ? globalCommandsConfig.getDisabledCommands()
@@ -379,7 +364,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
           ? bridgeConfig.getDisabledCommands(bridgeId)
           : globalCommandsConfig.getDisabledCommands()
 
-    // Disabled commands can only be used by officers and admins, regular users cannot use them
     if (
       disabledCommands.includes(command.triggers[0].toLowerCase()) &&
       (await event.user.permission()) === Permission.Anyone
@@ -461,12 +445,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
   }
 
   private async handleUnknownCommand(event: ChatEvent, commandName: string, chatPrefix: string): Promise<void> {
-    // Resolve bridge-specific settings or fall back to global
     const bridgeId = event.bridgeId
     const bridgeConfig = this.application.core.bridgeConfigurations
     const globalCommandsConfig = this.application.core.commandsConfigurations
 
-    // Check if typo suggestions are enabled
     const suggestOnTypo =
       bridgeId === undefined
         ? globalCommandsConfig.getSuggestOnTypo()
@@ -474,7 +456,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     if (!suggestOnTypo) return
 
-    // Check cooldown for this user
     const userId = event.user.discordProfile()?.id ?? event.user.mojangProfile()?.id ?? event.user.displayName()
     const now = Date.now()
     const lastSuggestion = this.typoSuggestionCooldowns.get(userId)
@@ -485,34 +466,29 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
         : (bridgeConfig.getTypoCooldownSeconds(bridgeId) ?? globalCommandsConfig.getTypoCooldownSeconds())
 
     if (lastSuggestion && now - lastSuggestion < typoCooldownSeconds * 1000) {
-      return // Still in cooldown
+      return
     }
 
-    // Get the best matching command
     const closestMatch = getClosestCommand(this.commands, commandName)
     if (!closestMatch) return
 
-    // Get threshold setting
     const threshold =
       bridgeId === undefined
         ? globalCommandsConfig.getTypoSuggestionThreshold()
         : (bridgeConfig.getTypoSuggestionThreshold(bridgeId) ?? globalCommandsConfig.getTypoSuggestionThreshold())
 
-    // Check if the similarity score is above threshold
     const similarityScore = calculateSimilarityScore(commandName, closestMatch.trigger)
     if (similarityScore < threshold) return
 
-    // Send suggestion message
     const suggestionMessage = `Did you mean ${chatPrefix}${closestMatch.trigger}?`
     await this.reply(event, 'typo-suggestion', suggestionMessage)
 
-    // Update cooldown
     this.typoSuggestionCooldowns.set(userId, now)
   }
 
   private cleanupExpiredCooldowns(): void {
     const now = Date.now()
-    const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+    const maxAge = 24 * 60 * 60 * 1000
 
     for (const [userId, timestamp] of this.typoSuggestionCooldowns.entries()) {
       if (now - timestamp > maxAge) {

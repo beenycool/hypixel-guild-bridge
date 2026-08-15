@@ -149,11 +149,6 @@ function isNoise(key: string): boolean {
   return NOISE_KEYS.test(stripped)
 }
 
-/**
- * Read a numeric stat from an API payload. The raw value is returned cast to
- * number; only a missing key (null/undefined) yields undefined, so callers can
- * fall back with `?? 0` without tripping unnecessary-condition checks.
- */
 function readNumber(stats: Record<string, unknown>, key: string): number | undefined {
   const value = stats[key]
   return value === undefined ? undefined : (value as number)
@@ -180,8 +175,6 @@ function extractDuelSubmodes(stats: Record<string, unknown>): { name: string; wi
   submodes.sort((a, b) => b.wins - a.wins)
   return submodes.slice(0, 5)
 }
-
-// ---- Bedwars submodes ----
 
 const BEDWARS_MODE_SUFFIXES = ['1', '2', '3', '4', '4v4', 'castle']
 /* eslint-disable @typescript-eslint/naming-convention -- keys are Bedwars mode wire IDs (numeric suffixes of API stat names) */
@@ -295,8 +288,6 @@ function formatBedwars(stats: Record<string, unknown>): string {
   }
   return `BW: ${parts.join(', ')}`
 }
-
-// ---- SkyWars submodes ----
 
 const SKYWARS_MODE_IDS = [
   'solo_normal',

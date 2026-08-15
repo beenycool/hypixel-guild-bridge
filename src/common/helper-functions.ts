@@ -1,18 +1,4 @@
 /**
- * Formats a username based on the gamemode
- * @param username - The username to format
- * @param gamemode - The gamemode to apply formatting for
- * @returns The formatted username string
- */
-export function formatUsername(username: string, gamemode: string | undefined): string {
-  if (gamemode === 'ironman') return `♲ ${username}`
-  if (gamemode === 'bingo') return `Ⓑ ${username}`
-  if (gamemode === 'island') return `☀ ${username}`
-
-  return username
-}
-
-/**
  * Formats a number with suffixes (K, M, B, T, etc.)
  * @param number - The number to format
  * @param decimals - The number of decimal places to include
@@ -39,7 +25,7 @@ export function formatNumber(number: number | undefined | null, decimals = 2): s
 }
 
 /**
- * Converts a string to title case
+ * Title-cases the given string
  * @param inputString - The string to convert
  * @returns The title-cased string
  */

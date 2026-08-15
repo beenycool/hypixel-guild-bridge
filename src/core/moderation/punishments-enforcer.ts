@@ -107,14 +107,6 @@ export default class PunishmentsEnforcer extends SubInstance<Core, InstanceType.
   }
 
   private async enforceMute(userUuid: string, event: Pick<Punishment, 'createdAt' | 'till'>): Promise<void> {
-    /*
-     * Use the creation time if there is a server lag when forwarding the punishment.
-     * This is done to avoid visual bugs that are shown when a message is displayed to users
-     * regarding the punishment.
-     *
-     * An example is muting someone for 15 minutes, but the mute shows as "14 minutes and 57 seconds"
-     * which will be regarded as a quite odd punishment.
-     */
     const currentTime = Date.now()
     const startTime =
       currentTime - event.createdAt <= PunishmentsEnforcer.LagLeniency.toMilliseconds() ? event.createdAt : currentTime

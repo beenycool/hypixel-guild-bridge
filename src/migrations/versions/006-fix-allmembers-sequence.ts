@@ -7,6 +7,4 @@ export async function up(query: QueryInterface): Promise<void> {
   )
 }
 
-export async function down(): Promise<void> {
-  // Intentionally a no-op: sequence values cannot be meaningfully restored.
-}
+export async function down(): Promise<void> {}

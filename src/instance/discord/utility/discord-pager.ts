@@ -117,7 +117,7 @@ export async function interactivePaging(
 
       void getNumber(index, optionParameters, undefined, 'Select Page')
         .then(async (selectedPage) => {
-          currentPage = selectedPage - 1 // to account for 0-index
+          currentPage = selectedPage - 1
           await index.editReply({
             components: [createButtons(interaction.id, currentPage, lastUpdate.totalPages, false)]
           })
@@ -169,7 +169,6 @@ export async function pageMessage(
   })
 }
 
-// discord library api doesn't export correct type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createButtons(interactionId: string, currentPage: number, totalPages: number, enabled: boolean): any {
   return new ActionRowBuilder()

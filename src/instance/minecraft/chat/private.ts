@@ -3,7 +3,6 @@ import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-
 
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    // REGEX: From [MVP+] USERNAME: MESSAGE
     const regex = /^From (?:\[([+A-Z]{3,10})] ){0,3}(\w{3,32}): (.{1,128})/g
 
     const match = regex.exec(context.message)

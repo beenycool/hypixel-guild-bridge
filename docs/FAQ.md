@@ -1,7 +1,5 @@
 # Frequently Asked Questions
 
-<!-- TOC -->
-
 - [Frequently Asked Questions](#frequently-asked-questions)
   - [How to get Discord And Hypixel Keys](#how-to-get-discord-and-hypixel-keys)
   - [How to prepare a Minecraft account to be added](#how-to-prepare-a-minecraft-account-to-be-added)
@@ -16,7 +14,6 @@
   - [How to utilize verification system](#how-to-utilize-verification-system)
   - [Why the Warp command takes too long](#why-the-warp-command-takes-too-long)
   - [What are the chances for chat command !vengeance?](#what-are-the-chances-for-chat-command-vengeance)
-  <!-- TOC -->
 
 ## How to get Discord And Hypixel Keys
 

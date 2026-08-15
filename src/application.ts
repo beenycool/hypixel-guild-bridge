@@ -1,6 +1,3 @@
-/* eslint @typescript-eslint/explicit-member-accessibility: "error" */
-// @typescript-eslint/explicit-member-accessibility needed since this is part of the public api
-
 import assert from 'node:assert'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -172,7 +169,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.core = new Core(this)
     this.mojangApi = this.core.mojangApi
     this.bridgeResolver = new BridgeResolver(this.config.bridges)
-    // Connect bridge resolver to dynamic config from database
+
     this.bridgeResolver.setDynamicConfig(this.core.bridgeConfigurations)
 
     this.discordInstance = new DiscordInstance(this, this.config.discord)
@@ -272,11 +269,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       .catch(this.errorHandler.promiseCatch(`changing language to ${languageName}`))
   }
 
-  /**
-   * Get a translator function that respects per-bridge language settings.
-   * Resolution precedence: dynamic DB > static bridge config > global application language.
-   * Returns a function compatible with `i18n.t` that will call `this.i18n.t` with the resolved `lng` option.
-   */
   public getTranslatorForBridge(bridgeId?: string): TranslatorFunction {
     let dynamicLang: string | undefined
     let overrides: Record<string, string> = {}
@@ -297,7 +289,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       keyOrSelector: string | ((t: (key: string) => string) => string),
       options?: Record<string, unknown>
     ): string => {
-      // Check per-bridge overrides first for simple string keys
       if (typeof keyOrSelector === 'string') {
         const override = overrides[keyOrSelector]
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: override map may lack the key at runtime despite Record type
@@ -320,8 +311,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     await this.pluginsManager.loadPlugins(this.rootDirectory)
 
     for (const instance of this.getAllInstances()) {
-      // must cast first before using due to typescript limitation
-      // https://github.com/microsoft/TypeScript/issues/30650#issuecomment-486680485
       const checkedInstance = instance
 
       if (checkedInstance instanceof ConnectableInstance) {
@@ -331,7 +320,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       }
     }
 
-    // Resolve guild names for each bridge from bot's guild membership
     try {
       const bridgeIds = this.core.bridgeConfigurations.getAllBridgeIds()
       for (const bridgeId of bridgeIds) {
@@ -365,7 +353,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.logger.warn(`Failed to resolve guild names: ${String(error)}`)
     }
 
-    // Start background utilities that require instances/core to be ready
     try {
       this.randomChatter.start()
     } catch (error: unknown) {
@@ -380,14 +367,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   public async shutdown(): Promise<void> {
     for (const instance of this.getAllInstances().toReversed()) {
-      // reversed to go backward of `start()`
       if (instance instanceof ConnectableInstance && instance.currentStatus() !== Status.Fresh) {
         await instance.disconnect()
       }
     }
 
-    // wait till next cycle to let all events flush out
-    // This might not be needed if events can be sent with async/await
     await setImmediate()
 
     for (const shutdownListener of this.shutdownListeners.toReversed()) {
@@ -395,14 +379,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     }
   }
 
-  /**
-   * Send chat/command via Minecraft instance
-   *
-   * @param instanceNames The instance names to send the command through.
-   * @param priority See {@link MinecraftSendChatPriority}
-   * @param eventId
-   * @param command The command to send
-   */
   public async sendMinecraft(
     instanceNames: string[],
     priority: MinecraftSendChatPriority,
@@ -430,16 +406,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     await Promise.all(tasks)
   }
 
-  /**
-   * Signal to shut down/restart an instance.
-   *
-   * Signaling to shut down the application is possible.
-   * It will take some time for the application to shut down.
-   * Application will auto restart if a process monitor is used.
-   *
-   * @param instanceNames The instance names to send the command through.
-   * @param type A flag indicating the signal
-   */
   public async sendSignal(instanceNames: string[], type: InstanceSignalType): Promise<void> {
     const instances = []
 
@@ -492,9 +458,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       .map((instance) => instance.instanceName)
   }
 
-  /**
-   * Minecraft bot used for Discord `/ping` tab latency: prefer instances for `bridgeId`, otherwise first connected bot.
-   */
   public resolveMinecraftInstanceForDiscordPing(bridgeId?: string): MinecraftInstance | undefined {
     const all = this.minecraftManager.getAllInstances()
     if (all.length === 0) return undefined
@@ -510,10 +473,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return pool.find((instance) => instance.currentStatus() === Status.Connected) ?? pool[0]
   }
 
-  /**
-   * Get all instances {@link InstanceIdentifier} exist in this application.
-   * This includes all internal and public instances as well as plugins and utilities.
-   */
   public getAllInstancesIdentifiers(): InstanceIdentifier[] {
     return this.getAllInstances().map((instance) => ({
       instanceName: instance.instanceName,
@@ -543,7 +502,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.applicationIntegrity,
       this.autoLinker,
 
-      this.discordInstance, // discord second to send any notification about connecting
+      this.discordInstance,
 
       this.prometheusInstance,
       this.webServer,

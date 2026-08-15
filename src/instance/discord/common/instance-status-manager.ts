@@ -150,9 +150,7 @@ export class InstanceStatusManager {
     })
   }
 
-  public async send(): Promise<void> {
-    // Intentionally empty: status is delivered interactively via interactivePaging.
-  }
+  public async send(): Promise<void> {}
 
   private generateButtons(): MessageActionRowComponentData[] {
     return [

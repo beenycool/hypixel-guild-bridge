@@ -7,11 +7,6 @@ import { validateSeriesScore } from '../../../core/tournament/score-validator.js
 import { MatchStatus, PlayerStatus, TournamentStatus } from '../../../core/tournament/types.js'
 import type { TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
 
-/**
- * Notifies staff (officer/helper/owner roles) when a user cannot be resolved
- * from Minecraft to Discord and needs manual help with verification.
- * Falls back to the tournament notification channel, then the command channel.
- */
 async function notifyStaffForUnlinkedUser(
   context: Readonly<DiscordCommandContext>,
   bridgeId: string,
@@ -103,7 +98,7 @@ export default {
           )
       ),
 
-  permission: Permission.Anyone, // Player-facing commands; admin actions moved to the web dashboard
+  permission: Permission.Anyone,
 
   handler: async function (context) {
     const subcommand = context.interaction.options.getSubcommand()
@@ -112,8 +107,6 @@ export default {
     )
     let bridgeId = context.bridgeId
 
-    // Allow tournament commands from any Discord channel: infer the bridge
-    // from the guild when it maps to exactly one bridge.
     if (bridgeId === undefined) {
       if (context.application.bridgeResolver.isMultiBridgeEnabled()) {
         const guild =
@@ -156,18 +149,15 @@ export default {
       return
     }
 
-    // 1. Join Tournament
     if (subcommand === 'join') {
       await context.interaction.deferReply()
 
-      // Fetch active tournament
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
       if (tournament === undefined || tournament.status !== TournamentStatus.Signup) {
         await context.interaction.editReply('There is no active signup phase for this bridge.')
         return
       }
 
-      // Check verification link
       const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
       if (link === undefined) {
         await context.interaction.editReply(
@@ -191,7 +181,6 @@ export default {
           context.interaction.user.id
         )
 
-        // Resolve MC Name
         const profile = await context.application.mojangApi.profileByUuid(link.uuid)
         await context.interaction.editReply(`✅ You have successfully joined the tournament as **${profile.name}**!`)
       } catch (error: unknown) {
@@ -200,7 +189,6 @@ export default {
       return
     }
 
-    // 2. Leave Tournament
     if (subcommand === 'leave') {
       await context.interaction.deferReply()
 
@@ -228,7 +216,6 @@ export default {
       return
     }
 
-    // 3. Check-in
     if (subcommand === 'checkin') {
       await context.interaction.deferReply()
 
@@ -267,7 +254,6 @@ export default {
       return
     }
 
-    // 4. Report Results
     if (subcommand === 'report') {
       await context.interaction.deferReply()
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
@@ -282,7 +268,6 @@ export default {
         return
       }
 
-      // Find the player in tournament_players
       const player = await context.application.core.databaseManager.queryOne<TournamentPlayer>(
         'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND "playerUuid" = $2',
         [tournament.id, link.uuid]
@@ -292,7 +277,6 @@ export default {
         return
       }
 
-      // Find active match for this player
       const match = await context.application.core.databaseManager.queryOne<TournamentMatch>(
         `SELECT * FROM "tournament_matches"
          WHERE "tournamentId" = $1
@@ -316,13 +300,11 @@ export default {
         return
       }
 
-      // Determine who the reported winner is
       let claimedWinnerId = player.id
       if (winnerChoice === 'opponent') {
         claimedWinnerId = (match.player1Id === player.id ? match.player2Id : match.player1Id) ?? player.id
       }
 
-      // Assign wins based on who's who
       const isPlayer1 = match.player1Id === player.id
       const p1Wins = isPlayer1 ? myWins : theirWins
       const p2Wins = isPlayer1 ? theirWins : myWins
@@ -355,7 +337,6 @@ export default {
       return
     }
 
-    // 5. Forfeit
     if (subcommand === 'forfeit') {
       await context.interaction.deferReply()
 
@@ -403,7 +384,6 @@ export default {
       return
     }
 
-    // 6. Schedule Availability
     if (subcommand === 'schedule') {
       const timeString = context.interaction.options.getString('time', true)
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
@@ -461,7 +441,6 @@ export default {
         response += `<t:${Math.floor(startDate.getTime() / 1000)}:F>\n`
         if (endDate) response += `to <t:${Math.floor(endDate.getTime() / 1000)}:F>`
 
-        // Post availability to match thread for opponent visibility
         if (match?.discordThreadId !== undefined) {
           try {
             const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
@@ -472,9 +451,7 @@ export default {
                 content: `📅 **${pName}** is available:\n${response}`
               })
             }
-          } catch {
-            // Thread may not exist - still send user reply
-          }
+          } catch {}
         }
 
         await context.interaction.reply({ content: response, flags: MessageFlags.Ephemeral })
@@ -487,7 +464,6 @@ export default {
       return
     }
 
-    // 7. Proof Attachment
     if (subcommand === 'proof') {
       let matchId = context.interaction.options.getInteger('match_id')
       const url = context.interaction.options.getString('url', true)

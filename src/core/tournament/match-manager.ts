@@ -27,9 +27,6 @@ export class MatchManager {
     private readonly logger?: Logger
   ) {}
 
-  /**
-   * Submit a report for a match.
-   */
   public async submitReport(
     matchId: number,
     reporterPlayerId: number,
@@ -41,7 +38,6 @@ export class MatchManager {
       `Match ${matchId}: submitReport — reporterPlayerId=${reporterPlayerId}, claimedWinnerId=${claimedWinnerId}, p1Wins=${p1Wins}, p2Wins=${p2Wins}`
     )
 
-    // Proof attachment check - perform before entering transaction to avoid holding DB locks
     let hasProof = false
     const preMatch = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
@@ -53,7 +49,6 @@ export class MatchManager {
     }
 
     return await this.databaseManager.transaction(async (txClient) => {
-      // 1. Lock and fetch match
       const matchResult = await txClient.query<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "id" = $1 FOR UPDATE',
         [matchId]
@@ -81,14 +76,12 @@ export class MatchManager {
         throw new Error('Tournament is not active.')
       }
 
-      // Validate score
       const scoreCheck = validateSeriesScore(tournament.bestOf, p1Wins, p2Wins)
       if (!scoreCheck.valid) {
         this.logger?.info(`Match ${matchId}: Score validation failed — ${scoreCheck.message}`)
         return { status: match.status, message: scoreCheck.message }
       }
 
-      // 2. Insert report
       this.logger?.info(
         `Match ${matchId}: Inserting report for reporter=${reporterPlayerId}, claimedWinner=${claimedWinnerId}`
       )
@@ -102,12 +95,10 @@ export class MatchManager {
         [matchId, reporterPlayerId, claimedWinnerId, p1Wins, p2Wins]
       )
 
-      // Set proof flag using pre-fetched result
       if (hasProof) {
         await txClient.query('UPDATE "tournament_matches" SET "hadProofAttachment" = 1 WHERE "id" = $1', [matchId])
       }
 
-      // 3. Check reports
       const reportsResult = await txClient.query<TournamentReport>(
         'SELECT * FROM "tournament_reports" WHERE "matchId" = $1',
         [matchId]
@@ -131,11 +122,9 @@ export class MatchManager {
         `Match ${matchId}: Report comparison — reports=${reports.length}/${expectedReportCount}, newStatus=${newStatus}`
       )
 
-      // 4. Update match status
       await txClient.query('UPDATE "tournament_matches" SET "status" = $1 WHERE "id" = $2', [newStatus, matchId])
       match.status = newStatus
 
-      // 5. Take action based on status
       if (newStatus === MatchStatus.BothConfirmed) {
         this.logger?.info(`Match ${matchId}: Both reports agree, resolving with winner ${claimedWinnerId}`)
         await this.resolveWinner(matchId, claimedWinnerId, txClient, p1Wins, p2Wins)
@@ -158,9 +147,6 @@ export class MatchManager {
     })
   }
 
-  /**
-   * Extend the deadline for a match.
-   */
   public async extendDeadline(
     matchId: number,
     hours: number,
@@ -200,9 +186,6 @@ export class MatchManager {
     return { newDeadlineAt, addedMinutes }
   }
 
-  /**
-   * Forfeit a match. The opponent receives the win.
-   */
   public async forfeit(matchId: number, forfeitingPlayerId: number): Promise<{ status: MatchStatus; message: string }> {
     this.logger?.info(`Match ${matchId}: forfeit — forfeitingPlayerId=${forfeitingPlayerId}`)
 
@@ -226,7 +209,6 @@ export class MatchManager {
       throw new Error('Forfeiting player is not a participant in this match.')
     }
 
-    // Anti-abuse: flag suspicious repeated forfeits against the same opponent
     let forfeiterUuid: string | undefined
     let opponentUuid: string | undefined
     if (this.antiAbuse !== undefined) {
@@ -268,9 +250,6 @@ export class MatchManager {
     return { status: MatchStatus.Completed, message: 'Forfeit accepted.' }
   }
 
-  /**
-   * Admin forces winner for a disputed match.
-   */
   public async adminConfirm(
     matchId: number,
     winnerId: number,
@@ -299,8 +278,6 @@ export class MatchManager {
       throw new Error('Tournament is not active.')
     }
 
-    // Resolve the series score: default to a clean win (target-0) when omitted,
-    // otherwise validate the admin-supplied score against the series rules.
     let score1 = p1Wins
     let score2 = p2Wins
     if (score1 === undefined && score2 === undefined) {
@@ -318,7 +295,6 @@ export class MatchManager {
       throw new Error(scoreCheck.message)
     }
 
-    // Anti-abuse: flag admins repeatedly overriding results
     if (this.antiAbuse !== undefined && actorDiscordId !== undefined) {
       const check = await this.antiAbuse.checkFalseReporting(actorDiscordId)
       if (!check.allowed) {
@@ -334,11 +310,6 @@ export class MatchManager {
     }
   }
 
-  /**
-   * Resolve a BYE match (no opponent) and advance its winner into the next round.
-   * Unlike adminConfirm, BYE matches are accepted: they already have a winner set
-   * but that winner still needs to be placed into the next match.
-   */
   public async resolveByeMatch(matchId: number, winnerId: number): Promise<void> {
     this.logger?.info(`Match ${matchId}: resolveByeMatch — winnerId=${winnerId}`)
 
@@ -384,7 +355,6 @@ export class MatchManager {
       const tournament = await this.getTournament(match.tournamentId)
       if (!tournament) return { success: false, message: 'Tournament not found.' }
 
-      // Look up or create new player record
       const existingResult = await txClient.query<TournamentPlayer>(
         'SELECT "id" FROM "tournament_players" WHERE "playerUuid" = $1 AND "tournamentId" = $2',
         [newPlayerUuid, match.tournamentId]
@@ -401,10 +371,8 @@ export class MatchManager {
         newPlayerId = insertResult.rows[0].id
       }
 
-      // Clear existing reports
       await txClient.query('DELETE FROM "tournament_reports" WHERE "matchId" = $1', [matchId])
 
-      // Reset match status if not already completed
       if (match.status !== MatchStatus.Completed && match.status !== MatchStatus.Bye) {
         await txClient.query(
           `UPDATE "tournament_matches" SET ${slotColumn} = $1, "status" = $2, "player1Wins" = NULL, "player2Wins" = NULL, "winnerId" = NULL WHERE "id" = $3`,
@@ -412,12 +380,10 @@ export class MatchManager {
         )
       }
 
-      // Archive old thread
       if (match.discordThreadId !== undefined) {
         await this.channelManager.archiveMatchThread(match.discordThreadId, 'Player substituted')
       }
 
-      // Create new match thread
       if (tournament.discordChannelId !== undefined) {
         const otherPlayerId = isPlayer1 ? match.player2Id : match.player1Id
         const otherResult = await txClient.query<TournamentPlayer>(
@@ -463,9 +429,6 @@ export class MatchManager {
     })
   }
 
-  /**
-   * Auto-resolves match when deadline expires.
-   */
   public async handleDeadlineExpiry(matchId: number): Promise<void> {
     this.logger?.info(`Match ${matchId}: handleDeadlineExpiry called`)
 
@@ -486,11 +449,9 @@ export class MatchManager {
     let winnerId: number | undefined = undefined
 
     if (reports.length === 1) {
-      // One player reported, they advance
       winnerId = reports[0].claimedWinnerId
       this.logger?.info(`Match ${matchId}: Deadline expiry — 1 report found, advancing reporter ${winnerId}`)
     } else {
-      // None reported (or dispute expired) -> higher seed advances
       this.logger?.info(`Match ${matchId}: Deadline expiry — ${reports.length} reports, advancing by seed`)
       const p1 =
         match.player1Id === undefined
@@ -530,9 +491,6 @@ export class MatchManager {
     }
   }
 
-  /**
-   * Internal routine to resolve match winner and advance them.
-   */
   private async resolveWinner(
     matchId: number,
     winnerId: number,
@@ -558,7 +516,6 @@ export class MatchManager {
       `Tournament ${tournament.id}, Match ${matchId}: Resolving winner, round=${match.round}, matchIndex=${match.matchIndex}`
     )
 
-    // 1. Mark match completed
     this.logger?.info(`Match ${matchId}: Marking as completed`)
     await this.databaseManager.execute(
       'UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3, "player1Wins" = COALESCE($4, "player1Wins"), "player2Wins" = COALESCE($5, "player2Wins") WHERE "id" = $6',
@@ -566,7 +523,6 @@ export class MatchManager {
       database
     )
 
-    // 2. Handle loser (eliminate or advance into the loser bracket)
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
     const strategy = this.bracketGenerator?.getStrategy(tournament.bracketFormat ?? 'single-elim')
     if (loserId !== undefined && match.loserNextMatchId !== undefined) {
@@ -583,7 +539,6 @@ export class MatchManager {
       )
     }
 
-    // Live update notification
     if (match.status !== MatchStatus.Bye) {
       this.logger?.info(`Match ${matchId}: Sending live update notification`)
       const liveNames = await this.getPlayerNames(match.tournamentId)
@@ -592,7 +547,6 @@ export class MatchManager {
         .catch(() => undefined)
     }
 
-    // 3. Close & Lock Discord Thread
     if (match.discordThreadId !== undefined) {
       this.logger?.info(`Match ${matchId}: Archiving thread ${match.discordThreadId}`)
       const names = await this.getPlayerNames(match.tournamentId)
@@ -605,9 +559,7 @@ export class MatchManager {
       )
     }
 
-    // 4. Advance winner to next match if exists
     if (match.nextMatchId === undefined) {
-      // No next match -> check whether ALL matches are complete (for round-robin and other non-elimination formats)
       const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
         [tournament.id],
@@ -618,7 +570,7 @@ export class MatchManager {
       if (allComplete) {
         const championId = strategy?.championId(allMatches) ?? winnerId
         this.logger?.info(`Tournament ${tournament.id}: All matches complete! Crowning champion player ${championId}`)
-        // All matches finished -> Tournament complete!
+
         await this.databaseManager.execute(
           'UPDATE "tournaments" SET "status" = $1, "winnerId" = $2, "completedAt" = $3 WHERE "id" = $4',
           [TournamentStatus.Completed, championId, now, tournament.id],
@@ -634,8 +586,6 @@ export class MatchManager {
         const winnerName = names.get(championId) ?? 'Winner'
         await this.notifications.announceWinner(tournament, winnerName)
 
-        // Finalize after the enclosing transaction (if any) has committed so
-        // recordResults observes the completed state.
         const completeTournament = this.notifyTournamentCompleted
         setImmediate(() => {
           if (completeTournament !== undefined) {
@@ -656,7 +606,6 @@ export class MatchManager {
       await this.placePlayerIntoNextMatch(winnerId, match.nextMatchId, match.matchIndex, tournament, now, database)
     }
 
-    // 5. Update live bracket message
     this.logger?.info(`Tournament ${tournament.id}: Updating bracket embed after match ${matchId} resolution`)
     const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
@@ -681,14 +630,12 @@ export class MatchManager {
       )
     }
 
-    // 6. Check if current round is complete
     const roundMatches = allMatches.filter((m) => m.round === tournament.currentRound)
     const allRoundCompleted = roundMatches.every(
       (m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye
     )
 
     if (allRoundCompleted && tournament.status === TournamentStatus.Active && (strategy?.progressesRounds() ?? true)) {
-      // Progress round
       const nextRound = tournament.currentRound + 1
       this.logger?.info(
         `Tournament ${tournament.id}: Round ${tournament.currentRound} complete! Progressing to round ${nextRound}`
@@ -702,7 +649,6 @@ export class MatchManager {
 
       await this.notifications.announceRoundComplete(tournament, nextRound - 1)
 
-      // Update bracket display to reflect new round
       if (tournament.discordChannelId !== undefined && tournament.bracketMessageId !== undefined) {
         await this.channelManager.updateBracketEmbed(
           tournament.discordChannelId,
@@ -718,10 +664,6 @@ export class MatchManager {
     this.emitEvent?.('tournament.match_resolved', { tournamentId: tournament.id, matchId, winnerId })
   }
 
-  /**
-   * Place a player into a destination match slot (parity of the source match index),
-   * activating the destination and spawning its thread when both slots are filled.
-   */
   private async placePlayerIntoNextMatch(
     playerId: number,
     nextMatchId: number,
@@ -756,7 +698,6 @@ export class MatchManager {
       database
     )
 
-    // Refresh next match to check if it's now ready
     const updatedNextMatch = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
       [nextMatchId],
@@ -765,7 +706,7 @@ export class MatchManager {
 
     if (updatedNextMatch?.player1Id !== undefined && updatedNextMatch.player2Id !== undefined) {
       this.logger?.info(`Match ${nextMatchId}: Both players present! Activating match`)
-      // Both players present! Activate match
+
       const deadlineAt = now + tournament.roundDeadlineHours * 3600
       await this.databaseManager.execute(
         'UPDATE "tournament_matches" SET "status" = $1, "deadlineAt" = $2 WHERE "id" = $3',
@@ -773,7 +714,6 @@ export class MatchManager {
         database
       )
 
-      // Spawn new thread
       const p1 = await this.databaseManager.queryOne<TournamentPlayer>(
         'SELECT * FROM "tournament_players" WHERE "id" = $1',
         [updatedNextMatch.player1Id],

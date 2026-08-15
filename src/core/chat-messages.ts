@@ -21,7 +21,6 @@ export class ChatMessagesService {
     this.app.on('chat', (event) => {
       if (event.channelType !== ChannelType.Public) return
 
-      // skip commands (messages starting with command prefix)
       if (event.message.startsWith('!')) return
 
       const userId = event.user.discordProfile()?.id ?? event.user.mojangProfile()?.id ?? event.user.displayName()

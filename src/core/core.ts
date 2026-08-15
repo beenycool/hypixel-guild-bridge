@@ -55,13 +55,11 @@ import ScoresManager from './users/scores-manager'
 import { Verification } from './users/verification'
 
 export class Core extends Instance<InstanceType.Core> {
-  // moderation
   private readonly commandsHeat: CommandsHeat
   private readonly profanity: Profanity
   private readonly punishments: Punishments
   private readonly enforcer: PunishmentsEnforcer
 
-  // users
   private readonly autoComplete: Autocomplete
   public readonly guildManager: GuildManager
   public readonly mojangApi: MojangApi
@@ -69,20 +67,17 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly inactivity: Inactivity
   public readonly verification: Verification
 
-  // discord
   public readonly bridgeConfigurations: BridgeConfigurations
   public readonly discordConfigurations: DiscordConfigurations
   public readonly discordTemporarilyInteractions: DiscordTemporarilyInteractions
   public readonly discordInstanceHistoryButton: InstanceHistoryButton
   public readonly discordEmojis: DiscordEmojis
 
-  // minecraft
   public readonly minecraftConfigurations: MinecraftConfigurations
   public readonly minecraftSessions: SessionsManager
   public readonly moderationConfiguration: ModerationConfigurations
   public readonly minecraftAccounts: MinecraftAccounts
 
-  // instance
   public readonly disconnectLogger: DisconnectLogger
   public readonly statusHistory: StatusHistory
   public readonly pendingReviewManager: PendingReviewManager
@@ -90,16 +85,13 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly tournamentManager: TournamentManager
   public readonly tournamentTestPanels: TournamentTestPanels
 
-  // misc
   public readonly applicationConfigurations: ApplicationConfigurations
   public readonly languageConfigurations: LanguageConfigurations
   public readonly commandsConfigurations: CommandsConfigurations
   public readonly spontaneousEventsConfigurations: SpontaneousEventsConfigurations
 
-  // chat messages
   public readonly chatMessages: ChatMessagesService
 
-  // database
   public readonly databaseManager: DatabaseManager
   private readonly configurationsManager: ConfigurationsManager
   private readonly ready: Promise<void>
@@ -215,32 +207,19 @@ export class Core extends Instance<InstanceType.Core> {
     return this.profanity.filterProfanity(message)
   }
 
-  /**
-   * Filter profanity for a specific bridge, respecting per-bridge settings
-   * @param message The message to filter
-   * @param bridgeId Optional bridge ID to check for per-bridge profanity settings
-   * @returns The filtered message and whether it was changed
-   */
   public filterProfanityForBridge(
     message: string,
     bridgeId: string | undefined
   ): { filteredMessage: string; changed: boolean } {
-    // Check per-bridge profanity setting first
     if (bridgeId !== undefined) {
       const bridgeProfanityEnabled = this.bridgeConfigurations.getProfanityEnabled(bridgeId)
       if (bridgeProfanityEnabled === false) {
         return { filteredMessage: message, changed: false }
       }
-      // If bridgeProfanityEnabled is true or undefined, fall through to global check
     }
     return this.profanity.filterProfanity(message)
   }
 
-  /**
-   * Check if heat punishment is enabled for a specific bridge
-   * @param bridgeId Optional bridge ID to check for per-bridge heat punishment settings
-   * @returns Whether heat punishment is enabled
-   */
   public isHeatPunishmentEnabled(bridgeId: string | undefined): boolean {
     if (bridgeId !== undefined) {
       const bridgeHeatEnabled = this.bridgeConfigurations.getHeatPunishmentEnabled(bridgeId)
@@ -251,11 +230,6 @@ export class Core extends Instance<InstanceType.Core> {
     return this.moderationConfiguration.getHeatPunishment()
   }
 
-  /**
-   * Get the kicks per day limit for a specific bridge
-   * @param bridgeId Optional bridge ID to check for per-bridge setting
-   * @returns The kicks per day limit
-   */
   public getKicksPerDayForBridge(bridgeId: string | undefined): number {
     if (bridgeId !== undefined) {
       const bridgeLimit = this.bridgeConfigurations.getKicksPerDay(bridgeId)
@@ -266,11 +240,6 @@ export class Core extends Instance<InstanceType.Core> {
     return this.moderationConfiguration.getKicksPerDay()
   }
 
-  /**
-   * Get the mutes per day limit for a specific bridge
-   * @param bridgeId Optional bridge ID to check for per-bridge setting
-   * @returns The mutes per day limit
-   */
   public getMutesPerDayForBridge(bridgeId: string | undefined): number {
     if (bridgeId !== undefined) {
       const bridgeLimit = this.bridgeConfigurations.getMutesPerDay(bridgeId)
@@ -314,19 +283,10 @@ export class Core extends Instance<InstanceType.Core> {
     this.tournamentManager.startScheduler()
   }
 
-  /**
-   * @internal Only used by the config managers
-   */
   public reloadProfanity(): void {
     this.profanity.reloadProfanity()
   }
 
-  /**
-   * Initialize a user based on a given profile and load all metadata in advance
-   * @param profile Profile to base the user on
-   * @param context additional information that might help with constructing user metadata
-   * @returns a full initialized object that contains user data at the moment of execution
-   */
   async initializeDiscordUser(
     profile: DiscordProfile,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -345,12 +305,6 @@ export class Core extends Instance<InstanceType.Core> {
     return user
   }
 
-  /**
-   * Initialize a user based on a given profile and load all metadata in advance
-   * @param mojangProfile Profile to base the user on
-   * @param context additional information that might help with constructing user metadata
-   * @returns a full initialized object that contains user data at the moment of execution
-   */
   async initializeMinecraftUser(mojangProfile: MojangProfile, context: InitializeOptions): Promise<MinecraftUser> {
     const identifier: UserIdentifier = { userId: mojangProfile.id, originInstance: InstanceType.Minecraft }
 
@@ -365,12 +319,6 @@ export class Core extends Instance<InstanceType.Core> {
     return user
   }
 
-  /**
-   * Initialize a user based on a given data and load all metadata in advance
-   * @param identifier most basic data to identify a unique user
-   * @param context additional information that might help with constructing user metadata
-   * @returns a full initialized object that contains user data at the moment of execution
-   */
   async initializeUser(identifier: UserIdentifier, context: InitializeOptions): Promise<User> {
     switch (identifier.originInstance) {
       case InstanceType.Minecraft: {
@@ -383,7 +331,6 @@ export class Core extends Instance<InstanceType.Core> {
       }
     }
 
-    // default
     return new User(this.application, this.userContext(), identifier, undefined, undefined, undefined)
   }
 

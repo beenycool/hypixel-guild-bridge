@@ -1,6 +1,5 @@
 import type { skyblockMemberOptions } from 'hypixel-api-reborn'
 
-// public api interfaces. Can't choose a naming convention
 /* eslint-disable @typescript-eslint/naming-convention */
 declare module 'hypixel-api-reborn' {
   interface Client {
@@ -176,8 +175,7 @@ declare module 'hypixel-api-reborn' {
   export interface SkyblockPlayerEaster {
     total_chocolate?: number
     shop?: { chocolate_spent?: number }
-    // eggs names and collected amount. not set if not collected.
-    // There are other objects inside not related to rabbits, but ignored here since not required YET.
+
     rabbits: Record<string, number | object>
   }
 

@@ -24,9 +24,6 @@ export class TournamentChannelManager {
 
   constructor(private readonly application: Application) {}
 
-  /**
-   * Creates a read-only parent channel for the bracket display.
-   */
   public async createBracketChannel(
     guildId: string,
     tournamentName: string,
@@ -178,7 +175,6 @@ export class TournamentChannelManager {
   }
 
   private isIgnorableMemberAddError(code: number | string | undefined): boolean {
-    // 50001 Missing Access (user not in guild), 10011 Unknown Member, 10013 Unknown User
     return code === 50_001 || code === 10_011 || code === 10_013
   }
 
@@ -190,9 +186,6 @@ export class TournamentChannelManager {
     return member !== undefined
   }
 
-  /**
-   * Spawns a private match thread for a given match.
-   */
   public async createMatchThread(
     parentChannelId: string,
     match: TournamentMatch,
@@ -210,7 +203,6 @@ export class TournamentChannelManager {
 
     this.application.logger.info(`createMatchThread: Creating thread "${threadName}" in channel ${parentChannelId}`)
 
-    // Create private thread
     const thread = await textChannel.threads
       .create({
         name: threadName,
@@ -227,7 +219,6 @@ export class TournamentChannelManager {
 
     this.application.logger.info(`createMatchThread: Thread created — ${thread.id}`)
 
-    // Add players to thread if their discord ID is linked
     const guild = textChannel.guild
     if (player1.discordId != undefined) {
       this.application.logger.info(
@@ -254,7 +245,6 @@ export class TournamentChannelManager {
       }
     }
 
-    // Send initial instructional message in the thread
     const embed = new EmbedBuilder()
       .setTitle(`⚔️ Match Thread: ${p1Name} vs ${p2Name}`)
       .setColor('#FFA500')
@@ -315,10 +305,6 @@ export class TournamentChannelManager {
     return embed
   }
 
-  /**
-   * Create a forum post for a match within a forum channel.
-   * Discord Forum channels (type 15) support nested threads.
-   */
   async createMatchForumPost(
     forumChannelId: string,
     match: TournamentMatch,
@@ -394,9 +380,6 @@ export class TournamentChannelManager {
     })
   }
 
-  /**
-   * Archives and locks a match thread when completed.
-   */
   public async archiveMatchThread(threadId: string, resultMessage: string): Promise<void> {
     this.application.logger.info(`archiveMatchThread: Archiving thread ${threadId}`)
     await this.archiveThreadWithRetry(threadId, resultMessage)
@@ -418,9 +401,6 @@ export class TournamentChannelManager {
     return hasProof
   }
 
-  /**
-   * Collects attachment / embed image URLs from a match thread, for dispute review in the web UI.
-   */
   public async getProofUrls(
     threadId: string
   ): Promise<{ url: string; width?: number | null; height?: number | null }[]> {
@@ -448,9 +428,6 @@ export class TournamentChannelManager {
     return urls
   }
 
-  /**
-   * Re-renders the bracket embed in the parent bracket channel.
-   */
   public async updateBracketEmbed(
     parentChannelId: string,
     messageId: string,
@@ -471,7 +448,6 @@ export class TournamentChannelManager {
 
     const textChannel = channel
 
-    // Build the bracket description
     let description =
       `🏆 **Game:** ${tournament.gameType}\n` +
       `• **Best Of:** ${tournament.bestOf}\n` +
@@ -488,7 +464,6 @@ export class TournamentChannelManager {
     }
     description += '\n'
 
-    // Group matches by round
     const matchesByRound = new Map<number, TournamentMatch[]>()
     for (const match of matches) {
       const roundMatches = matchesByRound.get(match.round) ?? []
@@ -501,7 +476,6 @@ export class TournamentChannelManager {
       .setColor('#FFA500')
       .setDescription(description)
 
-    // Add fields for each round
     for (let r = 1; r <= tournament.totalRounds; r++) {
       const roundMatches = matchesByRound.get(r) ?? []
       roundMatches.sort((a, b) => a.matchIndex - b.matchIndex)
@@ -579,7 +553,6 @@ export class TournamentChannelManager {
       }
     }
 
-    // Set winner if completed
     if (tournament.status === TournamentStatus.Completed && tournament.winnerId !== undefined) {
       const winnerName = playerNamesMap.get(tournament.winnerId) ?? 'Unknown'
       embed.addFields({
@@ -589,7 +562,6 @@ export class TournamentChannelManager {
       })
     }
 
-    // Render bracket visual image if possible
     const bracketImage = this.visualizer.buildBracketImage({
       tournament,
       matches,
@@ -601,15 +573,12 @@ export class TournamentChannelManager {
       embed.setImage('attachment://bracket.png')
     }
 
-    // Post or edit message
     const files = bracketImage === null ? [] : [{ attachment: bracketImage, name: 'bracket.png' }]
     try {
       const message = await textChannel.messages.fetch(messageId).catch(() => undefined)
       await (message === undefined
         ? textChannel.send({ embeds: [embed], files })
         : message.edit({ embeds: [embed], files }))
-    } catch {
-      // ignore message edit/send errors
-    }
+    } catch {}
   }
 }

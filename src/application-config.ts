@@ -87,28 +87,11 @@ export interface GuildRequirementsConfig {
   autoAccept?: boolean
 }
 
-/**
- * Configuration for interviewing players that request to join the guild.
- * When enabled, the bot invites the player to a party and asks the configured
- * question via party chat, relaying answers to officer chat. Officers can
- * reply in officer chat and the bot relays their response back via party chat.
- */
 export interface InterviewConfig {
-  /**
-   * Whether to automatically start the interview when a join request is detected.
-   * The /interrogate command and the Interrogate button always work when this config exists.
-   */
   enabled?: boolean
-  /**
-   * The question to ask the applicant via party chat.
-   * @default 'Are you an alt of an existing guild member?'
-   */
+
   question?: string
-  /**
-   * How long to wait for the applicant to join the party or answer before
-   * aborting. Milliseconds.
-   * @default 600000
-   */
+
   timeoutMs?: number
 }
 
@@ -127,41 +110,19 @@ export interface HypixelUpdatesConfig {
   alphaCheckIntervalMinutes?: number
 }
 
-/**
- * Configuration for a bridge that connects specific Minecraft instances to specific Discord channels.
- * This allows running multiple isolated guild bridges within a single application instance.
- */
 export interface BridgeConfig {
-  /**
-   * Unique identifier for this bridge. Used internally to route messages.
-   */
   id: string
-  /**
-   * Optional language for this bridge (e.g., 'en', 'de', 'ar').
-   * If set, this overrides the global application language for messages sent by this bridge.
-   */
+
   language?: string
-  /**
-   * List of Minecraft instance names that belong to this bridge.
-   * Messages from these instances will only be sent to this bridge's Discord channels.
-   */
+
   minecraftInstanceNames: string[]
-  /**
-   * Discord channel configuration for this bridge.
-   */
+
   discord: {
-    /**
-     * Public guild chat channel IDs for this bridge.
-     */
     publicChannelIds: string[]
-    /**
-     * Officer guild chat channel IDs for this bridge.
-     */
+
     officerChannelIds: string[]
   }
-  /**
-   * Optional join-request interview configuration for this bridge.
-   */
+
   interview?: InterviewConfig
 }
 
@@ -204,11 +165,7 @@ export interface ApplicationConfig {
   guildRequirements?: GuildRequirementsConfig
   inactivity?: InactivityConfig
   hypixelUpdates?: HypixelUpdatesConfig
-  /**
-   * Optional bridge configurations for multi-guild support.
-   * If defined, messages will be routed based on bridge membership.
-   * If not defined, the legacy global channel configuration is used.
-   */
+
   bridges?: BridgeConfig[]
   tournament?: TournamentConfig
   lunarClient?: LunarClientConfig

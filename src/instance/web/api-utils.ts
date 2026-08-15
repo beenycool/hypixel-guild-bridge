@@ -14,8 +14,6 @@ export interface ApiError {
   }
 }
 
-export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiError
-
 export function sendSuccess(response: http.ServerResponse, data: unknown, statusCode = 200): void {
   const body: ApiSuccess = { success: true, data }
   // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol

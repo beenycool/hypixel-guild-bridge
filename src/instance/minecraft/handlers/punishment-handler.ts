@@ -55,7 +55,6 @@ export default class PunishmentHandler extends SubInstance<MinecraftInstance, In
     )
       return
 
-    // Check if heat punishment is enabled for this bridge
     const bridgeId = this.clientInstance.bridgeId
     if (!this.application.core.isHeatPunishmentEnabled(bridgeId)) {
       return

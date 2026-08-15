@@ -11,8 +11,6 @@ export class TournamentWsEvents {
     private readonly application: Application,
     private readonly logger: Logger
   ) {
-    // Core pushes lifecycle events; forward them to WS subscribers.
-    // Shallow-mocked applications (tests) may omit core.tournamentManager.
     const tournamentManager = (this.application.core as { tournamentManager?: TournamentManager }).tournamentManager
     tournamentManager?.onEvent((event) => {
       this.broadcast(event)

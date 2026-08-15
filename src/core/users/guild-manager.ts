@@ -13,14 +13,6 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
   public static readonly DefaultDataExpire = Duration.seconds(30)
   private readonly guildInfo = new Map<string, GuildInformation>()
 
-  /**
-   * Fetch online players in a guild
-   *
-   * @param instanceName the minecraft instance name to fetch the stats from
-   * @param newerThan duration in milliseconds of how old the data can be at most
-   *
-   * @return an object containing
-   */
   public async list(
     instanceName: string,
     newerThan: Duration = GuildManager.DefaultDataExpire,
@@ -44,8 +36,6 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
 
     const t0 = performance.now()
     const result = await this.queueTask(guildInfo, async () => {
-      // check again in an atomic operation before fetching again
-      // since there is a chance previous task has already fetched the data while awaiting in queue
       guild = getCached()
       if (guild !== undefined) {
         const age = Date.now() - guild.fetchedAt
@@ -80,23 +70,11 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
     return guild
   }
 
-  /**
-   * Finish previous task before calling the new task to execute.
-   * All operations in the task but be atomic and fully valid by the end of every cycle in the promise.
-   *
-   * @param guild the guild object OR instanceName string
-   * @param task a callback that will be executed to start the new promise AFTER the old task has finished executing
-   */
   public async queueTask<T>(guild: GuildInformation | string, task: () => Promise<T>): Promise<T> {
     if (typeof guild === 'string') guild = this.getGuildInfo(guild)
     return guild.commandQueue.run(task)
   }
 
-  /*
-   * All operations on guild object must be atomic.
-   * That means data within must be done within a cycle and not separated by an "async/await".
-   * So all data must be "whole" across cycles at all times.
-   */
   private async listNow(instanceName: string, timeoutMs?: number): Promise<Readonly<GuildFetch>> {
     const timeout = new Timeout<Error | undefined>(timeoutMs ?? 30_000)
     const guild: GuildFetch = { fetchedAt: Date.now(), name: '', members: [] }
@@ -124,7 +102,6 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
 
       const rankMatch = rankRegex.exec(event.message)
       if (rankMatch != undefined) {
-        // ranks can end with space but will not show up in chat messages
         currentRank = rankMatch[1].trim()
         return
       }
@@ -143,7 +120,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
         switch (usernameMatch[2]) {
           case '§c': {
             guild.members.push({ username: username, rank: currentRank, online: false })
-            // player offline. do nothing
+
             break
           }
           case '§a': {
@@ -182,7 +159,7 @@ export class GuildManager extends SubInstance<Core, InstanceType.Core, void> {
           )
         }
 
-        timeout.resolve(undefined) // online message is the last in the listing output
+        timeout.resolve(undefined)
         return
       }
     }

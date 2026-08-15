@@ -35,7 +35,6 @@ export function setTimeoutAsync(
   const queue = new SerialExecutor()
 
   return setTimeout(() => {
-    // allow to queue as many as possible if refresh() is used
     void queue.run(() => callback()).catch(options.errorHandler)
   }, options.delay.toMilliseconds())
 }

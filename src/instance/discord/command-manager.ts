@@ -85,11 +85,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     this.application.on('minecraftSelfBroadcast', (): void => {
       timeoutId.refresh()
     })
-    this.application.on('instanceAnnouncement', (event): void => {
-      if (event.instanceType === InstanceType.Minecraft) {
-        timeoutId.refresh()
-      }
-    })
   }
 
   private addDefaultCommands(): void {
@@ -182,12 +177,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     }
   }
 
-  /*
-   * - allow when channel registered and permitted
-   * - allow if channel not registered but command requires admin and user is permitted
-   * - disallow if not permitted
-   * - disallow if not in proper channel
-   */
   private async onCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     this.logger.trace(`${interaction.user.tag} executing ${interaction.commandName}`)
     const command = this.commands.get(interaction.commandName)
@@ -399,13 +388,6 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
   private getCommandsJson(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
     const commandsJson: RESTPostAPIChatInputApplicationCommandsJSONBody[] = []
 
-    /*
-    options are added after converting to json.
-    This is done to specifically insert the "instance" option directly after the required options
-    the official api doesn't support this. So JSON manipulation is used instead.
-    This is mainly used for "Required" option.
-    Discord will throw an error with "invalid body" otherwise.
-     */
     for (const command of this.commands.values()) {
       const commandBuilder = command.getCommandBuilder().toJSON()
       const instanceCommandName = 'instance'

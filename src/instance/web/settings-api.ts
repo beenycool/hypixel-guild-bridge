@@ -77,13 +77,11 @@ export class SettingsApiHandler {
     const permission = this.verifyAuth(request, response)
     if (permission === undefined) return true
 
-    // GET /api/bridges (list all bridges)
     if (method === 'GET' && segments.length === 0) {
       this.handleBridgesList(response)
       return true
     }
 
-    // POST /api/bridges (create a new bridge)
     if (method === 'POST' && segments.length === 0) {
       if (permission < Permission.Admin) {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
@@ -95,7 +93,6 @@ export class SettingsApiHandler {
       return true
     }
 
-    // GET /api/bridges/:bridgeId (get bridge details)
     if (method === 'GET' && segments.length === 1) {
       if (permission < Permission.Owner) {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
@@ -105,7 +102,6 @@ export class SettingsApiHandler {
       return true
     }
 
-    // DELETE /api/bridges/:bridgeId
     if (method === 'DELETE' && segments.length === 1) {
       if (permission < Permission.Admin) {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
@@ -115,7 +111,6 @@ export class SettingsApiHandler {
       return true
     }
 
-    // GET /api/bridges/:bridgeId/settings
     if (method === 'GET' && segments.length === 2 && segments[1] === 'settings') {
       if (permission < Permission.Owner) {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
@@ -125,7 +120,6 @@ export class SettingsApiHandler {
       return true
     }
 
-    // PUT /api/bridges/:bridgeId/settings/:category
     if (method === 'PUT' && segments.length === 3 && segments[1] === 'settings') {
       if (permission < Permission.Owner) {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
@@ -185,7 +179,6 @@ export class SettingsApiHandler {
 
     const categories = this.application.core.bridgeConfigurations.getAllSettings(bridgeId)
 
-    // Collect channel IDs for name resolution
     const channelIds = new Set<string>()
     for (const id of array((categories.channels as SettingObject | undefined)?.publicChannelIds)) channelIds.add(id)
     for (const id of array((categories.channels as SettingObject | undefined)?.officerChannelIds)) channelIds.add(id)
@@ -196,7 +189,6 @@ export class SettingsApiHandler {
     for (const id of array((categories.rankup as SettingObject | undefined)?.notificationChannelIds)) channelIds.add(id)
     for (const id of array((categories.statsChannels as SettingObject | undefined)?.channelIds)) channelIds.add(id)
 
-    // Collect role IDs for name resolution
     const roleIds = new Set<string>()
     for (const id of array((categories.staffRoles as SettingObject | undefined)?.helperRoleIds)) roleIds.add(id)
     for (const id of array((categories.staffRoles as SettingObject | undefined)?.officerRoleIds)) roleIds.add(id)
@@ -210,9 +202,7 @@ export class SettingsApiHandler {
       try {
         const ch = await client.channels.fetch(id).catch(() => undefined)
         if (ch && 'name' in ch) name = (ch as { name: string }).name
-      } catch {
-        // not resolvable
-      }
+      } catch {}
       resolvedChannels.push({ id, name })
     }
 
@@ -220,31 +210,25 @@ export class SettingsApiHandler {
     for (const id of roleIds) {
       let name: string | undefined
       try {
-        // Roles are guild-scoped, try every guild cache and fetch
         for (const [, guild] of client.guilds.cache) {
           let role = guild.roles.cache.get(id)
           if (!role) {
             try {
               const fetched = await guild.roles.fetch(id)
               if (fetched) role = fetched
-            } catch {
-              // not in this guild
-            }
+            } catch {}
           }
           if (role) {
             name = role.name
             break
           }
         }
-      } catch {
-        // not resolvable
-      }
+      } catch {}
       resolvedRoles.push({ id, name })
     }
 
     const availableLanguages = Object.values(ApplicationLanguages)
 
-    // Fetch guild ranks for rankup editor
     let guildRanks: string[] = []
     const instances = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
     if (instances.length > 0) {
@@ -258,9 +242,7 @@ export class SettingsApiHandler {
           const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getGuild('player', ...) returns null at runtime for players without a guild despite the Promise<Guild> typing
           if (guild) guildRanks = guild.ranks.map((r) => r.name)
-        } catch {
-          // fail gracefully
-        }
+        } catch {}
       }
     }
 
@@ -339,7 +321,7 @@ export class SettingsApiHandler {
           const deleteJoinLeaveAfter = Math.max(
             86_400,
             Math.min(604_800, numberValue(body.deleteJoinLeaveAfterSeconds, 172_800))
-          ) // 2 days in seconds, clamped to 1-7 days
+          )
           cfg.setDurationJoinLeaveInteractions(bridgeId, Duration.seconds(deleteJoinLeaveAfter))
           cfg.setRandomChatterEnabled(bridgeId, bool(body.chatterEnabled))
           cfg.setRandomChatterIntervalMinutes(bridgeId, numberValue(body.chatterIntervalMinutes, 15))

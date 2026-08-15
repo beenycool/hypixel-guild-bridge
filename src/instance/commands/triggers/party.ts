@@ -65,7 +65,6 @@ class PartyList extends ChatCommandHandler {
 
     let response = `${context.username}, parties: `
     for (const [index, party] of this.partyManager.activeParties.entries()) {
-      // utc() is not directly exported
       response += `${index + 1}. ${party.username}, ${party.count} players, ${party.purpose}, with ${relativeTime(party.expiresAt, false)} left\n`
     }
 

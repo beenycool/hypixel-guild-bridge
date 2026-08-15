@@ -8,9 +8,9 @@ export type EvaluateResult =
 export interface MemberStats {
   uuid: string
   rank: string
-  joinedAt: number // timestamp
+  joinedAt: number
   weeklyGexp: number
-  lastOnline?: number // timestamp
+  lastOnline?: number
   daysSinceLastSeen?: number
 }
 
@@ -26,7 +26,7 @@ export interface DemotionRule {
   action: 'demote' | 'kick' | 'notify'
   targetRank?: string
   maxWeeklyGexp: number
-  gracePeriod: number // days since joining
+  gracePeriod: number
   maxDaysInactive?: number
 }
 
@@ -37,18 +37,15 @@ export class RulesEvaluator {
     demotionRules: DemotionRule[],
     excludedRanks: string[],
     excludedPlayers: string[],
-    rankPriority: string[] // Ordered list of ranks from lowest to highest
+    rankPriority: string[]
   ): EvaluateResult {
     if (excludedPlayers.includes(member.uuid) || excludedRanks.includes(member.rank)) {
       return { action: 'none' }
     }
 
-    // Sort rules by target rank priority (highest first for promotion)
-    // We assume rankPriority[0] is lowest, rankPriority[length-1] is highest
     const currentRankIndex = rankPriority.indexOf(member.rank.toLowerCase())
-    if (currentRankIndex === -1) return { action: 'none' } // Unknown rank
+    if (currentRankIndex === -1) return { action: 'none' }
 
-    // Check Promotions
     const possiblePromotions = promotionRules
       .filter((rule) => {
         const targetIndex = rankPriority.indexOf(rule.targetRank.toLowerCase())
@@ -57,7 +54,7 @@ export class RulesEvaluator {
       .toSorted((a, b) => {
         const indexA = rankPriority.indexOf(a.targetRank.toLowerCase())
         const indexB = rankPriority.indexOf(b.targetRank.toLowerCase())
-        return indexB - indexA // Descending priority
+        return indexB - indexA
       })
 
     const daysInGuild = (Date.now() - member.joinedAt) / (1000 * 60 * 60 * 24)
@@ -72,7 +69,6 @@ export class RulesEvaluator {
       }
     }
 
-    // Check Demotions
     const applicableDemotion = demotionRules.find((r) => r.fromRank.toLowerCase() === member.rank.toLowerCase())
     if (
       applicableDemotion &&
@@ -100,7 +96,6 @@ export class RulesEvaluator {
       }
     }
 
-    // Check Inactivity-based demotion
     if (member.daysSinceLastSeen !== undefined) {
       const inactiveRule = demotionRules.find(
         (r) => r.fromRank.toLowerCase() === member.rank.toLowerCase() && r.maxDaysInactive !== undefined

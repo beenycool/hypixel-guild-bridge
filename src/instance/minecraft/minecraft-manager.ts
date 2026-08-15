@@ -12,10 +12,6 @@ import { Sanitizer } from './utility/sanitizer.js'
 export class MinecraftManager extends Instance<InstanceType.Utility> {
   public sanitizer: Sanitizer
 
-  /**
-   * Shared history of chat messages recently sent by any Minecraft instance.
-   * Used to recognize the echo of own commands in guild chat.
-   */
   public readonly sentChatMessages = new SentChatMessages()
 
   private readonly instances = new Set<MinecraftInstance>()
@@ -75,7 +71,7 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
     try {
       await instance.connect()
     } catch (error: unknown) {
-      await instance.disconnect().catch(() => undefined) // it might throw an error if connecting is throwing one already
+      await instance.disconnect().catch(() => undefined)
       this.instances.delete(instance)
       throw error
     }

@@ -1,12 +1,9 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler, formatCommandHelp, getCommandSuggestions } from '../../../common/commands.js'
 
-const MaxLineLength = 120 // keep single lines compact, well below the 256 char Minecraft message limit
-const MaxPageLength = 170 // total content per page, leaves room for the header and /msg metadata
+const MaxLineLength = 120
+const MaxPageLength = 170
 
-/**
- * Returns the categories of the given commands (minus disabled ones), sorted alphabetically.
- */
 export function listCategories(commands: ChatCommandHandler[], disabledCommands: string[]): string[] {
   const categories = new Set<string>()
   for (const command of commands) {
@@ -16,10 +13,6 @@ export function listCategories(commands: ChatCommandHandler[], disabledCommands:
   return [...categories].toSorted()
 }
 
-/**
- * Searches commands by trigger, description or category keyword. Returns matches
- * sorted by primary trigger, capped at `limit` results.
- */
 export function searchCommandsByKeyword(
   commands: ChatCommandHandler[],
   query: string,
@@ -35,10 +28,6 @@ export function searchCommandsByKeyword(
   return matches.toSorted((a, b) => a.triggers[0].localeCompare(b.triggers[0])).slice(0, limit)
 }
 
-/**
- * Builds the grouped command listing lines, e.g. "SkyBlock: acc, be, bits, ...".
- * Lines are wrapped at MaxLineLength and categories/commands sorted alphabetically.
- */
 export function buildCommandLines(commands: ChatCommandHandler[], disabledCommands: string[]): string[] {
   const grouped = new Map<string, string[]>()
   for (const command of commands) {
@@ -64,9 +53,6 @@ export function buildCommandLines(commands: ChatCommandHandler[], disabledComman
   return lines
 }
 
-/**
- * Packs lines into pages that each stay below `maxPageLength` characters.
- */
 export function paginateLines(lines: string[], maxPageLength = MaxPageLength): string[][] {
   const pages: string[][] = []
   let currentPage: string[] = []

@@ -6,9 +6,7 @@ import type { Logger } from 'log4js'
 import type Application from '../src/application.js'
 import { EssentialService } from '../src/core/essential/essential-service.js'
 
-const noop = (): void => {
-  /* noop */
-}
+const noop = (): void => {}
 
 await test('EssentialService returns undefined when no connected instance is available', async () => {
   const dummyLogger: Logger = {

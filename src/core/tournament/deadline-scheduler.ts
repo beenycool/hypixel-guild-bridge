@@ -21,7 +21,7 @@ export class DeadlineScheduler {
 
   public start(): void {
     this.logger.info('DeadlineScheduler: Starting (interval=5m)')
-    // Run every 5 minutes
+
     this.intervalHandle = setInterval(
       () => {
         this.checkDeadlines().catch((error: unknown) => {
@@ -51,7 +51,6 @@ export class DeadlineScheduler {
       const now = Math.floor(Date.now() / 1000)
       this.logger.info(`DeadlineScheduler: Running check at timestamp ${now}`)
 
-      // Get active tournaments
       const activeTournaments = await this.databaseManager.queryRows<Tournament>(
         'SELECT * FROM "tournaments" WHERE "status" = $1',
         [TournamentStatus.Active]
@@ -60,7 +59,6 @@ export class DeadlineScheduler {
       this.logger.info(`DeadlineScheduler: Found ${activeTournaments.length} active tournament(s)`)
 
       for (const tournament of activeTournaments) {
-        // Get matches that are ACTIVE, REPORTED, or DISPUTED and have a deadline
         const matches = await this.databaseManager.queryRows<TournamentMatch>(
           `SELECT * FROM "tournament_matches"
            WHERE "tournamentId" = $1
@@ -78,7 +76,6 @@ export class DeadlineScheduler {
 
           const timeRemaining = match.deadlineAt - now
 
-          // 1. Expired deadline
           if (now >= match.deadlineAt) {
             this.logger.info(`Match ${match.id}: Deadline expired (was ${match.deadlineAt}), auto-resolving`)
             await this.matchManager.handleDeadlineExpiry(match.id).catch((error: unknown) => {
@@ -87,20 +84,17 @@ export class DeadlineScheduler {
             continue
           }
 
-          // 2. 24h Warning
           const twentyFourHours = 24 * 3600
           if (now >= match.deadlineAt - twentyFourHours && match.warningsSent === 0) {
             this.logger.info(
               `Match ${match.id}: Sending 24h warning (deadline=${match.deadlineAt}, ${Math.floor(timeRemaining / 3600)}h remaining)`
             )
 
-            // Update warning sent flag
             await this.databaseManager.execute('UPDATE "tournament_matches" SET "warningsSent" = 1 WHERE "id" = $1', [
               match.id
             ])
             match.warningsSent = 1
 
-            // Fetch players to get UUIDs
             const p1 =
               match.player1Id === undefined
                 ? undefined
@@ -134,7 +128,6 @@ export class DeadlineScheduler {
         }
       }
 
-      // Also check for SIGNUP tournaments with open check-in windows
       const signupTournaments = await this.databaseManager.queryRows<Tournament>(
         'SELECT * FROM "tournaments" WHERE "status" = $1 AND "checkinOpensAt" IS NOT NULL AND "checkinOpensAt" <= $2',
         [TournamentStatus.Signup, now]

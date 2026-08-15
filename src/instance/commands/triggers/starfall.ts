@@ -34,7 +34,7 @@ export default class Starfall extends ChatCommandHandler {
     const dayProgress = currentDay - Math.floor(currentDay)
     timeTillStarfall += (1 - dayProgress) * DayInMilliseconds
 
-    let day = Math.floor(currentDay) + 1 // 1 day added from the dayProgress
+    let day = Math.floor(currentDay) + 1
     while (!StarfallDays.has(day)) {
       if (day === 31) day = 0
       day++

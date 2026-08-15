@@ -25,9 +25,6 @@ export class FeatherService {
     this.cache = new NodeCache({ stdTTL: cacheSeconds })
   }
 
-  /**
-   * Retrieves Minecraft credentials (accessToken, uuid, username) from the target (or default connected) MinecraftInstance
-   */
   private getCredentials(): { accessToken: string; uuid: string; username: string } | undefined {
     const instances = this.app.minecraftManager.getAllInstances()
     const targetName = this.instanceName?.toLowerCase()
@@ -45,10 +42,6 @@ export class FeatherService {
     return instance?.getLunarCredentials()
   }
 
-  /**
-   * Checks whether a player UUID is online on Feather Client using REST account-search.
-   * Returns true if online on Feather, false if offline/not on Feather, or undefined if Feather check is unavailable.
-   */
   public async checkFeatherStatus(uuid: string): Promise<boolean | undefined> {
     const cached = this.cache.get<boolean>(uuid)
     if (cached !== undefined) return cached

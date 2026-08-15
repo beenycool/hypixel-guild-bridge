@@ -55,7 +55,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
   private readonly config: MinecraftInstanceConfig
 
-  /** Latest tab-list ping (ms) from Hypixel `player_info` for this bot; reset on reconnect. */
   private latestTabPingMs: number | undefined
 
   public lastDisconnectMessage: { type: string; value?: string } | undefined
@@ -65,7 +64,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private cachedUuid?: string
 
   constructor(app: Application, instanceName: string, config: MinecraftInstanceConfig) {
-    // Resolve the bridge ID for this instance from the application's bridge resolver
     const bridgeId = app.bridgeResolver.getBridgeIdForInstance(instanceName)
     super(app, instanceName, InstanceType.Minecraft, bridgeId)
 
@@ -169,7 +167,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       version: this.defaultVersion,
       username: this.config.name,
       auth: authOption,
-      // profilesFolder is forwarded to prismarine-auth.Authflow which accepts a CacheFactory
+
       profilesFolder: (usesIasAuth ? false : sessionsManager.getSessionsFactory(this.instanceName)) as unknown as
         | string
         | false,
@@ -214,7 +212,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     this.stateHandler.dispose()
     this.bridge.dispose()
 
-    // wait till next cycle to let the clients close properly
     await setImmediate()
     await this.setAndBroadcastNewStatus(Status.Ended)
   }
@@ -230,9 +227,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return this.cachedUuid
   }
 
-  /**
-   * Expose session credentials for Lunar Client authentication.
-   */
   public getLunarCredentials(): { accessToken: string; uuid: string; username: string } | undefined {
     const client = this.clientSession?.client
     if (client === undefined || client.state !== states.PLAY) return undefined
@@ -246,10 +240,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return { accessToken, uuid, username }
   }
 
-  /**
-   * In-game/tab-list latency (ms) for this bot as reported by Hypixel via `player_info`.
-   * Undefined when not in play, disconnected, or before the first tab ping update.
-   */
   public getTabPingMs(): number | undefined {
     if (this.currentStatus() !== Status.Connected) return undefined
     const client = this.clientSession?.client
@@ -262,19 +252,10 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return this.sendQueue.notifyChatEvent(channel, message)
   }
 
-  /**
-   * returns {@link BaseEvent#eventId} of the last **MESSAGE** sent via {@link #send}.
-   * Sent commands that aren't messages will NOT change this value.
-   */
   getLastEventIdForSentChatMessage(): string | undefined {
     return this.sendQueue.lastId.get(CommandType.ChatMessage)
   }
 
-  /**
-   * returns {@link BaseEvent#eventId} of the last **GUILD ACTION** sent via {@link #send}.
-   * Sent commands that aren't the type will NOT change this value.
-   * commands the type are: guild chat message, guild change settings, guild info, etc.
-   */
   getLastEventIdForSentGuildAction(): string | undefined {
     return this.sendQueue.lastId.get(CommandType.GuildCommand)
   }
@@ -290,17 +271,11 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
   private static readonly MaxMinecraftMessageLength = 256
 
-  /**
-   * Split a message into at most 2 parts at a word boundary near the max length.
-   * If the second part still exceeds the limit after splitting, it is truncated.
-   * Returns the original message wrapped in an array if it fits in one part.
-   */
   private static splitMessage(message: string): string[] {
     if (message.length <= MinecraftInstance.MaxMinecraftMessageLength) return [message]
 
     const maxLength = MinecraftInstance.MaxMinecraftMessageLength
 
-    // Try to split at the last space before or at the limit
     const breakIndex = message.lastIndexOf(' ', maxLength)
 
     if (breakIndex > 0) {
@@ -314,7 +289,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       return [part1, part2]
     }
 
-    // No word boundary found — hard split at the limit
     const part1 = message.slice(0, maxLength)
     let part2 = message.slice(maxLength).trim()
 
@@ -325,18 +299,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     return [part1, part2]
   }
 
-  /**
-   * Send a message/command via minecraft client.
-   * The command will be queued to be sent in the future.
-   * If the message exceeds 256 characters it is split into at most 2 parts
-   * at a word boundary and each part is sent separately.
-   * If Hypixel responds with "You cannot say the same message twice!",
-   * a random suffix is appended and the message is resent (up to 5 retries).
-   *
-   * @param message the message/command to send
-   * @param priority when to handle the command
-   * @param originEventId {@link BaseEvent#eventId} that resulted in this send. <code>undefined</code> if none.
-   */
   async send(
     message: string,
     priority: MinecraftSendChatPriority,
@@ -355,9 +317,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     }
   }
 
-  /**
-   * Send a single message (≤ 256 chars) with duplicate-message retry logic.
-   */
   private async sendSingle(
     message: string,
     priority: MinecraftSendChatPriority,
@@ -445,10 +404,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     }
   }
 
-  /**
-   * Hypixel sends tab ping via `player_info` (`add_player` / `update_latency`, etc.).
-   * Do not use `client.latency` — minecraft-protocol does not update it on the client for keep-alive in this stack.
-   */
   private registerTabPingTracking(client: Client): void {
     client.on('player_info', (packet: unknown) => {
       if (packet === null || typeof packet !== 'object') return

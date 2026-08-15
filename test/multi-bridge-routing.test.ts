@@ -132,9 +132,7 @@ await describe('multi-bridge routing hardening', async () => {
         }
       },
       logger: {
-        warn: () => {
-          /* empty */
-        }
+        warn: () => {}
       },
       resolveChannels: () => [],
       resolveBridgeScopedChannels: DiscordBridgePrototype.resolveBridgeScopedChannels,
@@ -178,9 +176,7 @@ await describe('multi-bridge routing hardening', async () => {
       },
       logger: {
         warn: (message: string) => warnings.push(message),
-        debug: () => {
-          /* empty */
-        }
+        debug: () => {}
       }
     }
 

@@ -53,7 +53,6 @@ export default class Buildbattle extends HypixelPlayerCommand {
   }
 
   private async getTitle(context: ChatCommandContext, uuid: string, score: number): Promise<string> {
-    // Check if they deserve the special leaderboard title
     const leaderboards = await context.app.hypixelApi.getLeaderboards()
 
     const buildBattleLeaderboard = leaderboards.BUILD_BATTLE.find(
@@ -61,14 +60,12 @@ export default class Buildbattle extends HypixelPlayerCommand {
     )
     assert.ok(buildBattleLeaderboard !== undefined)
 
-    // UUID without dashes
     const top10Leaderboard = buildBattleLeaderboard.leaders.map((entry) => entry.replaceAll('-', '')).slice(0, 10)
 
     for (const [index, topLeaderboard] of top10Leaderboard.entries()) {
       if (topLeaderboard === uuid) return `#${index + 1} Builder`
     }
 
-    // fallback to normal titles
     let lastValidTitle = Buildbattle.Titles[0].score
     for (const entry of Buildbattle.Titles) {
       if (score >= entry.value) lastValidTitle = entry.score

@@ -16,9 +16,7 @@ export class BracketVisualizer {
   constructor() {
     try {
       registerFont(path.join('resources', 'fonts', 'MinecraftRegular-Bmg3.ttf'), { family: 'Minecraft' })
-    } catch {
-      // Font registration is optional; canvas will fall back to sans-serif
-    }
+    } catch {}
   }
 
   buildBracketImage(data: BracketData): Buffer | null {
@@ -43,17 +41,14 @@ export class BracketVisualizer {
       const canvas = createCanvas(width, height)
       const context = canvas.getContext('2d')
 
-      // Dark background
       context.fillStyle = '#1a1a2e'
       context.fillRect(0, 0, width, height)
 
-      // Header title
       context.font = '18px Minecraft, sans-serif'
       context.fillStyle = '#ffffff'
       context.textAlign = 'center'
       context.fillText(`${data.tournament.name} — Bracket`, width / 2, 28, width - 40)
 
-      // Group matches by round
       const matchesByRound = new Map<number, TournamentMatch[]>()
       for (const match of data.matches) {
         const round = match.round
@@ -65,7 +60,6 @@ export class BracketVisualizer {
         }
       }
 
-      // Render round header labels
       context.font = '14px Minecraft, sans-serif'
       context.fillStyle = '#888888'
       context.textAlign = 'center'
@@ -75,7 +69,6 @@ export class BracketVisualizer {
         context.fillText(label, headerX, headerHeight + 5, columnWidth - 20)
       }
 
-      // Map to store center Y coordinates for matches
       const centerYMap = new Map<number, number>()
 
       for (let round = 1; round <= totalRounds; round++) {
@@ -121,7 +114,6 @@ export class BracketVisualizer {
             }
           }
 
-          // Draw match card container
           context.fillStyle = bgColor
           context.strokeStyle = borderColor
           context.lineWidth = 2
@@ -130,7 +122,6 @@ export class BracketVisualizer {
           context.fill()
           context.stroke()
 
-          // Draw player 1 info
           const p1Name = match.player1Id ? (data.playerNames.get(match.player1Id) ?? 'TBD') : '—'
           const p1Score =
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
@@ -149,7 +140,6 @@ export class BracketVisualizer {
             context.fillText(p1Score, boxX + boxWidth - 8, y + 20)
           }
 
-          // Divider line between players
           context.strokeStyle = '#444444'
           context.lineWidth = 1
           context.beginPath()
@@ -157,7 +147,6 @@ export class BracketVisualizer {
           context.lineTo(boxX + boxWidth - 6, y + matchHeight / 2)
           context.stroke()
 
-          // Draw player 2 info
           const p2Name = match.player2Id ? (data.playerNames.get(match.player2Id) ?? 'TBD') : '—'
           const p2Score =
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
@@ -175,7 +164,6 @@ export class BracketVisualizer {
             context.fillText(p2Score, boxX + boxWidth - 8, y + matchHeight / 2 + 20)
           }
 
-          // Draw connector line to next round if available
           if (round < totalRounds) {
             const nextColX = padding + round * columnWidth
             const nextBoxX = nextColX + 15

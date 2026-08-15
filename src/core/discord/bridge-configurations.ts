@@ -2,11 +2,6 @@ import type { DynamicBridgeConfig } from '../../common/dynamic-bridge-config.js'
 import Duration from '../../utility/duration'
 import type { Configuration, ConfigurationsManager } from '../configurations'
 
-/**
- * Configuration for bridge channel mappings stored in the database.
- * This allows dynamic configuration via /settings command.
- * Each bridge has its own complete set of settings.
- */
 export class BridgeConfigurations implements DynamicBridgeConfig {
   private readonly configuration: Configuration
   private readonly onChange?: (event: { bridgeId: string; key: string; value: unknown }) => void
@@ -32,16 +27,10 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.onChange = onChange
   }
 
-  /**
-   * Get all bridge IDs that have been configured dynamically
-   */
   public getAllBridgeIds(): string[] {
     return this.configuration.getStringArray('bridgeIds', [])
   }
 
-  /**
-   * Add a new bridge ID to the list of bridges
-   */
   public addBridgeId(bridgeId: string): void {
     const existing = this.getAllBridgeIds()
     if (!existing.includes(bridgeId)) {
@@ -55,21 +44,15 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     if (this.onChange) {
       try {
         this.onChange({ bridgeId, key, value })
-      } catch {
-        // ignore errors from callbacks
-      }
+      } catch {}
     }
   }
 
-  /**
-   * Remove a bridge ID from the list of bridges
-   */
   public removeBridgeId(bridgeId: string): void {
     const existing = this.getAllBridgeIds()
     const filtered = existing.filter((id) => id !== bridgeId)
     this.configuration.setStringArray('bridgeIds', filtered)
 
-    // Clean up all bridge-specific configurations
     this.configuration.delete(`${bridgeId}_publicChannelIds`)
     this.configuration.delete(`${bridgeId}_officerChannelIds`)
     this.configuration.delete(`${bridgeId}_loggerChannelIds`)
@@ -92,14 +75,14 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_temporarilyInteractionsDuration`)
     this.configuration.delete(`${bridgeId}_persistGuildJoinLeave`)
     this.configuration.delete(`${bridgeId}_joinLeaveInteractionsDuration`)
-    // Moderation settings
+
     this.configuration.delete(`${bridgeId}_heatPunishmentEnabled`)
     this.configuration.delete(`${bridgeId}_kicksPerDay`)
     this.configuration.delete(`${bridgeId}_mutesPerDay`)
     this.configuration.delete(`${bridgeId}_profanityEnabled`)
     this.configuration.delete(`${bridgeId}_immuneDiscordUsers`)
     this.configuration.delete(`${bridgeId}_immuneMojangPlayers`)
-    // Chat commands settings
+
     this.configuration.delete(`${bridgeId}_commandsEnabled`)
     this.configuration.delete(`${bridgeId}_commandPrefix`)
     this.configuration.delete(`${bridgeId}_disabledCommands`)
@@ -109,7 +92,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_typoCooldownSeconds`)
     this.configuration.delete(`${bridgeId}_insultMode`)
 
-    // Quality of Life settings
     this.configuration.delete(`${bridgeId}_joinGuildReaction`)
     this.configuration.delete(`${bridgeId}_leaveGuildReaction`)
     this.configuration.delete(`${bridgeId}_kickGuildReaction`)
@@ -128,18 +110,18 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_welcomeOnlineMessages`)
 
     this.configuration.delete(`${bridgeId}_botUsernameOverride`)
-    // Per-bridge player username overrides (keys are dynamic, so enumerate them)
+
     for (const key of this.configuration.keysWithPrefix(
       `${bridgeId}_${BridgeConfigurations.PlayerUsernameOverridePrefix}`
     )) {
       this.configuration.delete(key)
     }
-    // Per-bridge language
+
     this.configuration.delete(`${bridgeId}_language`)
-    // Passthrough commands settings
+
     this.configuration.delete(`${bridgeId}_passthroughCommands`)
     this.configuration.delete(`${bridgeId}_passthroughPrefix`)
-    // Rankup automation settings
+
     this.configuration.delete(`${bridgeId}_rankupEnabled`)
     this.configuration.delete(`${bridgeId}_rankupManualReview`)
     this.configuration.delete(`${bridgeId}_rankupNotificationCooldown`)
@@ -152,7 +134,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_rankupScheduleHour`)
     this.configuration.delete(`${bridgeId}_rankupLastRunAt`)
 
-    // Tournament settings
     this.configuration.delete(`${bridgeId}_tournamentEnabled`)
     this.configuration.delete(`${bridgeId}_tournamentNotificationChannelId`)
     this.configuration.delete(`${bridgeId}_tournamentDefaultDeadlineHours`)
@@ -161,157 +142,93 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_tournamentDefaultBracketFormat`)
     this.configuration.delete(`${bridgeId}_tournamentValidGameTypes`)
 
-    // Stats channel topic settings
     this.configuration.delete(`${bridgeId}_statsTopicEnabled`)
     this.configuration.delete(`${bridgeId}_statsTopicTemplate`)
     this.configuration.delete(`${bridgeId}_statsTopicChannelIds`)
     this.configuration.delete(`${bridgeId}_statsTopicUpdateIntervalMinutes`)
 
-    // Interview settings
     this.configuration.delete(`${bridgeId}_interviewEnabled`)
     this.configuration.delete(`${bridgeId}_interviewQuestion`)
     this.configuration.delete(`${bridgeId}_interviewTimeoutMs`)
 
-    // Notify listeners that a bridge was removed so utilities can cleanup memory
     if (this.onChange) {
       try {
         this.onChange({ bridgeId, key: 'remove_bridge', value: true })
-      } catch {
-        // ignore errors from callbacks
-      }
+      } catch {}
     }
   }
 
-  // ========== Channel Configurations ==========
-
-  /**
-   * Get public channel IDs for a specific bridge
-   */
   public getPublicChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_publicChannelIds`, [])
   }
 
-  /**
-   * Set public channel IDs for a specific bridge
-   */
   public setPublicChannelIds(bridgeId: string, channelIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_publicChannelIds`, channelIds)
   }
 
-  /**
-   * Get officer channel IDs for a specific bridge
-   */
   public getOfficerChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_officerChannelIds`, [])
   }
 
-  /**
-   * Set officer channel IDs for a specific bridge
-   */
   public setOfficerChannelIds(bridgeId: string, channelIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_officerChannelIds`, channelIds)
   }
 
-  /**
-   * Get logger channel IDs for a specific bridge
-   */
   public getLoggerChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_loggerChannelIds`, [])
   }
 
-  /**
-   * Set logger channel IDs for a specific bridge
-   */
   public setLoggerChannelIds(bridgeId: string, channelIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_loggerChannelIds`, channelIds)
   }
 
-  /**
-   * Get promote channel IDs for a specific bridge
-   */
   public getPromoteChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_promoteChannelIds`, [])
   }
 
-  /**
-   * Set promote channel IDs for a specific bridge
-   */
   public setPromoteChannelIds(bridgeId: string, channelIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_promoteChannelIds`, channelIds)
   }
 
-  /**
-   * Get chat summary channel IDs for a specific bridge
-   */
   public getChatSummaryChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_chatSummaryChannelIds`, [])
   }
 
-  /**
-   * Set chat summary channel IDs for a specific bridge
-   */
   public setChatSummaryChannelIds(bridgeId: string, channelIds: string[]): void {
     this.setConfig(bridgeId, `${bridgeId}_chatSummaryChannelIds`, channelIds, () => {
       this.configuration.setStringArray(`${bridgeId}_chatSummaryChannelIds`, channelIds)
     })
   }
 
-  /**
-   * Get whether chat summary is enabled for a specific bridge
-   */
   public getChatSummaryEnabled(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_chatSummaryEnabled`, false)
   }
 
-  /**
-   * Set whether chat summary is enabled for a specific bridge
-   */
   public setChatSummaryEnabled(bridgeId: string, enabled: boolean): void {
     this.setConfig(bridgeId, `${bridgeId}_chatSummaryEnabled`, enabled, () => {
       this.configuration.setBoolean(`${bridgeId}_chatSummaryEnabled`, enabled)
     })
   }
 
-  /**
-   * Get Minecraft instance names for a specific bridge
-   */
   public getMinecraftInstances(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_minecraftInstances`, [])
   }
 
-  /**
-   * Set Minecraft instance names for a specific bridge
-   */
   public setMinecraftInstances(bridgeId: string, instanceNames: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_minecraftInstances`, instanceNames)
   }
 
-  // ========== Bot Username Override ==========
-
-  /**
-   * Get the per-bridge bot username override for Discord image rendering.
-   * Returns undefined when no override is set (uses the real bot account name).
-   */
   public getBotUsernameOverride(bridgeId: string): string | undefined {
     const value = this.getBridgeString('botUsernameOverride', bridgeId)
     return value === '' ? undefined : value
   }
 
-  /**
-   * Set the per-bridge bot username override. Pass undefined or empty string to clear.
-   */
   public setBotUsernameOverride(bridgeId: string, name: string | undefined): void {
     this.setBridgeString('botUsernameOverride', bridgeId, name)
   }
 
-  // ========== Player Username Overrides ==========
-
   private static readonly PlayerUsernameOverridePrefix = 'playerUsernameOverride_'
 
-  /**
-   * Get the per-bridge display name override for a Minecraft player.
-   * Returns undefined when no override is set (the real Minecraft username is used).
-   */
   public getPlayerUsernameOverride(bridgeId: string, playerName: string): string | undefined {
     const value = this.getBridgeString(
       `${BridgeConfigurations.PlayerUsernameOverridePrefix}${playerName.toLowerCase()}`,
@@ -320,10 +237,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     return value === '' ? undefined : value
   }
 
-  /**
-   * Set the per-bridge display name override for a Minecraft player.
-   * Pass undefined or empty string to clear the override.
-   */
   public setPlayerUsernameOverride(bridgeId: string, playerName: string, name: string | undefined): void {
     this.setBridgeString(
       `${BridgeConfigurations.PlayerUsernameOverridePrefix}${playerName.toLowerCase()}`,
@@ -332,9 +245,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     )
   }
 
-  /**
-   * Get all per-bridge player display name overrides as a map of player name to display name.
-   */
   public getPlayerUsernameOverrides(bridgeId: string): Record<string, string> {
     const overrides: Record<string, string> = {}
     const prefix = `${bridgeId}_${BridgeConfigurations.PlayerUsernameOverridePrefix}`
@@ -346,201 +256,112 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     return overrides
   }
 
-  // ========== Language Configuration ==========
-
-  /**
-   * Get the configured language for a specific bridge (e.g., 'en', 'de', 'ar').
-   * Returns undefined when no per-bridge language is set.
-   */
   public getLanguage(bridgeId: string): string | undefined {
     const value = this.getBridgeString('language', bridgeId)
     return value === '' ? undefined : value
   }
 
-  /**
-   * Set the configured language for a specific bridge. Pass undefined to clear the setting.
-   */
   public setLanguage(bridgeId: string, language: string | undefined): void {
     this.setBridgeString('language', bridgeId, language)
   }
 
-  /**
-   * Get the Hypixel guild name for a specific bridge.
-   * Resolved on startup from the bot's guild membership.
-   */
   public getGuildName(bridgeId: string): string | undefined {
     const value = this.getBridgeString('guildName', bridgeId)
     return value === '' ? undefined : value
   }
 
-  /**
-   * Set the Hypixel guild name for a specific bridge.
-   */
   public setGuildName(bridgeId: string, name: string | undefined): void {
     this.setBridgeString('guildName', bridgeId, name)
   }
 
-  // ========== Role Configurations ==========
-
-  /**
-   * Get helper role IDs for a specific bridge
-   */
   public getHelperRoleIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_helperRoleIds`, [])
   }
 
-  /**
-   * Set helper role IDs for a specific bridge
-   */
   public setHelperRoleIds(bridgeId: string, roleIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_helperRoleIds`, roleIds)
   }
 
-  /**
-   * Get officer role IDs for a specific bridge
-   */
   public getOfficerRoleIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_officerRoleIds`, [])
   }
 
-  /**
-   * Set officer role IDs for a specific bridge
-   */
   public setOfficerRoleIds(bridgeId: string, roleIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_officerRoleIds`, roleIds)
   }
 
-  /**
-   * Get owner role IDs for a specific bridge
-   */
   public getOwnerRoleIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_ownerRoleIds`, [])
   }
 
-  /**
-   * Set owner role IDs for a specific bridge
-   */
   public setOwnerRoleIds(bridgeId: string, roleIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_ownerRoleIds`, roleIds)
   }
 
-  /**
-   * Get join request role IDs for a specific bridge
-   */
   public getJoinRequestRoleIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_joinRequestRoleIds`, [])
   }
 
-  /**
-   * Set join request role IDs for a specific bridge
-   */
   public setJoinRequestRoleIds(bridgeId: string, roleIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_joinRequestRoleIds`, roleIds)
   }
 
-  // ========== Discord Settings ==========
-
-  /**
-   * Get always reply reaction setting for a specific bridge
-   */
   public getAlwaysReplyReaction(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_alwaysReplyReaction`, false)
   }
 
-  /**
-   * Set always reply reaction setting for a specific bridge
-   */
   public setAlwaysReplyReaction(bridgeId: string, value: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_alwaysReplyReaction`, value)
   }
 
-  /**
-   * Get enforce verification setting for a specific bridge
-   */
   public getEnforceVerification(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_enforceVerification`, false)
   }
 
-  /**
-   * Set enforce verification setting for a specific bridge
-   */
   public setEnforceVerification(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_enforceVerification`, enabled)
   }
 
-  /**
-   * Get text to image setting for a specific bridge
-   */
   public getTextToImage(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_textToImage`, false)
   }
 
-  /**
-   * Set text to image setting for a specific bridge
-   */
   public setTextToImage(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_textToImage`, enabled)
   }
 
-  /**
-   * Get guild online notification setting for a specific bridge
-   */
   public getGuildOnline(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_guildOnline`, true)
   }
 
-  /**
-   * Set guild online notification setting for a specific bridge
-   */
   public setGuildOnline(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_guildOnline`, enabled)
   }
 
-  /**
-   * Get guild offline notification setting for a specific bridge
-   */
   public getGuildOffline(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_guildOffline`, true)
   }
 
-  /**
-   * Set guild offline notification setting for a specific bridge
-   */
   public setGuildOffline(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_guildOffline`, enabled)
   }
 
-  /**
-   * Get persist guild online/offline setting for a specific bridge
-   */
   public getPersistGuildOnlineOffline(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_persistGuildOnlineOffline`, false)
   }
 
-  /**
-   * Set persist guild online/offline setting for a specific bridge
-   */
   public setPersistGuildOnlineOffline(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_persistGuildOnlineOffline`, enabled)
   }
 
-  /**
-   * Get max temporarily interactions for a specific bridge
-   */
   public getMaxTemporarilyInteractions(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_temporarilyInteractionsCount`, 5)
   }
 
-  /**
-   * Set max temporarily interactions for a specific bridge
-   */
   public setMaxTemporarilyInteractions(bridgeId: string, value: number): void {
     this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsCount`, value)
   }
 
-  /**
-   * Get duration for temporarily interactions for a specific bridge
-   */
   public getDurationTemporarilyInteractions(bridgeId: string): Duration {
     const value = this.configuration.getNumber(
       `${bridgeId}_temporarilyInteractionsDuration`,
@@ -549,9 +370,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     return Duration.seconds(value)
   }
 
-  /**
-   * Set duration for temporarily interactions for a specific bridge
-   */
   public setDurationTemporarilyInteractions(bridgeId: string, value: Duration): void {
     this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsDuration`, value.toSeconds())
   }
@@ -576,20 +394,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setNumber(`${bridgeId}_joinLeaveInteractionsDuration`, value.toSeconds())
   }
 
-  // ========== Moderation Configurations ==========
-
-  /**
-   * Get whether heat punishment is enabled for a specific bridge (undefined = use global)
-   */
   public getHeatPunishmentEnabled(bridgeId: string): boolean | undefined {
     const value = this.getBridgeString('heatPunishmentEnabled', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
 
-  /**
-   * Set whether heat punishment is enabled for a specific bridge
-   */
   public setHeatPunishmentEnabled(bridgeId: string, enabled: boolean | undefined): void {
     if (enabled === undefined) {
       this.configuration.delete(`${bridgeId}_heatPunishmentEnabled`)
@@ -598,17 +408,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get kicks per day for a specific bridge (undefined = use global)
-   */
   public getKicksPerDay(bridgeId: string): number | undefined {
     const value = this.configuration.getNumber(`${bridgeId}_kicksPerDay`, -1)
     return value === -1 ? undefined : value
   }
 
-  /**
-   * Set kicks per day for a specific bridge
-   */
   public setKicksPerDay(bridgeId: string, value: number | undefined): void {
     if (value === undefined) {
       this.configuration.delete(`${bridgeId}_kicksPerDay`)
@@ -617,17 +421,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get mutes per day for a specific bridge (undefined = use global)
-   */
   public getMutesPerDay(bridgeId: string): number | undefined {
     const value = this.configuration.getNumber(`${bridgeId}_mutesPerDay`, -1)
     return value === -1 ? undefined : value
   }
 
-  /**
-   * Set mutes per day for a specific bridge
-   */
   public setMutesPerDay(bridgeId: string, value: number | undefined): void {
     if (value === undefined) {
       this.configuration.delete(`${bridgeId}_mutesPerDay`)
@@ -636,18 +434,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get whether profanity filter is enabled for a specific bridge (undefined = use global)
-   */
   public getProfanityEnabled(bridgeId: string): boolean | undefined {
     const value = this.getBridgeString('profanityEnabled', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
 
-  /**
-   * Set whether profanity filter is enabled for a specific bridge
-   */
   public setProfanityEnabled(bridgeId: string, enabled: boolean | undefined): void {
     if (enabled === undefined) {
       this.configuration.delete(`${bridgeId}_profanityEnabled`)
@@ -656,48 +448,28 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get immune Discord users for a specific bridge
-   */
   public getImmuneDiscordUsers(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_immuneDiscordUsers`, [])
   }
 
-  /**
-   * Set immune Discord users for a specific bridge
-   */
   public setImmuneDiscordUsers(bridgeId: string, users: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_immuneDiscordUsers`, users)
   }
 
-  /**
-   * Get immune Mojang players for a specific bridge
-   */
   public getImmuneMojangPlayers(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_immuneMojangPlayers`, [])
   }
 
-  /**
-   * Set immune Mojang players for a specific bridge
-   */
   public setImmuneMojangPlayers(bridgeId: string, players: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_immuneMojangPlayers`, players)
   }
 
-  // ========== Chat Commands Configurations ==========
-
-  /**
-   * Get whether chat commands are enabled for a specific bridge (undefined = use global)
-   */
   public getCommandsEnabled(bridgeId: string): boolean | undefined {
     const value = this.getBridgeString('commandsEnabled', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
 
-  /**
-   * Set whether chat commands are enabled for a specific bridge
-   */
   public setCommandsEnabled(bridgeId: string, enabled: boolean | undefined): void {
     if (enabled === undefined) {
       this.configuration.delete(`${bridgeId}_commandsEnabled`)
@@ -706,47 +478,29 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get chat command prefix for a specific bridge (undefined = use global)
-   */
   public getCommandPrefix(bridgeId: string): string | undefined {
     const value = this.getBridgeString('commandPrefix', bridgeId)
     return value === '' ? undefined : value
   }
 
-  /**
-   * Set chat command prefix for a specific bridge
-   */
   public setCommandPrefix(bridgeId: string, prefix: string | undefined): void {
     this.setBridgeString('commandPrefix', bridgeId, prefix)
   }
 
-  /**
-   * Get disabled commands for a specific bridge
-   */
   public getDisabledCommands(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_disabledCommands`, [])
   }
 
-  /**
-   * Set disabled commands for a specific bridge
-   */
   public setDisabledCommands(bridgeId: string, commands: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_disabledCommands`, commands)
   }
 
-  /**
-   * Get whether command explanation on help is enabled for a specific bridge (undefined = use global)
-   */
   public getExplainCommandOnHelp(bridgeId: string): boolean | undefined {
     const value = this.getBridgeString('explainCommandOnHelp', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
 
-  /**
-   * Set whether command explanation on help is enabled for a specific bridge
-   */
   public setExplainCommandOnHelp(bridgeId: string, enabled: boolean | undefined): void {
     if (enabled === undefined) {
       this.configuration.delete(`${bridgeId}_explainCommandOnHelp`)
@@ -755,18 +509,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get whether typo suggestion is enabled for a specific bridge (undefined = use global)
-   */
   public getSuggestOnTypo(bridgeId: string): boolean | undefined {
     const value = this.getBridgeString('suggestOnTypo', bridgeId)
     if (value === '') return undefined
     return value === 'true'
   }
 
-  /**
-   * Set whether typo suggestion is enabled for a specific bridge
-   */
   public setSuggestOnTypo(bridgeId: string, enabled: boolean | undefined): void {
     if (enabled === undefined) {
       this.configuration.delete(`${bridgeId}_suggestOnTypo`)
@@ -775,17 +523,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get typo suggestion threshold for a specific bridge (undefined = use global)
-   */
   public getTypoSuggestionThreshold(bridgeId: string): number | undefined {
     const value = this.configuration.getNumber(`${bridgeId}_typoSuggestionThreshold`, -1)
     return value === -1 ? undefined : value
   }
 
-  /**
-   * Set typo suggestion threshold for a specific bridge
-   */
   public setTypoSuggestionThreshold(bridgeId: string, threshold: number | undefined): void {
     if (threshold === undefined) {
       this.configuration.delete(`${bridgeId}_typoSuggestionThreshold`)
@@ -794,17 +536,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get typo cooldown seconds for a specific bridge (undefined = use global)
-   */
   public getTypoCooldownSeconds(bridgeId: string): number | undefined {
     const value = this.configuration.getNumber(`${bridgeId}_typoCooldownSeconds`, -1)
     return value === -1 ? undefined : value
   }
 
-  /**
-   * Set typo cooldown seconds for a specific bridge
-   */
   public setTypoCooldownSeconds(bridgeId: string, seconds: number | undefined): void {
     if (seconds === undefined) {
       this.configuration.delete(`${bridgeId}_typoCooldownSeconds`)
@@ -813,22 +549,14 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get insult mode for a specific bridge ('normal', 'custom', or undefined = use global default)
-   */
   public getInsultMode(bridgeId: string): string | undefined {
     const value = this.getBridgeString('insultMode', bridgeId)
     return value === '' ? undefined : value
   }
 
-  /**
-   * Set insult mode for a specific bridge. Pass undefined to clear the setting.
-   */
   public setInsultMode(bridgeId: string, mode: string | undefined): void {
     this.setBridgeString('insultMode', bridgeId, mode)
   }
-
-  // ========== Quality of Life Configurations ==========
 
   public getJoinGuildReaction(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_joinGuildReaction`, true)
@@ -870,8 +598,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setString(`${bridgeId}_leaveReactionEmojiType`, value)
   }
 
-  // ========== Random Chatter Configurations ==========
-
   public getRandomChatterEnabled(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_randomChatterEnabled`, false)
   }
@@ -893,7 +619,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setRandomChatterIntervalMinutes(bridgeId: string, minutes: number): void {
-    // Clamp and validate to avoid non-sensical values
     const normalized = Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : 15
     this.configuration.setNumber(`${bridgeId}_randomChatterIntervalMinutes`, normalized)
   }
@@ -903,7 +628,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setRandomChatterMinimumOnlinePlayers(bridgeId: string, count: number): void {
-    // Enforce a minimum of 1 so zero cannot bypass the online-members check
     const normalized = Number.isFinite(count) && count >= 1 ? Math.floor(count) : 1
     this.configuration.setNumber(`${bridgeId}_randomChatterMinimumOnlinePlayers`, normalized)
   }
@@ -966,170 +690,101 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setString(`${bridgeId}_welcomeOnlineMessages`, JSON.stringify(messages))
   }
 
-  // ========== Passthrough Commands Configurations ==========
-
-  /**
-   * Get passthrough commands for a specific bridge.
-   * These commands are forwarded directly to in-game chat without the bridge prefix.
-   * Returns empty array if not configured (falls back to global).
-   */
   public getPassthroughCommands(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_passthroughCommands`, [])
   }
 
-  /**
-   * Set passthrough commands for a specific bridge
-   */
   public setPassthroughCommands(bridgeId: string, commands: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_passthroughCommands`, commands)
   }
 
-  /**
-   * Get passthrough prefix for a specific bridge (undefined = use global)
-   */
   public getPassthroughPrefix(bridgeId: string): string | undefined {
     const value = this.getBridgeString('passthroughPrefix', bridgeId)
     return value === '' ? undefined : value
   }
 
-  /**
-   * Set passthrough prefix for a specific bridge
-   */
   public setPassthroughPrefix(bridgeId: string, prefix: string | undefined): void {
     this.setBridgeString('passthroughPrefix', bridgeId, prefix)
   }
 
-  // ========== Rankup Automation Configurations ==========
-
-  /**
-   * Get whether rankup automation is enabled for a bridge
-   */
   public getRankupEnabled(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_rankupEnabled`, false)
   }
 
-  /**
-   * Set whether rankup automation is enabled for a bridge
-   */
   public setRankupEnabled(bridgeId: string, enabled: boolean): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupEnabled`, enabled, () => {
       this.configuration.setBoolean(`${bridgeId}_rankupEnabled`, enabled)
     })
   }
 
-  /**
-   * Get whether manual review mode is enabled for rankup
-   */
   public getRankupManualReview(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_rankupManualReview`, false)
   }
 
-  /**
-   * Set whether manual review mode is enabled for rankup
-   */
   public setRankupManualReview(bridgeId: string, enabled: boolean): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupManualReview`, enabled, () => {
       this.configuration.setBoolean(`${bridgeId}_rankupManualReview`, enabled)
     })
   }
 
-  /**
-   * Get notification cooldown in hours for rankup
-   */
   public getRankupNotificationCooldown(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_rankupNotificationCooldown`, 24)
   }
 
-  /**
-   * Set notification cooldown in hours for rankup
-   */
   public setRankupNotificationCooldown(bridgeId: string, hours: number): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupNotificationCooldown`, hours, () => {
       this.configuration.setNumber(`${bridgeId}_rankupNotificationCooldown`, hours)
     })
   }
 
-  /**
-   * Get notification channel IDs for rankup
-   */
   public getRankupNotificationChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_rankupNotificationChannelIds`, [])
   }
 
-  /**
-   * Set notification channel IDs for rankup
-   */
   public setRankupNotificationChannelIds(bridgeId: string, channelIds: string[]): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupNotificationChannelIds`, channelIds, () => {
       this.configuration.setStringArray(`${bridgeId}_rankupNotificationChannelIds`, channelIds)
     })
   }
 
-  /**
-   * Get Discord user IDs to ping in rankup review notifications
-   */
   public getRankupPingUserIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_rankupPingUserIds`, [])
   }
 
-  /**
-   * Set Discord user IDs to ping in rankup review notifications
-   */
   public setRankupPingUserIds(bridgeId: string, userIds: string[]): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupPingUserIds`, userIds, () => {
       this.configuration.setStringArray(`${bridgeId}_rankupPingUserIds`, userIds)
     })
   }
 
-  /**
-   * Get the day of the week the rankup check is restricted to (0=Sunday..6=Saturday, -1 = no restriction)
-   */
   public getRankupScheduleDay(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_rankupScheduleDay`, -1)
   }
 
-  /**
-   * Set the day of the week the rankup check is restricted to (0=Sunday..6=Saturday)
-   */
   public setRankupScheduleDay(bridgeId: string, day: number): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupScheduleDay`, day, () => {
       this.configuration.setNumber(`${bridgeId}_rankupScheduleDay`, day)
     })
   }
 
-  /**
-   * Get the hour (UK time, 0-23) the rankup check is restricted to (-1 = no restriction)
-   */
   public getRankupScheduleHour(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_rankupScheduleHour`, -1)
   }
 
-  /**
-   * Set the hour (UK time, 0-23) the rankup check is restricted to
-   */
   public setRankupScheduleHour(bridgeId: string, hour: number): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupScheduleHour`, hour, () => {
       this.configuration.setNumber(`${bridgeId}_rankupScheduleHour`, hour)
     })
   }
 
-  /**
-   * Get the unix timestamp (seconds) of the last completed rankup checkup for a bridge
-   */
   public getRankupLastRunAt(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_rankupLastRunAt`, -1)
   }
 
-  /**
-   * Set the unix timestamp (seconds) of the last completed rankup checkup for a bridge
-   */
   public setRankupLastRunAt(bridgeId: string, timestamp: number): void {
     this.configuration.setNumber(`${bridgeId}_rankupLastRunAt`, timestamp)
   }
 
-  /**
-   * Get promotion rules for rankup
-   */
   public getRankupRules(bridgeId: string): {
     targetRank: string
     minWeeklyGexp: number
@@ -1149,9 +804,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Set promotion rules for rankup
-   */
   public setRankupRules(
     bridgeId: string,
     rules: {
@@ -1166,9 +818,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     })
   }
 
-  /**
-   * Get demotion rules for rankup
-   */
   public getRankupDemotionRules(bridgeId: string): {
     fromRank: string
     action: 'demote' | 'kick' | 'notify'
@@ -1192,9 +841,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Set demotion rules for rankup
-   */
   public setRankupDemotionRules(
     bridgeId: string,
     rules: {
@@ -1211,114 +857,70 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     })
   }
 
-  /**
-   * Get excluded ranks for rankup automation
-   */
   public getRankupExcludedRanks(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_rankupExcludedRanks`, [])
   }
 
-  /**
-   * Set excluded ranks for rankup automation
-   */
   public setRankupExcludedRanks(bridgeId: string, ranks: string[]): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupExcludedRanks`, ranks, () => {
       this.configuration.setStringArray(`${bridgeId}_rankupExcludedRanks`, ranks)
     })
   }
 
-  /**
-   * Get excluded players for rankup automation
-   */
   public getRankupExcludedPlayers(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_rankupExcludedPlayers`, [])
   }
 
-  /**
-   * Set excluded players for rankup automation
-   */
   public setRankupExcludedPlayers(bridgeId: string, players: string[]): void {
     this.setConfig(bridgeId, `${bridgeId}_rankupExcludedPlayers`, players, () => {
       this.configuration.setStringArray(`${bridgeId}_rankupExcludedPlayers`, players)
     })
   }
 
-  // ========== Tournament Configurations ==========
-
-  /**
-   * Get whether tournament system is enabled for a bridge
-   */
   public getTournamentEnabled(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_tournamentEnabled`, false)
   }
 
-  /**
-   * Set whether tournament system is enabled for a bridge
-   */
   public setTournamentEnabled(bridgeId: string, enabled: boolean): void {
     this.setConfig(bridgeId, `${bridgeId}_tournamentEnabled`, enabled, () => {
       this.configuration.setBoolean(`${bridgeId}_tournamentEnabled`, enabled)
     })
   }
 
-  /**
-   * Get tournament notification channel ID for a bridge
-   */
   public getTournamentNotificationChannelId(bridgeId: string): string {
     return this.configuration.getString(`${bridgeId}_tournamentNotificationChannelId`, '')
   }
 
-  /**
-   * Set tournament notification channel ID for a bridge
-   */
   public setTournamentNotificationChannelId(bridgeId: string, channelId: string): void {
     this.setConfig(bridgeId, `${bridgeId}_tournamentNotificationChannelId`, channelId, () => {
       this.configuration.setString(`${bridgeId}_tournamentNotificationChannelId`, channelId)
     })
   }
 
-  /**
-   * Get default deadline in hours for tournament rounds
-   */
   public getTournamentDefaultDeadlineHours(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_tournamentDefaultDeadlineHours`, 48)
   }
 
-  /**
-   * Set default deadline in hours for tournament rounds
-   */
   public setTournamentDefaultDeadlineHours(bridgeId: string, hours: number): void {
     this.setConfig(bridgeId, `${bridgeId}_tournamentDefaultDeadlineHours`, hours, () => {
       this.configuration.setNumber(`${bridgeId}_tournamentDefaultDeadlineHours`, hours)
     })
   }
 
-  /**
-   * Get default bestOf (series count) for a bridge
-   */
   public getTournamentDefaultBestOf(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_tournamentDefaultBestOf`, 1)
   }
 
-  /**
-   * Set default bestOf (series count) for a bridge
-   */
   public setTournamentDefaultBestOf(bridgeId: string, bestOf: number): void {
     this.setConfig(bridgeId, `${bridgeId}_tournamentDefaultBestOf`, bestOf, () => {
       this.configuration.setNumber(`${bridgeId}_tournamentDefaultBestOf`, bestOf)
     })
   }
 
-  /**
-   * Get whether to announce tournaments in MC whispers/chat
-   */
   public getTournamentAnnounceMc(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_tournamentAnnounceMc`, true)
   }
 
-  /**
-   * Set whether to announce tournaments in MC whispers/chat
-   */
   public setTournamentAnnounceMc(bridgeId: string, enabled: boolean): void {
     this.setConfig(bridgeId, `${bridgeId}_tournamentAnnounceMc`, enabled, () => {
       this.configuration.setBoolean(`${bridgeId}_tournamentAnnounceMc`, enabled)
@@ -1413,32 +1015,18 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setString(`${bridgeId}_translationOverrides`, JSON.stringify(overrides))
   }
 
-  // ========== Stats Channel Topic ==========
-
-  /**
-   * Get whether the stats channel topic is enabled for a specific bridge
-   */
   public getStatsTopicEnabled(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_statsTopicEnabled`, false)
   }
 
-  /**
-   * Set whether the stats channel topic is enabled for a specific bridge
-   */
   public setStatsTopicEnabled(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_statsTopicEnabled`, enabled)
   }
 
-  /**
-   * Get the stats channel topic template for a specific bridge
-   */
   public getStatsTopicTemplate(bridgeId: string): string {
     return this.configuration.getString(`${bridgeId}_statsTopicTemplate`, '')
   }
 
-  /**
-   * Set the stats channel topic template for a specific bridge
-   */
   public setStatsTopicTemplate(bridgeId: string, template: string | undefined): void {
     if (template === undefined || template === '') {
       this.configuration.delete(`${bridgeId}_statsTopicTemplate`)
@@ -1447,84 +1035,48 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
-  /**
-   * Get channel IDs whose topic is updated for a specific bridge
-   */
   public getStatsTopicChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_statsTopicChannelIds`, [])
   }
 
-  /**
-   * Set channel IDs whose topic is updated for a specific bridge
-   */
   public setStatsTopicChannelIds(bridgeId: string, channelIds: string[]): void {
     this.configuration.setStringArray(`${bridgeId}_statsTopicChannelIds`, channelIds)
   }
 
-  /**
-   * Get the stats topic update interval in minutes for a specific bridge
-   */
   public getStatsTopicUpdateIntervalMinutes(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_statsTopicUpdateIntervalMinutes`, 5)
   }
 
-  /**
-   * Set the stats topic update interval in minutes for a specific bridge
-   */
   public setStatsTopicUpdateIntervalMinutes(bridgeId: string, minutes: number): void {
     this.configuration.setNumber(`${bridgeId}_statsTopicUpdateIntervalMinutes`, minutes)
   }
 
-  // ========== Interview Configurations ==========
-
-  /**
-   * Get whether the join-request interview is enabled for a bridge.
-   * When enabled, the bot automatically interviews players that request to join.
-   * The Interrogate button on join-request embeds always works when this config exists.
-   */
   public getInterviewEnabled(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_interviewEnabled`, false)
   }
 
-  /**
-   * Set whether the join-request interview is enabled for a bridge
-   */
   public setInterviewEnabled(bridgeId: string, enabled: boolean): void {
     this.setConfig(bridgeId, `${bridgeId}_interviewEnabled`, enabled, () => {
       this.configuration.setBoolean(`${bridgeId}_interviewEnabled`, enabled)
     })
   }
 
-  /**
-   * Get the question asked to join-request applicants via private message.
-   */
   public getInterviewQuestion(bridgeId: string): string {
     return this.getBridgeString('interviewQuestion', bridgeId)
   }
 
-  /**
-   * Set the question asked to join-request applicants via private message.
-   */
   public setInterviewQuestion(bridgeId: string, question: string | undefined): void {
     this.setBridgeString('interviewQuestion', bridgeId, question)
   }
 
-  /**
-   * Get the interview inactivity timeout in milliseconds.
-   */
   public getInterviewTimeoutMs(bridgeId: string): number {
     return this.configuration.getNumber(`${bridgeId}_interviewTimeoutMs`, 600_000)
   }
 
-  /**
-   * Set the interview inactivity timeout in milliseconds.
-   */
   public setInterviewTimeoutMs(bridgeId: string, timeoutMs: number): void {
     const normalized = Number.isFinite(timeoutMs) && timeoutMs > 0 ? Math.floor(timeoutMs) : 600_000
     this.configuration.setNumber(`${bridgeId}_interviewTimeoutMs`, normalized)
   }
-
-  // ========== Bulk settings reader ==========
 
   public getAllSettings(bridgeId: string): Record<string, unknown> {
     const channels = this.getPublicChannelIds(bridgeId)

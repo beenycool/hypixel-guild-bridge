@@ -27,11 +27,7 @@ function createFakeApplication(
   } as unknown as Application
 }
 
-function createPendingManager(
-  logHistory: (...callArguments: unknown[]) => void = () => {
-    /* noop */
-  }
-): PendingReviewManager {
+function createPendingManager(logHistory: (...callArguments: unknown[]) => void = () => {}): PendingReviewManager {
   return {
     logHistory
   } as unknown as PendingReviewManager
@@ -39,12 +35,8 @@ function createPendingManager(
 
 function createLogger(overrides: Partial<Logger> = {}): Logger {
   return {
-    error: () => {
-      /* noop */
-    },
-    warn: () => {
-      /* noop */
-    },
+    error: () => {},
+    warn: () => {},
     ...overrides
   } as unknown as Logger
 }

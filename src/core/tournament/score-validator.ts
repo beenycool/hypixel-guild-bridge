@@ -3,15 +3,6 @@ export interface ScoreValidationResult {
   message: string
 }
 
-/**
- * Validates a best-of-N series score.
- *
- * Rules:
- *  - Both scores must be non-negative.
- *  - Sum of scores cannot exceed bestOf (impossible to play more games than the series cap).
- *  - The series winner must reach the target win count (ceil(bestOf / 2)).
- *  - The losing score must be strictly less than the target (no ties).
- */
 export function validateSeriesScore(bestOf: number, p1Wins: number, p2Wins: number): ScoreValidationResult {
   if (!Number.isInteger(bestOf) || bestOf <= 0) {
     return { valid: false, message: `Best-of must be a positive integer (got ${bestOf}).` }

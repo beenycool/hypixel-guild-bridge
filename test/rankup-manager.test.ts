@@ -57,9 +57,7 @@ await describe('RankupManager executeAction', async () => {
         }
       },
       logger: {
-        warn: () => {
-          /* noop */
-        }
+        warn: () => {}
       }
     }
 
@@ -99,9 +97,7 @@ await describe('RankupManager executeAction', async () => {
         }
       },
       logger: {
-        warn: () => {
-          /* noop */
-        }
+        warn: () => {}
       }
     }
 

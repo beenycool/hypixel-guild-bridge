@@ -45,7 +45,6 @@ export class TournamentManager {
     this.auditLogger = new AuditLogger(this.databaseManager, this.logger)
     this.antiAbuse = new AntiAbuse(this.databaseManager, this.logger)
 
-    // Bind helpers to match manager
     this.matchManager = new MatchManager(
       databaseManager,
       this.channelManager,
@@ -73,9 +72,6 @@ export class TournamentManager {
     )
   }
 
-  /**
-   * Load active tournaments from the database.
-   */
   public async load(): Promise<void> {
     const active = await this.databaseManager.queryRows<Tournament>(
       `SELECT * FROM "tournaments" WHERE "status" IN ($1, $2)`,
@@ -195,32 +191,21 @@ export class TournamentManager {
               )
             }
           }
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
     }
 
     this.logger.info('Tournament rehydration complete')
   }
 
-  /**
-   * Start the periodic deadline scheduler.
-   */
   public startScheduler(): void {
     this.deadlineScheduler.start()
   }
 
-  /**
-   * Stop the periodic deadline scheduler.
-   */
   public stopScheduler(): void {
     this.deadlineScheduler.stop()
   }
 
-  /**
-   * Register a handler for lifecycle broadcast events (wired to the web WS layer).
-   */
   public onEvent(handler: (event: TournamentBroadcastEvent) => void): void {
     this.eventHandlers.add(handler)
   }
@@ -236,16 +221,10 @@ export class TournamentManager {
     }
   }
 
-  /**
-   * Get an active tournament for a bridge. Only one active/signup tournament allowed per bridge.
-   */
   public getActiveTournament(bridgeId: string): Tournament | undefined {
     return [...this.activeTournaments.values()].find((t) => t.bridgeId === bridgeId)
   }
 
-  /**
-   * Fetch a tournament by ID, from memory or database.
-   */
   public async getTournament(id: number): Promise<Tournament | undefined> {
     const cached = this.activeTournaments.get(id)
     if (cached !== undefined) return cached
@@ -253,9 +232,6 @@ export class TournamentManager {
     return await this.databaseManager.queryOne<Tournament>('SELECT * FROM "tournaments" WHERE "id" = $1', [id])
   }
 
-  /**
-   * Create a new tournament.
-   */
   public async createTournament(
     bridgeId: string,
     name: string,
@@ -314,9 +290,6 @@ export class TournamentManager {
     return tournament
   }
 
-  /**
-   * Open check-in manually for a tournament.
-   */
   public async openCheckinManually(tournamentId: number): Promise<void> {
     const tournament = await this.getTournament(tournamentId)
     if (tournament === undefined) {
@@ -349,9 +322,6 @@ export class TournamentManager {
     }
   }
 
-  /**
-   * Check in a player to a tournament.
-   */
   public async checkinPlayer(tournamentId: number, playerUuid: string, discordId: string): Promise<TournamentPlayer> {
     const tournament = this.activeTournaments.get(tournamentId)
     if (tournament === undefined) {
@@ -395,9 +365,6 @@ export class TournamentManager {
     return updated
   }
 
-  /**
-   * Add a player to a tournament (Signup phase).
-   */
   public async addPlayer(
     tournamentId: number,
     playerUuid: string,
@@ -415,7 +382,6 @@ export class TournamentManager {
 
     this.logger.info(`Tournament ${tournamentId}: Adding player ${playerUuid} (discordId=${discordId ?? 'none'})`)
 
-    // Verify player is not already in the tournament
     const existing = await this.databaseManager.queryOne<TournamentPlayer>(
       'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND "playerUuid" = $2',
       [tournamentId, playerUuid]
@@ -424,7 +390,6 @@ export class TournamentManager {
       throw new Error('Player is already registered for this tournament.')
     }
 
-    // Anti-abuse: rate-limit signups and flag potential alt accounts
     if (discordId !== undefined) {
       const signupCheck = this.antiAbuse.checkSignupRate(discordId)
       if (!signupCheck.allowed) {
@@ -454,7 +419,6 @@ export class TournamentManager {
       throw new Error('Failed to register player.')
     }
 
-    // Auto-checkin if check-in window is open
     if (tournament.checkinOpensAt !== undefined && now <= (tournament.checkinClosesAt ?? Infinity)) {
       this.logger.info(`Tournament ${tournamentId}: Auto-checkin for player ${playerUuid}, checkin window is open`)
       const updated = await this.databaseManager.queryOne<TournamentPlayer>(
@@ -469,9 +433,6 @@ export class TournamentManager {
     return player
   }
 
-  /**
-   * Remove a player from a tournament (Signup phase).
-   */
   public async removePlayer(tournamentId: number, playerUuid: string): Promise<void> {
     const tournament = this.activeTournaments.get(tournamentId)
     if (tournament === undefined) {
@@ -497,8 +458,6 @@ export class TournamentManager {
       }
     }
 
-    // During ACTIVE, only allow removal when the player is not in a live match —
-    // otherwise they must be forfeited or substituted out first.
     if (tournament.status === TournamentStatus.Active) {
       const liveMatches = await this.databaseManager.queryRows<TournamentMatch>(
         `SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND ("player1Id" = $2 OR "player2Id" = $3) AND "status" IN ($4, $5, $6, $7)`,
@@ -535,9 +494,6 @@ export class TournamentManager {
     this.logger.info(`Tournament ${tournamentId}: Player ${playerUuid} removed successfully`)
   }
 
-  /**
-   * Manually assign seeds during the signup phase.
-   */
   public async setSeeds(
     tournamentId: number,
     seeds: { playerId: number; seed: number }[],
@@ -597,9 +553,6 @@ export class TournamentManager {
     this.emitEvent('tournament.seeds_updated', { tournamentId })
   }
 
-  /**
-   * Edit signup-phase tournament settings.
-   */
   public async updateTournament(
     tournamentId: number,
     updates: {
@@ -709,10 +662,6 @@ export class TournamentManager {
     return updated
   }
 
-  /**
-   * Reopen a cancelled tournament back into the signup phase.
-   * Clears the generated bracket, results and channel references; registered players are kept.
-   */
   public async reopenTournament(tournamentId: number, actorDiscordId = 'web-ui'): Promise<Tournament> {
     const tournament = await this.databaseManager.queryOne<Tournament>('SELECT * FROM "tournaments" WHERE "id" = $1', [
       tournamentId
@@ -761,10 +710,6 @@ export class TournamentManager {
     return reopened
   }
 
-  /**
-   * Resolves the Discord guild that a bridge belongs to, using the bridge's
-   * configured channels. Never falls back to an arbitrary guild.
-   */
   public async resolveGuildForBridge(bridgeId: string): Promise<Guild | undefined> {
     const bridgeConfigs = this.application.core.bridgeConfigurations
     const channelIds = [
@@ -786,9 +731,6 @@ export class TournamentManager {
     return undefined
   }
 
-  /**
-   * Start the tournament. Generates brackets, links matches, creates channels and threads.
-   */
   public async startTournament(tournamentId: number, guildId?: string, categoryId?: string): Promise<void> {
     const tournament = this.activeTournaments.get(tournamentId)
     if (tournament === undefined) {
@@ -815,14 +757,12 @@ export class TournamentManager {
       `Tournament ${tournamentId} (${tournament.name}): Starting tournament for guild=${resolvedGuildId} (${bridgeGuild?.name ?? 'unknown'}), categoryId=${categoryId ?? 'default'}`
     )
 
-    // Fetch players
     const players = await this.databaseManager.queryRows<TournamentPlayer>(
       'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1',
       [tournamentId]
     )
     this.logger.info(`Tournament ${tournamentId}: Fetched ${players.length} total players`)
 
-    // Filter to checked-in players
     const checkedIn = players.filter((p) => p.checkedInAt !== undefined)
     this.logger.info(`Tournament ${tournamentId}: ${checkedIn.length} players checked in`)
     const minParticipants = this.application.core.bridgeConfigurations.getTournamentMinParticipants(tournament.bridgeId)
@@ -833,14 +773,12 @@ export class TournamentManager {
       throw new Error('Not enough checked-in players to start.')
     }
 
-    // Shuffle players randomly to assign seeds
     const shuffled = [...checkedIn]
     for (let index = shuffled.length - 1; index > 0; index--) {
       const randomIndex = Math.floor(Math.random() * (index + 1))
       ;[shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]]
     }
 
-    // Assign seed index (1-indexed)
     this.logger.info(`Tournament ${tournamentId}: Assigning seeds to ${shuffled.length} players`)
     for (const [index, element] of shuffled.entries()) {
       element.seed = index + 1
@@ -851,7 +789,6 @@ export class TournamentManager {
       ])
     }
 
-    // Generate matches
     this.logger.info(`Tournament ${tournamentId}: Generating bracket matches`)
     const bracketFormat =
       tournament.bracketFormat ??
@@ -866,7 +803,6 @@ export class TournamentManager {
       `Tournament ${tournamentId}: Generated ${matches.length} matches across ${totalRounds} rounds (format=${bracketFormat})`
     )
 
-    // Update tournament basic parameters
     const now = Math.floor(Date.now() / 1000)
     await this.databaseManager.execute(
       'UPDATE "tournaments" SET "status" = $1, "startedAt" = $2, "currentRound" = 1, "totalRounds" = $3 WHERE "id" = $4',
@@ -877,14 +813,12 @@ export class TournamentManager {
     tournament.currentRound = 1
     tournament.totalRounds = totalRounds
 
-    // Insert matches in reverse order to set nextMatchId database foreign keys
     const createdMatches: TournamentMatch[] = []
     const roundIndexToDatabaseIdMap = new Map<string, number>()
 
     this.logger.info(`Tournament ${tournamentId}: Inserting matches into database (reverse round order)`)
 
     await this.databaseManager.transaction(async (client) => {
-      // Group generated matches by round
       const matchesByRound = new Map<number, GeneratedMatch[]>()
       for (const m of matches) {
         if (m.round === undefined) continue
@@ -893,7 +827,6 @@ export class TournamentManager {
         matchesByRound.set(m.round, list)
       }
 
-      // Loop round-by-round from totalRounds down to 1
       for (let r = totalRounds; r >= 1; r--) {
         const roundList = matchesByRound.get(r) ?? []
         this.logger.info(`Tournament ${tournamentId}: Inserting ${roundList.length} matches for round ${r}`)
@@ -959,11 +892,9 @@ export class TournamentManager {
 
     this.logger.info(`Tournament ${tournamentId}: All ${createdMatches.length} matches inserted successfully`)
 
-    // Setup Discord channel for bracket
     const configCategoryId = this.application.core.bridgeConfigurations.getTournamentCategoryId(tournament.bridgeId)
     let resolvedCategoryId = categoryId ?? configCategoryId
 
-    // Create tournament category + live channel if none configured
     if (tournament.categoryChannelId === undefined && resolvedCategoryId === undefined) {
       try {
         const createdCategoryId = await this.channelManager.createTournamentCategory(resolvedGuildId, tournament.name)
@@ -1011,9 +942,8 @@ export class TournamentManager {
       ])
       tournament.discordChannelId = channel.id
 
-      // Send initial bracket message
       const names = await this.getPlayerNames(tournamentId)
-      // Send an empty message, channelManager will update it
+
       const initialMessage = await channel.send({ content: 'Initializing bracket...' })
       this.logger.info(`Tournament ${tournamentId}: Initial bracket message sent (messageId=${initialMessage.id})`)
       await this.databaseManager.execute('UPDATE "tournaments" SET "bracketMessageId" = $1 WHERE "id" = $2', [
@@ -1022,7 +952,6 @@ export class TournamentManager {
       ])
       tournament.bracketMessageId = initialMessage.id
 
-      // Update message with actual bracket
       await this.channelManager.updateBracketEmbed(
         channel.id,
         initialMessage.id,
@@ -1032,7 +961,6 @@ export class TournamentManager {
         names
       )
 
-      // Spawn match threads for ACTIVE matches in round 1
       const activeRound1 = createdMatches.filter((m) => m.round === 1 && m.status === MatchStatus.Active)
       this.logger.info(`Tournament ${tournamentId}: Spawning ${activeRound1.length} match threads for round 1`)
       for (const m of activeRound1) {
@@ -1058,7 +986,6 @@ export class TournamentManager {
             await this.notifications.notifyMatchReady(threadId, p1, p2, p1Name, p2Name)
           }
 
-          // Notify in whispers
           await this.notifications.notifyMatchStart(
             tournament.bridgeId,
             m,
@@ -1070,7 +997,6 @@ export class TournamentManager {
         }
       }
 
-      // Update message again to link thread channels
       this.logger.info(`Tournament ${tournamentId}: Updating bracket embed with thread links`)
       await this.channelManager.updateBracketEmbed(
         channel.id,
@@ -1081,7 +1007,6 @@ export class TournamentManager {
         names
       )
 
-      // Auto-resolve any BYE matches in Round 1 (this will advance winners into round 2)
       const byeRound1 = createdMatches.filter((m) => m.round === 1 && m.status === MatchStatus.Bye)
       if (byeRound1.length > 0) {
         this.logger.info(`Tournament ${tournamentId}: Auto-resolving ${byeRound1.length} BYE match(es) in round 1`)
@@ -1101,9 +1026,6 @@ export class TournamentManager {
     this.emitEvent('tournament.started', { tournament })
   }
 
-  /**
-   * Cancel the tournament.
-   */
   public async cancelTournament(tournamentId: number): Promise<void> {
     const tournament = await this.getTournament(tournamentId)
     if (tournament === undefined) {
@@ -1120,7 +1042,6 @@ export class TournamentManager {
 
     this.activeTournaments.delete(tournamentId)
 
-    // Archive all active threads
     const activeMatches = await this.databaseManager.queryRows<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 AND "status" = $2',
       [tournamentId, MatchStatus.Active]
@@ -1134,7 +1055,6 @@ export class TournamentManager {
       }
     }
 
-    // Archive tournament category if present
     if (tournament.categoryChannelId !== undefined) {
       this.logger.info(`Tournament ${tournamentId}: Archiving tournament category ${tournament.categoryChannelId}`)
       await this.channelManager.archiveTournamentCategory(tournament)
@@ -1145,7 +1065,6 @@ export class TournamentManager {
   }
 
   async recordResults(tournamentId: number): Promise<TournamentResultRow[]> {
-    // Read fresh from DB so champion/winnerId reflects the completed state
     const tournament = await this.databaseManager.queryOne<Tournament>('SELECT * FROM "tournaments" WHERE "id" = $1', [
       tournamentId
     ])
@@ -1215,9 +1134,6 @@ export class TournamentManager {
     return results
   }
 
-  /**
-   * Finalize a completed tournament: record results, announce standings, refresh metrics and notify WS subscribers.
-   */
   public async notifyTournamentCompleted(tournamentId: number): Promise<void> {
     const tournament = await this.databaseManager.queryOne<Tournament>('SELECT * FROM "tournaments" WHERE "id" = $1', [
       tournamentId
@@ -1268,9 +1184,6 @@ export class TournamentManager {
     metrics.onTournamentActiveChange(active + signup)
   }
 
-  /**
-   * Rewind a completed match back to ACTIVE, undoing reports, player elimination and winner advancement.
-   */
   public async rewindMatch(matchId: number, actorDiscordId?: string): Promise<void> {
     const match = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
@@ -1298,13 +1211,12 @@ export class TournamentManager {
     const deletedThreadIds: string[] = []
 
     await this.databaseManager.transaction(async (database) => {
-      // 1. Undo tournament-level completion state
       if (tournament.status === TournamentStatus.Completed) {
         await database.query(
           'UPDATE "tournaments" SET "status" = $1, "winnerId" = NULL, "completedAt" = NULL WHERE "id" = $2',
           [TournamentStatus.Active, tournament.id]
         )
-        // Drop previously recorded results so re-completing does not duplicate them
+
         await database.query('DELETE FROM "tournament_results" WHERE "tournamentId" = $1', [tournament.id])
       }
       if (tournament.currentRound > match.round) {
@@ -1314,16 +1226,13 @@ export class TournamentManager {
         ])
       }
 
-      // 2. Reset the match itself
       await database.query(
         'UPDATE "tournament_matches" SET "status" = $1, "winnerId" = NULL, "completedAt" = NULL, "player1Wins" = 0, "player2Wins" = 0, "deadlineAt" = $2, "manuallyExtended" = FALSE, "deadlineExtensionMinutes" = 0, "warningsSent" = 0, "hadProofAttachment" = FALSE WHERE "id" = $3',
         [MatchStatus.Active, now + tournament.roundDeadlineHours * 3600, matchId]
       )
 
-      // 3. Drop reports for the match
       await database.query('DELETE FROM "tournament_reports" WHERE "matchId" = $1', [matchId])
 
-      // 4. Restore both players to ACTIVE
       if (winnerId !== undefined) {
         await database.query('UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2', [
           PlayerStatus.Active,
@@ -1337,9 +1246,6 @@ export class TournamentManager {
         ])
       }
 
-      // 5. Undo advancement into the next match(es): the winner fills
-      //    `nextMatchId`, while in double-elim the loser fills `loserNextMatchId`.
-      //    Clear whichever slot actually holds the advanced player.
       for (const [nextMatchId, advancedPlayerId] of [
         [match.nextMatchId, winnerId],
         [match.loserNextMatchId, loserId]
@@ -1379,7 +1285,6 @@ export class TournamentManager {
 
     const client = this.application.discordInstance.getClient()
 
-    // 6. Delete threads of demoted next matches (outside the transaction)
     for (const threadId of deletedThreadIds) {
       await client.channels
         .fetch(threadId)
@@ -1391,7 +1296,6 @@ export class TournamentManager {
         })
     }
 
-    // 7. Reopen the match's own thread if it was archived/locked
     if (match.discordThreadId !== undefined) {
       const thread = await client.channels.fetch(match.discordThreadId).catch(() => null)
       if (thread != null && (thread.type === ChannelType.PrivateThread || thread.type === ChannelType.PublicThread)) {
@@ -1400,19 +1304,16 @@ export class TournamentManager {
       }
     }
 
-    // 8. Audit log
     await this.auditLogger.log(tournament.id, 'match_undo', actorDiscordId ?? 'system', matchId, undefined, {
       round: match.round,
       matchIndex: match.matchIndex,
       winnerId
     })
 
-    // 9. Refresh bracket embed
     if (tournament.discordChannelId !== undefined && tournament.bracketMessageId !== undefined) {
       await this.refreshBracketEmbed(tournament)
     }
 
-    // 10. Keep in-memory state consistent
     const cached = this.activeTournaments.get(tournament.id)
     if (cached !== undefined) {
       cached.status = TournamentStatus.Active
@@ -1466,9 +1367,6 @@ export class TournamentManager {
     )
   }
 
-  /**
-   * Resolves player IDs to Minecraft usernames.
-   */
   public async getPlayerNames(tournamentId: number): Promise<Map<number, string>> {
     const players = await this.databaseManager.queryRows<{ id: number; playerUuid: string }>(
       'SELECT "id", "playerUuid" FROM "tournament_players" WHERE "tournamentId" = $1',

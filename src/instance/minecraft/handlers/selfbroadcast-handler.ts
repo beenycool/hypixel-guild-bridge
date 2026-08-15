@@ -9,11 +9,10 @@ export default class SelfbroadcastHandler extends SubInstance<
   ClientSession
 > {
   override registerEvents(clientSession: ClientSession): void {
-    // first spawn packet
     clientSession.client.on('login', () => {
       void this.onSpawn().catch(this.errorHandler.promiseCatch('handling onSpawn() function'))
     })
-    // change world packet
+
     clientSession.client.on('respawn', () => {
       void this.onSpawn().catch(this.errorHandler.promiseCatch('handling onSpawn() function'))
     })

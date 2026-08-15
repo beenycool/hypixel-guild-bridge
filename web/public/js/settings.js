@@ -28,7 +28,6 @@ const string_ = (s, d = '') => (s == undefined ? d : String(s))
 const bool = (s, d = false) => (s == undefined ? d : !!s)
 const array = (a) => (Array.isArray(a) ? a.map(String) : [])
 
-// ---- Category schema -----------------------------------------------------
 const CATEGORIES = [
   {
     key: 'channels',
@@ -1081,8 +1080,6 @@ const CATEGORIES = [
   }
 ]
 
-// ---- Utilities -----------------------------------------------------------
-
 function setWSStatus(state) {
   const element = document.querySelector('#ws-status')
   if (!element) return
@@ -1147,8 +1144,6 @@ function fieldValue(data, field) {
   return data[field.id]
 }
 
-// ---- Sidebar --------------------------------------------------------------
-
 function renderSidebar() {
   const host = document.querySelector('#settings-nav')
   if (!host) return
@@ -1165,8 +1160,6 @@ function renderSidebar() {
     host.append(li)
   }
 }
-
-// ---- Panel: per-field renderers ------------------------------------------
 
 function fieldRowHTML(field, value, data) {
   const id = field.id
@@ -1631,8 +1624,6 @@ function cssEscape(value) {
   return String(value).replaceAll('"', String.raw`\"`)
 }
 
-// ---- Tag input -------------------------------------------------------------
-
 function createTagInput(initial, placeholder, onChange, labelFor, max, suggestions) {
   const tags = []
   const host = document.createElement('div')
@@ -1783,8 +1774,6 @@ function createTagInput(initial, placeholder, onChange, labelFor, max, suggestio
   return { el: host, getTags: () => [...tags], addTag }
 }
 
-// ---- Message list editor -------------------------------------------------
-
 function mountMessageList(host, field, messages) {
   const list = [...messages]
   host.innerHTML = ''
@@ -1838,8 +1827,6 @@ function mountMessageList(host, field, messages) {
   host._getMessageList = () => [...list]
   render()
 }
-
-// ---- Read form state back into a category object -------------------------
 
 function readCategoryState(cat) {
   const panel = document.querySelector('#settings-panel')
@@ -1960,8 +1947,6 @@ function currentSnapshot() {
   return serializeCategory(cat, readCategoryState(cat))
 }
 
-// ---- Dirty tracking ------------------------------------------------------
-
 function markDirty() {
   checkDirty()
 }
@@ -2076,8 +2061,6 @@ async function onDeleteBridge() {
   }
 }
 
-// ---- Selection / load flow -----------------------------------------------
-
 async function selectCategory(catKey) {
   if (!currentBridgeId) {
     renderSidebar()
@@ -2178,8 +2161,6 @@ async function onBridgeChange(bridgeId) {
   await loadSettingsWithAuth()
 }
 
-// ---- WebSocket handling --------------------------------------------------
-
 function handleWSEvent(type, data) {
   if (type === 'error') {
     setWSStatus('disconnected')
@@ -2199,8 +2180,6 @@ function handleWSEvent(type, data) {
     }
   }
 }
-
-// ---- Delegated listeners ------------------------------------------------
 
 function addPromotionRow() {
   const tbody = document.querySelector('#promo-tbody')
@@ -2309,7 +2288,7 @@ function attachDelegatedListeners() {
       }
       return
     }
-    // UUID lookup for welcome table
+
     const lookupButton = e.target.closest('[data-lookup]')
     if (lookupButton) {
       const id = lookupButton.dataset.lookup
@@ -2373,8 +2352,6 @@ function attachDelegatedListeners() {
     }
   })
 }
-
-// ---- Bootstrap ----------------------------------------------------------
 
 async function bootstrap() {
   initNav()

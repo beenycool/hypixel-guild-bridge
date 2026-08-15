@@ -39,7 +39,6 @@ export default class Iq extends ChatCommandHandler {
     const givenUsername = firstArgument ?? context.username
     const isLookupSelf = firstArgument === undefined || firstArgument.toLowerCase() === context.username.toLowerCase()
 
-    // Rate limit on the sender (not the target)
     const senderId =
       context.message.user.discordProfile()?.id ??
       context.message.user.mojangProfile()?.id ??
@@ -53,7 +52,6 @@ export default class Iq extends ChatCommandHandler {
 
     const chatMessages = context.app.core.chatMessages
 
-    // Cache and messages keyed on the target, not the sender
     const targetKey = givenUsername.toLowerCase()
 
     const cachedIq = await chatMessages.getCachedIq(targetKey)
@@ -61,7 +59,6 @@ export default class Iq extends ChatCommandHandler {
       return `${givenUsername} has an IQ of ${cachedIq}`
     }
 
-    // Fetch messages for the correct user
     const messages = isLookupSelf
       ? await chatMessages.getMessages(senderId)
       : await chatMessages.getMessagesByUsername(givenUsername)

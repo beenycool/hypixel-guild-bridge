@@ -73,7 +73,6 @@ export default class Rng extends ChatCommandHandler {
     }
   }
 
-  // https://stackoverflow.com/a/1527820
   private getRandomInt(min: number, max: number): number {
     min = Math.ceil(min)
     max = Math.floor(max)

@@ -108,9 +108,7 @@ export class SpontaneousEvents extends Instance<InstanceType.Utility> {
 }
 
 export abstract class SpontaneousEventHandler extends SubInstance<SpontaneousEvents, InstanceType.Utility, void> {
-  override registerEvents() {
-    // do nothing
-  }
+  override registerEvents() {}
 
   public abstract enabled(): boolean
 
@@ -294,7 +292,6 @@ class CountingChain extends SpontaneousEventHandler {
 
 class Unscramble extends SpontaneousEventHandler {
   private static readonly ScrambleWords = [
-    // generic
     ...'apple banana orange grape lemon cherry peach mango kiwi plum table chair couch desk shelf'.split(' '),
     ...'blanket carpet curtain house garden porch fence roof window door floor stairs attic water coffee'.split(' '),
     ...'juice soda milk bread cheese butter egg dog cat bird fish horse rabbit mouse snake frog sun'.split(' '),
@@ -303,7 +300,6 @@ class Unscramble extends SpontaneousEventHandler {
     ...'sing read write draw car bike bus train plane boat ship truck scooter school teacher student'.split(' '),
     ...'pencil paper eraser ruler clock map pillow tea moon black dance book lamp turtle climb taxi'.split(' '),
 
-    // hypixel generic
     ...'skyblock bedwars duels skywars murdermystery blitzsg paintball quakecraft tntgames arcade megawalls'.split(' '),
     ...'buildbattle pit classic arena lobby hub quest daily reward token crown relic dragon phoenix'.split(' '),
     ...'wither ender slime zombie skeleton creeper minion pet armor sword bow axe pickaxe shovel hoe'.split(' '),
@@ -313,7 +309,6 @@ class Unscramble extends SpontaneousEventHandler {
     ...'votecrate crate loot chest key mysterybox surprise event festival holiday halloween christmas'.split(' '),
     ...'easter summer winter spring autumn fireworksa'.split(' '),
 
-    // minecraft
     ...''.split('smelting diamond banner netherrack packedice bone zombie'),
     ...'block pickaxe shovel axe hoe sword bow arrow helmet chestplate leggings boots furnace crafting'.split(' '),
     ...'enchanting brewing redstone piston lever button pressureplate torch lantern glowstone obsidian'.split(' '),
@@ -490,7 +485,6 @@ class Trivia extends SpontaneousEventHandler {
   }
 }
 
-// https://stackoverflow.com/a/2450976
 function shuffleArrayInPlace<T>(array: T[]): T[] {
   let currentIndex = array.length
 

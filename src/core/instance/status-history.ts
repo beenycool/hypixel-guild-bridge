@@ -22,9 +22,7 @@ export class StatusHistory {
     })
   }
 
-  public async load(): Promise<void> {
-    // No longer loading everything into RAM to prevent OOM
-  }
+  public async load(): Promise<void> {}
 
   public add(entry: InstanceStatus): void {
     if (entry.status !== undefined) {

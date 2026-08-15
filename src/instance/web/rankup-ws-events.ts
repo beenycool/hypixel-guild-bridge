@@ -22,9 +22,7 @@ export class RankupWsEvents {
       try {
         const profile = await this.application.mojangApi.profileByUuid(data.uuid)
         data.name = profile.name
-      } catch {
-        // UUID not resolvable
-      }
+      } catch {}
       this.broadcast({ type: 'rankup.reviewAdded', data })
     })
 
@@ -38,9 +36,7 @@ export class RankupWsEvents {
       try {
         const profile = await this.application.mojangApi.profileByUuid(data.uuid)
         data.name = profile.name
-      } catch {
-        // UUID not resolvable
-      }
+      } catch {}
       this.broadcast({ type: 'rankup.historyAppended', data })
     })
   }
@@ -58,9 +54,7 @@ export class RankupWsEvents {
     return 0
   }
 
-  public start(): void {
-    // No-op: events are push-based via Application events
-  }
+  public start(): void {}
 
   public stop(): void {
     this.subscribers.clear()

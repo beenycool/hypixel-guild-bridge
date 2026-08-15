@@ -23,20 +23,8 @@ export default abstract class SubInstance<K extends ConnectableInstance<T> | Ins
     this.errorHandler = clientInstance.errorHandler
   }
 
-  /**
-   * Called every time the client reconnects.
-   *
-   * NOTE: Do not register events that listen on global events.
-   * This function will be called multiple times with every reconstruct of the instance.
-   * Use constructors functions if you want to register an event once
-   * @param option the volatile object that is used to register the event-handler with when the function is called
-   */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public registerEvents(option: O): void {
-    // optional to implement
-  }
+  public registerEvents(option: O): void {}
 
-  public dispose(): void {
-    // optional override
-  }
+  public dispose(): void {}
 }

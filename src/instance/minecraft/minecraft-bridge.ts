@@ -46,20 +46,12 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     super(application, clientInstance, logger, errorHandler)
   }
 
-  /**
-   * Bridge routing: uses `clientInstance.bridgeId` (resolver-backed, always current).
-   * With `isStrictChat`, chat/guild-style events require both sides to have a bridge ID
-   * so unmapped traffic does not cross-talk; global announcements (`event.bridgeId` unset)
-   * still reach all bots when not in strict mode.
-   */
   private shouldProcessEvent(event: { bridgeId?: string }, isStrictChat = false): boolean {
     if (this.application.bridgeResolver.isMultiBridgeEnabled()) {
       const instanceBridgeId = this.clientInstance.bridgeId
 
-      // Direct chat/player events: drop if source or this bot has no bridge (prevents cross-talk)
       if (isStrictChat && (event.bridgeId === undefined || instanceBridgeId === undefined)) return false
 
-      // Global system announcements (e.g. auto-restart warnings) pass through to all bots
       if (event.bridgeId === undefined) return true
 
       return instanceBridgeId === event.bridgeId
@@ -75,7 +67,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     if (event.instanceName !== this.clientInstance.instanceName) return
     if (!this.shouldProcessEvent(event)) return
 
-    // Disconnect or failure with a specific reason
     if (
       event.message !== undefined &&
       event.status !== undefined &&
@@ -88,7 +79,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
       return
     }
 
-    // Reconnect to Connected after a prior disconnect
     if (event.status !== undefined && event.status.to === Status.Connected && this.disconnectMessageSent) {
       await this.sendReconnectMessage()
       this.disconnectMessageSent = false
@@ -96,7 +86,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
       return
     }
 
-    // Permanent failure without a prior disconnect message
     if (
       event.status !== undefined &&
       event.status.to === Status.Failed &&
@@ -416,8 +405,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
       .replaceAll('{reply}', reply)
       .replaceAll('{message}', '').length
 
-    // Reserve room for the command, template prefix and the "sent an image: " marker
-    // so image/video descriptions fit within the 256-character Minecraft message limit.
     const maxDescriptionLength = Math.max(256 - prefix.length - 2 - templatePrefixLength - 'sent an image: '.length, 10)
 
     const sanitizedMessage = await sanitizer.sanitizeChatMessage(this.clientInstance.instanceName, message, {

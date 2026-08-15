@@ -9,7 +9,6 @@ export class NotificationManager {
   private readonly logger: Logger
 
   constructor(private readonly application: Application) {
-    // Application.logger is now public; use it for logging
     this.logger = application.logger
   }
 
@@ -21,13 +20,6 @@ export class NotificationManager {
   ): Promise<boolean> {
     if (reviews.length === 0) return false
 
-    // Sometimes bridgeId matches guildId, sometimes it's internal.
-    // We iterate all instances and find the one that has these channels?
-    // Actually, Application has instances map. But usually we need the Discord instance.
-    // Let's assume we can get the Discord instance that "owns" these channels.
-    // In the current architecture, we might just iterate all discord instances or use a helper.
-    // For simplicity, let's try to find the channel in any active discord instance.
-
     const embed = new EmbedBuilder()
       .setTitle('📋 Rankup Reviews Pending')
       .setColor('#FFA500')
@@ -38,7 +30,7 @@ export class NotificationManager {
           value:
             reviews
               .filter((r) => r.action === 'promote')
-              .map((r) => `• <@${r.uuid}>: ${r.currentRank} ➜ ${r.proposedRank}`) // uuid here is MC UUID, need name resolve?
+              .map((r) => `• <@${r.uuid}>: ${r.currentRank} ➜ ${r.proposedRank}`)
               .slice(0, 10)
               .join('\n') || 'None'
         },
@@ -55,7 +47,6 @@ export class NotificationManager {
       .setFooter({ text: 'Review pending rankup changes via the web dashboard.' })
       .setTimestamp()
 
-    // Resolve UUIDs to names (best effort)
     const uuidToName = new Map<string, string>()
     for (const review of reviews) {
       if (!uuidToName.has(review.uuid)) {

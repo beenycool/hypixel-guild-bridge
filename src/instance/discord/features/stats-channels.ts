@@ -357,9 +357,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     try {
       const profile = await this.application.mojangApi.profileByUuid(top.uuid)
       name = profile.name
-    } catch {
-      // fall back to uuid
-    }
+    } catch {}
 
     return { topName: name, topCount: top.count, total }
   }

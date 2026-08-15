@@ -17,13 +17,9 @@ interface FakeApplication {
 function createFakeApplication(databaseUrl: string): FakeApplication {
   return {
     applicationIntegrity: {
-      addConfigPath: () => {
-        /* noop */
-      }
+      addConfigPath: () => {}
     },
-    addShutdownListener: () => {
-      /* noop */
-    },
+    addShutdownListener: () => {},
     getDatabaseConfig: () => ({ url: databaseUrl }),
     getConfigFilePath: (name: string) => `/tmp/nonexistent-${name}`
   }
@@ -35,18 +31,10 @@ await describe('bridge message routing', async () => {
     const databaseManager = new DatabaseManager(
       fakeApp as unknown as Application,
       {
-        debug: () => {
-          /* noop */
-        },
-        info: () => {
-          /* noop */
-        },
-        warn: () => {
-          /* noop */
-        },
-        error: () => {
-          /* noop */
-        }
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {}
       } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
     )
     await databaseManager.awaitReady()
@@ -55,12 +43,10 @@ await describe('bridge message routing', async () => {
     const configs = new ConfigurationsManager(databaseManager)
     const bridgeCfg = new BridgeConfigurations(configs)
 
-    // Configure bridge A: bot1 -> channel-a
     bridgeCfg.addBridgeId('bridge-a')
     bridgeCfg.setMinecraftInstances('bridge-a', ['bot1'])
     bridgeCfg.setPublicChannelIds('bridge-a', ['channel-a'])
 
-    // Configure bridge B: bot2 -> channel-b
     bridgeCfg.addBridgeId('bridge-b')
     bridgeCfg.setMinecraftInstances('bridge-b', ['bot2'])
     bridgeCfg.setPublicChannelIds('bridge-b', ['channel-b'])
@@ -74,19 +60,16 @@ await describe('bridge message routing', async () => {
     await readerConfigs.load()
     resolver.rebuildLookupMaps()
 
-    // Verify isolation: bot1 -> channel-a only
     const bridgeIdA = resolver.getBridgeIdForInstance('bot1')
     assert.strictEqual(bridgeIdA, 'bridge-a')
     const channelsA = resolver.getPublicChannelIds(bridgeIdA)
     assert.deepStrictEqual(channelsA, ['channel-a'])
 
-    // Verify isolation: bot2 -> channel-b only
     const bridgeIdB = resolver.getBridgeIdForInstance('bot2')
     assert.strictEqual(bridgeIdB, 'bridge-b')
     const channelsB = resolver.getPublicChannelIds(bridgeIdB)
     assert.deepStrictEqual(channelsB, ['channel-b'])
 
-    // Verify cross-contamination: bridge A does not see channel B
     assert.strictEqual(resolver.getBridgeIdForChannel('channel-b'), 'bridge-b')
     assert.notStrictEqual(resolver.getBridgeIdForChannel('channel-b'), bridgeIdA)
 
@@ -98,18 +81,10 @@ await describe('bridge message routing', async () => {
     const databaseManager = new DatabaseManager(
       fakeApp as unknown as Application,
       {
-        debug: () => {
-          /* noop */
-        },
-        info: () => {
-          /* noop */
-        },
-        warn: () => {
-          /* noop */
-        },
-        error: () => {
-          /* noop */
-        }
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {}
       } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
     )
     await databaseManager.awaitReady()
@@ -131,18 +106,14 @@ await describe('bridge message routing', async () => {
     await readerConfigs.load()
     resolver.rebuildLookupMaps()
 
-    // Before change: bot1 -> channel-a
     assert.deepStrictEqual(resolver.getPublicChannelIds('bridge-a'), ['channel-a'])
 
-    // Update: bridge-a now points to channel-c
     bridgeCfg.setPublicChannelIds('bridge-a', ['channel-c'])
     await databaseManager.flushWrites()
 
-    // Reload and rebuild
     await readerConfigs.load()
     resolver.rebuildLookupMaps()
 
-    // After change: bot1 -> channel-c
     assert.deepStrictEqual(resolver.getPublicChannelIds('bridge-a'), ['channel-c'])
     assert.strictEqual(resolver.getBridgeIdForChannel('channel-a'), undefined)
     assert.strictEqual(resolver.getBridgeIdForChannel('channel-c'), 'bridge-a')
@@ -155,18 +126,10 @@ await describe('bridge message routing', async () => {
     const databaseManager = new DatabaseManager(
       fakeApp as unknown as Application,
       {
-        debug: () => {
-          /* noop */
-        },
-        info: () => {
-          /* noop */
-        },
-        warn: () => {
-          /* noop */
-        },
-        error: () => {
-          /* noop */
-        }
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {}
       } as unknown as ConstructorParameters<typeof DatabaseManager>[1]
     )
     await databaseManager.awaitReady()
@@ -188,22 +151,18 @@ await describe('bridge message routing', async () => {
     await readerConfigs.load()
     resolver.rebuildLookupMaps()
 
-    // Sanity check: bot1 is routed
     assert.strictEqual(resolver.getBridgeIdForInstance('bot1'), 'bridge-a')
     assert.strictEqual(resolver.getBridgeIdForChannel('channel-a'), 'bridge-a')
 
-    // Remove bridge-a
     bridgeCfg.removeBridgeId('bridge-a')
     await databaseManager.flushWrites()
 
-    // Reload and rebuild
     await readerConfigs.load()
     resolver.rebuildLookupMaps()
 
-    // After removal: bot1 resolves to nothing, channel-a resolves to nothing
     assert.strictEqual(resolver.getBridgeIdForInstance('bot1'), undefined)
     assert.strictEqual(resolver.getBridgeIdForChannel('channel-a'), undefined)
-    // getPublicChannelIds for a non-existent bridge returns empty array
+
     assert.deepStrictEqual(resolver.getPublicChannelIds('bridge-a'), [])
 
     await databaseManager.close()

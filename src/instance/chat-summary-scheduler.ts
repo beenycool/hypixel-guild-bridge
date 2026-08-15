@@ -80,13 +80,11 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
     const { day } = this.getUkParts()
     const now = Date.now()
 
-    // First run after restart — sync day without triggering
     if (this.lastTriggeredDay === -1) {
       this.lastTriggeredDay = day
       return
     }
 
-    // If already triggered for today, only retry if needed
     if (this.lastTriggeredDay === day) {
       if (this.needsRetry && now - this.lastRetryTimestamp >= this.retryIntervalMs) {
         this.logger.info('Retrying chat summary generation...')
@@ -102,7 +100,6 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
       return
     }
 
-    // Day changed — trigger generation (catches up if midnight was missed)
     this.logger.info('Triggering daily chat summary generation...')
     try {
       await this.generateAndPostSummaries()
@@ -140,7 +137,6 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
             ? [...channelIds, additionalChannelId]
             : channelIds
 
-        // Fetch messages for this bridge in the last 24 hours
         const rows = await this.application.core.databaseManager.queryRows<{
           userId: string
           username: string | null
@@ -162,7 +158,6 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
 
         this.logger.info(`Found ${rows.length} messages to summarize for bridge ${bridgeId}.`)
 
-        // Format logs for AI
         const logsText = rows
           .map((r) => {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB rows may contain NULL for username

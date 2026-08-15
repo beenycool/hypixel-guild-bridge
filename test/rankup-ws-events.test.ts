@@ -67,9 +67,7 @@ function createFakeApplication(options: FakeAppOptions = {}): {
   return { app, eventEmitter, reviewsByBridge, historyByBridge, bridgeIds }
 }
 
-const noop = (): void => {
-  /* noop */
-}
+const noop = (): void => {}
 
 const silentLogger: Logger = {
   trace: noop,
@@ -99,7 +97,6 @@ await describe('RankupWsEvents', async () => {
     const socket = createFakeSocket()
     events.subscribe(asWs(socket))
 
-    // Clear the initial snapshot message
     socket.sentMessages = []
 
     const review: PendingReview = {
@@ -116,7 +113,6 @@ await describe('RankupWsEvents', async () => {
 
     eventEmitter.emit('pendingReviewAdded', { bridgeId: 'a', review })
 
-    // Wait a tick for async operations (mojang profile lookup)
     await new Promise((resolve) => setImmediate(resolve))
 
     assert.strictEqual(socket.sentMessages.length, 1)
@@ -135,7 +131,6 @@ await describe('RankupWsEvents', async () => {
     const socket = createFakeSocket()
     events.subscribe(asWs(socket))
 
-    // Clear the initial snapshot message
     socket.sentMessages = []
 
     eventEmitter.emit('pendingReviewRemoved', { bridgeId: 'a', id: 1 })
@@ -152,7 +147,6 @@ await describe('RankupWsEvents', async () => {
     const socket = createFakeSocket()
     events.subscribe(asWs(socket))
 
-    // Clear the initial snapshot message
     socket.sentMessages = []
 
     const entry: RankupHistoryEntry = {
@@ -168,7 +162,6 @@ await describe('RankupWsEvents', async () => {
 
     eventEmitter.emit('pendingHistoryAppended', { bridgeId: 'a', entry })
 
-    // Wait a tick for async operations (mojang profile lookup)
     await new Promise((resolve) => setImmediate(resolve))
 
     assert.strictEqual(socket.sentMessages.length, 1)
@@ -218,7 +211,6 @@ await describe('RankupWsEvents', async () => {
     const socket = createFakeSocket()
     events.subscribe(asWs(socket))
 
-    // Clear the initial snapshot message
     socket.sentMessages = []
 
     const review: PendingReview = {
@@ -235,7 +227,6 @@ await describe('RankupWsEvents', async () => {
 
     eventEmitter.emit('pendingReviewAdded', { bridgeId: 'a', review })
 
-    // Wait a tick for async operations
     await new Promise((resolve) => setImmediate(resolve))
 
     assert.strictEqual(socket.sentMessages.length, 1)
