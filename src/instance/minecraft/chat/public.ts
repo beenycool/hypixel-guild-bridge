@@ -36,6 +36,10 @@ export default {
           }
           return
         }
+
+        if (context.application.core.isRecentlyFiltered(playerMessage)) {
+          return
+        }
       }
 
       const bridgeId = context.clientInstance.bridgeId

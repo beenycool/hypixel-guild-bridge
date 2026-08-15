@@ -131,6 +131,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     const { filteredMessage, changed } = this.application.core.filterProfanityForBridge(content, bridgeId)
     if (changed) {
+      this.application.core.recordFilteredMessage(filteredMessage)
       const emoji = this.clientInstance.emojiHandler.emojiByName.get(FilteredReaction.name)
       if (emoji !== undefined) await event.react(emoji)
     }

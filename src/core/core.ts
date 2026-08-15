@@ -207,6 +207,27 @@ export class Core extends Instance<InstanceType.Core> {
     return this.profanity.filterProfanity(message)
   }
 
+  private static readonly FilteredMessageTtl = 60_000
+  private readonly recentlyFilteredMessages: { message: string; time: number }[] = []
+
+  public recordFilteredMessage(message: string): void {
+    this.recentlyFilteredMessages.push({ message, time: Date.now() })
+  }
+
+  public isRecentlyFiltered(message: string): boolean {
+    const cutoff = Date.now() - Core.FilteredMessageTtl
+    let found = false
+    for (let index = this.recentlyFilteredMessages.length - 1; index >= 0; index--) {
+      const entry = this.recentlyFilteredMessages[index]
+      if (entry.time < cutoff) {
+        this.recentlyFilteredMessages.splice(index, 1)
+      } else if (entry.message === message) {
+        found = true
+      }
+    }
+    return found
+  }
+
   public filterProfanityForBridge(
     message: string,
     bridgeId: string | undefined
