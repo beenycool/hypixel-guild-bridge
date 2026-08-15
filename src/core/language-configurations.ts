@@ -1,10 +1,9 @@
-import { DefaultMuteMessages } from '../common/constants/mute-defaults.js'
-import { DefaultRouletteLoseMessages, DefaultRouletteWinMessages } from '../common/constants/roulette-defaults.js'
 import {
-  DefaultVengeanceDrawMessages,
-  DefaultVengeanceLoseMessages,
-  DefaultVengeanceWinMessages
-} from '../common/constants/vengeance-defaults.js'
+  DefaultBlackjackDrawMessages,
+  DefaultBlackjackLoseMessages,
+  DefaultBlackjackWinMessages
+} from '../common/constants/blackjack-defaults.js'
+import { DefaultMuteMessages } from '../common/constants/mute-defaults.js'
 
 import type { Configuration, ConfigurationsManager } from './configurations'
 
@@ -37,38 +36,22 @@ export class LanguageConfigurations {
     this.configuration.setStringArray('commandMuteGame', values)
   }
 
-  public getCommandRouletteWin(): string[] {
-    return this.configuration.getStringArray('commandRouletteWin', DefaultRouletteWinMessages)
+  public getCommandBlackjackWin(): string[] {
+    return this.configuration.getStringArray('commandBlackjackWin', DefaultBlackjackWinMessages)
   }
-  public setCommandRouletteWin(values: string[]): void {
-    this.configuration.setStringArray('commandRouletteWin', values)
+  public setCommandBlackjackWin(values: string[]): void {
+    this.configuration.setStringArray('commandBlackjackWin', values)
   }
-  public getCommandRouletteLose(): string[] {
-    return this.configuration.getStringArray('commandRouletteLose', DefaultRouletteLoseMessages)
+  public getCommandBlackjackLose(): string[] {
+    return this.configuration.getStringArray('commandBlackjackLose', DefaultBlackjackLoseMessages)
   }
-  public setCommandRouletteLose(values: string[]): void {
-    this.configuration.setStringArray('commandRouletteLose', values)
+  public setCommandBlackjackLose(values: string[]): void {
+    this.configuration.setStringArray('commandBlackjackLose', values)
   }
-
-  public getCommandVengeanceWin(): string[] {
-    return this.configuration.getStringArray('commandVengeanceWin', DefaultVengeanceWinMessages)
+  public getCommandBlackjackDraw(): string[] {
+    return this.configuration.getStringArray('commandBlackjackDraw', DefaultBlackjackDrawMessages)
   }
-  public setCommandVengeanceWin(values: string[]): void {
-    this.configuration.setStringArray('commandVengeanceWin', values)
-  }
-
-  public getCommandVengeanceDraw(): string[] {
-    return this.configuration.getStringArray('commandVengeanceDraw', DefaultVengeanceDrawMessages)
-  }
-  public setCommandVengeanceDraw(values: string[]): void {
-    this.configuration.setStringArray('commandVengeanceDraw', values)
-  }
-
-  public getCommandVengeanceLose(): string[] {
-    return this.configuration.getStringArray('commandVengeanceLose', DefaultVengeanceLoseMessages)
-  }
-
-  public setCommandVengeanceLose(values: string[]): void {
-    this.configuration.setStringArray('commandVengeanceLose', values)
+  public setCommandBlackjackDraw(values: string[]): void {
+    this.configuration.setStringArray('commandBlackjackDraw', values)
   }
 }

@@ -637,11 +637,9 @@ const CATEGORIES = [
         collapsible: true,
         children: [
           { id: 'commands.mute.game', t: 'text', label: 'Mute Game' },
-          { id: 'commands.roulette.win', t: 'text', label: 'Roulette Win' },
-          { id: 'commands.roulette.lose', t: 'text', label: 'Roulette Lose' },
-          { id: 'commands.vengeance.win', t: 'text', label: 'Vengeance Win' },
-          { id: 'commands.vengeance.draw', t: 'text', label: 'Vengeance Draw' },
-          { id: 'commands.vengeance.lose', t: 'text', label: 'Vengeance Lose' }
+          { id: 'commands.blackjack.win', t: 'text', label: 'Blackjack Win' },
+          { id: 'commands.blackjack.lose', t: 'text', label: 'Blackjack Lose' },
+          { id: 'commands.blackjack.draw', t: 'text', label: 'Blackjack Draw' }
         ]
       }
     ]

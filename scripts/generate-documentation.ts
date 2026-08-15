@@ -4,17 +4,14 @@ import process from 'node:process'
 import { markdownTable } from 'markdown-table'
 
 import { ChatCommandHandler, type DiscordCommandHandler } from '../src/common/commands.js'
-import type PartyManager from '../src/instance/commands/triggers/party.js'
 
 await generateCommands()
 process.exit(0)
 
 async function generateCommands(): Promise<void> {
   let featuresPage = ''
-  featuresPage += fs.readFileSync('scripts/PERMISSIONS-HEADER.md', 'utf8').trim()
 
-  featuresPage += '\n\n## Chat Commands\n\n'
-  featuresPage += fs.readFileSync('scripts/CHAT-COMMANDS-HEADER.md', 'utf8').trim() + '\n\n'
+  featuresPage += `\n## Chat Commands\n\n`
   featuresPage += await generateChatCommands()
 
   featuresPage += `\n\n## Discord Commands\n\n`
@@ -33,10 +30,14 @@ async function generateChatCommands(): Promise<string> {
   const chatCommandPaths = fs.readdirSync(chatCommandsDirectory)
   for (const chatCommandPath of chatCommandPaths) {
     const resolvedPath = '../' + chatCommandsDirectory + chatCommandPath.replaceAll('.ts', '.js')
-    const importedModule = (await import(resolvedPath)) as unknown as { default: ChatCommandHandler | PartyManager }
+    const importedModule = (await import(resolvedPath)) as unknown as {
+      default: ChatCommandHandler | { resolveCommands: () => ChatCommandHandler[] }
+    }
     const module = importedModule.default
     if (typeof module !== 'function') continue
-    const loadedModule = new (module as unknown as new () => ChatCommandHandler | PartyManager)()
+    const loadedModule = new (module as unknown as new () =>
+      | ChatCommandHandler
+      | { resolveCommands: () => ChatCommandHandler[] })()
     if (loadedModule instanceof ChatCommandHandler) {
       table.push([`\`${loadedModule.triggers[0]}\``, loadedModule.description])
     } else if (typeof (loadedModule as { resolveCommands?: unknown }).resolveCommands === 'function') {

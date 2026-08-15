@@ -1,4 +1,4 @@
-import { ChannelType, InstanceType } from '../../../common/application-event.js'
+import { ChannelType, InstanceType, Permission } from '../../../common/application-event.js'
 import { calculateSimilarityScore, ChatCommandHandler } from '../../../common/commands.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
 
@@ -47,12 +47,29 @@ export default class QCommand extends ChatCommandHandler {
     super({
       category: 'Utility',
       triggers: ['chat', 'q'],
-      description: 'Send a one-time message to a different bridge, or list available bridges',
-      example: `chat list | chat blockops hello everyone!`
+      description:
+        'Send a one-time message to a different bridge, or manage cross-bridge chat mutes (!chat mute/unmute/muted)',
+      example: `chat list | chat mute aidn5 30 | chat blockops hello everyone!`
     })
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
+    if (context.args.length === 0) {
+      return this.getExample(context.commandPrefix)
+    }
+
+    switch (context.args[0].toLowerCase()) {
+      case 'mute': {
+        return this.mute(context)
+      }
+      case 'unmute': {
+        return this.unmute(context)
+      }
+      case 'muted': {
+        return this.muted(context)
+      }
+    }
+
     if (!context.app.bridgeResolver.isMultiBridgeEnabled()) {
       return `${context.username}, cross-bridge messaging is only available in multi-bridge mode.`
     }
@@ -137,5 +154,66 @@ export default class QCommand extends ChatCommandHandler {
     })
 
     return `${context.username}, message sent to bridge "${bestBridgeId}".`
+  }
+
+  private async mute(context: ChatCommandContext): Promise<string> {
+    if ((await context.message.user.permission()) < Permission.Officer) {
+      return `${context.username}, you must be Officer or higher to use this command.`
+    }
+
+    if (context.args.length < 2) {
+      return `${context.username}, example: ${context.commandPrefix}chat mute aidn5 30`
+    }
+
+    const targetUsername = context.args[1]
+
+    const durationArgument = context.args[2] ?? '30'
+    const durationMinutes = Number.parseInt(durationArgument, 10)
+
+    if (Number.isNaN(durationMinutes) || durationMinutes <= 0) {
+      return `${context.username}, invalid duration. Please use a number of minutes.`
+    }
+
+    const expirationTime = Date.now() + durationMinutes * 60 * 1000
+    context.app.core.commandsConfigurations.addQMutedUser(targetUsername, expirationTime)
+
+    return `${targetUsername} has been muted from cross-bridge chat for ${durationMinutes} minute(s).`
+  }
+
+  private async unmute(context: ChatCommandContext): Promise<string> {
+    if ((await context.message.user.permission()) < Permission.Officer) {
+      return `${context.username}, you must be Officer or higher to use this command.`
+    }
+
+    if (context.args.length < 2) {
+      return `${context.username}, example: ${context.commandPrefix}chat unmute aidn5`
+    }
+
+    const targetUsername = context.args[1]
+
+    context.app.core.commandsConfigurations.removeQMutedUser(targetUsername)
+
+    return `${targetUsername} has been unmuted from cross-bridge chat.`
+  }
+
+  private async muted(context: ChatCommandContext): Promise<string> {
+    if ((await context.message.user.permission()) < Permission.Officer) {
+      return `${context.username}, you must be Officer or higher to use this command.`
+    }
+
+    const mutedUsers = context.app.core.commandsConfigurations.getQMutedUsers()
+    const currentTime = Date.now()
+    const activeMutes = mutedUsers.filter((entry) => entry.expirationTime > currentTime)
+
+    if (activeMutes.length === 0) {
+      return 'No users are currently muted from cross-bridge chat.'
+    }
+
+    const muteList = activeMutes.map((entry) => {
+      const remainingMinutes = Math.ceil((entry.expirationTime - currentTime) / 60_000)
+      return `${entry.username} (${remainingMinutes}m)`
+    })
+
+    return `Currently muted from cross-bridge chat: ${muteList.join(', ')}`
   }
 }
