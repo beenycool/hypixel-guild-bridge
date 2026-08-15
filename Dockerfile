@@ -43,9 +43,8 @@ COPY --from=builder /app/build ./build
 
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/resources ./resources
-COPY --from=builder /app/plugins ./plugins
 
-RUN mkdir -p logs config/backup plugins && \
+RUN mkdir -p logs config/backup && \
     chown -R node:node /app
 
 USER node

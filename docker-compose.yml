@@ -25,7 +25,6 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./logs:/app/logs
-      - ./plugins:/app/plugins
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgres://bridge:${DB_PASSWORD:-changeme}@postgres:5432/bridge

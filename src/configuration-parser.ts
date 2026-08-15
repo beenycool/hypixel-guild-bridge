@@ -45,14 +45,6 @@ export function parseApplicationConfig(fileString: string): ApplicationConfig {
   }
   assertsConfigValidity(config)
 
-  if ('plugins' in config) {
-    throw new Error(
-      `Detected 'plugins' section in configration. ` +
-        'Plugins have been migrated outside the configuration file. ' +
-        'Check docs/PLUGINS.md and docs/MIGRATION.md for further information on how to migrate.'
-    )
-  }
-
   return config
 }
 

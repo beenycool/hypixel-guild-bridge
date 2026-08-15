@@ -20,7 +20,6 @@ import { InstanceSignalType, InstanceType } from './common/application-event.js'
 import { BridgeResolver } from './common/bridge-resolver.js'
 import { CommandConfigManager } from './common/command-config-manager.js'
 import { ConnectableInstance, Status } from './common/connectable-instance.js'
-import PluginInstance from './common/plugin-instance.js'
 import UnexpectedErrorHandler from './common/unexpected-error-handler.js'
 import { Core } from './core/core.js'
 import { EssentialService } from './core/essential/essential-service.js'
@@ -34,7 +33,6 @@ import AutoRestart from './instance/auto-restart.js'
 import { ChatSummaryScheduler } from './instance/chat-summary-scheduler'
 import { CommandsInstance } from './instance/commands/commands-instance.js'
 import DiscordInstance from './instance/discord/discord-instance.js'
-import { PluginsManager } from './instance/features/plugins-manager.js'
 import HypixelUpdates from './instance/hypixel-updates.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
@@ -53,7 +51,6 @@ export type AllInstances =
   | WebServer
   | Core
   | MinecraftInstance
-  | PluginInstance
   | ApplicationIntegrity
   | AutoLinker
   | HypixelUpdates
@@ -61,7 +58,6 @@ export type AllInstances =
   | StatMonitor
   | AutoRestart
   | MinecraftManager
-  | PluginsManager
   | RandomChatter
   | ChatSummaryScheduler
 
@@ -119,7 +115,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   public readonly discordInstance: DiscordInstance
   public readonly minecraftManager: MinecraftManager
-  public readonly pluginsManager: PluginsManager
   public readonly commandsInstance: CommandsInstance
   public core: Core
   public readonly bridgeResolver: BridgeResolver
@@ -175,8 +170,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.discordInstance = new DiscordInstance(this, this.config.discord)
 
     this.minecraftManager = new MinecraftManager(this)
-
-    this.pluginsManager = new PluginsManager(this)
 
     this.prometheusInstance = this.config.prometheus.enabled
       ? new PrometheusInstance(this, this.config.prometheus)
@@ -308,15 +301,12 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.bridgeResolver.rebuildLookupMaps()
     this.applyStoredLanguage()
     this.minecraftManager.loadInstances()
-    await this.pluginsManager.loadPlugins(this.rootDirectory)
 
     for (const instance of this.getAllInstances()) {
       const checkedInstance = instance
 
       if (checkedInstance instanceof ConnectableInstance) {
         await checkedInstance.connect()
-      } else if (instance instanceof PluginInstance) {
-        await instance.onReady()
       }
     }
 
@@ -497,7 +487,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
   private getAllInstances(): AllInstances[] {
     const instances = [
-      ...this.pluginsManager.getAllInstances(),
       this.core,
       this.applicationIntegrity,
       this.autoLinker,

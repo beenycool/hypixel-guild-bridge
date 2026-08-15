@@ -20,10 +20,8 @@ This project is made to be fully flexible and customisable, offering a high qual
 
 - [Frequently asked questions](docs/FAQ.md)
 - [All Commands And Interactions](docs/COMMANDS.md)
-- [Compatibility and future support](docs/COMPATIBILITY.md)
 - [Migrating to newer version](docs/MIGRATION.md)
 - [Tracking metrics via Prometheus](docs/PROMETHEUS.md)
-- [How to create plugins](docs/PLUGIN-TUTORIAL.md)
 - [Contribute](CONTRIBUTING.md)
 - [Development Documentation](./docs/DEVELOPMENT.md)
 
@@ -38,7 +36,6 @@ This project is made to be fully flexible and customisable, offering a high qual
 - Support many commands from fun ones to management ones
 - Logs all chats/events/etc as records for staff to view
 - Provides detailed metrics per user and per guild (by Prometheus)
-- Supports custom plugins with fully fleshed out public API
 - Supports proxies for Minecraft instances
 
 ## Installing and Running

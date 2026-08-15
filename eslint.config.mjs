@@ -185,7 +185,6 @@ export default [
               from: [
                 'src/types',
                 'src/instance/discord',
-                'src/instance/features',
                 'src/instance/metrics',
                 'src/instance/minecraft',
                 'src/instance/prometheus'
@@ -197,19 +196,6 @@ export default [
               from: [
                 'src/types',
                 'src/instance/commands',
-                'src/instance/features',
-                'src/instance/metrics',
-                'src/instance/minecraft',
-                'src/instance/prometheus'
-              ],
-              message: 'Instance must only access itself and common files'
-            },
-            {
-              target: 'src/instance/features',
-              from: [
-                'src/types',
-                'src/instance/commands',
-                'src/instance/discord',
                 'src/instance/metrics',
                 'src/instance/minecraft',
                 'src/instance/prometheus'
@@ -222,7 +208,6 @@ export default [
                 'src/types',
                 'src/instance/commands',
                 'src/instance/discord',
-                'src/instance/features',
                 'src/instance/minecraft',
                 'src/instance/prometheus'
               ],
@@ -234,7 +219,6 @@ export default [
                 'src/types',
                 'src/instance/commands',
                 'src/instance/discord',
-                'src/instance/features',
                 'src/instance/metrics',
                 'src/instance/prometheus'
               ],
@@ -246,7 +230,6 @@ export default [
                 'src/types',
                 'src/instance/commands',
                 'src/instance/discord',
-                'src/instance/features',
                 'src/instance/metrics',
                 'src/instance/minecraft'
               ],

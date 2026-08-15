@@ -47,7 +47,6 @@ export interface ApplicationEvents {
 export enum InstanceType {
   Main = 'main',
 
-  Plugin = 'plugin',
   Commands = 'commands',
   Core = 'core',
   Metrics = 'metrics',

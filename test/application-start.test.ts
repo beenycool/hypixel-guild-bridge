@@ -37,11 +37,6 @@ await describe('Application.start', async () => {
           calls.push('minecraftManager.loadInstances')
         }
       },
-      pluginsManager: {
-        loadPlugins: () => {
-          calls.push('pluginsManager.loadPlugins')
-        }
-      },
       rootDirectory: '/tmp',
       getAllInstances: () => [],
       logger: {
@@ -65,8 +60,7 @@ await describe('Application.start', async () => {
       'core.tournamentManager.rehydrate',
       'bridgeResolver.rebuildLookupMaps',
       'applyStoredLanguage',
-      'minecraftManager.loadInstances',
-      'pluginsManager.loadPlugins'
+      'minecraftManager.loadInstances'
     ])
   })
 })

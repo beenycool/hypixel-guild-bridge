@@ -19,12 +19,11 @@ Most notable changes:
   runtime configuration stored in the internal database and controlled by the application via discord command `/settings`
 - Remove `socket` section entirely since the feature has been completely removed.
 - Remove `useIngameCommand` and `interval` in `metrics` section.
-- Remove `plugins` section entirely since it has been migrated to newer system.
 
 ### Application Configurations
 
 Application now has a discord slash command `/settings` that controls most of the application configurations.
-This includes official plugins, discord channels and roles, log channels, minecraft instances, and many other features and components.
+This includes discord channels and roles, log channels, minecraft instances, and many other features and components.
 
 Old configuration are NOT auto migrated to the new format.
 Make sure to check the new settings and apply back all your old configurations.
@@ -37,12 +36,6 @@ Runtime-managed configuration is stored in the application database. The `./conf
 - New installs must configure `database.url` or `DATABASE_URL` before runtime-managed state can be saved. SQLite is no longer supported; all data must be in PostgreSQL.
 - If you change something, make sure all changes are **valid and will not break** the application in any unintentional.
 - You can safely delete any file there to reset a part of the application.
-
-### Custom Plugins
-
-There is a directory called `./plugins` at the root of the project. Move all plugins to this directory.
-Application will auto-detect and load them.  
-Only applications ending with `.ts` file extension and at the top of the directory will be loaded.
 
 ## v5.x — Tournament Feature Setup
 
