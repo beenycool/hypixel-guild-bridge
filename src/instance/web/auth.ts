@@ -6,7 +6,7 @@ export type AuthResult =
   | { ok: true; permission: Permission; userId?: string }
   | { ok: false; reason: 'missing' | 'mismatch' }
 
-export interface TokenSet {
+interface TokenSet {
   signingSecret: string
 }
 

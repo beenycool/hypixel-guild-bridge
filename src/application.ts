@@ -18,7 +18,6 @@ import type { ApplicationConfig, DatabaseConfig } from './application-config.js'
 import type { ApplicationEvents, InstanceIdentifier, MinecraftSendChatPriority } from './common/application-event.js'
 import { InstanceSignalType, InstanceType } from './common/application-event.js'
 import { BridgeResolver } from './common/bridge-resolver.js'
-import { CommandConfigManager } from './common/command-config-manager.js'
 import { ConnectableInstance, Status } from './common/connectable-instance.js'
 import UnexpectedErrorHandler from './common/unexpected-error-handler.js'
 import { Core } from './core/core.js'
@@ -64,13 +63,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly hypixelApi: HypixelClient
   public readonly mojangApi: MojangApi
   public readonly lunarService: LunarService
-
-  private commandConfigManagerField: CommandConfigManager | undefined
-
-  public get commandConfigManager(): CommandConfigManager {
-    this.commandConfigManagerField ??= new CommandConfigManager(this)
-    return this.commandConfigManagerField
-  }
 
   public get hypixelApiKey(): string {
     return this.config.general.hypixelApiKey

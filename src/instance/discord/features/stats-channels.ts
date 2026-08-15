@@ -1,9 +1,8 @@
 import { isAxiosError } from 'axios'
 import type { Channel, Client, Guild } from 'discord.js'
-import { DiscordAPIError, GuildChannel, PermissionFlagsBits, TextChannel } from 'discord.js'
+import { DiscordAPIError, PermissionFlagsBits, TextChannel } from 'discord.js'
 import type { Guild as HypixelGuild } from 'hypixel-api-reborn'
 
-import type { StatsChannelsConfig } from '../../../application-config.js'
 import type { InstanceType } from '../../../common/application-event.js'
 import { Status } from '../../../common/connectable-instance'
 import { httpClient } from '../../../common/http.js'
@@ -39,26 +38,15 @@ interface StoredStatusChange {
   toStatus: Status
 }
 
-const ChannelNameReason = 'Updated stats channels'
 const ChannelTopicReason = 'Updated stats topic'
 const UrchinDailyEndpoint = 'https://api.urchin.gg/v3/guild/sessions/daily'
 const DefaultTopicUpdateInterval = Duration.minutes(5)
 
 export default class StatsChannels extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
-  private static readonly DefaultUpdateIntervalMinutes = 5
-
-  private readonly updateInterval: Duration
   private readonly lastTopicUpdate = new Map<string, number>()
 
   constructor(clientInstance: DiscordInstance) {
     super(clientInstance)
-
-    this.updateInterval = StatsChannels.resolveUpdateInterval(this.application.config.statsChannels)
-
-    setIntervalAsync(() => this.updateChannels(), {
-      delay: this.updateInterval,
-      errorHandler: this.errorHandler.promiseCatch('updating stats channels')
-    })
 
     setIntervalAsync(() => this.updateTopics(), {
       delay: DefaultTopicUpdateInterval,
@@ -68,73 +56,8 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 
   override registerEvents(client: Client): void {
     client.on('clientReady', () => {
-      void this.updateChannels().catch(this.errorHandler.promiseCatch('updating stats channels'))
       void this.updateTopics().catch(this.errorHandler.promiseCatch('updating stats topics'))
     })
-  }
-
-  private static resolveUpdateInterval(config: StatsChannelsConfig | undefined): Duration {
-    const intervalMinutes = config?.updateIntervalMinutes ?? StatsChannels.DefaultUpdateIntervalMinutes
-    if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) {
-      return Duration.minutes(StatsChannels.DefaultUpdateIntervalMinutes)
-    }
-
-    return Duration.minutes(intervalMinutes)
-  }
-
-  private async updateChannels(): Promise<void> {
-    const config = this.application.config.statsChannels
-    if (!config?.enabled) return
-    if (config.channels.length === 0) {
-      this.logger.warn('Stats channels enabled but no channels are configured.')
-      return
-    }
-
-    const client = this.clientInstance.getClient()
-    if (!client.isReady()) return
-
-    const hypixelGuild = await this.fetchGuild(config)
-    if (!hypixelGuild) return
-
-    const discordStatsCache = new Map<string, DiscordStats>()
-
-    for (const channelInfo of config.channels) {
-      let channel: Channel | null
-      try {
-        channel = await client.channels.fetch(channelInfo.id)
-      } catch (error: unknown) {
-        this.logger.error(`Failed to fetch stats channel ${channelInfo.id}`, error)
-        continue
-      }
-
-      if (!channel || !(channel instanceof GuildChannel)) {
-        this.logger.warn(`Stats channel ${channelInfo.id} is not a guild channel or no longer exists.`)
-        continue
-      }
-
-      if (!channel.manageable) {
-        this.logger.warn(`Missing permissions to update stats channel ${channelInfo.id}.`)
-        continue
-      }
-
-      const discordStats = await this.resolveDiscordStats(channel.guild, discordStatsCache)
-      const variables = this.buildVariables(hypixelGuild, discordStats)
-      const updatedName = replaceVariables(channelInfo.name, variables)
-
-      if (channel.name === updatedName) continue
-
-      try {
-        await channel.setName(updatedName, ChannelNameReason)
-      } catch (error: unknown) {
-        if (error instanceof DiscordAPIError) {
-          this.logger.error(
-            `Failed to update stats channel ${channelInfo.id} with code ${error.code}: ${error.message}`
-          )
-          continue
-        }
-        this.logger.error(`Failed to update stats channel ${channelInfo.id}`, error)
-      }
-    }
   }
 
   private async updateTopics(): Promise<void> {
@@ -182,7 +105,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
         throw error
       }
     )
-    const baseVariables = await this.buildTopicVariables(hypixelGuild, guildName, instance)
+    const baseVariables = await this.buildTopicVariables(bridgeId, hypixelGuild, guildName, instance)
 
     for (const channelId of channelIds) {
       let channel: Channel | null
@@ -296,6 +219,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
   }
 
   private async buildTopicVariables(
+    bridgeId: string,
     hypixelGuild: HypixelGuild | undefined,
     guildName: string | undefined,
     instance: TopicInstance | undefined
@@ -326,7 +250,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
       variables.topGameGexp = ''
     }
 
-    const chat = await this.resolveChatToday()
+    const chat = await this.resolveChatToday(bridgeId)
     variables.topChatter = chat.topName
     variables.topChatterCount = chat.topCount.toLocaleString()
     variables.messagesToday = chat.total.toLocaleString()
@@ -382,9 +306,31 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     return total
   }
 
-  private async resolveChatToday(): Promise<{ topName: string; topCount: number; total: number }> {
+  private async resolveChatToday(bridgeId: string): Promise<{ topName: string; topCount: number; total: number }> {
     const startOfDay = new Date()
     startOfDay.setUTCHours(0, 0, 0, 0)
+    const startOfDaySeconds = Math.floor(startOfDay.getTime() / 1000)
+
+    try {
+      const rows = await this.application.core.databaseManager.queryRows<{ username: string; count: number }>(
+        `SELECT "username", COUNT(*)::int AS "count" FROM "ChatMessages"
+         WHERE "bridgeId" = $1 AND "createdAt" >= $2 AND "username" IS NOT NULL
+         GROUP BY "username" ORDER BY "count" DESC`,
+        [bridgeId, startOfDaySeconds]
+      )
+
+      let total = 0
+      for (const row of rows) total += row.count
+
+      const top = rows[0]
+      if (rows.length === 0) return { topName: '—', topCount: 0, total }
+      return { topName: top.username, topCount: top.count, total }
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Failed to query chat messages for stats topic of bridge ${bridgeId}, falling back to global scores.`
+      )
+      this.logger.error(error)
+    }
 
     const leaderboard = this.application.core.scoresManager.getMessages(startOfDay.getTime(), Date.now())
     let total = 0
@@ -431,44 +377,6 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     return Math.round((connectedSeconds / elapsed) * 100)
   }
 
-  private async fetchGuild(config: StatsChannelsConfig): Promise<HypixelGuild | undefined> {
-    const trimmedGuildName = config.guildName?.trim()
-    if (trimmedGuildName) {
-      try {
-        return await this.application.hypixelApi.getGuild('name', trimmedGuildName)
-      } catch (error: unknown) {
-        this.logger.error(`Failed to fetch Hypixel guild by name "${trimmedGuildName}"`, error)
-        return undefined
-      }
-    }
-
-    const bots = this.application.minecraftManager.getMinecraftBots()
-    if (bots.length === 0) {
-      this.logger.warn('Stats channels enabled but no Minecraft bots are connected.')
-      return undefined
-    }
-
-    let selectedBot = bots[0]
-    if (config.minecraftInstance) {
-      const requested = config.minecraftInstance.toLowerCase()
-      const match = bots.find((bot) => bot.instanceName.toLowerCase() === requested)
-      if (match) {
-        selectedBot = match
-      } else {
-        this.logger.warn(
-          `Stats channels configured for minecraftInstance "${config.minecraftInstance}" but no matching bot was found.`
-        )
-      }
-    }
-
-    try {
-      return await this.application.hypixelApi.getGuild('player', selectedBot.uuid)
-    } catch (error: unknown) {
-      this.logger.error(`Failed to fetch Hypixel guild for bot ${selectedBot.username}`, error)
-      return undefined
-    }
-  }
-
   private async resolveDiscordStats(guild: Guild, cache: Map<string, DiscordStats>): Promise<DiscordStats> {
     const cached = cache.get(guild.id)
     if (cached) return cached
@@ -493,20 +401,6 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 
     cache.set(guild.id, stats)
     return stats
-  }
-
-  private buildVariables(hypixelGuild: HypixelGuild, discordStats: DiscordStats): StatsVariables {
-    return {
-      guildName: hypixelGuild.name,
-      guildLevel: Math.floor(hypixelGuild.level).toString(),
-      guildLevelWithProgress: hypixelGuild.level.toFixed(2),
-      guildXP: hypixelGuild.experience.toLocaleString(),
-      guildWeeklyXP: hypixelGuild.totalWeeklyGexp.toLocaleString(),
-      guildMembers: hypixelGuild.members.length.toLocaleString(),
-      discordMembers: discordStats.memberCount.toLocaleString(),
-      discordChannels: discordStats.channels.toLocaleString(),
-      discordRoles: discordStats.roles.toLocaleString()
-    }
   }
 }
 

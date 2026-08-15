@@ -1,12 +1,12 @@
 // eslint-disable-next-line unicorn/prevent-abbreviations -- filename is imported as api-utils across the repo
 import type http from 'node:http'
 
-export interface ApiSuccess<T = unknown> {
+interface ApiSuccess<T = unknown> {
   success: true
   data: T
 }
 
-export interface ApiError {
+interface ApiError {
   success: false
   error: {
     code: string

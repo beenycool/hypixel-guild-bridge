@@ -33,19 +33,6 @@ export interface WebConfig {
   minecraftInstance?: string
 }
 
-export interface StatsChannelConfig {
-  id: string
-  name: string
-}
-
-export interface StatsChannelsConfig {
-  enabled: boolean
-  updateIntervalMinutes: number
-  channels: StatsChannelConfig[]
-  guildName?: string
-  minecraftInstance?: string
-}
-
 export interface VerificationRoleConfig {
   enabled: boolean
   roleId: string
@@ -94,21 +81,6 @@ export interface InterviewConfig {
   timeoutMs?: number
 }
 
-export interface InactivityConfig {
-  enabled: boolean
-  maxDays: number
-  channelIds: string[]
-}
-
-export interface TournamentConfig {
-  categoryId: string
-  roundDeadlineDays: number
-  defaultGameMode: 'bridge' | 'bedwars'
-  bestOf: number
-  staffRoleIds?: string[]
-  reminderHours?: number[]
-}
-
 export interface LunarClientConfig {
   enabled?: boolean
   minecraftInstance?: string
@@ -122,11 +94,7 @@ export interface ApplicationConfig {
   prometheus: PrometheusConfig
   database?: DatabaseConfig
   web?: WebConfig
-  statsChannels?: StatsChannelsConfig
   verification?: VerificationConfig
   guildRequirements?: GuildRequirementsConfig
-  inactivity?: InactivityConfig
-
-  tournament?: TournamentConfig
   lunarClient?: LunarClientConfig
 }

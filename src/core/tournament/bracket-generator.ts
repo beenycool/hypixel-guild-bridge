@@ -2,7 +2,7 @@ import type { Logger } from 'log4js'
 
 import { MatchStatus, type TournamentMatch, type TournamentPlayer } from './types.js'
 
-export interface MatchLinkReference {
+interface MatchLinkReference {
   round: number
   matchIndex: number
 }
@@ -12,7 +12,7 @@ export type GeneratedMatch = Omit<Partial<TournamentMatch>, 'nextMatchId' | 'los
   loserNext?: MatchLinkReference
 }
 
-export interface BracketStrategy {
+interface BracketStrategy {
   name: string
   generate(
     tournamentId: number,
@@ -30,7 +30,7 @@ export interface BracketStrategy {
   eliminatesLoser(): boolean
 }
 
-export class SingleElimBracketStrategy implements BracketStrategy {
+class SingleElimBracketStrategy implements BracketStrategy {
   name = 'single-elim'
 
   constructor(private readonly logger?: Logger) {}
@@ -202,7 +202,7 @@ export class SingleElimBracketStrategy implements BracketStrategy {
     return true
   }
 }
-export class DoubleElimBracketStrategy implements BracketStrategy {
+class DoubleElimBracketStrategy implements BracketStrategy {
   name = 'double-elim'
 
   constructor(private readonly logger?: Logger) {}
@@ -425,7 +425,7 @@ export class DoubleElimBracketStrategy implements BracketStrategy {
   }
 }
 
-export class RoundRobinBracketStrategy implements BracketStrategy {
+class RoundRobinBracketStrategy implements BracketStrategy {
   name = 'round-robin'
 
   constructor(private readonly logger?: Logger) {}

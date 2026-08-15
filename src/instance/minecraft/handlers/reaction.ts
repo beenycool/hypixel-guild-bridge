@@ -26,12 +26,7 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
       const bridgeConfig = this.application.core.bridgeConfigurations
       const t = this.application.getTranslatorForBridge(bridgeId)
 
-      if (
-        event.type === GuildPlayerEventType.Join &&
-        (bridgeId
-          ? bridgeConfig.getJoinGuildReaction(bridgeId)
-          : this.application.core.minecraftConfigurations.getJoinGuildReaction())
-      ) {
+      if (event.type === GuildPlayerEventType.Join && (bridgeId ? bridgeConfig.getJoinGuildReaction(bridgeId) : true)) {
         const raw = t('instance.reaction.join')
         const messages = JSON.parse(raw) as string[]
         if (messages.length === 0) {
@@ -54,9 +49,7 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
 
       if (
         event.type === GuildPlayerEventType.Leave &&
-        (bridgeId
-          ? bridgeConfig.getLeaveGuildReaction(bridgeId)
-          : this.application.core.minecraftConfigurations.getLeaveGuildReaction())
+        (bridgeId ? bridgeConfig.getLeaveGuildReaction(bridgeId) : true)
       ) {
         const raw = t('instance.reaction.leave')
         const messages = JSON.parse(raw) as string[]
@@ -77,12 +70,7 @@ export default class Reaction extends SubInstance<MinecraftInstance, InstanceTyp
         })
       }
 
-      if (
-        event.type === GuildPlayerEventType.Kick &&
-        (bridgeId
-          ? bridgeConfig.getKickGuildReaction(bridgeId)
-          : this.application.core.minecraftConfigurations.getKickGuildReaction())
-      ) {
+      if (event.type === GuildPlayerEventType.Kick && (bridgeId ? bridgeConfig.getKickGuildReaction(bridgeId) : true)) {
         const raw = t('instance.reaction.kick')
         const messages = JSON.parse(raw) as string[]
         if (messages.length === 0) {

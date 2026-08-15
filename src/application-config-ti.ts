@@ -37,19 +37,6 @@ export const WebConfig = t.iface([], {
   "minecraftInstance": t.opt("string"),
 });
 
-export const StatsChannelConfig = t.iface([], {
-  "id": "string",
-  "name": "string",
-});
-
-export const StatsChannelsConfig = t.iface([], {
-  "enabled": "boolean",
-  "updateIntervalMinutes": "number",
-  "channels": t.array("StatsChannelConfig"),
-  "guildName": t.opt("string"),
-  "minecraftInstance": t.opt("string"),
-});
-
 export const VerificationRoleConfig = t.iface([], {
   "enabled": "boolean",
   "roleId": "string",
@@ -96,21 +83,6 @@ export const InterviewConfig = t.iface([], {
   "timeoutMs": t.opt("number"),
 });
 
-export const InactivityConfig = t.iface([], {
-  "enabled": "boolean",
-  "maxDays": "number",
-  "channelIds": t.array("string"),
-});
-
-export const TournamentConfig = t.iface([], {
-  "categoryId": "string",
-  "roundDeadlineDays": "number",
-  "defaultGameMode": t.union(t.lit('bridge'), t.lit('bedwars')),
-  "bestOf": "number",
-  "staffRoleIds": t.opt(t.array("string")),
-  "reminderHours": t.opt(t.array("number")),
-});
-
 export const LunarClientConfig = t.iface([], {
   "enabled": t.opt("boolean"),
   "minecraftInstance": t.opt("string"),
@@ -124,11 +96,8 @@ export const ApplicationConfig = t.iface([], {
   "prometheus": "PrometheusConfig",
   "database": t.opt("DatabaseConfig"),
   "web": t.opt("WebConfig"),
-  "statsChannels": t.opt("StatsChannelsConfig"),
   "verification": t.opt("VerificationConfig"),
   "guildRequirements": t.opt("GuildRequirementsConfig"),
-  "inactivity": t.opt("InactivityConfig"),
-  "tournament": t.opt("TournamentConfig"),
   "lunarClient": t.opt("LunarClientConfig"),
 });
 
@@ -138,16 +107,12 @@ const exportedTypeSuite: t.ITypeSuite = {
   PrometheusConfig,
   DatabaseConfig,
   WebConfig,
-  StatsChannelConfig,
-  StatsChannelsConfig,
   VerificationRoleConfig,
   LevelRole,
   VerificationConfig,
   GuildRequirementsThresholds,
   GuildRequirementsConfig,
   InterviewConfig,
-  InactivityConfig,
-  TournamentConfig,
   LunarClientConfig,
   ApplicationConfig,
 };

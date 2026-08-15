@@ -5,7 +5,7 @@ import { createCanvas, registerFont } from 'canvas'
 import { MatchStatus } from './types.js'
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 
-export interface BracketData {
+interface BracketData {
   tournament: Tournament
   matches: TournamentMatch[]
   players: TournamentPlayer[]

@@ -8,7 +8,7 @@ import type EventHelper from '../common/event-helper.js'
 
 import { Timeout } from './timeout.js'
 
-export interface RegexChat {
+interface RegexChat {
   success: RegExp[]
   failure: RegExp[]
 }

@@ -1,4 +1,4 @@
-export interface RateLimitWindow {
+interface RateLimitWindow {
   windowMs: number
   maxRequests: number
 }

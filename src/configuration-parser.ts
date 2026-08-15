@@ -39,8 +39,8 @@ export function parseApplicationConfig(fileString: string): ApplicationConfig {
   ) {
     throw new Error(
       `Configuration is too old. ` +
-        `Check config_example.yaml for the new configuration format. ` +
-        `Check MIGRATION.md for further information on how to migrate the configuration file.`
+        `Check config.yaml for the new configuration format. ` +
+        `Check the README for further information on how to migrate the configuration file.`
     )
   }
   assertsConfigValidity(config)

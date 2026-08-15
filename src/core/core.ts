@@ -20,7 +20,6 @@ import type {
 import { User } from '../common/user'
 
 import { AppSettingsManager } from './app-settings'
-import { ApplicationConfigurations } from './application-configurations'
 import { ChatMessagesService } from './chat-messages'
 import { CommandsConfigurations } from './commands/commands-configurations'
 import { ConfigurationsManager } from './configurations'
@@ -33,7 +32,6 @@ import { DisconnectLogger } from './instance/disconnect-logger'
 import { StatusHistory } from './instance/status-history'
 import { LanguageConfigurations } from './language-configurations'
 import { MinecraftAccounts } from './minecraft/minecraft-accounts'
-import { MinecraftConfigurations } from './minecraft/minecraft-configurations'
 import { SessionsManager } from './minecraft/sessions-manager'
 import { ModerationConfigurations } from './moderation/moderation-configurations'
 import { Profanity } from './moderation/profanity'
@@ -43,7 +41,6 @@ import PunishmentsEnforcer from './moderation/punishments-enforcer'
 import type { PendingReview, RankupHistoryEntry } from './rankup/pending-review-manager'
 import { PendingReviewManager } from './rankup/pending-review-manager'
 import { RankupManager } from './rankup/rankup-manager'
-import { SpontaneousEventsConfigurations } from './spontaneous-events-configurations'
 import { TournamentManager } from './tournament/tournament-manager.js'
 import { TournamentTestPanels } from './tournament/tournament-test-panels.js'
 import Autocomplete from './users/autocomplete'
@@ -70,7 +67,6 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly discordInstanceHistoryButton: InstanceHistoryButton
   public readonly discordEmojis: DiscordEmojis
 
-  public readonly minecraftConfigurations: MinecraftConfigurations
   public readonly minecraftSessions: SessionsManager
   public readonly moderationConfiguration: ModerationConfigurations
   public readonly minecraftAccounts: MinecraftAccounts
@@ -82,10 +78,8 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly tournamentManager: TournamentManager
   public readonly tournamentTestPanels: TournamentTestPanels
 
-  public readonly applicationConfigurations: ApplicationConfigurations
   public readonly languageConfigurations: LanguageConfigurations
   public readonly commandsConfigurations: CommandsConfigurations
-  public readonly spontaneousEventsConfigurations: SpontaneousEventsConfigurations
   public readonly appSettings: AppSettingsManager
 
   public readonly chatMessages: ChatMessagesService
@@ -148,13 +142,10 @@ export class Core extends Instance<InstanceType.Core> {
       }
     })
 
-    this.applicationConfigurations = new ApplicationConfigurations(this.configurationsManager)
     this.languageConfigurations = new LanguageConfigurations(this.configurationsManager)
     this.commandsConfigurations = new CommandsConfigurations(this.configurationsManager)
-    this.spontaneousEventsConfigurations = new SpontaneousEventsConfigurations(this.configurationsManager)
     this.appSettings = new AppSettingsManager(this.databaseManager, application.config, this.logger)
 
-    this.minecraftConfigurations = new MinecraftConfigurations(this.configurationsManager)
     this.minecraftSessions = new SessionsManager(this.databaseManager, this.logger)
     this.minecraftAccounts = new MinecraftAccounts(this.databaseManager)
 

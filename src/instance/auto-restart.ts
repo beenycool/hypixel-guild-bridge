@@ -45,6 +45,6 @@ export default class AutoRestart extends Instance<InstanceType.Utility> {
   }
 
   private enabled(): boolean {
-    return this.application.core.applicationConfigurations.getAutoRestart()
+    return false
   }
 }

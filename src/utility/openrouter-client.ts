@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-export interface ChatCompletionOptions {
+interface ChatCompletionOptions {
   model?: string
   systemPrompt: string
   userPrompt: string
@@ -8,7 +8,7 @@ export interface ChatCompletionOptions {
   reasoningEffort?: string
 }
 
-export interface ChatCompletionResult {
+interface ChatCompletionResult {
   content: string
 }
 

@@ -3,7 +3,7 @@ import type { Logger } from 'log4js'
 import type { DatabaseManager } from '../../common/database-manager.js'
 import { UserRateLimiter } from '../../utility/rate-limiter-map.js'
 
-export interface AbuseCheckResult {
+interface AbuseCheckResult {
   allowed: boolean
   reason?: string
 }

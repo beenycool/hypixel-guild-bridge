@@ -19,9 +19,7 @@ export default class PlayerMuted extends SubInstance<MinecraftInstance, Instance
       const bridgeId = this.application.bridgeResolver.getBridgeIdForInstance(this.clientInstance.instanceName)
       const bridgeConfig = this.application.core.bridgeConfigurations
 
-      const enabled = bridgeId
-        ? bridgeConfig.getAnnounceMutedPlayer(bridgeId)
-        : this.application.core.minecraftConfigurations.getAnnounceMutedPlayer()
+      const enabled = bridgeId ? bridgeConfig.getAnnounceMutedPlayer(bridgeId) : true
       if (!enabled) return
 
       if (!event.message.startsWith("Hey! I'm currently muted")) return

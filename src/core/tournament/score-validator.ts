@@ -1,4 +1,4 @@
-export interface ScoreValidationResult {
+interface ScoreValidationResult {
   valid: boolean
   message: string
 }

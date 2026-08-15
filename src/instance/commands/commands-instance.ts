@@ -263,19 +263,12 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     const bridgeId = event.bridgeId
     const bridgeConfig = this.application.core.bridgeConfigurations
-    const globalCommandsConfig = this.application.core.commandsConfigurations
 
-    const commandsEnabled =
-      bridgeId === undefined
-        ? globalCommandsConfig.getCommandsEnabled()
-        : (bridgeConfig.getCommandsEnabled(bridgeId) ?? globalCommandsConfig.getCommandsEnabled())
+    const commandsEnabled = bridgeId === undefined ? true : (bridgeConfig.getCommandsEnabled(bridgeId) ?? true)
 
     if (!commandsEnabled) return
 
-    const chatPrefix =
-      bridgeId === undefined
-        ? globalCommandsConfig.getChatPrefix()
-        : (bridgeConfig.getCommandPrefix(bridgeId) ?? globalCommandsConfig.getChatPrefix())
+    const chatPrefix = bridgeId === undefined ? '!' : (bridgeConfig.getCommandPrefix(bridgeId) ?? '!')
 
     if (!event.message.startsWith(chatPrefix)) return
 
@@ -286,9 +279,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       const targetCommandName = helpMatch[1].toLowerCase()
 
       const explainCommandOnHelp =
-        bridgeId === undefined
-          ? globalCommandsConfig.getExplainCommandOnHelp()
-          : (bridgeConfig.getExplainCommandOnHelp(bridgeId) ?? globalCommandsConfig.getExplainCommandOnHelp())
+        bridgeId === undefined ? true : (bridgeConfig.getExplainCommandOnHelp(bridgeId) ?? true)
 
       if (!explainCommandOnHelp) {
         return
@@ -325,10 +316,10 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     const disabledCommands =
       bridgeId === undefined
-        ? globalCommandsConfig.getDisabledCommands()
+        ? []
         : bridgeConfig.getDisabledCommands(bridgeId).length > 0
           ? bridgeConfig.getDisabledCommands(bridgeId)
-          : globalCommandsConfig.getDisabledCommands()
+          : []
 
     if (
       disabledCommands.includes(command.triggers[0].toLowerCase()) &&
@@ -413,12 +404,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
   private async handleUnknownCommand(event: ChatEvent, commandName: string, chatPrefix: string): Promise<void> {
     const bridgeId = event.bridgeId
     const bridgeConfig = this.application.core.bridgeConfigurations
-    const globalCommandsConfig = this.application.core.commandsConfigurations
 
-    const suggestOnTypo =
-      bridgeId === undefined
-        ? globalCommandsConfig.getSuggestOnTypo()
-        : (bridgeConfig.getSuggestOnTypo(bridgeId) ?? globalCommandsConfig.getSuggestOnTypo())
+    const suggestOnTypo = bridgeId === undefined ? true : (bridgeConfig.getSuggestOnTypo(bridgeId) ?? true)
 
     if (!suggestOnTypo) return
 
@@ -426,10 +413,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     const now = Date.now()
     const lastSuggestion = this.typoSuggestionCooldowns.get(userId)
 
-    const typoCooldownSeconds =
-      bridgeId === undefined
-        ? globalCommandsConfig.getTypoCooldownSeconds()
-        : (bridgeConfig.getTypoCooldownSeconds(bridgeId) ?? globalCommandsConfig.getTypoCooldownSeconds())
+    const typoCooldownSeconds = bridgeId === undefined ? 30 : (bridgeConfig.getTypoCooldownSeconds(bridgeId) ?? 30)
 
     if (lastSuggestion && now - lastSuggestion < typoCooldownSeconds * 1000) {
       return
@@ -438,10 +422,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     const closestMatch = getClosestCommand(this.commands, commandName)
     if (!closestMatch) return
 
-    const threshold =
-      bridgeId === undefined
-        ? globalCommandsConfig.getTypoSuggestionThreshold()
-        : (bridgeConfig.getTypoSuggestionThreshold(bridgeId) ?? globalCommandsConfig.getTypoSuggestionThreshold())
+    const threshold = bridgeId === undefined ? 0.6 : (bridgeConfig.getTypoSuggestionThreshold(bridgeId) ?? 0.6)
 
     const similarityScore = calculateSimilarityScore(commandName, closestMatch.trigger)
     if (similarityScore < threshold) return

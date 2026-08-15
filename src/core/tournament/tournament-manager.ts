@@ -16,7 +16,7 @@ import type { TournamentResultRow } from './tournament-notifications.js'
 import type { Tournament, TournamentMatch, TournamentPlayer, TournamentReport } from './types.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from './types.js'
 
-export interface TournamentBroadcastEvent {
+interface TournamentBroadcastEvent {
   type: string
   data: unknown
 }

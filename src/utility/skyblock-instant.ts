@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- static utility class keeps class syntax for dual value/type usage (see Omit<SkyblockInstant, ...>)
-export class SkyblockInstant {
+class SkyblockInstant {
   public static readonly HoursCount = 24
   private static readonly HourInMillisecond = 50_000
 
@@ -116,7 +116,7 @@ export class SkyblockInstant {
   }
 }
 
-export interface InstantOptions {
+interface InstantOptions {
   year: number
   month: number
   day: number
@@ -160,7 +160,7 @@ export class SkyblockEvents {
   }
 }
 
-export interface EventAppointment {
+interface EventAppointment {
   type: 'future' | 'happening'
   time: number
 }

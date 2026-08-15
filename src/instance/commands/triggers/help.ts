@@ -117,15 +117,12 @@ export default class Help extends ChatCommandHandler {
   }
 
   private availableCommands(context: ChatCommandContext): ChatCommandHandler[] {
-    const disabledCommands = context.app.core.commandsConfigurations.getDisabledCommands()
+    const disabledCommands: string[] = []
     return context.allCommands.filter((command) => !isDisabled(command, disabledCommands))
   }
 
   private showCategories(context: ChatCommandContext): string {
-    const categories = listCategories(
-      context.allCommands,
-      context.app.core.commandsConfigurations.getDisabledCommands()
-    )
+    const categories = listCategories(context.allCommands, [])
     if (categories.length === 0) return 'No commands are available.'
 
     const lines = paginateLines([`Categories: ${categories.join(', ')}`])
@@ -138,7 +135,7 @@ export default class Help extends ChatCommandHandler {
     category: string,
     page: number | undefined
   ): string {
-    const lines = buildCommandLines(categoryCommands, context.app.core.commandsConfigurations.getDisabledCommands())
+    const lines = buildCommandLines(categoryCommands, [])
     const pages = paginateLines(lines)
     const pageIndex = Math.max(Math.min(page ?? 1, pages.length), 1)
 
@@ -147,7 +144,7 @@ export default class Help extends ChatCommandHandler {
   }
 
   private showAllCommands(context: ChatCommandContext, page: number): string {
-    const lines = buildCommandLines(context.allCommands, context.app.core.commandsConfigurations.getDisabledCommands())
+    const lines = buildCommandLines(context.allCommands, [])
     const pages = paginateLines(lines)
     if (pages.length === 0) return 'No commands are available.'
 

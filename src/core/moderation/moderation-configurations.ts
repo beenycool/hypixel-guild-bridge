@@ -7,14 +7,6 @@ export class ModerationConfigurations {
     this.configuration = manager.create('moderation')
   }
 
-  public getProfanityEnabled(): boolean {
-    return this.configuration.getBoolean('profanityEnabled', true)
-  }
-
-  public setProfanityEnabled(value: boolean): void {
-    this.configuration.setBoolean('profanityEnabled', value)
-  }
-
   public getProfanityWhitelist(): string[] {
     return this.configuration.getStringArray('profanityWhitelist', [
       'sadist',

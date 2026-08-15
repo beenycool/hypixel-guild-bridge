@@ -1,8 +1,6 @@
 import { createCanvas, loadImage } from 'canvas'
 
 import { httpClient } from '../../../common/http.js'
-import type { MinecraftConfigurations } from '../../../core/minecraft/minecraft-configurations'
-import { stufEncode } from '../common/url-encoder.js'
 
 interface ChatCompletionResponse {
   choices?: { message?: { content?: string } }[]
@@ -25,7 +23,6 @@ export class LinksSanitizer {
   private readonly http: HttpClient
 
   constructor(
-    private readonly config: MinecraftConfigurations,
     private readonly openrouterApiKey: string | undefined,
     http: HttpClient = httpClient
   ) {
@@ -33,27 +30,7 @@ export class LinksSanitizer {
   }
 
   public async process(message: string, options?: SanitizerOptions): Promise<string> {
-    if (this.config.getHideLinksViaStuf()) {
-      message = stufEncode(message)
-    } else if (this.config.getResolveHideLinks()) {
-      message = await this.resolveLinkHide(message, options?.maxDescriptionLength)
-    } else {
-      message = this.hideLink(message)
-    }
-
-    return message
-  }
-
-  private hideLink(message: string): string {
-    return message
-      .split(' ')
-      .map((part) => {
-        try {
-          if (part.startsWith('https:') || part.startsWith('http')) return '(link)'
-        } catch {}
-        return part
-      })
-      .join(' ')
+    return this.resolveLinkHide(message, options?.maxDescriptionLength)
   }
 
   private async resolveLinkHide(message: string, maxDescriptionLength?: number): Promise<string> {

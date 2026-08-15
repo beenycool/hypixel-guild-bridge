@@ -192,14 +192,7 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     this.messageAssociation.addMessageId(event.eventId, { channel: event.channelType })
 
     await this.send(
-      await this.formatChatMessage(
-        prefix,
-        event.user.displayName(),
-        replyUsername,
-        event.message,
-        event.instanceName,
-        event.instanceType
-      ),
+      await this.formatChatMessage(prefix, event.user.displayName(), replyUsername, event.message),
       MinecraftSendChatPriority.Default,
       event.eventId
     ).catch(this.errorHandler.promiseCatch('sending chat message'))
@@ -380,15 +373,11 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     prefix: string,
     username: string,
     replyUsername: string | undefined,
-    message: string,
-    instanceName: string,
-    instanceType: InstanceType
+    message: string
   ): Promise<string> {
-    const config = this.application.core.minecraftConfigurations
-    const template = config.getDiscordToMinecraftFormat()
+    const template = '{origin}{username}{reply}: {message}'
 
-    const originTag = this.application.core.applicationConfigurations.getOriginTag()
-    const origin = originTag ? (instanceType === InstanceType.Discord ? `[DC] ` : `[${instanceName}] `) : ''
+    const origin = ''
 
     const sanitizer = this.application.minecraftManager.sanitizer
     username = sanitizer.sanitizeDots(username)

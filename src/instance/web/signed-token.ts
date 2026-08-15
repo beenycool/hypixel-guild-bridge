@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
-export interface TokenPayload {
+interface TokenPayload {
   sub: string
   perm: number
   exp: number

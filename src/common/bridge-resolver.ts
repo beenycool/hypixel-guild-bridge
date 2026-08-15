@@ -1,6 +1,6 @@
 import type { DynamicBridgeConfig } from './dynamic-bridge-config.js'
 
-export interface ResolvedBridge {
+interface ResolvedBridge {
   id: string
   minecraftInstanceNames: string[]
   publicChannelIds: string[]

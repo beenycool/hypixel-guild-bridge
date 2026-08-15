@@ -18,12 +18,7 @@ This project is made to be fully flexible and customisable, offering a high qual
 
 ## Documentation And Tutorials
 
-- [Frequently asked questions](docs/FAQ.md)
 - [All Commands And Interactions](docs/COMMANDS.md)
-- [Migrating to newer version](docs/MIGRATION.md)
-- [Tracking metrics via Prometheus](docs/PROMETHEUS.md)
-- [Contribute](CONTRIBUTING.md)
-- [Development Documentation](./docs/DEVELOPMENT.md)
 
 ## Features
 
@@ -57,7 +52,7 @@ git clone https://github.com/aidn3/hypixel-guild-discord-bridge
 
 ### Configure
 
-- Explore the project files and copy the contents of `config_example.yaml` into `config.yaml`
+- Create/edit `config.yaml` in the project root (see the section below for which keys are bootstrap settings)
 - Open `config.yaml` and fill in the information (Security: `config.yaml` contains sensitive information. Keep it safe!)
 - In `config.yaml` fill out `general.hypixelApiKey` and `discord.key` and `discord.adminIds` (IDs should be strings; numeric IDs will be coerced to strings)
 
@@ -83,51 +78,24 @@ Everything else is managed from the **web dashboard** and stored in the database
 
 ### Install And Run
 
-If you are on linux, execute this command to auto download all libraries and start the application.
-It will also keep the application up to date:
-
 Set `database.url` in `config.yaml` or export `DATABASE_URL` before running a real install.
 `memory://local` is only supported when you opt into it explicitly for tests or ephemeral local runs.
 
-```shell
-./start.sh
-```
-
-If you are running the application on Windows operating system:
+Install the dependencies and start the application:
 
 ```shell
 npm install
 npm start
 ```
 
-### Run Via Docker
-
-Alternatively, Docker image is available to use at [GitHub Container Service](https://github.com/aidn3/hypixel-guild-discord-bridge/pkgs/container/hypixel-guild-discord-bridge).
-Image is usually up to date.
-
-To start, first prepare the configuration as instructed in [this section](#configure). Then execute:
-
-```shell
-sudo docker container run -it --rm -e DATABASE_URL="$DATABASE_URL" -v ./config.yaml:/app/config.yaml ghcr.io/aidn3/hypixel-guild-discord-bridge:latest
-```
-
-Note that the path of the configuration source file must either be relative (with the `./`) or absolute.
-The application now stores runtime state in PostgreSQL, so `database.url` / `DATABASE_URL` must point at your database. On Heroku this is usually provided automatically by the Postgres add-on.
-
-Alternatively, providing the path as an argument to the docker container is also possible:
-
-```shell
-sudo docker container run -it --rm -e DATABASE_URL="$DATABASE_URL" -v ./config.yaml:/config/config.yaml ghcr.io/aidn3/hypixel-guild-discord-bridge:latest /config/config.yaml
-```
-
 ## Setup Via Discord
 
 After installing and running the application, basic setup needs to be done to integrate the application.
 
-Use Discord slash command `/settings` to configure the application:
+Run the `/dashboard` slash command in Discord (or open the web UI directly) to do the basic setup:
 
-- Set up the public and officer channels
-- Check [How to prepare and add Minecraft account](docs/FAQ.md#how-to-prepare-a-minecraft-account-to-be-added).
+- Create a bridge and assign Minecraft instances and Discord channels to it
+- Configure per-bridge settings (channels, staff roles, chat commands, moderation, translations, interviews, stats topics, etc.) on the `Settings` page of the dashboard
 
 ## Credits
 

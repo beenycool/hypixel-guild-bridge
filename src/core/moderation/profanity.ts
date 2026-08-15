@@ -28,7 +28,6 @@ export class Profanity {
   }
 
   public filterProfanity(message: string): { filteredMessage: string; changed: boolean } {
-    if (!this.config.getProfanityEnabled()) return { filteredMessage: message, changed: false }
     assert.ok(this.profanityFilter)
 
     let changed = false

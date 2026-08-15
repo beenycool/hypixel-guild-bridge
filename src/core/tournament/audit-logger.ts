@@ -2,7 +2,7 @@ import type { Logger } from 'log4js'
 
 import type { DatabaseManager } from '../../common/database-manager.js'
 
-export interface AuditLogRow {
+interface AuditLogRow {
   id: number
   tournamentId: number
   action: string

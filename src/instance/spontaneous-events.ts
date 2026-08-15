@@ -5,10 +5,17 @@ import { ChannelType, type ChatEvent, Color, InstanceType } from '../common/appl
 import { Instance } from '../common/instance'
 import SubInstance from '../common/sub-instance'
 import type { User } from '../common/user'
-import { SpontaneousEventsNames } from '../core/spontaneous-events-configurations'
 import triviaData from '../resources/data/trivia-entries.json' with { type: 'json' }
+import Duration from '../utility/duration'
 import { SerialExecutor } from '../utility/serial-executor.js'
 import { Timeout } from '../utility/timeout'
+
+export enum SpontaneousEventsNames {
+  QuickMath = 'quickMath',
+  CountingChain = 'countingChain',
+  Unscramble = 'unscramble',
+  Trivia = 'trivia'
+}
 
 export class SpontaneousEvents extends Instance<InstanceType.Utility> {
   private readonly registeredEventHandlers: SpontaneousEventHandler[] = []
@@ -39,11 +46,10 @@ export class SpontaneousEvents extends Instance<InstanceType.Utility> {
   }
 
   private async handlePublicChatEvent(user: User, eventCreatedAt: number, bridgeId?: string): Promise<void> {
-    const config = this.application.core.spontaneousEventsConfigurations
-    const activityDuration = config.getActivityDuration()
-    const minimumMessages = config.getMinimumMessages()
-    const cooldownDuration = config.getCooldownDuration()
-    const minimumUsers = config.getMinimumUsers()
+    const activityDuration = Duration.minutes(30)
+    const minimumMessages = 30
+    const cooldownDuration = Duration.minutes(30)
+    const minimumUsers = 3
 
     this.chatHeat.push({ user: user, timestamp: eventCreatedAt, bridgeId })
     this.chatHeat = this.chatHeat.filter(
@@ -75,10 +81,6 @@ export class SpontaneousEvents extends Instance<InstanceType.Utility> {
       }
     }
     if (bestBridgeId === undefined) return
-
-    if (!this.application.core.spontaneousEventsConfigurations.getEnabled()) {
-      return undefined
-    }
 
     const spontaneousEventHandler = this.pickRandomEvent()
     if (spontaneousEventHandler === undefined) return
@@ -130,9 +132,7 @@ export abstract class SpontaneousEventHandler extends SubInstance<SpontaneousEve
 
 class QuickMath extends SpontaneousEventHandler {
   override enabled(): boolean {
-    return this.application.core.spontaneousEventsConfigurations
-      .getEnabledEvents()
-      .includes(SpontaneousEventsNames.QuickMath)
+    return true
   }
 
   override async startEvent(bridgeId?: string): Promise<void> {
@@ -235,9 +235,7 @@ class QuickMath extends SpontaneousEventHandler {
 
 class CountingChain extends SpontaneousEventHandler {
   override enabled(): boolean {
-    return this.application.core.spontaneousEventsConfigurations
-      .getEnabledEvents()
-      .includes(SpontaneousEventsNames.CountingChain)
+    return true
   }
 
   override async startEvent(bridgeId?: string): Promise<void> {
@@ -323,9 +321,7 @@ class Unscramble extends SpontaneousEventHandler {
   ]
 
   override enabled(): boolean {
-    return this.application.core.spontaneousEventsConfigurations
-      .getEnabledEvents()
-      .includes(SpontaneousEventsNames.Unscramble)
+    return true
   }
 
   override async startEvent(bridgeId?: string): Promise<void> {
@@ -402,9 +398,7 @@ class Trivia extends SpontaneousEventHandler {
   private static readonly TriviaEntries = triviaData
 
   override enabled(): boolean {
-    return this.application.core.spontaneousEventsConfigurations
-      .getEnabledEvents()
-      .includes(SpontaneousEventsNames.Trivia)
+    return true
   }
 
   override async startEvent(bridgeId?: string): Promise<void> {

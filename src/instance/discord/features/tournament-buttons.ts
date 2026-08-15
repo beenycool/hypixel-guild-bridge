@@ -20,14 +20,14 @@ import type DiscordInstance from '../discord-instance.js'
 
 export const Prefix = 'tournament-btn'
 
-export const JoinAction = 'join'
-export const LeaveAction = 'leave'
-export const CheckinAction = 'checkin'
-export const ReportAction = 'report'
-export const ForfeitAction = 'forfeit'
-export const ForfeitConfirmAction = 'forfeit-confirm'
+const JoinAction = 'join'
+const LeaveAction = 'leave'
+const CheckinAction = 'checkin'
+const ReportAction = 'report'
+const ForfeitAction = 'forfeit'
+const ForfeitConfirmAction = 'forfeit-confirm'
 
-export interface TournamentButtonCustomId {
+interface TournamentButtonCustomId {
   action: string
   tournamentId: number | undefined
   messageId: string | undefined
@@ -35,7 +35,7 @@ export interface TournamentButtonCustomId {
   playerId: number | undefined
 }
 
-export function parseCustomId(customId: string): TournamentButtonCustomId | undefined {
+function parseCustomId(customId: string): TournamentButtonCustomId | undefined {
   const parts = customId.split(':')
   if (parts.length < 2 || parts[0] !== Prefix) return undefined
 
@@ -147,7 +147,7 @@ export function buildThreadComponents(matchId: number): ActionRowBuilder<ButtonB
   ]
 }
 
-export function buildReportModal(matchId: number): ModalBuilder {
+function buildReportModal(matchId: number): ModalBuilder {
   return (
     new ModalBuilder()
       .setCustomId(`${Prefix}:${ReportAction}:${matchId}`)
@@ -180,7 +180,7 @@ export function buildReportModal(matchId: number): ModalBuilder {
   )
 }
 
-export function deriveWinner(
+function deriveWinner(
   myWins: number,
   theirWins: number,
   reporterPlayerId: number,
