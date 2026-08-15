@@ -1,6 +1,5 @@
 import type Application from '../../../application.js'
 
-import ArabicFixer from './arabic-fixer.js'
 import DotsSanitizer from './dot-sanitizer.js'
 import EmojiSanitizer from './emoji-sanitizer.js'
 import EzSanitizer from './ez-sanitizer.js'
@@ -13,7 +12,6 @@ export class Sanitizer {
   private readonly emoji: EmojiSanitizer
   private readonly ez: EzSanitizer
   private readonly dots: DotsSanitizer
-  private readonly arabicFixer: ArabicFixer
 
   constructor(application: Application) {
     this.line = new LineSanitizer()
@@ -21,7 +19,6 @@ export class Sanitizer {
     this.emoji = new EmojiSanitizer()
     this.ez = new EzSanitizer()
     this.dots = new DotsSanitizer()
-    this.arabicFixer = new ArabicFixer()
   }
 
   public async sanitizeChatMessage(
@@ -34,7 +31,6 @@ export class Sanitizer {
     message = this.emoji.process(message)
     message = this.ez.process(message)
     message = this.dots.process(message)
-    message = this.arabicFixer.encode(message)
 
     return message
   }
