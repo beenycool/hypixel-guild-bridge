@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios'
 import type { Channel, Client, Guild } from 'discord.js'
-import { DiscordAPIError, GuildChannel, TextChannel } from 'discord.js'
+import { DiscordAPIError, GuildChannel, PermissionFlagsBits, TextChannel } from 'discord.js'
 import type { Guild as HypixelGuild } from 'hypixel-api-reborn'
 
 import type { StatsChannelsConfig } from '../../../application-config.js'
@@ -173,7 +173,15 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 
     const instance = this.resolveTopicInstance(bridgeId)
     const guildName = bridgeConfigurations.getGuildName(bridgeId)
-    const hypixelGuild = await this.fetchTopicGuild(instance, guildName)
+    const hypixelGuild = await this.withTimeout(this.fetchTopicGuild(instance, guildName), 15_000).catch(
+      (error: unknown): HypixelGuild | undefined => {
+        if (error instanceof Error && error.name === 'StatsTopicTimeout') {
+          this.logger.warn(`Timed out fetching guild info for stats topic of bridge ${bridgeId}.`)
+          return undefined
+        }
+        throw error
+      }
+    )
     const baseVariables = await this.buildTopicVariables(hypixelGuild, guildName, instance)
 
     for (const channelId of channelIds) {
@@ -190,7 +198,18 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
         continue
       }
 
-      if (!channel.manageable) {
+      const botMember = await channel.guild.members.fetchMe().catch((error: unknown) => {
+        this.logger.error(`Failed to fetch bot member for stats topic channel ${channelId}`, error)
+      })
+      if (botMember === undefined) continue
+
+      const permissions = channel.permissionsFor(botMember)
+      if (
+        !permissions.has(
+          [PermissionFlagsBits.Administrator, PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ManageChannels],
+          false
+        )
+      ) {
         this.logger.warn(`Missing permissions to update stats topic channel ${channelId}.`)
         continue
       }
@@ -203,6 +222,8 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 
       try {
         await channel.setTopic(updatedTopic, ChannelTopicReason)
+        this.lastTopicUpdate.set(bridgeId, Date.now())
+        this.logger.info(`Updated stats topic for bridge ${bridgeId} in channel ${channelId}.`)
       } catch (error: unknown) {
         if (error instanceof DiscordAPIError) {
           this.logger.error(
@@ -213,8 +234,27 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
         this.logger.error(`Failed to update stats topic channel ${channelId}`, error)
       }
     }
+  }
 
-    this.lastTopicUpdate.set(bridgeId, Date.now())
+  private withTimeout<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        const error = new Error('Operation timed out')
+        error.name = 'StatsTopicTimeout'
+        reject(error)
+      }, milliseconds)
+
+      promise.then(
+        (value) => {
+          clearTimeout(timeout)
+          resolve(value)
+        },
+        (error: unknown) => {
+          clearTimeout(timeout)
+          reject(error instanceof Error ? error : new Error(String(error)))
+        }
+      )
+    })
   }
 
   private resolveTopicInstance(bridgeId: string): TopicInstance | undefined {
