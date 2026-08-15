@@ -199,12 +199,6 @@ const CATEGORIES = [
         hint: 'Require members to be verified before they can use commands.'
       },
       {
-        id: 'minecraftTextImages',
-        t: 'boolean',
-        label: 'Minecraft Text Images',
-        hint: 'Render Minecraft text as images in Discord.'
-      },
-      {
         id: 'language',
         t: 'preset',
         label: 'Language',
@@ -232,7 +226,7 @@ const CATEGORIES = [
     key: 'minecraftEvents',
     name: 'Minecraft Events',
     icon: '\u2726',
-    description: 'Online/offline tracking and randomized chatter for the Minecraft side.',
+    description: 'Online/offline and join/leave tracking for the Minecraft side.',
     fields: [
       { id: 'memberOnline', t: 'boolean', label: 'Member Online', hint: 'Announce when a guild member comes online.' },
       {
@@ -290,63 +284,6 @@ const CATEGORIES = [
                 max: 604_800
               }
             ]
-          }
-        ]
-      },
-      {
-        t: 'section',
-        collapsible: true,
-        title: 'Random Chatter',
-        children: [
-          { id: 'chatterEnabled', t: 'boolean', label: 'Enable Random Chatter' },
-          { id: 'chatterIntervalMinutes', t: 'number', label: 'Interval (minutes)', min: 1, max: 1440 },
-          { id: 'chatterMinOnlinePlayers', t: 'number', label: 'Min Online Players', min: 1, max: 100 },
-          {
-            id: 'chatterUseBotName',
-            t: 'boolean',
-            label: 'Use Bot Name',
-            hint: 'Send chatter under the bot account rather than a fake name.'
-          },
-          {
-            id: 'chatterMessages',
-            t: 'msglist',
-            label: 'Chatter Messages',
-            hint: 'Up to 20 messages. One will be picked at random each interval.'
-          },
-          {
-            id: 'chatterAntiRepeatLength',
-            t: 'number',
-            label: 'Anti-Repeat Length',
-            hint: 'Avoid repeating a recent message within N chars (0\u201350).',
-            min: 0,
-            max: 50
-          },
-          {
-            id: 'chatterQuietWindowMinutes',
-            t: 'number',
-            label: 'Quiet Window (minutes)',
-            hint: 'Pause chatter shortly after real chat activity (0\u201360).',
-            min: 0,
-            max: 60
-          }
-        ]
-      },
-      {
-        t: 'section',
-        collapsible: true,
-        title: 'Welcome Online Messages',
-        children: [
-          {
-            id: 'welcomeOnlineEnabled',
-            t: 'boolean',
-            label: 'Enable Welcome Messages',
-            hint: 'When enabled, guild chat announces a custom welcome message when a player logs onto Hypixel.'
-          },
-          {
-            id: 'welcomeOnlineMessages',
-            t: 'welcomeTable',
-            label: 'Player Welcome Messages',
-            hint: 'Use {username} placeholder for their name.'
           }
         ]
       }
@@ -624,15 +561,6 @@ const CATEGORIES = [
       },
       {
         t: 'section',
-        title: 'Heat',
-        collapsible: true,
-        children: [
-          { id: 'instance.heat.warn', t: 'text', label: 'Warn' },
-          { id: 'instance.heat.denied', t: 'text', label: 'Denied' }
-        ]
-      },
-      {
-        t: 'section',
         title: 'Game Commands',
         collapsible: true,
         children: [
@@ -648,59 +576,8 @@ const CATEGORIES = [
     key: 'moderation',
     name: 'Moderation',
     icon: '\u26A0',
-    description: 'Heat-based punishments, immune users, and the profanity filter.',
+    description: 'Profanity filter configuration.',
     fields: [
-      {
-        t: 'section',
-        collapsible: true,
-        title: 'Heat Punishments',
-        children: [
-          {
-            id: 'heatPunishmentsEnabled',
-            t: 'boolean',
-            label: 'Enable Heat Punishments',
-            hint: 'When off, no kicks/mutes are issued for heat.'
-          },
-          {
-            id: 'heatKicksPerDay',
-            t: 'number',
-            label: 'Kicks Per Day',
-            hint: '0 falls back to global default.',
-            min: 0
-          },
-          {
-            id: 'heatMutesPerDay',
-            t: 'number',
-            label: 'Mutes Per Day',
-            hint: '0 falls back to global default.',
-            min: 0
-          }
-        ]
-      },
-      {
-        t: 'section',
-        collapsible: true,
-        title: 'Immunity List',
-        children: [
-          {
-            id: 'immuneDiscordUserIds',
-            t: 'tag',
-            label: 'Immune Discord Users',
-            hint: 'User IDs exempt from moderation.',
-            placeholder: 'User ID\u2026',
-            max: 100,
-            channelLabel: true
-          },
-          {
-            id: 'immuneMojangPlayers',
-            t: 'tag',
-            label: 'Immune Mojang Players',
-            hint: 'Player UUIDs exempt from moderation.',
-            placeholder: 'Player UUID\u2026',
-            max: 100
-          }
-        ]
-      },
       {
         t: 'section',
         collapsible: true,
@@ -736,7 +613,7 @@ const CATEGORIES = [
     key: 'chatCommands',
     name: 'Chat Commands',
     icon: '\u2318',
-    description: 'In-game chat commands and passthrough configuration.',
+    description: 'In-game chat commands configuration.',
     fields: [
       {
         id: 'commandsEnabled',
@@ -750,21 +627,6 @@ const CATEGORIES = [
         label: 'Chat Command Prefix',
         hint: '0\u20132 characters. Empty falls back to global.',
         max: 2
-      },
-      {
-        id: 'passthroughPrefix',
-        t: 'text',
-        label: 'Passthrough Prefix',
-        hint: '0\u20132 characters. Empty means no passthrough.',
-        max: 2
-      },
-      {
-        id: 'passthroughCommands',
-        t: 'tag',
-        label: 'Passthrough Commands',
-        hint: 'Commands forwarded verbatim (max 20).',
-        placeholder: 'command\u2026',
-        max: 20
       },
       {
         id: 'insultMode',
@@ -1396,60 +1258,6 @@ function renderDemotionRulesTable(data) {
     </div>`
 }
 
-function welcomeRowHTML(entry) {
-  const e = entry || {}
-  const idCounter = ++rankFieldIdCounter
-  return `<tr>
-      <td style="display:flex;gap:4px;align-items:center">
-        <input class="input" data-uuid="${idCounter}" value="${esc(e.uuid || '')}" placeholder="UUID" style="flex:1" />
-        <button class="btn btn-secondary btn-sm" data-lookup="${idCounter}" title="Resolve username to UUID">🔍</button>
-      </td>
-      <td><input class="input" data-message="${idCounter}" value="${esc(e.message || '')}" placeholder="Welcome {username}!" style="min-width:280px" /></td>
-      <td><button class="btn btn-danger btn-sm" data-action="delete" title="Remove">✕</button></td>
-    </tr>`
-}
-
-function renderWelcomeTable(data) {
-  const entries = Array.isArray(data.welcomeOnlineMessages) ? data.welcomeOnlineMessages : []
-  const rows =
-    entries.length > 0 ? entries.map(welcomeRowHTML).join('') : placeholderRow(3, 'No welcome messages configured.')
-  return `<div class="settings-subsection">
-      <div class="settings-subsection-title">Player Welcome Messages</div>
-      <div class="table-wrap">
-        <table class="table">
-          <thead><tr><th>Player</th><th>Welcome Message</th><th></th></tr></thead>
-          <tbody id="welcome-tbody">${rows}</tbody>
-        </table>
-      </div>
-      <button class="btn btn-secondary btn-sm mt-sm" data-action="add-welcome">+ Add Player Welcome</button>
-    </div>`
-}
-
-function readWelcomeRows() {
-  const tbody = document.querySelector('#welcome-tbody')
-  if (!tbody) return []
-  const rows = [...tbody.querySelectorAll('tr:not([data-placeholder])')]
-  return rows.map((tr) => {
-    const uuidInput = tr.querySelector('[data-uuid]')
-    const messageInput = tr.querySelector('[data-message]')
-    return {
-      uuid: uuidInput ? uuidInput.value.trim() : '',
-      message: messageInput ? messageInput.value.trim() : ''
-    }
-  })
-}
-
-function addWelcomeRow() {
-  const tbody = document.querySelector('#welcome-tbody')
-  if (!tbody) return
-  const ph = tbody.querySelector('[data-placeholder]')
-  if (ph) ph.remove()
-  const tr = document.createElement('tr')
-  tr.innerHTML = welcomeRowHTML({ uuid: '', message: '' })
-  tbody.append(tr)
-  checkDirty()
-}
-
 function readPromotionRows() {
   const tbody = document.querySelector('#promo-tbody')
   if (!tbody) return []
@@ -1526,10 +1334,6 @@ function renderCategoryPanel(cat) {
     }
     if (f.t === 'demotionRules') {
       bodyHTML += renderDemotionRulesTable(data)
-      continue
-    }
-    if (f.t === 'welcomeTable') {
-      bodyHTML += renderWelcomeTable(data)
       continue
     }
     const v = fieldValue(data, f)
@@ -1879,10 +1683,6 @@ function readCategoryState(cat) {
         target[f.id] = readDemotionRows()
         continue
       }
-      if (f.t === 'welcomeTable') {
-        target[f.id] = readWelcomeRows()
-        continue
-      }
       if (f.t === 'link' || f.t === 'danger') continue
       const element = panel.querySelector(`[data-field="${cssEscape(f.id)}"]`)
       if (!element) continue
@@ -1923,8 +1723,7 @@ function serializeCategory(cat, data) {
           break
         }
         case 'promotionRules':
-        case 'demotionRules':
-        case 'welcomeTable': {
+        case 'demotionRules': {
           subset[f.id] = JSON.stringify(v || [])
           break
         }
@@ -2221,7 +2020,7 @@ function removeRow(button) {
   if (!tr || !tbody) return
   tr.remove()
   if (!tbody.querySelector('tr:not([data-placeholder])')) {
-    const cols = tbody.id === 'promo-tbody' ? 5 : tbody.id === 'welcome-tbody' ? 3 : 6
+    const cols = tbody.id === 'promo-tbody' ? 5 : 6
     tbody.innerHTML = placeholderRow(cols, 'No rules configured.')
   }
   checkDirty()
@@ -2318,34 +2117,21 @@ function attachDelegatedListeners() {
       }
       return
     }
-    if (currentCategory !== 'rankup' && currentCategory !== 'minecraftEvents') return
+    if (currentCategory !== 'rankup') return
     const button = e.target.closest('[data-action]')
     if (!button) return
-    if (currentCategory === 'rankup') {
-      switch (button.dataset.action) {
-        case 'add-promotion': {
-          addPromotionRow()
-          break
-        }
-        case 'add-demotion': {
-          addDemotionRow()
-          break
-        }
-        case 'delete': {
-          removeRow(button)
-          break
-        }
+    switch (button.dataset.action) {
+      case 'add-promotion': {
+        addPromotionRow()
+        break
       }
-    } else if (currentCategory === 'minecraftEvents') {
-      switch (button.dataset.action) {
-        case 'add-welcome': {
-          addWelcomeRow()
-          break
-        }
-        case 'delete': {
-          removeRow(button)
-          break
-        }
+      case 'add-demotion': {
+        addDemotionRow()
+        break
+      }
+      case 'delete': {
+        removeRow(button)
+        break
       }
     }
   })

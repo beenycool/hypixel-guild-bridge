@@ -101,15 +101,6 @@ export interface InactivityConfig {
   channelIds: string[]
 }
 
-export interface HypixelUpdatesConfig {
-  enabled: boolean
-  hypixelNews?: boolean
-  statusUpdates?: boolean
-  alphaPlayerCount?: boolean
-  pollIntervalMinutes?: number
-  alphaCheckIntervalMinutes?: number
-}
-
 export interface BridgeConfig {
   id: string
 
@@ -141,20 +132,8 @@ export interface LunarClientConfig {
   cacheSeconds?: number
 }
 
-export interface FeatherClientConfig {
-  enabled?: boolean
-  minecraftInstance?: string
-  cacheSeconds?: number
-}
-
-export interface EssentialClientConfig {
-  enabled?: boolean
-  minecraftInstance?: string
-  cacheSeconds?: number
-}
-
 export interface ApplicationConfig {
-  version: typeof ApplicationConfigVersion
+  version: 2
   general: GeneralConfig
   discord: StaticDiscordConfig
   prometheus: PrometheusConfig
@@ -164,11 +143,8 @@ export interface ApplicationConfig {
   verification?: VerificationConfig
   guildRequirements?: GuildRequirementsConfig
   inactivity?: InactivityConfig
-  hypixelUpdates?: HypixelUpdatesConfig
 
   bridges?: BridgeConfig[]
   tournament?: TournamentConfig
   lunarClient?: LunarClientConfig
-  featherClient?: FeatherClientConfig
-  essentialClient?: EssentialClientConfig
 }

@@ -65,22 +65,6 @@ export class CommandsConfigurations {
     this.configuration.setNumber('typoCooldownSeconds', seconds)
   }
 
-  public getPassthroughCommands(): string[] {
-    return this.configuration.getStringArray('passthroughCommands', [])
-  }
-
-  public setPassthroughCommands(commands: string[]): void {
-    this.configuration.setStringArray('passthroughCommands', commands)
-  }
-
-  public getPassthroughPrefix(): string {
-    return this.configuration.getString('passthroughPrefix', '!')
-  }
-
-  public setPassthroughPrefix(prefix: string): void {
-    this.configuration.setString('passthroughPrefix', prefix)
-  }
-
   public getQMutedUsers(): { username: string; expirationTime: number }[] {
     const entries = this.configuration.getStringArray('qMutedUsers', [])
     return entries.map((entry) => {

@@ -4,7 +4,6 @@ import assert from 'node:assert'
 import type { Guild } from 'discord.js'
 
 import type Application from '../application'
-import type { CommandsHeat, HeatResult, HeatType } from '../core/moderation/commands-heat'
 import type { ModerationConfigurations } from '../core/moderation/moderation-configurations'
 import type Punishments from '../core/moderation/punishments'
 import type { SavedPunishment } from '../core/moderation/punishments'
@@ -99,20 +98,6 @@ export class User {
 
   public verified(): boolean {
     return this.userLink !== undefined
-  }
-
-  public async immune(): Promise<boolean> {
-    if ((await this.permission()) >= Permission.Admin) return true
-
-    const discordProfile = this.discordProfile()
-    if (discordProfile !== undefined && this.context.moderation.getImmuneDiscordUsers().includes(discordProfile.id))
-      return true
-
-    const mojangProfile = this.mojangProfile()
-    if (mojangProfile !== undefined && this.context.moderation.getImmuneMojangPlayers().includes(mojangProfile.name))
-      return true
-
-    return false
   }
 
   public equalsUser(other: User): boolean {
@@ -230,14 +215,6 @@ export class User {
     return savedPunishment
   }
 
-  public async addModerationAction(type: HeatType): Promise<HeatResult> {
-    return this.context.commandsHeat.add(this, type)
-  }
-
-  public async tryAddModerationAction(type: HeatType): Promise<HeatResult> {
-    return this.context.commandsHeat.tryAdd(this, type)
-  }
-
   public isMojangUser(): this is MinecraftUser {
     if (this.userIdentifier.originInstance === InstanceType.Minecraft) {
       assert.ok(this.userMojang !== undefined)
@@ -326,7 +303,6 @@ export interface UserIdentifier {
 }
 
 export interface ManagerContext {
-  commandsHeat: CommandsHeat
   punishments: Punishments
   moderation: ModerationConfigurations
 }

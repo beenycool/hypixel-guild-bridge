@@ -18,7 +18,6 @@ async function syncSequences(databaseManager: DatabaseManager): Promise<void> {
     'guildMemberEvents',
     'guildMemberDailySnapshots',
     'punishments',
-    'heatsCommands',
     'proxies',
     'instanceStatusHistory',
     'instanceMessageHistory',

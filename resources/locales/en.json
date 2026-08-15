@@ -199,8 +199,6 @@
   "instance.reaction.kick": ["{username} was kicked from the guild."],
   "instance.player.announceMuted": "{{username}} is currently muted and is unable to message right now.",
 
-  "instance.heat.warn": "{{username}}, you have been issuing too many dangerous commands in a short time. Slow down!",
-  "instance.heat.denied": "{{username}}, you have issued too many dangerous commands in a short time. Stop it!",
   "instance.spontaneous.quickMath.question": "Quick Math: {{expression}}",
   "instance.spontaneous.quickMath.answer": "The answer is: {{answer}} :(",
   "instance.spontaneous.quickMath.correct": "Good job {{user}}!",

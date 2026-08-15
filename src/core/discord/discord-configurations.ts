@@ -80,14 +80,6 @@ export class DiscordConfigurations {
     this.configuration.setBoolean('enforceVerification', enabled)
   }
 
-  public getTextToImage(): boolean {
-    return this.configuration.getBoolean('textToImage', false)
-  }
-
-  public setTextToImage(enabled: boolean): void {
-    this.configuration.setBoolean('textToImage', enabled)
-  }
-
   public getGuildOnline(): boolean {
     return this.configuration.getBoolean('guildOnline', true)
   }
@@ -128,13 +120,5 @@ export class DiscordConfigurations {
 
   public setDurationJoinLeaveInteractions(value: Duration): void {
     this.configuration.setNumber('joinLeaveInteractionsDuration', value.toSeconds())
-  }
-
-  public getMinecraftToDiscordFormat(): string {
-    return this.configuration.getString('minecraftToDiscordFormat', '{message}')
-  }
-
-  public setMinecraftToDiscordFormat(format: string): void {
-    this.configuration.setString('minecraftToDiscordFormat', format)
   }
 }

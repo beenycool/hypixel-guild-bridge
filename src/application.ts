@@ -22,8 +22,6 @@ import { CommandConfigManager } from './common/command-config-manager.js'
 import { ConnectableInstance, Status } from './common/connectable-instance.js'
 import UnexpectedErrorHandler from './common/unexpected-error-handler.js'
 import { Core } from './core/core.js'
-import { EssentialService } from './core/essential/essential-service.js'
-import { FeatherService } from './core/feather/feather-service.js'
 import { ApplicationLanguages, LanguageConfigurations } from './core/language-configurations.js'
 import { LunarService } from './core/lunar/lunar-service.js'
 import type { MojangApi } from './core/users/mojang'
@@ -33,12 +31,10 @@ import AutoRestart from './instance/auto-restart.js'
 import { ChatSummaryScheduler } from './instance/chat-summary-scheduler'
 import { CommandsInstance } from './instance/commands/commands-instance.js'
 import DiscordInstance from './instance/discord/discord-instance.js'
-import HypixelUpdates from './instance/hypixel-updates.js'
 import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import type ApplicationMetrics from './instance/prometheus/application-metrics.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
-import { RandomChatter } from './instance/random-chatter'
 import { SpontaneousEvents } from './instance/spontaneous-events'
 import StatMonitor from './instance/stat-monitor'
 import WebServer from './instance/web-server'
@@ -53,12 +49,10 @@ export type AllInstances =
   | MinecraftInstance
   | ApplicationIntegrity
   | AutoLinker
-  | HypixelUpdates
   | SpontaneousEvents
   | StatMonitor
   | AutoRestart
   | MinecraftManager
-  | RandomChatter
   | ChatSummaryScheduler
 
 export default class Application extends Emittery<ApplicationEvents> implements InstanceIdentifier {
@@ -70,8 +64,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly hypixelApi: HypixelClient
   public readonly mojangApi: MojangApi
   public readonly lunarService: LunarService
-  public readonly featherService: FeatherService
-  public readonly essentialService: EssentialService
 
   private commandConfigManagerField: CommandConfigManager | undefined
 
@@ -122,9 +114,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly webServer: WebServer | undefined
 
   private readonly chatSummaryScheduler: ChatSummaryScheduler
-  private readonly hypixelUpdates: HypixelUpdates
   private readonly spontaneousEvents: SpontaneousEvents
-  public readonly randomChatter: RandomChatter
   public readonly statMonitor: StatMonitor
   private readonly autoLinker: AutoLinker
   private readonly autoRestart: AutoRestart
@@ -178,9 +168,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.commandsInstance = new CommandsInstance(this)
 
     this.chatSummaryScheduler = new ChatSummaryScheduler(this)
-    this.hypixelUpdates = new HypixelUpdates(this)
     this.spontaneousEvents = new SpontaneousEvents(this)
-    this.randomChatter = new RandomChatter(this)
     this.statMonitor = new StatMonitor(this)
     this.autoRestart = new AutoRestart(this)
     this.autoLinker = new AutoLinker(this)
@@ -194,24 +182,8 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.config.lunarClient?.cacheSeconds
     )
 
-    this.featherService = new FeatherService(
-      this,
-      this.logger,
-      this.config.featherClient?.minecraftInstance ?? defaultAccount,
-      this.config.featherClient?.cacheSeconds
-    )
-
-    this.essentialService = new EssentialService(
-      this,
-      this.logger,
-      this.config.essentialClient?.minecraftInstance ?? defaultAccount,
-      this.config.essentialClient?.cacheSeconds
-    )
-
     this.on('minecraftSelfBroadcast', () => {
       void this.lunarService.ensureConnected().catch(() => undefined)
-      void this.featherService.ensureAuthenticated().catch(() => undefined)
-      void this.essentialService.ensureConnected().catch(() => undefined)
     })
   }
 
@@ -343,11 +315,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.logger.warn(`Failed to resolve guild names: ${String(error)}`)
     }
 
-    try {
-      this.randomChatter.start()
-    } catch (error: unknown) {
-      this.errorHandler.promiseCatch('starting random chatter')(error)
-    }
     try {
       this.chatSummaryScheduler.start()
     } catch (error: unknown) {
@@ -498,10 +465,8 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.commandsInstance,
       ...this.minecraftManager.getAllInstances(),
       this.chatSummaryScheduler,
-      this.hypixelUpdates,
       this.spontaneousEvents,
       this.statMonitor,
-      this.randomChatter,
       this.autoRestart
     ].filter((instance) => instance != undefined)
 

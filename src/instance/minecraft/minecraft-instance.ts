@@ -24,7 +24,6 @@ import GameTogglesHandler from './handlers/game-toggles-handler.js'
 import JoinInterviewHandler from './handlers/join-interview-handler.js'
 import LimboHandler from './handlers/limbo-handler.js'
 import PlayerMuted from './handlers/player-muted.js'
-import PunishmentHandler from './handlers/punishment-handler'
 import Reaction from './handlers/reaction.js'
 import SelfbroadcastHandler from './handlers/selfbroadcast-handler.js'
 import StateHandler, { QuitOwnVolition } from './handlers/state-handler.js'
@@ -42,7 +41,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private stateHandler: StateHandler
   private selfbroadcastHandler: SelfbroadcastHandler
   private chatManager: ChatManager
-  private punishmentHandler: PunishmentHandler
   private gameToggle: GameTogglesHandler
   private reactionHandler: Reaction
   private playerMuted: PlayerMuted
@@ -83,7 +81,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     this.selfbroadcastHandler = new SelfbroadcastHandler(this)
     this.chatManager = new ChatManager(this, this.messageAssociation)
     this.gameToggle = new GameTogglesHandler(this)
-    this.punishmentHandler = new PunishmentHandler(this)
     this.limboHandler = new LimboHandler(this)
     this.reactionHandler = new Reaction(this)
     this.playerMuted = new PlayerMuted(this)
@@ -205,7 +202,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     this.cachedUuid = undefined
     this.clientSession?.client.end(QuitOwnVolition)
     this.reactionHandler.dispose()
-    this.punishmentHandler.dispose()
     this.playerMuted.dispose()
     this.gameToggle.dispose()
     this.limboHandler.dispose()

@@ -305,7 +305,6 @@ export class SettingsApiHandler {
         case 'discordSettings': {
           cfg.setAlwaysReplyReaction(bridgeId, bool(body.alwaysReply))
           cfg.setEnforceVerification(bridgeId, bool(body.enforceVerification))
-          cfg.setTextToImage(bridgeId, bool(body.minecraftTextImages))
           cfg.setLanguage(bridgeId, stringValue(body.language) || undefined)
           cfg.setBotUsernameOverride(bridgeId, stringValue(body.botUsernameOverride) || undefined)
           break
@@ -323,18 +322,6 @@ export class SettingsApiHandler {
             Math.min(604_800, numberValue(body.deleteJoinLeaveAfterSeconds, 172_800))
           )
           cfg.setDurationJoinLeaveInteractions(bridgeId, Duration.seconds(deleteJoinLeaveAfter))
-          cfg.setRandomChatterEnabled(bridgeId, bool(body.chatterEnabled))
-          cfg.setRandomChatterIntervalMinutes(bridgeId, numberValue(body.chatterIntervalMinutes, 15))
-          cfg.setRandomChatterMinimumOnlinePlayers(bridgeId, numberValue(body.chatterMinOnlinePlayers, 1))
-          cfg.setRandomChatterIncludePlayerName(bridgeId, bool(body.chatterUseBotName))
-          cfg.setRandomChatterMessages(bridgeId, array(body.chatterMessages))
-          cfg.setRandomChatterAntiRepeatLength(bridgeId, numberValue(body.chatterAntiRepeatLength, 5))
-          cfg.setRandomChatterQuietWindowMinutes(bridgeId, numberValue(body.chatterQuietWindowMinutes, 2))
-          cfg.setWelcomeOnlineEnabled(bridgeId, bool(body.welcomeOnlineEnabled))
-          cfg.setWelcomeOnlineMessages(
-            bridgeId,
-            (body.welcomeOnlineMessages as never as { uuid: string; message: string }[] | undefined) ?? []
-          )
           break
         }
         case 'qualityOfLife': {
@@ -347,25 +334,12 @@ export class SettingsApiHandler {
           break
         }
         case 'moderation': {
-          cfg.setHeatPunishmentEnabled(bridgeId, boolOrUndefined(body.heatPunishmentsEnabled))
-          cfg.setKicksPerDay(
-            bridgeId,
-            body.heatKicksPerDay == undefined ? undefined : numberValue(body.heatKicksPerDay)
-          )
-          cfg.setMutesPerDay(
-            bridgeId,
-            body.heatMutesPerDay == undefined ? undefined : numberValue(body.heatMutesPerDay)
-          )
-          cfg.setImmuneDiscordUsers(bridgeId, array(body.immuneDiscordUserIds))
-          cfg.setImmuneMojangPlayers(bridgeId, array(body.immuneMojangPlayers))
           cfg.setProfanityEnabled(bridgeId, boolOrUndefined(body.profanityFilterEnabled))
           break
         }
         case 'chatCommands': {
           cfg.setCommandsEnabled(bridgeId, boolOrUndefined(body.commandsEnabled))
           cfg.setCommandPrefix(bridgeId, stringValue(body.chatCommandPrefix) || undefined)
-          cfg.setPassthroughPrefix(bridgeId, stringValue(body.passthroughPrefix) || undefined)
-          cfg.setPassthroughCommands(bridgeId, array(body.passthroughCommands))
           cfg.setInsultMode(bridgeId, stringValue(body.insultMode) || undefined)
           break
         }

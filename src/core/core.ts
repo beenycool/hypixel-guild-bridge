@@ -35,7 +35,6 @@ import { LanguageConfigurations } from './language-configurations'
 import { MinecraftAccounts } from './minecraft/minecraft-accounts'
 import { MinecraftConfigurations } from './minecraft/minecraft-configurations'
 import { SessionsManager } from './minecraft/sessions-manager'
-import { CommandsHeat } from './moderation/commands-heat'
 import { ModerationConfigurations } from './moderation/moderation-configurations'
 import { Profanity } from './moderation/profanity'
 import type { SavedPunishment } from './moderation/punishments'
@@ -55,7 +54,6 @@ import ScoresManager from './users/scores-manager'
 import { Verification } from './users/verification'
 
 export class Core extends Instance<InstanceType.Core> {
-  private readonly commandsHeat: CommandsHeat
   private readonly profanity: Profanity
   private readonly punishments: Punishments
   private readonly enforcer: PunishmentsEnforcer
@@ -166,7 +164,6 @@ export class Core extends Instance<InstanceType.Core> {
 
     this.profanity = new Profanity(this.moderationConfiguration)
     this.punishments = new Punishments(this.databaseManager, application, this.logger)
-    this.commandsHeat = new CommandsHeat(this.databaseManager, this.moderationConfiguration)
     this.enforcer = new PunishmentsEnforcer(this)
 
     this.rankupManager = new RankupManager(
@@ -241,36 +238,6 @@ export class Core extends Instance<InstanceType.Core> {
     return this.profanity.filterProfanity(message)
   }
 
-  public isHeatPunishmentEnabled(bridgeId: string | undefined): boolean {
-    if (bridgeId !== undefined) {
-      const bridgeHeatEnabled = this.bridgeConfigurations.getHeatPunishmentEnabled(bridgeId)
-      if (bridgeHeatEnabled !== undefined) {
-        return bridgeHeatEnabled
-      }
-    }
-    return this.moderationConfiguration.getHeatPunishment()
-  }
-
-  public getKicksPerDayForBridge(bridgeId: string | undefined): number {
-    if (bridgeId !== undefined) {
-      const bridgeLimit = this.bridgeConfigurations.getKicksPerDay(bridgeId)
-      if (bridgeLimit !== undefined) {
-        return bridgeLimit
-      }
-    }
-    return this.moderationConfiguration.getKicksPerDay()
-  }
-
-  public getMutesPerDayForBridge(bridgeId: string | undefined): number {
-    if (bridgeId !== undefined) {
-      const bridgeLimit = this.bridgeConfigurations.getMutesPerDay(bridgeId)
-      if (bridgeLimit !== undefined) {
-        return bridgeLimit
-      }
-    }
-    return this.moderationConfiguration.getMutesPerDay()
-  }
-
   public allPunishments(): SavedPunishment[] {
     return this.punishments.all()
   }
@@ -295,7 +262,6 @@ export class Core extends Instance<InstanceType.Core> {
     await this.statusHistory.load()
     await this.pendingReviewManager.load()
     await this.inactivity.load()
-    await this.commandsHeat.load()
     await this.punishments.initialize()
     await this.scoresManager.load()
     await this.autoComplete.load()
@@ -362,7 +328,6 @@ export class Core extends Instance<InstanceType.Core> {
 
   private userContext(): ManagerContext {
     return {
-      commandsHeat: this.commandsHeat,
       punishments: this.punishments,
       moderation: this.moderationConfiguration
     }

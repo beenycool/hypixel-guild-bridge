@@ -2,7 +2,8 @@ import assert from 'node:assert'
 
 import type { Client, Message } from 'discord.js'
 
-import { ChannelType, InstanceType, MinecraftSendChatPriority } from '../../common/application-event.js'
+import type { InstanceType } from '../../common/application-event.js'
+import { ChannelType } from '../../common/application-event.js'
 import SubInstance from '../../common/sub-instance'
 
 import { FilteredReaction, UnverifiedReaction } from './common/discord-config.js'
@@ -118,10 +119,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const content = this.cleanMessage(event)
     if (content.length === 0) return
 
-    if (await this.handlePassthroughCommand(event, content, channelType, bridgeId)) {
-      return
-    }
-
     const fillBaseEvent = this.eventHelper.fillBaseEvent()
     this.messageAssociation.addMessageId(fillBaseEvent.eventId, {
       guildId: event.guildId ?? undefined,
@@ -159,7 +156,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     const channel = messageEvent.channel
     const replyMessage = await channel.messages.fetch(messageId)
-    if (replyMessage.webhookId != undefined) return replyMessage.author.username
 
     const resolvedProfile = this.clientInstance.profileByUser(replyMessage.author, replyMessage.member ?? undefined)
     const replyUser = await this.application.core.initializeDiscordUser(resolvedProfile, {})
@@ -200,60 +196,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
         if (now - timestamp > maxAge) map.delete(key)
       }
     }
-  }
-
-  private async handlePassthroughCommand(
-    event: Message,
-    content: string,
-    channelType: ChannelType,
-    bridgeId: string | undefined
-  ): Promise<boolean> {
-    if (channelType !== ChannelType.Public) return false
-
-    const bridgeConfig = this.application.core.bridgeConfigurations
-    const globalCommandsConfig = this.application.core.commandsConfigurations
-
-    const passthroughPrefix =
-      bridgeId === undefined
-        ? globalCommandsConfig.getPassthroughPrefix()
-        : (bridgeConfig.getPassthroughPrefix(bridgeId) ?? globalCommandsConfig.getPassthroughPrefix())
-
-    if (!content.startsWith(passthroughPrefix)) return false
-
-    const passthroughCommands =
-      bridgeId !== undefined && bridgeConfig.getPassthroughCommands(bridgeId).length > 0
-        ? bridgeConfig.getPassthroughCommands(bridgeId)
-        : globalCommandsConfig.getPassthroughCommands()
-
-    if (passthroughCommands.length === 0) return false
-
-    const messageWithoutPrefix = content.slice(passthroughPrefix.length)
-    const commandName = messageWithoutPrefix.split(/\s+/)[0]?.toLowerCase()
-    if (!commandName) return false
-
-    const isPassthroughCommand = passthroughCommands.some((cmd) => cmd.toLowerCase() === commandName)
-    if (!isPassthroughCommand) return false
-
-    if (this.application.bridgeResolver.isMultiBridgeEnabled() && bridgeId === undefined) {
-      this.logger.warn(
-        `Dropping passthrough command from unmapped channel ${event.channel.id} while multi-bridge routing is enabled`
-      )
-      return true
-    }
-
-    const instances = this.application
-      .getInstancesNames(InstanceType.Minecraft)
-      .filter((name) => this.application.bridgeResolver.shouldProcessEvent(bridgeId, name))
-
-    if (instances.length === 0) {
-      this.logger.warn('No Minecraft instances available for passthrough command')
-      return false
-    }
-
-    const gcCommand = `/gc ${content}`
-    await this.application.sendMinecraft(instances, MinecraftSendChatPriority.Default, undefined, gcCommand)
-
-    return true
   }
 
   public override dispose(): void {

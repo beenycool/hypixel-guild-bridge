@@ -1,5 +1,3 @@
-import process from 'node:process'
-
 import { type Canvas, createCanvas, type Image, loadImage, registerFont } from 'canvas'
 // eslint-disable-next-line import/no-extraneous-dependencies -- lru-cache is a transitive dependency; adding to package.json is out of lane scope
 import LRUCache from 'lru-cache'
@@ -203,15 +201,6 @@ export default class MessageToImage {
     const image = await loadImage(url)
     MessageToImage.SkinCache.set(cacheKey, { image, fetchedAt: Date.now() })
     return image
-  }
-
-  public shouldRenderImage(): boolean {
-    const config = this.application.core.discordConfigurations
-    if (!config.getTextToImage()) return false
-
-    if (process.platform === 'win32') return false
-
-    return true
   }
 
   private async drawWrappedSegmentBody(

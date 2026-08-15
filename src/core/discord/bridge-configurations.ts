@@ -67,7 +67,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
 
     this.configuration.delete(`${bridgeId}_alwaysReplyReaction`)
     this.configuration.delete(`${bridgeId}_enforceVerification`)
-    this.configuration.delete(`${bridgeId}_textToImage`)
     this.configuration.delete(`${bridgeId}_guildOnline`)
     this.configuration.delete(`${bridgeId}_guildOffline`)
     this.configuration.delete(`${bridgeId}_persistGuildOnlineOffline`)
@@ -76,12 +75,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_persistGuildJoinLeave`)
     this.configuration.delete(`${bridgeId}_joinLeaveInteractionsDuration`)
 
-    this.configuration.delete(`${bridgeId}_heatPunishmentEnabled`)
-    this.configuration.delete(`${bridgeId}_kicksPerDay`)
-    this.configuration.delete(`${bridgeId}_mutesPerDay`)
     this.configuration.delete(`${bridgeId}_profanityEnabled`)
-    this.configuration.delete(`${bridgeId}_immuneDiscordUsers`)
-    this.configuration.delete(`${bridgeId}_immuneMojangPlayers`)
 
     this.configuration.delete(`${bridgeId}_commandsEnabled`)
     this.configuration.delete(`${bridgeId}_commandPrefix`)
@@ -96,18 +90,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_leaveGuildReaction`)
     this.configuration.delete(`${bridgeId}_kickGuildReaction`)
 
-    this.configuration.delete(`${bridgeId}_randomChatterEnabled`)
-    this.configuration.delete(`${bridgeId}_randomChatterMessages`)
-    this.configuration.delete(`${bridgeId}_randomChatterIntervalMinutes`)
-    this.configuration.delete(`${bridgeId}_randomChatterMinimumOnlinePlayers`)
-    this.configuration.delete(`${bridgeId}_randomChatterIncludePlayerName`)
-    this.configuration.delete(`${bridgeId}_randomChatterAntiRepeatLength`)
-    this.configuration.delete(`${bridgeId}_randomChatterQuietWindowMinutes`)
     this.configuration.delete(`${bridgeId}_darkAuctionReminder`)
     this.configuration.delete(`${bridgeId}_starfallCultReminder`)
     this.configuration.delete(`${bridgeId}_announceMutedPlayer`)
-    this.configuration.delete(`${bridgeId}_welcomeOnlineEnabled`)
-    this.configuration.delete(`${bridgeId}_welcomeOnlineMessages`)
 
     this.configuration.delete(`${bridgeId}_botUsernameOverride`)
 
@@ -118,9 +103,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
 
     this.configuration.delete(`${bridgeId}_language`)
-
-    this.configuration.delete(`${bridgeId}_passthroughCommands`)
-    this.configuration.delete(`${bridgeId}_passthroughPrefix`)
 
     this.configuration.delete(`${bridgeId}_rankupEnabled`)
     this.configuration.delete(`${bridgeId}_rankupManualReview`)
@@ -322,14 +304,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setBoolean(`${bridgeId}_enforceVerification`, enabled)
   }
 
-  public getTextToImage(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_textToImage`, false)
-  }
-
-  public setTextToImage(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_textToImage`, enabled)
-  }
-
   public getGuildOnline(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_guildOnline`, true)
   }
@@ -394,46 +368,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setNumber(`${bridgeId}_joinLeaveInteractionsDuration`, value.toSeconds())
   }
 
-  public getHeatPunishmentEnabled(bridgeId: string): boolean | undefined {
-    const value = this.getBridgeString('heatPunishmentEnabled', bridgeId)
-    if (value === '') return undefined
-    return value === 'true'
-  }
-
-  public setHeatPunishmentEnabled(bridgeId: string, enabled: boolean | undefined): void {
-    if (enabled === undefined) {
-      this.configuration.delete(`${bridgeId}_heatPunishmentEnabled`)
-    } else {
-      this.configuration.setString(`${bridgeId}_heatPunishmentEnabled`, enabled ? 'true' : 'false')
-    }
-  }
-
-  public getKicksPerDay(bridgeId: string): number | undefined {
-    const value = this.configuration.getNumber(`${bridgeId}_kicksPerDay`, -1)
-    return value === -1 ? undefined : value
-  }
-
-  public setKicksPerDay(bridgeId: string, value: number | undefined): void {
-    if (value === undefined) {
-      this.configuration.delete(`${bridgeId}_kicksPerDay`)
-    } else {
-      this.configuration.setNumber(`${bridgeId}_kicksPerDay`, value)
-    }
-  }
-
-  public getMutesPerDay(bridgeId: string): number | undefined {
-    const value = this.configuration.getNumber(`${bridgeId}_mutesPerDay`, -1)
-    return value === -1 ? undefined : value
-  }
-
-  public setMutesPerDay(bridgeId: string, value: number | undefined): void {
-    if (value === undefined) {
-      this.configuration.delete(`${bridgeId}_mutesPerDay`)
-    } else {
-      this.configuration.setNumber(`${bridgeId}_mutesPerDay`, value)
-    }
-  }
-
   public getProfanityEnabled(bridgeId: string): boolean | undefined {
     const value = this.getBridgeString('profanityEnabled', bridgeId)
     if (value === '') return undefined
@@ -446,22 +380,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     } else {
       this.configuration.setString(`${bridgeId}_profanityEnabled`, enabled ? 'true' : 'false')
     }
-  }
-
-  public getImmuneDiscordUsers(bridgeId: string): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_immuneDiscordUsers`, [])
-  }
-
-  public setImmuneDiscordUsers(bridgeId: string, users: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_immuneDiscordUsers`, users)
-  }
-
-  public getImmuneMojangPlayers(bridgeId: string): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_immuneMojangPlayers`, [])
-  }
-
-  public setImmuneMojangPlayers(bridgeId: string, players: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_immuneMojangPlayers`, players)
   }
 
   public getCommandsEnabled(bridgeId: string): boolean | undefined {
@@ -598,113 +516,12 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setString(`${bridgeId}_leaveReactionEmojiType`, value)
   }
 
-  public getRandomChatterEnabled(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_randomChatterEnabled`, false)
-  }
-
-  public setRandomChatterEnabled(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_randomChatterEnabled`, enabled)
-  }
-
-  public getRandomChatterMessages(bridgeId: string, defaultMessages: string[]): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_randomChatterMessages`, defaultMessages)
-  }
-
-  public setRandomChatterMessages(bridgeId: string, messages: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_randomChatterMessages`, messages)
-  }
-
-  public getRandomChatterIntervalMinutes(bridgeId: string): number {
-    return this.configuration.getNumber(`${bridgeId}_randomChatterIntervalMinutes`, 15)
-  }
-
-  public setRandomChatterIntervalMinutes(bridgeId: string, minutes: number): void {
-    const normalized = Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : 15
-    this.configuration.setNumber(`${bridgeId}_randomChatterIntervalMinutes`, normalized)
-  }
-
-  public getRandomChatterMinimumOnlinePlayers(bridgeId: string): number {
-    return this.configuration.getNumber(`${bridgeId}_randomChatterMinimumOnlinePlayers`, 1)
-  }
-
-  public setRandomChatterMinimumOnlinePlayers(bridgeId: string, count: number): void {
-    const normalized = Number.isFinite(count) && count >= 1 ? Math.floor(count) : 1
-    this.configuration.setNumber(`${bridgeId}_randomChatterMinimumOnlinePlayers`, normalized)
-  }
-
-  public getRandomChatterIncludePlayerName(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_randomChatterIncludePlayerName`, true)
-  }
-
-  public setRandomChatterIncludePlayerName(bridgeId: string, include: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_randomChatterIncludePlayerName`, include)
-  }
-
-  public getRandomChatterAntiRepeatLength(bridgeId: string): number {
-    return this.configuration.getNumber(`${bridgeId}_randomChatterAntiRepeatLength`, 5)
-  }
-
-  public setRandomChatterAntiRepeatLength(bridgeId: string, length: number): void {
-    const normalized = Number.isFinite(length) && length >= 0 ? Math.floor(length) : 5
-    const clamped = Math.min(normalized, 50)
-    this.configuration.setNumber(`${bridgeId}_randomChatterAntiRepeatLength`, clamped)
-  }
-
-  public getRandomChatterQuietWindowMinutes(bridgeId: string): number {
-    return this.configuration.getNumber(`${bridgeId}_randomChatterQuietWindowMinutes`, 2)
-  }
-
-  public setRandomChatterQuietWindowMinutes(bridgeId: string, minutes: number): void {
-    const normalized = Number.isFinite(minutes) && minutes >= 0 ? Math.floor(minutes) : 2
-    const clamped = Math.min(normalized, 60)
-    this.configuration.setNumber(`${bridgeId}_randomChatterQuietWindowMinutes`, clamped)
-  }
-
   public getAnnounceMutedPlayer(bridgeId: string): boolean {
     return this.configuration.getBoolean(`${bridgeId}_announceMutedPlayer`, true)
   }
 
   public setAnnounceMutedPlayer(bridgeId: string, enabled: boolean): void {
     this.configuration.setBoolean(`${bridgeId}_announceMutedPlayer`, enabled)
-  }
-
-  public getWelcomeOnlineEnabled(bridgeId: string): boolean {
-    return this.configuration.getBoolean(`${bridgeId}_welcomeOnlineEnabled`, false)
-  }
-
-  public setWelcomeOnlineEnabled(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_welcomeOnlineEnabled`, enabled)
-  }
-
-  public getWelcomeOnlineMessages(bridgeId: string): { uuid: string; message: string }[] {
-    const raw = this.configuration.getString(`${bridgeId}_welcomeOnlineMessages`, '[]')
-    try {
-      const parsed: unknown = JSON.parse(raw)
-      return Array.isArray(parsed) ? (parsed as { uuid: string; message: string }[]) : []
-    } catch {
-      return []
-    }
-  }
-
-  public setWelcomeOnlineMessages(bridgeId: string, messages: { uuid: string; message: string }[]): void {
-    this.configuration.setString(`${bridgeId}_welcomeOnlineMessages`, JSON.stringify(messages))
-  }
-
-  public getPassthroughCommands(bridgeId: string): string[] {
-    return this.configuration.getStringArray(`${bridgeId}_passthroughCommands`, [])
-  }
-
-  public setPassthroughCommands(bridgeId: string, commands: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_passthroughCommands`, commands)
-  }
-
-  public getPassthroughPrefix(bridgeId: string): string | undefined {
-    const value = this.getBridgeString('passthroughPrefix', bridgeId)
-    return value === '' ? undefined : value
-  }
-
-  public setPassthroughPrefix(bridgeId: string, prefix: string | undefined): void {
-    this.setBridgeString('passthroughPrefix', bridgeId, prefix)
   }
 
   public getRankupEnabled(bridgeId: string): boolean {
@@ -1104,7 +921,6 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       discordSettings: {
         alwaysReply: this.getAlwaysReplyReaction(bridgeId),
         enforceVerification: this.getEnforceVerification(bridgeId),
-        minecraftTextImages: this.getTextToImage(bridgeId),
         language: this.getLanguage(bridgeId) ?? '',
         botUsernameOverride: this.getBotUsernameOverride(bridgeId) ?? '',
         playerUsernameOverrides: this.getPlayerUsernameOverrides(bridgeId)
@@ -1116,16 +932,7 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         deleteAfterSeconds: this.getDurationTemporarilyInteractions(bridgeId).toSeconds(),
         maxEvents: this.getMaxTemporarilyInteractions(bridgeId),
         persistJoinLeave: this.getPersistGuildJoinLeave(bridgeId),
-        deleteJoinLeaveAfterSeconds: this.getDurationJoinLeaveInteractions(bridgeId).toSeconds(),
-        chatterEnabled: this.getRandomChatterEnabled(bridgeId),
-        chatterIntervalMinutes: this.getRandomChatterIntervalMinutes(bridgeId),
-        chatterMinOnlinePlayers: this.getRandomChatterMinimumOnlinePlayers(bridgeId),
-        chatterUseBotName: this.getRandomChatterIncludePlayerName(bridgeId),
-        chatterMessages: this.getRandomChatterMessages(bridgeId, []),
-        chatterAntiRepeatLength: this.getRandomChatterAntiRepeatLength(bridgeId),
-        chatterQuietWindowMinutes: this.getRandomChatterQuietWindowMinutes(bridgeId),
-        welcomeOnlineEnabled: this.getWelcomeOnlineEnabled(bridgeId),
-        welcomeOnlineMessages: this.getWelcomeOnlineMessages(bridgeId)
+        deleteJoinLeaveAfterSeconds: this.getDurationJoinLeaveInteractions(bridgeId).toSeconds()
       },
       qualityOfLife: {
         guildJoinReaction: this.getJoinGuildReaction(bridgeId),
@@ -1139,18 +946,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         overrides: this.getTranslationOverrides(bridgeId)
       },
       moderation: {
-        heatPunishmentsEnabled: this.getHeatPunishmentEnabled(bridgeId),
-        heatKicksPerDay: this.getKicksPerDay(bridgeId),
-        heatMutesPerDay: this.getMutesPerDay(bridgeId),
-        immuneDiscordUserIds: this.getImmuneDiscordUsers(bridgeId),
-        immuneMojangPlayers: this.getImmuneMojangPlayers(bridgeId),
         profanityFilterEnabled: this.getProfanityEnabled(bridgeId)
       },
       chatCommands: {
         commandsEnabled: this.getCommandsEnabled(bridgeId),
         chatCommandPrefix: this.getCommandPrefix(bridgeId) ?? '',
-        passthroughPrefix: this.getPassthroughPrefix(bridgeId) ?? '',
-        passthroughCommands: this.getPassthroughCommands(bridgeId),
         insultMode: this.getInsultMode(bridgeId) ?? ''
       },
       rankup: {

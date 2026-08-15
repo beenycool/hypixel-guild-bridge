@@ -1,13 +1,6 @@
 import assert from 'node:assert'
 
-import type {
-  APIEmbed,
-  ApplicationEmoji,
-  Message,
-  MessageMentionOptions,
-  TextBasedChannelFields,
-  Webhook
-} from 'discord.js'
+import type { APIEmbed, ApplicationEmoji, Message, MessageMentionOptions } from 'discord.js'
 import {
   ActionRowBuilder,
   AttachmentBuilder,
@@ -15,8 +8,7 @@ import {
   ButtonStyle,
   ChannelType as DiscordChannelType,
   ComponentType,
-  escapeMarkdown,
-  hyperlink
+  escapeMarkdown
 } from 'discord.js'
 import type { Logger } from 'log4js'
 
@@ -298,7 +290,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
-      if (event.instanceType === InstanceType.Minecraft && this.messageToImage.shouldRenderImage()) {
+      if (event.instanceType === InstanceType.Minecraft) {
         const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
         let withoutPrefix = this.removeGuildPrefix(event.rawMessage)
         if (playerOverride !== undefined) {
@@ -321,65 +313,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
             })
           }
         }
-      } else if (
-        event.instanceType !== InstanceType.Minecraft &&
-        event.instanceType !== InstanceType.Discord &&
-        'rawMessage' in event &&
-        this.messageToImage.shouldRenderImage()
-      ) {
+      } else if (event.instanceType !== InstanceType.Discord && 'rawMessage' in event) {
         const raw = (event as ChatEvent & { rawMessage: string }).rawMessage
         const withoutPrefix = this.removeGuildPrefix(raw)
         const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage)
         await this.sendImageToChannels(event.eventId, [channelId], image)
-      } else {
-        const webhook = await this.getWebhook(channelId)
-        const mentions =
-          event.instanceType === InstanceType.Minecraft
-            ? await this.resolveMinecraftMentionsForChannel(channelId, event.message)
-            : undefined
-
-        let displayUsername =
-          event.instanceType === InstanceType.Discord && event.replyUsername !== undefined
-            ? `${username}⇾${event.replyUsername}`
-            : (playerOverride ?? username)
-
-        if (this.application.core.applicationConfigurations.getOriginTag()) {
-          displayUsername += event.instanceType === InstanceType.Discord ? ` [DC]` : ` [${event.instanceName}]`
-        }
-
-        const normalizedUsername = displayUsername.trim()
-        const safeUsername = normalizedUsername.length > 0 ? normalizedUsername.slice(0, 80) : undefined
-
-        const template = this.application.core.discordConfigurations.getMinecraftToDiscordFormat()
-        const chatType = event.channelType === ChannelType.Public ? 'Guild' : 'Officer'
-        const rank = 'hypixelRank' in event && event.hypixelRank ? event.hypixelRank : ''
-        const guildRank = 'guildRank' in event && event.guildRank ? event.guildRank : ''
-        const messageBody = mentions?.content ?? escapeMarkdown(event.message)
-
-        const formattedContent = template
-          .replaceAll('{chatType}', chatType)
-          .replaceAll('{rank}', rank)
-          .replaceAll('{guildRank}', guildRank)
-          .replaceAll('{message}', messageBody)
-          .trim()
-
-        const message = await webhook.send({
-          content: formattedContent,
-          ...(safeUsername === undefined
-            ? {}
-            : {
-                username: safeUsername,
-                avatarURL: event.user.avatar()
-              }),
-          allowedMentions: { parse: [], users: mentions?.userIds ?? [] }
-        })
-        this.messageAssociation.addMessageId(event.eventId, {
-          guildId: message.guildId,
-          channelId: message.channelId,
-          messageId: message.id
-        })
-        this.messageAssociation.addUsernameForMessage(message.id, username)
       }
     }
   }
@@ -415,17 +354,15 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     })
     if (channels.length === 0) return
 
-    if (this.messageToImage.shouldRenderImage()) {
-      const formattedMessage = `§9Party §8> {skin} ${event.message}`
-      try {
-        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: event.username
-        })
-        await this.sendImageToChannels(`interview-${event.instanceName}-${event.username}`, channels, image)
-        return
-      } catch (error: unknown) {
-        this.logger.error('Failed to render interview message as image', error)
-      }
+    const formattedMessage = `§9Party §8> {skin} ${event.message}`
+    try {
+      const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+        username: event.username
+      })
+      await this.sendImageToChannels(`interview-${event.instanceName}-${event.username}`, channels, image)
+      return
+    } catch (error: unknown) {
+      this.logger.error('Failed to render interview message as image', error)
     }
 
     const client = this.clientInstance.getClient()
@@ -552,75 +489,45 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       components = [actionRow]
     }
 
-    let messages: Message[]
-    let requestButtonMessages: Message[] = []
-    if (this.messageToImage.shouldRenderImage()) {
-      let withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
-        /^-+/g,
-        ''
-      )
-      if (playerOverride !== undefined) {
-        withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
-      }
-      const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
+    const requestButtonMessages: Message[] = []
+    let withoutPrefix = this.removePlainGuildPrefix(this.removeGuildPrefix(activeEvent.rawMessage)).replaceAll(
+      /^-+/g,
+      ''
+    )
+    if (playerOverride !== undefined) {
+      withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
+    }
+    const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
 
-      messages = await this.sendImageToChannels(
-        activeEvent.eventId,
-        this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
-          kind: 'guildPlayer',
-          instanceName: activeEvent.instanceName
-        }),
-        await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: activeEvent.user.displayName()
-        })
-      )
-      if ((components !== undefined && components.length > 0) || pingContent !== undefined) {
-        const targetChannels = this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
-          kind: 'guildPlayer',
-          instanceName: activeEvent.instanceName
-        })
-        for (const channelId of targetChannels) {
-          const channel = await this.clientInstance
-            .getClient()
-            .channels.fetch(channelId)
-            .catch(() => undefined)
-          if (channel?.isSendable()) {
-            requestButtonMessages.push(
-              await channel.send({
-                ...(pingContent === undefined ? {} : { content: pingContent }),
-                ...(components !== undefined && components.length > 0 ? { components } : {}),
-                allowedMentions: allowedMentions ?? { parse: [] }
-              })
-            )
-          }
+    const messages = await this.sendImageToChannels(
+      activeEvent.eventId,
+      this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
+        kind: 'guildPlayer',
+        instanceName: activeEvent.instanceName
+      }),
+      await this.messageToImage.generateMessageImage(formattedMessage, {
+        username: activeEvent.user.displayName()
+      })
+    )
+    if ((components !== undefined && components.length > 0) || pingContent !== undefined) {
+      const targetChannels = this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
+        kind: 'guildPlayer',
+        instanceName: activeEvent.instanceName
+      })
+      for (const channelId of targetChannels) {
+        const channel = await this.clientInstance
+          .getClient()
+          .channels.fetch(channelId)
+          .catch(() => undefined)
+        if (channel?.isSendable()) {
+          requestButtonMessages.push(
+            await channel.send({
+              ...(pingContent === undefined ? {} : { content: pingContent }),
+              ...(components !== undefined && components.length > 0 ? { components } : {}),
+              allowedMentions: allowedMentions ?? { parse: [] }
+            })
+          )
         }
-      }
-    } else {
-      const clickableUsername = hyperlink(playerOverride ?? username, activeEvent.user.profileLink())
-
-      const withoutPrefix = activeEvent.message.replaceAll(/^-+/g, '')
-
-      const newMessage = escapeMarkdown(withoutPrefix).replaceAll(escapeMarkdown(username), clickableUsername)
-
-      const embed = {
-        url: activeEvent.user.profileLink(),
-        description: newMessage,
-        color: activeEvent.color
-      } satisfies APIEmbed
-
-      messages = await this.sendEmbedToChannels(
-        { ...activeEvent, type: undefined },
-        this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
-          kind: 'guildPlayer',
-          instanceName: activeEvent.instanceName
-        }),
-        embed,
-        components,
-        pingContent,
-        allowedMentions
-      )
-      if (activeEvent.type === GuildPlayerEventType.Request) {
-        requestButtonMessages = messages
       }
     }
 
@@ -748,26 +655,15 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     )
       return
 
-    if (this.messageToImage.shouldRenderImage()) {
-      const image = this.messageToImage.generateMessageImageSync(event.rawMessage)
-      await this.sendImageToChannels(
-        event.eventId,
-        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
-          kind: 'guildGeneral',
-          instanceName: event.instanceName
-        }),
-        image
-      )
-    } else {
-      await this.sendEmbedToChannels(
-        { ...event, type: undefined },
-        this.resolveChannelsForEvent(event.channels, event.bridgeId, {
-          kind: 'guildGeneral',
-          instanceName: event.instanceName
-        }),
-        undefined
-      )
-    }
+    const image = this.messageToImage.generateMessageImageSync(event.rawMessage)
+    await this.sendImageToChannels(
+      event.eventId,
+      this.resolveChannelsForEvent(event.channels, event.bridgeId, {
+        kind: 'guildGeneral',
+        instanceName: event.instanceName
+      }),
+      image
+    )
   }
 
   private lastMinecraftEvent = new Map<MinecraftReactiveEventType, number>()
@@ -804,14 +700,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           }
         }
 
-        if (this.messageToImage.shouldRenderImage()) {
-          assert.ok(channel?.isSendable())
-          await channel.send({
-            files: [new AttachmentBuilder(this.messageToImage.generateMessageImageSync(event.rawMessage))]
-          })
-        } else {
-          await this.replyWithEmbed(event.eventId, replyId, await this.generateEmbed(event, replyId.guildId))
-        }
+        assert.ok(channel?.isSendable())
+        await channel.send({
+          files: [new AttachmentBuilder(this.messageToImage.generateMessageImageSync(event.rawMessage))]
+        })
       } catch (error: unknown) {
         this.logger.error(error, 'can not reply to message')
       }
@@ -829,51 +721,47 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       kind: 'broadcast',
       instanceName: event.instanceName
     })
-    if (this.messageToImage.shouldRenderImage()) {
-      if (event.guildChatImageStyle === undefined) {
-        let formatted: string
-        switch (event.color) {
-          case Color.Good: {
-            formatted = `§a`
-            break
-          }
-          case Color.Bad: {
-            formatted = `§c`
-            break
-          }
-          case Color.Error: {
-            formatted = `§4`
-            break
-          }
-          case Color.Info: {
-            formatted = `§e`
-            break
-          }
-          // eslint-disable-next-line unicorn/no-useless-switch-case
-          case Color.Default:
-          default: {
-            formatted = `§b`
-          }
+    if (event.guildChatImageStyle === undefined) {
+      let formatted: string
+      switch (event.color) {
+        case Color.Good: {
+          formatted = `§a`
+          break
         }
-        const image = this.messageToImage.generateMessageImageSync(formatted + event.message)
-        await this.sendImageToChannels(event.eventId, channels, image)
-      } else {
-        const { channelType, skinUsername, imageBodyFormatted } = event.guildChatImageStyle
-        const prefix = this.getRenderedChannelPrefix(channelType)
-        const body =
-          imageBodyFormatted !== undefined && imageBodyFormatted.length > 0
-            ? imageBodyFormatted
-            : event.message.startsWith('§')
-              ? event.message
-              : `§f${event.message}`
-        const formattedMessage = `${prefix}{skin} ${body}`
-        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-          username: skinUsername
-        })
-        await this.sendImageToChannels(event.eventId, channels, image)
+        case Color.Bad: {
+          formatted = `§c`
+          break
+        }
+        case Color.Error: {
+          formatted = `§4`
+          break
+        }
+        case Color.Info: {
+          formatted = `§e`
+          break
+        }
+        // eslint-disable-next-line unicorn/no-useless-switch-case
+        case Color.Default:
+        default: {
+          formatted = `§b`
+        }
       }
+      const image = this.messageToImage.generateMessageImageSync(formatted + event.message)
+      await this.sendImageToChannels(event.eventId, channels, image)
     } else {
-      await this.sendEmbedToChannels(event, channels, undefined)
+      const { channelType, skinUsername, imageBodyFormatted } = event.guildChatImageStyle
+      const prefix = this.getRenderedChannelPrefix(channelType)
+      const body =
+        imageBodyFormatted !== undefined && imageBodyFormatted.length > 0
+          ? imageBodyFormatted
+          : event.message.startsWith('§')
+            ? event.message
+            : `§f${event.message}`
+      const formattedMessage = `${prefix}{skin} ${body}`
+      const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+        username: skinUsername
+      })
+      await this.sendImageToChannels(event.eventId, channels, image)
     }
   }
 
@@ -1106,11 +994,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         : this.application.core.bridgeConfigurations.getBotUsernameOverride(event.bridgeId)
     const effectiveBotName = botUsernameOverride ?? botName
 
-    const botAvatar =
-      botName === 'Bridge Bot'
-        ? `https://www.mc-heads.net/avatar/MHF_Question`
-        : `https://www.mc-heads.net/avatar/${botName}`
-
     const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
     const namePart = botRank
       ? botUsernameOverride === undefined
@@ -1127,33 +1010,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     for (const replyId of replyIds) {
       try {
         const channelType = isPublicChannel(replyId.channelId) ? ChannelType.Public : ChannelType.Officer
-        const chatType = channelType === ChannelType.Public ? 'Guild' : 'Officer'
 
-        const template = this.application.core.discordConfigurations.getMinecraftToDiscordFormat()
-        const messageBody = event.commandResponse
-
-        const formattedContent = template
-          .replaceAll('{chatType}', chatType)
-          .replaceAll('{rank}', '')
-          .replaceAll('{guildRank}', '')
-          .replaceAll('{message}', messageBody)
-          .trim()
-
-        if (this.messageToImage.shouldRenderImage()) {
-          const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
-          const image = await this.messageToImage.generateMessageImage(formattedMessage, {
-            username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
-          })
-          await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
-        } else {
-          const webhook = await this.getWebhook(replyId.channelId)
-          await webhook.send({
-            content: formattedContent,
-            username: botName,
-            avatarURL: botAvatar,
-            allowedMentions: { parse: [] }
-          })
-        }
+        const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
+        })
+        await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
       } catch (error: unknown) {
         this.logger.error(error, 'failed to send command response')
       }
@@ -1165,26 +1027,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     if (avatar !== undefined) embed.thumbnail = { url: avatar }
     const profileLink = user.profileLink()
     if (profileLink !== undefined) embed.url = profileLink
-  }
-
-  private webhooks = new Map<string, Webhook>()
-
-  private async getWebhook(channelId: string): Promise<Webhook> {
-    const cachedWebhook = this.webhooks.get(channelId)
-    if (cachedWebhook !== undefined) return cachedWebhook
-
-    const client = this.clientInstance.getClient()
-    assert.ok(client.isReady())
-
-    const channel = (await client.channels.fetch(channelId)) as unknown as TextBasedChannelFields | null
-    if (channel == undefined) throw new Error(`no access to channel ${channelId}?`)
-    const webhooks = await channel.fetchWebhooks()
-
-    let webhook = webhooks.find((h) => h.owner?.id === client.user.id)
-    webhook ??= await channel.createWebhook({ name: 'Hypixel-Guild-Bridge' })
-
-    this.webhooks.set(channelId, webhook)
-    return webhook
   }
 }
 
