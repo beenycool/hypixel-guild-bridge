@@ -12,7 +12,12 @@ export default class LoggerManager extends SubInstance<DiscordInstance, Instance
     super(clientInstance)
 
     this.application.on('guildPlayer', async (event) => {
-      if (event.type == GuildPlayerEventType.Online || event.type == GuildPlayerEventType.Offline) return
+      if (
+        event.type == GuildPlayerEventType.Online ||
+        event.type == GuildPlayerEventType.Offline ||
+        event.type == GuildPlayerEventType.Promote
+      )
+        return
 
       const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
       if (bridgeId === undefined) return
