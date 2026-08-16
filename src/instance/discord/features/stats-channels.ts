@@ -257,8 +257,9 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
 
     if (instance) {
       const uptime = await this.resolveUptimePercent(instance.instanceName)
-      variables.botStatuses = `${statusEmoji(instance.currentStatus())} ${uptime}%`
-      variables.botUptime = `${uptime}%`
+      const uptimeDisplay = uptime.toFixed(2)
+      variables.botStatuses = `${statusEmoji(instance.currentStatus())} ${uptimeDisplay}%`
+      variables.botUptime = `${uptimeDisplay}%`
     } else {
       variables.botStatuses = ''
       variables.botUptime = ''
@@ -354,19 +355,25 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     const startOfDaySeconds = Math.floor(startOfDay.getTime() / 1000)
     const nowSeconds = Math.floor(Date.now() / 1000)
 
-    const rows = await this.application.core.databaseManager.queryRows<StoredStatusChange>(
-      `SELECT "createdAt", "fromStatus", "toStatus" FROM "instanceStatusHistory"
-       WHERE "instanceName" = $1 AND "createdAt" >= $2 ORDER BY "createdAt" ASC`,
-      [instanceName, startOfDaySeconds - 86_400]
-    )
+    const [rows, lastBeforeDayRow] = await Promise.all([
+      this.application.core.databaseManager.queryRows<StoredStatusChange>(
+        `SELECT "createdAt", "fromStatus", "toStatus" FROM "instanceStatusHistory"
+         WHERE "instanceName" = $1 AND "createdAt" >= $2 ORDER BY "createdAt" ASC`,
+        [instanceName, startOfDaySeconds]
+      ),
+      this.application.core.databaseManager.queryOne<StoredStatusChange>(
+        `SELECT "createdAt", "fromStatus", "toStatus" FROM "instanceStatusHistory"
+         WHERE "instanceName" = $1 AND "createdAt" < $2 ORDER BY "createdAt" DESC LIMIT 1`,
+        [instanceName, startOfDaySeconds]
+      )
+    ])
 
-    const lastBeforeDay = rows.findLast((row) => row.createdAt < startOfDaySeconds)
-    let status: Status = lastBeforeDay?.toStatus ?? Status.Disconnected
+    let status: Status = lastBeforeDayRow?.toStatus ?? Status.Disconnected
     let connectedSeconds = 0
     let cursor = startOfDaySeconds
 
     for (const row of rows) {
-      if (row.createdAt < startOfDaySeconds || row.createdAt > nowSeconds) continue
+      if (row.createdAt > nowSeconds) continue
       if (status === Status.Connected) connectedSeconds += row.createdAt - cursor
       status = row.toStatus
       cursor = row.createdAt
@@ -374,7 +381,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     if (status === Status.Connected) connectedSeconds += nowSeconds - cursor
 
     const elapsed = Math.max(1, nowSeconds - startOfDaySeconds)
-    return Math.round((connectedSeconds / elapsed) * 100)
+    return (connectedSeconds / elapsed) * 100
   }
 
   private async resolveDiscordStats(guild: Guild, cache: Map<string, DiscordStats>): Promise<DiscordStats> {
@@ -439,7 +446,7 @@ function fmtCompact(n: number): string {
 function formatTopGames(byGameType: Record<string, number>): string {
   return Object.entries(byGameType)
     .toSorted((a, b) => b[1] - a[1])
-    .slice(0, 3)
+    .slice(0, 2)
     .map(([game, exp]) => `${game} ${fmtCompact(exp)}`)
     .join(' · ')
 }
