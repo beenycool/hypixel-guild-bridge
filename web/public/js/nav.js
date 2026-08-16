@@ -190,7 +190,7 @@ export function initNav() {
     sections[0].items.unshift({ name: 'Settings', href: 'settings.html', key: 'settings' })
   }
   if (permission !== 'owner' && permission !== 'admin') {
-    sections[2].items = sections[2].items.filter((item) => item.key !== 'app-settings')
+    sections[1].items = sections[1].items.filter((item) => item.key !== 'app-settings')
   }
 
   const active = findActive(sections)
