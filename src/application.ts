@@ -34,7 +34,6 @@ import MinecraftInstance from './instance/minecraft/minecraft-instance.js'
 import { MinecraftManager } from './instance/minecraft/minecraft-manager.js'
 import type ApplicationMetrics from './instance/prometheus/application-metrics.js'
 import PrometheusInstance from './instance/prometheus/prometheus-instance.js'
-import { SpontaneousEvents } from './instance/spontaneous-events'
 import StatMonitor from './instance/stat-monitor'
 import WebServer from './instance/web-server'
 import { gracefullyExitProcess, sleep } from './utility/shared-utility'
@@ -48,7 +47,6 @@ export type AllInstances =
   | MinecraftInstance
   | ApplicationIntegrity
   | AutoLinker
-  | SpontaneousEvents
   | StatMonitor
   | AutoRestart
   | MinecraftManager
@@ -110,7 +108,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   private readonly webServer: WebServer | undefined
 
   private readonly chatSummaryScheduler: ChatSummaryScheduler
-  private readonly spontaneousEvents: SpontaneousEvents
   public readonly statMonitor: StatMonitor
   private readonly autoLinker: AutoLinker
   private readonly autoRestart: AutoRestart
@@ -164,7 +161,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     this.commandsInstance = new CommandsInstance(this)
 
     this.chatSummaryScheduler = new ChatSummaryScheduler(this)
-    this.spontaneousEvents = new SpontaneousEvents(this)
     this.statMonitor = new StatMonitor(this)
     this.autoRestart = new AutoRestart(this)
     this.autoLinker = new AutoLinker(this)
@@ -455,7 +451,6 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.commandsInstance,
       ...this.minecraftManager.getAllInstances(),
       this.chatSummaryScheduler,
-      this.spontaneousEvents,
       this.statMonitor,
       this.autoRestart
     ].filter((instance) => instance != undefined)

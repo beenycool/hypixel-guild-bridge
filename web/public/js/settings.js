@@ -536,25 +536,6 @@ const CATEGORIES = [
       },
       {
         t: 'section',
-        title: 'Spontaneous Events',
-        collapsible: true,
-        children: [
-          { id: 'instance.spontaneous.quickMath.question', t: 'text', label: 'Quick Math Question' },
-          { id: 'instance.spontaneous.quickMath.answer', t: 'text', label: 'Quick Math Answer' },
-          { id: 'instance.spontaneous.quickMath.correct', t: 'text', label: 'Quick Math Correct' },
-          { id: 'instance.spontaneous.counting.start', t: 'text', label: 'Counting Start' },
-          { id: 'instance.spontaneous.counting.fail', t: 'text', label: 'Counting Fail' },
-          { id: 'instance.spontaneous.counting.blame', t: 'text', label: 'Counting Blame' },
-          { id: 'instance.spontaneous.unscramble.question', t: 'text', label: 'Unscramble Question' },
-          { id: 'instance.spontaneous.unscramble.answer', t: 'text', label: 'Unscramble Answer' },
-          { id: 'instance.spontaneous.unscramble.correct', t: 'text', label: 'Unscramble Correct' },
-          { id: 'instance.spontaneous.trivia.question', t: 'text', label: 'Trivia Question' },
-          { id: 'instance.spontaneous.trivia.answer', t: 'text', label: 'Trivia Answer' },
-          { id: 'instance.spontaneous.trivia.correct', t: 'text', label: 'Trivia Correct' }
-        ]
-      },
-      {
-        t: 'section',
         title: 'Hypixel',
         collapsible: true,
         children: [
