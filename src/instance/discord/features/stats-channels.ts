@@ -358,12 +358,12 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     const [rows, lastBeforeDayRow] = await Promise.all([
       this.application.core.databaseManager.queryRows<StoredStatusChange>(
         `SELECT "createdAt", "fromStatus", "toStatus" FROM "instanceStatusHistory"
-         WHERE "instanceName" = $1 AND "createdAt" >= $2 ORDER BY "createdAt" ASC`,
+         WHERE "instanceName" = $1 AND "createdAt" >= $2 ORDER BY "createdAt" ASC, id ASC`,
         [instanceName, startOfDaySeconds]
       ),
       this.application.core.databaseManager.queryOne<StoredStatusChange>(
         `SELECT "createdAt", "fromStatus", "toStatus" FROM "instanceStatusHistory"
-         WHERE "instanceName" = $1 AND "createdAt" < $2 ORDER BY "createdAt" DESC LIMIT 1`,
+         WHERE "instanceName" = $1 AND "createdAt" < $2 ORDER BY "createdAt" DESC, id DESC LIMIT 1`,
         [instanceName, startOfDaySeconds]
       )
     ])
