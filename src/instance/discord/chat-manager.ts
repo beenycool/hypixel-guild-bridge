@@ -111,7 +111,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     const readableReplyUsername = await this.getReplyUsername(event)
 
-    const content = this.cleanMessage(event)
+    const content = await this.cleanMessage(event)
     if (content.length === 0) return
 
     const fillBaseEvent = this.eventHelper.fillBaseEvent()
@@ -164,7 +164,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     })
   }
 
-  private cleanMessage(messageEvent: Message): string {
+  private async cleanMessage(messageEvent: Message): Promise<string> {
     let content = messageEvent.cleanContent
 
     content = this.cleanGuildEmoji(content).trim()
@@ -180,7 +180,85 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       }
     }
 
+    content = await this.resolveUnresolvedMentions(messageEvent, content)
+
     return content
+  }
+
+  private static readonly ResolvedMentionCache = new Map<string, { name: string; timestamp: number }>()
+  private static readonly ResolvedMentionCacheTtl = 5 * 60 * 1000
+
+  private static readonly UnresolvedUserMentionRegex = /<@!?(\d{17,19})>/g
+  private static readonly UnresolvedRoleMentionRegex = /<@&(\d{17,19})>/g
+  private static readonly UnresolvedChannelMentionRegex = /<#(\d{17,19})>/g
+
+  private async resolveUnresolvedMentions(messageEvent: Message, content: string): Promise<string> {
+    let result = content
+
+    if (messageEvent.inGuild()) {
+      const guild = messageEvent.guild
+
+      result = result.replace(ChatManager.UnresolvedRoleMentionRegex, (match, id: string) => {
+        const role = guild.roles.cache.get(id)
+        return role === undefined ? match : `@${role.name}`
+      })
+      result = result.replace(ChatManager.UnresolvedChannelMentionRegex, (match, id: string) => {
+        const channel = guild.channels.cache.get(id)
+        return channel === undefined ? match : `#${channel.name}`
+      })
+    }
+
+    const ids = [...new Set([...result.matchAll(ChatManager.UnresolvedUserMentionRegex)].map((m) => m[1]))]
+    if (ids.length === 0) return result
+
+    const guild = messageEvent.guild
+    const resolveName = async (id: string): Promise<string | undefined> => {
+      const cacheKey = `${messageEvent.guildId ?? 'dm'}:${id}`
+      const cached = ChatManager.ResolvedMentionCache.get(cacheKey)
+      if (cached !== undefined && Date.now() - cached.timestamp < ChatManager.ResolvedMentionCacheTtl) {
+        return cached.name
+      }
+
+      const member =
+        guild === null
+          ? undefined
+          : (guild.members.cache.get(id) ?? (await guild.members.fetch(id).catch(() => undefined)))
+      if (member !== undefined) {
+        ChatManager.setResolvedMentionCache(cacheKey, member.displayName)
+        return member.displayName
+      }
+
+      const user =
+        messageEvent.client.users.cache.get(id) ?? (await messageEvent.client.users.fetch(id).catch(() => undefined))
+      if (user !== undefined) {
+        ChatManager.setResolvedMentionCache(cacheKey, user.username)
+        return user.username
+      }
+
+      return undefined
+    }
+
+    const nameById = new Map<string, string>()
+    for (const [id, name] of await Promise.all(ids.map(async (id) => [id, await resolveName(id)] as const))) {
+      if (name !== undefined) nameById.set(id, name)
+    }
+
+    result = result.replace(ChatManager.UnresolvedUserMentionRegex, (match, id: string) => {
+      const name = nameById.get(id)
+      return name === undefined ? match : `@${name}`
+    })
+
+    return result
+  }
+
+  private static setResolvedMentionCache(cacheKey: string, name: string): void {
+    ChatManager.ResolvedMentionCache.set(cacheKey, { name, timestamp: Date.now() })
+
+    if (ChatManager.ResolvedMentionCache.size <= 500) return
+    const now = Date.now()
+    for (const [key, value] of ChatManager.ResolvedMentionCache.entries()) {
+      if (now - value.timestamp > ChatManager.ResolvedMentionCacheTtl) ChatManager.ResolvedMentionCache.delete(key)
+    }
   }
 
   private sweepWarningMaps(): void {
