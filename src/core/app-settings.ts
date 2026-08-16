@@ -37,6 +37,10 @@ export class AppSettingsManager {
     return this.getString('urchin_api_key') ?? this.config.general.urchinApiKey
   }
 
+  public getSeraphApiKey(): string | undefined {
+    return this.getString('seraph_api_key') ?? this.config.general.seraphApiKey
+  }
+
   public getOpenrouterApiKey(): string | undefined {
     return this.getString('openrouter_api_key') ?? this.config.general.openrouterApiKey
   }
@@ -47,6 +51,10 @@ export class AppSettingsManager {
 
   public setUrchinApiKey(value: string | undefined): void {
     this.set('urchin_api_key', value)
+  }
+
+  public setSeraphApiKey(value: string | undefined): void {
+    this.set('seraph_api_key', value)
   }
 
   public setOpenrouterApiKey(value: string | undefined): void {

@@ -4,6 +4,7 @@ import { initNav } from './nav.js'
 
 const FIELDS = [
   { key: 'urchinApiKey', label: 'Urchin API Key' },
+  { key: 'seraphApiKey', label: 'Seraph API Key' },
   { key: 'openrouterApiKey', label: 'OpenRouter API Key' },
   { key: 'openrouterModel', label: 'OpenRouter Model' }
 ]

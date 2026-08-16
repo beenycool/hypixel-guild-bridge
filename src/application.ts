@@ -72,6 +72,10 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     return this.core.appSettings.getUrchinApiKey()
   }
 
+  public get seraphApiKey(): string | undefined {
+    return this.core.appSettings.getSeraphApiKey()
+  }
+
   public get openrouterApiKey(): string | undefined {
     return this.core.appSettings.getOpenrouterApiKey()
   }

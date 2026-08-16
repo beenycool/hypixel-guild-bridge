@@ -88,7 +88,7 @@
 | `trophyfish`    | Returns a player's trophy fishing stats                                                                                              |
 | `unlink`        | Unlink Minecraft account from Discord                                                                                                |
 | `unscramble`    | Unscramble the word and type it in chat to win!                                                                                      |
-| `urchin`        | Check a player for Urchin blacklist tags.                                                                                            |
+| `urchin`        | Check a player for Urchin and Seraph blacklist tags.                                                                                 |
 | `warp`          | Warp a player out of a lobby                                                                                                         |
 | `weight`        | Returns a player's senither weight                                                                                                   |
 | `woolwars`      | Returns a player's Wool Wars stats                                                                                                   |

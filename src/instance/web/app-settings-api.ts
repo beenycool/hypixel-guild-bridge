@@ -60,6 +60,7 @@ export class AppSettingsApiHandler {
     const appSettings = this.application.core.appSettings
     sendSuccess(response, {
       urchinApiKey: { set: appSettings.getUrchinApiKey() !== undefined },
+      seraphApiKey: { set: appSettings.getSeraphApiKey() !== undefined },
       openrouterApiKey: { set: appSettings.getOpenrouterApiKey() !== undefined },
       openrouterModel: { set: appSettings.getOpenrouterModel() !== undefined }
     })
@@ -70,6 +71,9 @@ export class AppSettingsApiHandler {
       const appSettings = this.application.core.appSettings
       if (body.urchinApiKey !== undefined) {
         appSettings.setUrchinApiKey(this.stringOrUndefined(body.urchinApiKey))
+      }
+      if (body.seraphApiKey !== undefined) {
+        appSettings.setSeraphApiKey(this.stringOrUndefined(body.seraphApiKey))
       }
       if (body.openrouterApiKey !== undefined) {
         appSettings.setOpenrouterApiKey(this.stringOrUndefined(body.openrouterApiKey))

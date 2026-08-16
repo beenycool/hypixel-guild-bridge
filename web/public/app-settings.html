@@ -43,6 +43,24 @@
             </div>
             <div class="settings-row">
               <div class="settings-row-label">
+                <span class="settings-row-name">Seraph API Key</span>
+                <span class="settings-row-hint">Used by !urchin and !tags.</span>
+              </div>
+              <div class="settings-row-control">
+                <div class="flex-column gap-xs">
+                  <input
+                    type="password"
+                    class="input"
+                    id="seraphApiKey"
+                    placeholder="Key is set in config.yaml"
+                    autocomplete="new-password"
+                  />
+                  <span class="badge badge-muted badge-source hidden" id="seraphApiKey-source"></span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-label">
                 <span class="settings-row-name">OpenRouter API Key</span>
                 <span class="settings-row-hint">Used by !iq, !rhyme, !translate and link resolution.</span>
               </div>
