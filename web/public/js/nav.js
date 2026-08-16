@@ -7,13 +7,8 @@ const NAV_ITEMS = [
     label: 'Main',
     items: [
       { name: 'Overview', href: 'index.html', key: 'overview' },
-      { name: 'Pending', href: 'rankup-pending.html', key: 'pending' },
-      { name: 'History', href: 'rankup-history.html', key: 'history' }
+      { name: 'Pending', href: 'rankup-pending.html', key: 'pending' }
     ]
-  },
-  {
-    label: 'Guild',
-    items: [{ name: 'Guild', href: 'guild.html', key: 'guild' }]
   },
   {
     label: 'System',

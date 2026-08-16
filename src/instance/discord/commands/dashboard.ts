@@ -33,9 +33,7 @@ export default {
           .setRequired(false)
           .addChoices(
             { name: 'Overview', value: 'home' },
-            { name: 'Guild Overview', value: 'guild' },
             { name: 'Pending Reviews', value: 'rankup-pending' },
-            { name: 'History', value: 'rankup-history' },
             { name: 'Settings', value: 'settings' },
             { name: 'Bot Messages', value: 'bot-messages' },
             { name: 'Tournament', value: 'tournament' }
@@ -102,8 +100,7 @@ export default {
     }
     fields.push(
       { name: 'Overview', value: `[Open](${base}/?token=${t})`, inline: true },
-      { name: 'Pending Reviews', value: `[Open](${base}/rankup-pending.html?token=${t})`, inline: true },
-      { name: 'History', value: `[Open](${base}/rankup-history.html?token=${t})`, inline: true }
+      { name: 'Pending Reviews', value: `[Open](${base}/rankup-pending.html?token=${t})`, inline: true }
     )
 
     const embed = new EmbedBuilder()

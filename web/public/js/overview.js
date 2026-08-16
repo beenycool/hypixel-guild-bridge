@@ -6,20 +6,10 @@ import { Ui } from './ui.js'
 import { Ws } from './ws.js'
 
 let bridges = []
-let history = []
 let refreshTimer = null
 let ws = null
 
 const bridgeCardsElement = document.querySelector('#bridge-cards')
-const recentActivityElement = document.querySelector('#recent-activity')
-const systemStatusElement = document.querySelector('#system-status')
-const runCheckButton = document.querySelector('#run-check-btn')
-
-const activeBridgeId = () => {
-  const sel = Ui.getSelectedBridge()
-  if (sel) return sel
-  return bridges.length > 0 ? bridges[0].bridgeId : null
-}
 
 const setLoading = (element) => {
   element.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
@@ -71,13 +61,13 @@ const buildBridgeCard = (b) => {
         </div>
       </div>
       <div class="card-footer">
-        <button class="btn btn-secondary btn-sm" data-select-btn>Select</button>
+        <button class="btn btn-primary btn-sm" data-settings-btn>Settings</button>
       </div>
     `
 
-  card.querySelector('[data-select-btn]').addEventListener('click', () => {
+  card.querySelector('[data-settings-btn]').addEventListener('click', () => {
     Ui.setSelectedBridge(b.bridgeId)
-    globalThis.location.href = 'rankup-pending.html'
+    globalThis.location.href = 'settings.html'
   })
 
   return card
@@ -131,102 +121,6 @@ const loadBridgeCards = async () => {
   }
 }
 
-const renderRecentActivity = () => {
-  if (history.length === 0) {
-    setEmpty(recentActivityElement, 'No recent activity')
-    return
-  }
-  const rows = history
-    .map((entry) => {
-      const action = Ui.actionBadge(entry.action)
-      const uuid = `<span class="uuid">${Ui.escapeHtml(entry.name || Ui.uuidShort(entry.uuid))}</span>`
-      const rankChange = `<span class="text-mono text-xs">${Ui.escapeHtml(entry.fromRank || '\u2014')} \u2192 ${Ui.escapeHtml(entry.toRank || '\u2014')}</span>`
-      const relTime = `<span class="text-muted text-xs">${Ui.escapeHtml(Ui.formatRelativeTime(entry.createdAt))}</span>`
-      return `
-        <div class="flex-between gap-md">
-          <div class="flex gap-sm">${action}${uuid}${rankChange}</div>
-          <div>${relTime}</div>
-        </div>
-      `
-    })
-    .join('')
-  recentActivityElement.innerHTML = `<div class="flex-column gap-sm">${rows}</div>`
-}
-
-const loadRecentActivity = async () => {
-  const bridgeId = activeBridgeId()
-  if (!bridgeId) {
-    setEmpty(recentActivityElement, 'Select a bridge to view activity')
-    return
-  }
-  setLoading(recentActivityElement)
-  try {
-    const res = await Api.apiGet(`/api/rankup/history?bridgeId=${encodeURIComponent(bridgeId)}&limit=5`)
-    history = res && Array.isArray(res.history) ? res.history : []
-    renderRecentActivity()
-  } catch (error) {
-    setEmpty(recentActivityElement, `Failed to load activity: ${error.message}`)
-  }
-}
-
-const renderSystemStatus = (status) => {
-  const runningBadge = status.running
-    ? '<span class="badge badge-success">Running</span>'
-    : '<span class="badge badge-muted">Idle</span>'
-  systemStatusElement.innerHTML = `
-      <div class="flex-column gap-md">
-        <div class="flex-between">
-          <span class="stat-label">Check Running</span>
-          ${runningBadge}
-        </div>
-        <div class="flex-between">
-          <span class="stat-label">Last Check</span>
-          <span class="text-sm text-mono">${Ui.escapeHtml(Ui.formatDate(status.lastCheckAt))}</span>
-        </div>
-        <div class="flex-between">
-          <span class="stat-label">Next Check</span>
-          <span class="text-sm text-mono">${Ui.escapeHtml(Ui.formatDate(status.nextCheckAt))}</span>
-        </div>
-      </div>
-    `
-}
-
-const loadSystemStatus = async () => {
-  const bridgeId = activeBridgeId()
-  if (!bridgeId) {
-    setEmpty(systemStatusElement, 'Select a bridge to view status')
-    return
-  }
-  setLoading(systemStatusElement)
-  try {
-    const res = await Api.apiGet(`/api/status?bridgeId=${encodeURIComponent(bridgeId)}`)
-    renderSystemStatus(res || {})
-  } catch (error) {
-    setEmpty(systemStatusElement, `Failed to load status: ${error.message}`)
-  }
-}
-
-const onRunCheck = async () => {
-  const bridgeId = activeBridgeId()
-  if (!bridgeId) {
-    Ui.showToast('Select a bridge first', 'error')
-    return
-  }
-  const originalText = runCheckButton.textContent
-  runCheckButton.disabled = true
-  runCheckButton.textContent = 'Running...'
-  try {
-    await Api.apiPost('/api/rankup/run-check', { bridgeId })
-    Ui.showToast('Check started', 'success')
-    setTimeout(loadBridgeCards, 2000)
-  } catch (error) {
-    Ui.showToast(`Check failed: ${error.message}`, 'error')
-  } finally {
-    runCheckButton.disabled = false
-    runCheckButton.textContent = originalText
-  }
-}
-
 const updateBridgePendingCount = (bridgeId, newCount) => {
   const b = bridges.find((x) => x.bridgeId === bridgeId)
   if (b) b.pendingCount = newCount
@@ -270,15 +164,6 @@ const onWSEvent = (type, data) => {
       updateBridgePendingCount(data.bridgeId, Math.max(0, current - 1))
       break
     }
-    case 'rankup.historyAppended': {
-      if (!data?.bridgeId) return
-      const sel = activeBridgeId()
-      if (data.bridgeId !== sel) return
-      history.unshift(data)
-      history = history.slice(0, 5)
-      renderRecentActivity()
-      break
-    }
     case 'rankup.bridgeConfigChanged': {
       loadBridgeCards()
       break
@@ -299,67 +184,8 @@ const init = async () => {
   initNav()
   initStatusPolling()
   setLoading(bridgeCardsElement)
-  setLoading(recentActivityElement)
-  setLoading(systemStatusElement)
-  runCheckButton.addEventListener('click', onRunCheck)
-
-  const checkInput = document.querySelector('#check-player-input')
-  const checkButton = document.querySelector('#check-player-btn')
-  const checkResult = document.querySelector('#check-player-result')
-
-  if (checkButton && checkInput && checkResult) {
-    const doCheck = async () => {
-      const username = checkInput.value.trim()
-      if (!username) {
-        checkResult.innerHTML = '<div class="text-sm text-muted">Enter a username first.</div>'
-        return
-      }
-      const bridgeId = activeBridgeId()
-      if (!bridgeId) {
-        checkResult.innerHTML = '<div class="text-sm text-danger">No bridge selected.</div>'
-        return
-      }
-      checkResult.innerHTML = '<div class="loading-spinner"></div>'
-      try {
-        const data = await Api.apiGet(
-          `/api/rankup/check-player?bridgeId=${encodeURIComponent(bridgeId)}&username=${encodeURIComponent(username)}`
-        )
-        const actionBadges = {
-          none: '<span class="badge badge-muted">No Action</span>',
-          promote: '<span class="badge badge-success">PROMOTE</span>',
-          demote: '<span class="badge badge-danger">DEMOTE</span>',
-          kick: '<span class="badge badge-danger">KICK</span>',
-          notify: '<span class="badge badge-warning">NOTIFY</span>'
-        }
-        const badge = actionBadges[data.action] || '<span class="badge badge-muted">Unknown</span>'
-        checkResult.innerHTML =
-          '<div class="card" style="padding: var(--space-sm);">' +
-          `<div class="grid grid-cols-2 gap-sm">` +
-          `<div><span class="stat-label">Player</span><div class="text-sm">${Ui.escapeHtml(data.username || username)}</div></div>` +
-          `<div><span class="stat-label">Current Rank</span><div class="text-sm">${Ui.escapeHtml(data.currentRank)}</div></div>` +
-          `<div><span class="stat-label">Weekly GEXP</span><div class="text-sm">${Number(data.weeklyGexp).toLocaleString()}</div></div>` +
-          `<div><span class="stat-label">Days in Guild</span><div class="text-sm">${data.daysInGuild}</div></div>` +
-          `<div><span class="stat-label">Result</span><div class="text-sm">${badge}</div></div>` +
-          (data.targetRank
-            ? `<div><span class="stat-label">Target Rank</span><div class="text-sm">${Ui.escapeHtml(data.targetRank)}</div></div>`
-            : '') +
-          `</div>` +
-          (data.reason ? `<div class="mt-xs text-xs text-muted">${Ui.escapeHtml(data.reason)}</div>` : '') +
-          `</div>`
-      } catch (error) {
-        checkResult.innerHTML = `<div class="text-sm text-danger">${Ui.escapeHtml(error.message)}</div>`
-      }
-    }
-
-    checkButton.addEventListener('click', doCheck)
-    checkInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') doCheck()
-    })
-  }
 
   await loadBridgeCards()
-  loadRecentActivity()
-  loadSystemStatus()
   ws = Ws.connectRankupWS(onWSEvent)
   refreshTimer = setInterval(loadBridgeCards, 30_000)
   window.addEventListener('beforeunload', cleanup)
