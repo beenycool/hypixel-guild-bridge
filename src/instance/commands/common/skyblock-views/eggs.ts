@@ -1,39 +1,40 @@
-import type { SkyblockV2Member } from 'hypixel-api-reborn'
+import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
-import { shortenNumber } from '../common/utility'
+import type { ChatCommandContext } from '../../../../common/commands.js'
+import { shortenNumber } from '../utility.js'
 
-export default class Eggs extends SkyblockPlayerCommand {
-  private static readonly DivineEggs = ['vega', 'starfire', 'orion', 'aurora', 'celestia']
-  private static readonly MythicEggs = [
-    'dante',
-    'einstein',
-    'king',
-    'galaxy',
-    'zorro',
-    'mu',
-    'napoleon',
-    'sigma',
-    'omega',
-    'zest_zephyr',
-    'zeta'
-  ]
-  constructor() {
-    super({
-      triggers: ['eggs', 'egg', 'cf', 'chocolate', 'chocolates'],
-      description: "Returns a player's skyblock easter eggs and chocolate stats",
-      example: `eggs %s`
-    })
-  }
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
+
+const DivineEggs = ['vega', 'starfire', 'orion', 'aurora', 'celestia']
+const MythicEggs = [
+  'dante',
+  'einstein',
+  'king',
+  'galaxy',
+  'zorro',
+  'mu',
+  'napoleon',
+  'sigma',
+  'omega',
+  'zest_zephyr',
+  'zeta'
+]
+
+export const eggsView: SkyblockView = {
+  name: 'eggs',
+  description: "Returns a player's skyblock easter eggs and chocolate stats",
+  example: 'sb %s eggs',
+  needsProfile: true,
 
   // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
-  async onSkyblockPlayer(
+  async render(
     context: ChatCommandContext,
     username: string,
-    selectedProfile: SkyblockV2Member
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined
   ): Promise<string> {
-    const easter = selectedProfile.events?.easter
+    assert.ok(selected)
+    const easter = selected.member.events?.easter
     const totalChocolate = easter?.total_chocolate ?? 0
     if (totalChocolate === 0) return `${username} does not have a chocolate factory.`
 
@@ -49,13 +50,13 @@ export default class Eggs extends SkyblockPlayerCommand {
         }
       }
 
-      for (const mythicEgg of Eggs.MythicEggs) {
+      for (const mythicEgg of MythicEggs) {
         const count = easter.rabbits[mythicEgg] as undefined | number
         if ((count ?? 0) > 0) {
           mythicEggs++
         }
       }
-      for (const divineEgg of Eggs.DivineEggs) {
+      for (const divineEgg of DivineEggs) {
         if (((easter.rabbits[divineEgg] as undefined | number) ?? 0) > 0) {
           divineEggs++
         }

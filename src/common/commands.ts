@@ -15,17 +15,31 @@ import type EventHelper from './event-helper.js'
 import type UnexpectedErrorHandler from './unexpected-error-handler.js'
 import type { DiscordUser } from './user'
 
+export interface CommandSubcommand {
+  readonly name: string
+  readonly description: string
+  readonly example: string
+}
+
 export abstract class ChatCommandHandler {
   public readonly triggers: string[]
   public readonly description: string
   public readonly example: string
   public readonly category: string
+  public readonly subcommands: CommandSubcommand[] | undefined
 
-  protected constructor(options: { triggers: string[]; description: string; example: string; category?: string }) {
+  protected constructor(options: {
+    triggers: string[]
+    description: string
+    example: string
+    category?: string
+    subcommands?: CommandSubcommand[]
+  }) {
     this.triggers = options.triggers
     this.description = options.description
     this.example = options.example
     this.category = options.category ?? 'General'
+    this.subcommands = options.subcommands
   }
 
   public getExample(commandPrefix: string): string {
@@ -125,15 +139,52 @@ export function formatCommandHelp(command: ChatCommandHandler, commandPrefix: st
     }
     return `[${command.category}] ${command.triggers[0]}: ${command.description}${aliasSuffix} - Example: ${commandPrefix}${example}`
   }
+  const appendSubcommands = (base: string): string => {
+    if (command.subcommands === undefined || command.subcommands.length === 0) return base
+
+    const separator = ' - subcommands: '
+    const names = command.subcommands.map((subcommand) => subcommand.name)
+    let list = names.join(', ')
+    if (base.length + separator.length + list.length <= MaxHelpLength) return base + separator + list
+
+    const budget = Math.max(0, MaxHelpLength - base.length - separator.length - 3)
+    while (list.length > budget && names.length > 0) {
+      names.pop()
+      list = names.join(', ')
+    }
+    return base + separator + list + '...'
+  }
 
   const MaxHelpLength = 200
   const message = build(true)
-  if (message.length <= MaxHelpLength) return message
+  if (message.length <= MaxHelpLength) return appendSubcommands(message)
 
   const messageWithoutAliases = build(false)
-  if (messageWithoutAliases.length <= MaxHelpLength) return messageWithoutAliases
+  if (messageWithoutAliases.length <= MaxHelpLength) return appendSubcommands(messageWithoutAliases)
 
-  return `${messageWithoutAliases.slice(0, MaxHelpLength - 3)}...`
+  return `${appendSubcommands(messageWithoutAliases).slice(0, MaxHelpLength - 3)}...`
+}
+
+/**
+ * Formats the help line for a single subcommand of a command with subcommands.
+ * Returns undefined when the command has no subcommand with the given name.
+ * @param command - the command owning the subcommand
+ * @param subcommandName - the name of the subcommand to format help for
+ * @param commandPrefix - the configured chat command prefix
+ * @param username - optional username to substitute into the example
+ * @returns the formatted help line, or undefined when the subcommand does not exist
+ */
+export function formatSubcommandHelp(
+  command: ChatCommandHandler,
+  subcommandName: string,
+  commandPrefix: string,
+  username?: string
+): string | undefined {
+  const subcommand = command.subcommands?.find((candidate) => candidate.name === subcommandName)
+  if (subcommand === undefined) return undefined
+
+  const example = username ? subcommand.example.replaceAll('%s', username) : subcommand.example
+  return `[${command.category}] ${command.triggers[0]} ${subcommand.name}: ${subcommand.description} - Example: ${commandPrefix}${example}`
 }
 
 export function getCommandSuggestions(

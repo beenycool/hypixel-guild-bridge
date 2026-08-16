@@ -1,15 +1,12 @@
+import assert from 'node:assert'
+
 import type { SkyblockV2Member, Slayer } from 'hypixel-api-reborn'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import { formatNumber, titleCase } from '../../../common/helper-functions.js'
-import {
-  getSelectedSkyblockProfileData,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  playerNeverPlayedSlayers,
-  usernameNotExists
-} from '../common/utility'
+import type { ChatCommandContext } from '../../../../common/commands.js'
+import { formatNumber, titleCase } from '../../../../common/helper-functions.js'
+import { playerNeverPlayedSlayers } from '../utility.js'
+
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
 
 const SlayerTypes = ['zombie', 'spider', 'wolf', 'enderman', 'blaze', 'vampire'] as const
 type SlayerType = (typeof SlayerTypes)[number]
@@ -34,34 +31,28 @@ interface SlayerLevel {
 
 type SlayerSummary = Record<SlayerType, SlayerLevel>
 
-export default class SlayerCommand extends ChatCommandHandler {
-  constructor() {
-    super({
-      category: 'SkyBlock',
-      triggers: ['slayer', 'slayers'],
-      description: 'Slayer of specified user.',
-      example: `slayer %s`
-    })
-  }
+export const slayerView: SkyblockView = {
+  name: 'slayer',
+  description: 'Slayer of specified user.',
+  example: 'sb %s slayer zombie',
+  needsProfile: true,
+  // eslint-disable-next-line @typescript-eslint/require-await -- SkyblockView contract requires Promise<string>
+  async render(
+    context: ChatCommandContext,
+    username: string,
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined,
+    subcommand: string[]
+  ): Promise<string> {
+    assert.ok(selected)
 
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-    const slayerType = this.parseSlayerType(context.args[1])
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selected = await getSelectedSkyblockProfileData(context.app.hypixelApi, uuid)
-    if (!selected) return playerNeverPlayedSkyblock(context, givenUsername)
-
+    const slayerType = parseSlayerType(subcommand[0])
     const slayerData = getSlayerSummary(selected.member)
-    if (!slayerData) return playerNeverPlayedSlayers(givenUsername)
+    if (!slayerData) return playerNeverPlayedSlayers(username)
 
     if (slayerType) {
       const data = slayerData[slayerType]
-      return (
-        `${givenUsername}'s ${titleCase(slayerType)} - ${data.level} Levels | ` + `Experience: ${formatNumber(data.xp)}`
-      )
+      return `${username}'s ${titleCase(slayerType)} - ${data.level} Levels | ` + `Experience: ${formatNumber(data.xp)}`
     }
 
     const summary = SlayerTypes.map((type) => {
@@ -69,14 +60,14 @@ export default class SlayerCommand extends ChatCommandHandler {
       return `${titleCase(type)}: ${data.level} (${formatNumber(data.xp)})`
     }).join(' | ')
 
-    return `${givenUsername}'s Slayer: ${summary}`
+    return `${username}'s Slayer: ${summary}`
   }
+}
 
-  private parseSlayerType(value: string | undefined): SlayerType | undefined {
-    if (!value) return undefined
-    const normalized = value.toLowerCase()
-    return SlayerTypes.find((type) => type === normalized)
-  }
+function parseSlayerType(value: string | undefined): SlayerType | undefined {
+  if (!value) return undefined
+  const normalized = value.toLowerCase()
+  return SlayerTypes.find((type) => type === normalized)
 }
 
 function getSlayerSummary(profile: SkyblockV2Member): SlayerSummary | undefined {

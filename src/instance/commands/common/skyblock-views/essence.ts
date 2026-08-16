@@ -1,24 +1,24 @@
-import type { SkyblockV2Member } from 'hypixel-api-reborn'
+import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import type { ChatCommandContext } from '../../../../common/commands.js'
 
-export default class Essence extends SkyblockPlayerCommand {
-  constructor() {
-    super({
-      triggers: ['essence', 'ess'],
-      description: "Returns a player's essence perks",
-      example: `essence %s`
-    })
-  }
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
+
+export const essenceView: SkyblockView = {
+  name: 'essence',
+  description: "Returns a player's essence perks",
+  example: 'sb %s essence',
+  needsProfile: true,
 
   // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
-  async onSkyblockPlayer(
+  async render(
     context: ChatCommandContext,
     username: string,
-    selectedProfile: SkyblockV2Member
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined
   ): Promise<string> {
-    const essencePerks = selectedProfile.essence?.perks
+    assert.ok(selected)
+    const essencePerks = selected.member.essence?.perks
     if (!essencePerks) return `${username} has no essence perks.`
 
     const perks: string[] = []

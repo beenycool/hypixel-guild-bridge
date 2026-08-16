@@ -1,9 +1,10 @@
-import type { SkyblockV2Member } from 'hypixel-api-reborn'
+import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { formatNumber } from '../../../common/helper-functions.js'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
-import { playerNeverEnteredCrimson } from '../common/utility'
+import type { ChatCommandContext } from '../../../../common/commands.js'
+import { formatNumber } from '../../../../common/helper-functions.js'
+import { playerNeverEnteredCrimson } from '../utility.js'
+
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
 
 interface TrophyFishProfile {
   rewards?: number[]
@@ -13,22 +14,21 @@ interface TrophyFishProfile {
 
 const TrophyRanks = ['None', 'Bronze', 'Silver', 'Gold', 'Diamond'] as const
 
-export default class TrophyFish extends SkyblockPlayerCommand {
-  constructor() {
-    super({
-      triggers: ['trophyfish', 'trophyfishing', 'trophy', 'tf'],
-      description: "Returns a player's trophy fishing stats",
-      example: `trophyfish %s`
-    })
-  }
+export const trophyfishView: SkyblockView = {
+  name: 'trophyfish',
+  description: "Returns a player's trophy fishing stats",
+  example: 'sb %s trophyfish',
+  needsProfile: true,
 
   // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
-  async onSkyblockPlayer(
+  async render(
     context: ChatCommandContext,
     username: string,
-    selectedProfile: SkyblockV2Member
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined
   ): Promise<string> {
-    const rawProfile = selectedProfile as unknown as Record<string, unknown>
+    assert.ok(selected)
+    const rawProfile = selected.member as unknown as Record<string, unknown>
     const trophyFish = rawProfile.trophy_fish as TrophyFishProfile | undefined
     if (!trophyFish) return playerNeverEnteredCrimson(username)
 

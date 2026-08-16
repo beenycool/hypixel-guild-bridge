@@ -1,24 +1,24 @@
-import type { SkyblockV2Member } from 'hypixel-api-reborn'
+import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import type { ChatCommandContext } from '../../../../common/commands.js'
 
-export default class Timecharms extends SkyblockPlayerCommand {
-  constructor() {
-    super({
-      triggers: ['timecharm', 'timecharms', 'charm', 'charms', 'riftcharm', 'riftcharms'],
-      description: "Returns a player's rift obtained time charms",
-      example: `timecharms %s`
-    })
-  }
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
+
+export const timecharmsView: SkyblockView = {
+  name: 'timecharms',
+  description: "Returns a player's rift obtained time charms",
+  example: 'sb %s timecharms',
+  needsProfile: true,
 
   // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
-  async onSkyblockPlayer(
+  async render(
     context: ChatCommandContext,
     username: string,
-    selectedProfile: SkyblockV2Member
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined
   ): Promise<string> {
-    const trophies = selectedProfile.rift?.gallery?.secured_trophies
+    assert.ok(selected)
+    const trophies = selected.member.rift?.gallery?.secured_trophies
     if (trophies === undefined || trophies.length === 0) {
       return `${username} has not secured any timecharm yet?`
     }

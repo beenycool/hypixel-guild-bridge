@@ -1,26 +1,27 @@
-import type { SkyblockV2Member } from 'hypixel-api-reborn'
+import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import type { ChatCommandContext } from '../../../../common/commands.js'
 
-export default class Bestiary extends SkyblockPlayerCommand {
-  constructor() {
-    super({
-      triggers: ['be', 'bestiary'],
-      description: "Returns a player's Bestiary stats",
-      example: `be %s dreadlord`
-    })
-  }
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
+
+export const bestiaryView: SkyblockView = {
+  name: 'bestiary',
+  description: "Returns a player's Bestiary stats",
+  example: 'sb %s bestiary dreadlord',
+  needsProfile: true,
 
   // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
-  async onSkyblockPlayer(
+  async render(
     context: ChatCommandContext,
     username: string,
-    selectedProfile: SkyblockV2Member
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined,
+    argumentValues: string[]
   ): Promise<string> {
-    const bestiaryName = context.args.at(1)
+    assert.ok(selected)
+    const bestiaryName = argumentValues.at(0)
 
-    const bestiary = selectedProfile.bestiary
+    const bestiary = selected.member.bestiary
     if (bestiary === undefined) return `${username} has never killed on this profile.`
 
     let response = `${username} has `

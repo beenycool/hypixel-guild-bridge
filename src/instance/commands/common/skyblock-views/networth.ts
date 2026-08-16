@@ -1,37 +1,28 @@
+import assert from 'node:assert'
+
 import { ProfileNetworthCalculator } from 'skyhelper-networth'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler } from '../../../common/commands.js'
-import { formatNumber } from '../../../common/helper-functions.js'
-import {
-  getSelectedSkyblockProfileData,
-  getUuidIfExists,
-  playerNeverPlayedSkyblock,
-  usernameNotExists
-} from '../common/utility'
+import type { ChatCommandContext } from '../../../../common/commands.js'
+import { formatNumber } from '../../../../common/helper-functions.js'
+
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
 
 interface NetworthTypes {
   museum?: { total?: number }
 }
 
-export default class Networth extends ChatCommandHandler {
-  constructor() {
-    super({
-      category: 'SkyBlock',
-      triggers: ['networth', 'nw'],
-      description: 'Networth of specified user.',
-      example: `networth %s`
-    })
-  }
-
-  async handler(context: ChatCommandContext): Promise<string> {
-    const givenUsername = context.args[0] ?? context.username
-
-    const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
-    if (uuid == undefined) return usernameNotExists(context, givenUsername)
-
-    const selected = await getSelectedSkyblockProfileData(context.app.hypixelApi, uuid)
-    if (!selected) return playerNeverPlayedSkyblock(context, givenUsername)
+export const networthView: SkyblockView = {
+  name: 'networth',
+  description: 'Networth of specified user.',
+  example: 'sb %s networth',
+  needsProfile: true,
+  async render(
+    context: ChatCommandContext,
+    username: string,
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined
+  ): Promise<string> {
+    assert.ok(selected)
 
     const museum = await context.app.hypixelApi
       .getSkyblockMuseum(uuid, selected.profile.profile_id, { raw: true })
@@ -51,7 +42,7 @@ export default class Networth extends ChatCommandHandler {
     ])
 
     if (networthData.noInventory) {
-      return `${givenUsername} has an Inventory API off!`
+      return `${username} has an Inventory API off!`
     }
 
     const networth = formatNumber(networthData.networth)
@@ -69,7 +60,7 @@ export default class Networth extends ChatCommandHandler {
       : 'N/A'
 
     return (
-      `${givenUsername}'s Networth is ${networth} | ` +
+      `${username}'s Networth is ${networth} | ` +
       `Non-Cosmetic Networth: ${nonCosmeticNetworth} | ` +
       `Unsoulbound Networth: ${unsoulboundNetworth} | ` +
       `Non-Cosmetic Unsoulbound Networth: ${nonCosmeticUnsoulboundNetworth} | ` +

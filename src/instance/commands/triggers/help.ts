@@ -1,5 +1,10 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
-import { ChatCommandHandler, formatCommandHelp, getCommandSuggestions } from '../../../common/commands.js'
+import {
+  ChatCommandHandler,
+  formatCommandHelp,
+  formatSubcommandHelp,
+  getCommandSuggestions
+} from '../../../common/commands.js'
 
 const MaxLineLength = 120
 const MaxPageLength = 170
@@ -87,7 +92,8 @@ export default class Help extends ChatCommandHandler {
 
   handler(context: ChatCommandContext): string {
     const argument = context.args.length > 0 ? context.args[0] : undefined
-    const pageArgument = context.args[1]
+    const subcommandArgument = context.args[1]
+    const pageArgument = subcommandArgument
     const page = /^\d+$/g.test(pageArgument) ? Number.parseInt(pageArgument, 10) : undefined
 
     if (argument === undefined) return this.showCategories(context)
@@ -96,7 +102,18 @@ export default class Help extends ChatCommandHandler {
     const query = argument.toLowerCase()
 
     const command = context.allCommands.find((c) => c.triggers.includes(query))
-    if (command != undefined) return formatCommandHelp(command, context.commandPrefix, context.username)
+    if (command != undefined) {
+      if (context.args.length > 1) {
+        const subcommandHelp = formatSubcommandHelp(
+          command,
+          context.args[1].toLowerCase(),
+          context.commandPrefix,
+          context.username
+        )
+        if (subcommandHelp !== undefined) return subcommandHelp
+      }
+      return formatCommandHelp(command, context.commandPrefix, context.username)
+    }
 
     const categoryCommands = this.availableCommands(context).filter((c) => c.category.toLowerCase() === query)
     if (categoryCommands.length > 0) return this.showCategoryCommands(context, categoryCommands, query, page)

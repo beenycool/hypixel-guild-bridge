@@ -1,97 +1,74 @@
 
 ## Chat Commands
 
-| Command         | Description                                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `8ball`         | Returns a basic 8 ball response                                                                                                      |
-| `accessories`   | Returns a player's accessory bag stats                                                                                               |
-| `arcade`        | Returns a player's Arcade games stats with optional game mode filter                                                                 |
-| `asian`         | Challenge yourself with math! Use calculus for calculus problems.                                                                    |
-| `auction`       | Returns a player's active auctions                                                                                                   |
-| `bedwars`       | Returns a player's Bed Wars stats with optional mode or period filter                                                                |
-| `be`            | Returns a player's Bestiary stats                                                                                                    |
-| `blackjack`     | Play blackjack against the bot. Lose and you get muted for 15 minutes                                                                |
-| `blitz`         | Returns a player's Blitz Survival Games stats                                                                                        |
-| `boo`           | /boo a player in-game                                                                                                                |
-| `boop`          | /boop a player in-game                                                                                                               |
-| `bow`           | Shortcut for 'duels bow' (bow duels stats)                                                                                           |
-| `buildbattle`   | Returns a player's Build Battle common stats                                                                                         |
-| `calculate`     | A basic calculator                                                                                                                   |
-| `catacombs`     | Skyblock Dungeons stats (stats, last, pb, runs, secrets, rtca subcommands)                                                           |
-| `collection`    | Returns a player's skyblock collection stats                                                                                         |
-| `copsandcrims`  | Returns a player's Cops and Crims stats                                                                                              |
-| `crimson`       | Returns a player's Crimson Isle stats (faction, reputation, Kuudra)                                                                  |
-| `dadjoke`       | Show you a random dad joke                                                                                                           |
-| `denick`        | Denick players by their finals/beds stats in Bedwars                                                                                 |
-| `devexcuse`     | Show you a random excuse for why this bot isn't working                                                                              |
-| `discord`       | Returns a player's Discord social                                                                                                    |
-| `dojo`          | Returns a player's dojo stats                                                                                                        |
-| `dropper`       | Returns a player's Dropper stats                                                                                                     |
-| `b`             | Shortcut for 'duels bridge' (bridge duels stats). Supports sub-modes: 1v1/solo, 2v2/duos, 3v3, 4v4, 2v2v2v2/4teams2, 3v3v3v3/4teams3 |
-| `duels`         | Returns a player's Duels stats with optional mode filter                                                                             |
-| `eggs`          | Returns a player's skyblock easter eggs and chocolate stats                                                                          |
-| `essence`       | Returns a player's essence perks                                                                                                     |
-| `fairysouls`    | Fairy Souls of specified user.                                                                                                       |
-| `fetchur`       | Show what Fetchur NPC is requesting                                                                                                  |
-| `forge`         | Returns a player's forge items                                                                                                       |
-| `garden`        | Returns a player's garden stats                                                                                                      |
-| `gay`           | Check how gay a player is                                                                                                            |
-| `gtop`          | Shows the top 5 GEXP earners in the guild for today                                                                                  |
-| `guildstats`    | Show guild activity stats for a period.                                                                                              |
-| `guild`         | Returns a player's guild, if they're in one                                                                                          |
-| `guildexp`      | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]                                                    |
-| `help`          | Shows available command categories and how to use commands                                                                           |
-| `hotm`          | Returns a player's hotm and powder                                                                                                   |
-| `insult`        | insult a player                                                                                                                      |
-| `iq`            | Returns a player's IQ (0-200)                                                                                                        |
-| `kuudra`        | Returns a player's kuudra runs                                                                                                       |
-| `lesbian`       | Check how lesbian a player is                                                                                                        |
-| `level`         | Returns a player's skyblock level                                                                                                    |
-| `magicalpower`  | Returns a player's highest recorded skyblock Magical Power                                                                           |
-| `mayor`         | Show the current Hypixel Skyblock mayor or active election                                                                           |
-| `megawalls`     | Returns a player's Megawalls stats                                                                                                   |
-| `murdermystery` | Returns a player's Murder Mystery stats                                                                                              |
-| `mute`          | mute a random online person for 5 minutes for no good reason                                                                         |
-| `networth`      | Networth of specified user.                                                                                                          |
-| `paintball`     | Returns a player's Paintball stats                                                                                                   |
-| `partygames`    | Returns a player's Party Games stats                                                                                                 |
-| `ping`          | Returns a player's Hypixel ping (network latency)                                                                                    |
-| `pit`           | Returns a player's Pit stats                                                                                                         |
-| `player`        | Get Hypixel player stats.                                                                                                            |
-| `points30`      | Returns user's 30 days activity points                                                                                               |
-| `points`        | Returns user's all time activity points                                                                                              |
-| `praise`        | praise a player                                                                                                                      |
-| `purse`         | Returns a player's skyblock coins                                                                                                    |
-| `chat`          | Send a one-time message to a different bridge, or manage cross-bridge chat mutes (!chat mute/unmute/muted)                           |
-| `quakecraft`    | Returns a player's Quakecraft stats                                                                                                  |
-| `racism`        | Check how racist a player is                                                                                                         |
-| `rhyme`         | Finds rhyming words and generates a short couplet using AI                                                                           |
-| `rng`           | Returns a random number between a range                                                                                              |
-| `rps`           | Play rock, paper, scissors against the bot                                                                                           |
-| `select`        | Randomly select an online guild member                                                                                               |
-| `weekly`        | Show weekly stat changes (or !weekly <game>)                                                                                         |
-| `monthly`       | Show monthly stat changes (or !monthly <game>)                                                                                       |
-| `yearly`        | Show yearly stat changes (or !yearly <game>)                                                                                         |
-| `session`       | Show stat changes over custom duration. Example: !session 48h Bedwars                                                                |
-| `skills`        | Skills and Skill Average of specified user.                                                                                          |
-| `skyblock`      | Returns a player's skyblock stats                                                                                                    |
-| `skywars`       | Returns a player's SkyWars stats                                                                                                     |
-| `slayer`        | Slayer of specified user.                                                                                                            |
-| `specialmayors` | Show when Skyblock special mayors are coming                                                                                         |
-| `starfall`      | When is the next Skyblock Starfall event                                                                                             |
-| `status`        | Show a player's Hypixel status and current location                                                                                  |
-| `timecharm`     | Returns a player's rift obtained time charms                                                                                         |
-| `tntgames`      | Returns a player's TNT Games stats                                                                                                   |
-| `tnttag`        | Returns a player's TNT Tag stats                                                                                                     |
-| `tournament`    | Tournament commands — join, checkin, report, forfeit, bracket, status                                                                |
-| `translate`     | Translates text to a target language                                                                                                 |
-| `trophyfish`    | Returns a player's trophy fishing stats                                                                                              |
-| `unlink`        | Unlink Minecraft account from Discord                                                                                                |
-| `unscramble`    | Unscramble the word and type it in chat to win!                                                                                      |
-| `urchin`        | Check a player for Urchin and Seraph blacklist tags.                                                                                 |
-| `warp`          | Warp a player out of a lobby                                                                                                         |
-| `weight`        | Returns a player's senither weight                                                                                                   |
-| `woolwars`      | Returns a player's Wool Wars stats                                                                                                   |
+| Command         | Description                                                                                                                                                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `8ball`         | Returns a basic 8 ball response                                                                                                                                                                                                  |
+| `arcade`        | Returns a player's Arcade games stats with optional game mode filter                                                                                                                                                             |
+| `asian`         | Challenge yourself with math! Use calculus for calculus problems.                                                                                                                                                                |
+| `auction`       | Returns a player's active auctions                                                                                                                                                                                               |
+| `bedwars`       | Returns a player's Bed Wars stats with optional mode or period filter                                                                                                                                                            |
+| `blackjack`     | Play blackjack against the bot. Lose and you get muted for 15 minutes                                                                                                                                                            |
+| `blitz`         | Returns a player's Blitz Survival Games stats                                                                                                                                                                                    |
+| `boo`           | /boo a player in-game                                                                                                                                                                                                            |
+| `boop`          | /boop a player in-game                                                                                                                                                                                                           |
+| `bow`           | Shortcut for 'duels bow' (bow duels stats)                                                                                                                                                                                       |
+| `buildbattle`   | Returns a player's Build Battle common stats                                                                                                                                                                                     |
+| `calculate`     | A basic calculator                                                                                                                                                                                                               |
+| `copsandcrims`  | Returns a player's Cops and Crims stats                                                                                                                                                                                          |
+| `dadjoke`       | Show you a random dad joke                                                                                                                                                                                                       |
+| `denick`        | Denick players by their finals/beds stats in Bedwars                                                                                                                                                                             |
+| `devexcuse`     | Show you a random excuse for why this bot isn't working                                                                                                                                                                          |
+| `discord`       | Returns a player's Discord social                                                                                                                                                                                                |
+| `dropper`       | Returns a player's Dropper stats                                                                                                                                                                                                 |
+| `b`             | Shortcut for 'duels bridge' (bridge duels stats). Supports sub-modes: 1v1/solo, 2v2/duos, 3v3, 4v4, 2v2v2v2/4teams2, 3v3v3v3/4teams3                                                                                             |
+| `duels`         | Returns a player's Duels stats with optional mode filter                                                                                                                                                                         |
+| `fetchur`       | Show what Fetchur NPC is requesting                                                                                                                                                                                              |
+| `gay`           | Check how gay a player is                                                                                                                                                                                                        |
+| `gtop`          | Shows the top 5 GEXP earners in the guild for today                                                                                                                                                                              |
+| `guildstats`    | Show guild activity stats for a period.                                                                                                                                                                                          |
+| `guild`         | Returns a player's guild, if they're in one                                                                                                                                                                                      |
+| `guildexp`      | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]                                                                                                                                                |
+| `help`          | Shows available command categories and how to use commands                                                                                                                                                                       |
+| `insult`        | insult a player                                                                                                                                                                                                                  |
+| `iq`            | Returns a player's IQ (0-200)                                                                                                                                                                                                    |
+| `lesbian`       | Check how lesbian a player is                                                                                                                                                                                                    |
+| `mayor`         | Show the current Hypixel Skyblock mayor or active election - Subcommands: special                                                                                                                                                |
+| `megawalls`     | Returns a player's Megawalls stats                                                                                                                                                                                               |
+| `murdermystery` | Returns a player's Murder Mystery stats                                                                                                                                                                                          |
+| `mute`          | mute a random online person for 5 minutes for no good reason                                                                                                                                                                     |
+| `paintball`     | Returns a player's Paintball stats                                                                                                                                                                                               |
+| `partygames`    | Returns a player's Party Games stats                                                                                                                                                                                             |
+| `ping`          | Returns a player's Hypixel ping (network latency)                                                                                                                                                                                |
+| `pit`           | Returns a player's Pit stats                                                                                                                                                                                                     |
+| `player`        | Get Hypixel player stats.                                                                                                                                                                                                        |
+| `points30`      | Returns user's 30 days activity points                                                                                                                                                                                           |
+| `points`        | Returns user's all time activity points                                                                                                                                                                                          |
+| `praise`        | praise a player                                                                                                                                                                                                                  |
+| `chat`          | Send a one-time message to a different bridge, or manage cross-bridge chat mutes (!chat mute/unmute/muted)                                                                                                                       |
+| `quakecraft`    | Returns a player's Quakecraft stats                                                                                                                                                                                              |
+| `racism`        | Check how racist a player is                                                                                                                                                                                                     |
+| `rhyme`         | Finds rhyming words and generates a short couplet using AI                                                                                                                                                                       |
+| `rng`           | Returns a random number between a range                                                                                                                                                                                          |
+| `rps`           | Play rock, paper, scissors against the bot                                                                                                                                                                                       |
+| `select`        | Randomly select an online guild member                                                                                                                                                                                           |
+| `weekly`        | Show weekly stat changes (or !weekly <game>)                                                                                                                                                                                     |
+| `monthly`       | Show monthly stat changes (or !monthly <game>)                                                                                                                                                                                   |
+| `yearly`        | Show yearly stat changes (or !yearly <game>)                                                                                                                                                                                     |
+| `session`       | Show stat changes over custom duration. Example: !session 48h Bedwars                                                                                                                                                            |
+| `skyblock`      | Returns a player's skyblock stats - Subcommands: summary, skills, slayer, cata, networth, purse, acc, bestiary, collection, essence, fairysouls, forge, hotm, garden, crimson, dojo, trophyfish, timecharms, eggs, level, weight |
+| `skywars`       | Returns a player's SkyWars stats                                                                                                                                                                                                 |
+| `starfall`      | When is the next Skyblock Starfall event                                                                                                                                                                                         |
+| `status`        | Show a player's Hypixel status and current location                                                                                                                                                                              |
+| `tntgames`      | Returns a player's TNT Games stats                                                                                                                                                                                               |
+| `tnttag`        | Returns a player's TNT Tag stats                                                                                                                                                                                                 |
+| `tournament`    | Tournament commands — join, checkin, report, forfeit, bracket, status                                                                                                                                                            |
+| `translate`     | Translates text to a target language                                                                                                                                                                                             |
+| `unlink`        | Unlink Minecraft account from Discord                                                                                                                                                                                            |
+| `unscramble`    | Unscramble the word and type it in chat to win!                                                                                                                                                                                  |
+| `urchin`        | Check a player for Urchin and Seraph blacklist tags.                                                                                                                                                                             |
+| `warp`          | Warp a player out of a lobby                                                                                                                                                                                                     |
+| `woolwars`      | Returns a player's Wool Wars stats                                                                                                                                                                                               |
 
 ## Discord Commands
 

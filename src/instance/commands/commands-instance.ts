@@ -14,12 +14,10 @@ import { ConnectableInstance, Status } from '../../common/connectable-instance.j
 import { InternalInstancePrefix } from '../../common/instance.js'
 
 import EightBallCommand from './triggers/8ball.js'
-import Accessories from './triggers/accessories.js'
 import Arcade from './triggers/arcade.js'
 import Asian from './triggers/asian.js'
 import AuctionHouse from './triggers/auction.js'
 import Bedwars from './triggers/bedwars.js'
-import Bestiary from './triggers/bestiary'
 import Blackjack from './triggers/blackjack.js'
 import Blitz from './triggers/blitz.js'
 import Boo from './triggers/boo.js'
@@ -27,42 +25,28 @@ import Boop from './triggers/boop.js'
 import Bow from './triggers/bow.js'
 import Buildbattle from './triggers/buildbattle'
 import Calculate from './triggers/calculate.js'
-import Catacomb from './triggers/catacomb.js'
-import Collection from './triggers/collection'
 import Cops from './triggers/cops.js'
-import Crimson from './triggers/crimson.js'
 import DadJoke from './triggers/dadjoke.js'
 import Denick from './triggers/denick.js'
 import DevelopmentExcuse from './triggers/devexcuse.js'
 import Discord from './triggers/discord'
-import Dojo from './triggers/dojo.js'
 import Droppers from './triggers/droppers.js'
 import DuelsBridge from './triggers/duels-bridge.js'
 import Duels from './triggers/duels.js'
-import Eggs from './triggers/eggs'
-import Essence from './triggers/essence.js'
-import FairySouls from './triggers/fairysouls.js'
 import Fetchur from './triggers/fetchur.js'
-import Forge from './triggers/forge.js'
-import Garden from './triggers/garden.js'
 import Gay from './triggers/gay.js'
 import Gtop from './triggers/gtop.js'
 import GuildSessions from './triggers/guild-sessions.js'
 import Guild from './triggers/guild.js'
 import GuildExperience from './triggers/guildexp.js'
 import Help from './triggers/help.js'
-import HeartOfTheMountain from './triggers/hotm.js'
 import Insult from './triggers/insult.js'
 import Iq from './triggers/iq.js'
-import Kuudra from './triggers/kuudra.js'
 import Lesbian from './triggers/lesbian.js'
-import Level from './triggers/level.js'
-import MagicalPower from './triggers/magicalpower.js'
 import Mayor from './triggers/mayor.js'
 import Megawalls from './triggers/megawalls.js'
 import Murdermystery from './triggers/murdermystery.js'
 import Mute from './triggers/mute.js'
-import Networth from './triggers/networth.js'
 import Paintball from './triggers/paintball.js'
 import PartyGames from './triggers/partygames.js'
 import Ping from './triggers/ping.js'
@@ -71,7 +55,6 @@ import Player from './triggers/player.js'
 import Points30days from './triggers/points-30days'
 import PointsAll from './triggers/points-all'
 import Praise from './triggers/praise'
-import Purse from './triggers/purse.js'
 import QCommand from './triggers/q.js'
 import Quakecraft from './triggers/quakecraft.js'
 import Racism from './triggers/racism.js'
@@ -80,24 +63,18 @@ import Rng from './triggers/rng.js'
 import RockPaperScissors from './triggers/rock-paper-scissors.js'
 import Select from './triggers/select'
 import SessionCommands from './triggers/sessions.js'
-import Skills from './triggers/skills.js'
 import Skyblock from './triggers/skyblock.js'
 import Skywars from './triggers/skywars'
-import Slayer from './triggers/slayer.js'
-import SpecialMayors from './triggers/special-mayors'
 import Starfall from './triggers/starfall.js'
 import StatusCommand from './triggers/status.js'
-import Timecharms from './triggers/timecharms.js'
 import Tntgames from './triggers/tntgames.js'
 import Tnttag from './triggers/tnttag.js'
 import Tournament from './triggers/tournament.js'
 import Translate from './triggers/translate.js'
-import TrophyFish from './triggers/trophyfish.js'
 import Unlink from './triggers/unlink.js'
 import Unscramble from './triggers/unscramble.js'
 import Urchin from './triggers/urchin.js'
 import Warp from './triggers/warp.js'
-import Weight from './triggers/weight.js'
 import Woolwars from './triggers/woolwars.js'
 
 export class CommandsInstance extends ConnectableInstance<InstanceType.Commands> {
@@ -113,35 +90,24 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Arcade(),
       new Asian(),
       new AuctionHouse(),
-      new Accessories(),
       new Blitz(),
       new Bedwars(),
       new Bow(),
       new Duels(),
       new DuelsBridge(),
-      new Bestiary(),
       new Boo(),
       new Boop(),
       new Buildbattle(),
       new Blackjack(),
       new Calculate(),
-      new Catacomb(),
-      new Collection(),
       new Cops(),
-      new Crimson(),
       new DadJoke(),
       new Denick(),
       new DevelopmentExcuse(),
       new Discord(),
-      new Dojo(),
       new Droppers(),
-      new Eggs(),
       new EightBallCommand(),
-      new Essence(),
-      new FairySouls(),
       new Fetchur(),
-      new Forge(),
-      new Garden(),
       new Gay(),
       new Gtop(),
       new Lesbian(),
@@ -149,17 +115,12 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new GuildExperience(),
       new GuildSessions(),
       new Help(),
-      new HeartOfTheMountain(),
       new Insult(),
       new Iq(),
-      new Kuudra(),
-      new Level(),
-      new MagicalPower(),
       new Mayor(),
       new Megawalls(),
       new Murdermystery(),
       new Mute(),
-      new Networth(),
       ...new SessionCommands().resolveCommands(),
       new PartyGames(),
       new Paintball(),
@@ -169,7 +130,6 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Points30days(),
       new PointsAll(),
       new Praise(),
-      new Purse(),
       new QCommand(),
       new Racism(),
       new Quakecraft(),
@@ -177,23 +137,17 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Rng(),
       new RockPaperScissors(),
       new Select(),
-      new Skills(),
       new Skyblock(),
       new Skywars(),
-      new Slayer(),
-      new SpecialMayors(),
       new Starfall(),
       new StatusCommand(),
-      new Timecharms(),
       new Tntgames(),
       new Tnttag(),
-      new TrophyFish(),
       new Tournament(),
       new Unscramble(),
       new Unlink(),
       new Urchin(),
       new Warp(),
-      new Weight(),
       new Woolwars(),
       new Translate()
     ]

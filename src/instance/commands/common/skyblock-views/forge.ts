@@ -1,25 +1,25 @@
-import type { SkyblockV2Member } from 'hypixel-api-reborn'
+import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { getForgeItems } from '../common/forge'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
+import type { ChatCommandContext } from '../../../../common/commands.js'
+import { getForgeItems } from '../forge.js'
 
-export default class Forge extends SkyblockPlayerCommand {
-  constructor() {
-    super({
-      triggers: ['forge'],
-      description: "Returns a player's forge items",
-      example: `forge %s`
-    })
-  }
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
+
+export const forgeView: SkyblockView = {
+  name: 'forge',
+  description: "Returns a player's forge items",
+  example: 'sb %s forge',
+  needsProfile: true,
 
   // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
-  async onSkyblockPlayer(
+  async render(
     context: ChatCommandContext,
     username: string,
-    selectedProfile: SkyblockV2Member
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined
   ): Promise<string> {
-    const forgeItems = getForgeItems(selectedProfile)
+    assert.ok(selected)
+    const forgeItems = getForgeItems(selected.member)
     if (forgeItems == undefined) {
       return `${username} has never gone to the Dwarven Mines on this profile.`
     }

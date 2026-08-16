@@ -1,30 +1,30 @@
-import type { SkyblockV2Member } from 'hypixel-api-reborn'
+import assert from 'node:assert'
 
-import type { ChatCommandContext } from '../../../common/commands.js'
-import { formatNumber } from '../../../common/helper-functions.js'
-import { SkyblockPlayerCommand } from '../common/skyblock-player-command.js'
-import { playerNeverEnteredCrimson } from '../common/utility'
+import type { ChatCommandContext } from '../../../../common/commands.js'
+import { formatNumber } from '../../../../common/helper-functions.js'
+import { playerNeverEnteredCrimson } from '../utility.js'
+
+import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
 
 type DojoData = Record<string, number | undefined>
 
-export default class Dojo extends SkyblockPlayerCommand {
-  constructor() {
-    super({
-      triggers: ['dojo'],
-      description: "Returns a player's dojo stats",
-      example: `dojo %s`
-    })
-  }
+export const dojoView: SkyblockView = {
+  name: 'dojo',
+  description: "Returns a player's dojo stats",
+  example: 'sb %s dojo',
+  needsProfile: true,
 
   // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
-  async onSkyblockPlayer(
+  async render(
     context: ChatCommandContext,
     username: string,
-    selectedProfile: SkyblockV2Member
+    uuid: string,
+    selected: SelectedSkyblockProfile | undefined
   ): Promise<string> {
-    if (!selectedProfile.nether_island_player_data) return playerNeverEnteredCrimson(username)
+    assert.ok(selected)
+    if (!selected.member.nether_island_player_data) return playerNeverEnteredCrimson(username)
 
-    const dojo = (selectedProfile.nether_island_player_data as { dojo?: DojoData }).dojo ?? {}
+    const dojo = (selected.member.nether_island_player_data as { dojo?: DojoData }).dojo ?? {}
     let totalPoints = 0
     for (const [key, value] of Object.entries(dojo)) {
       if (key.startsWith('dojo_points') && value !== undefined) {
@@ -32,7 +32,7 @@ export default class Dojo extends SkyblockPlayerCommand {
       }
     }
 
-    const belt = Dojo.getBelt(totalPoints)
+    const belt = getBelt(totalPoints)
     const force = dojo.dojo_points_mob_kb ?? 0
     const stamina = dojo.dojo_points_wall_jump ?? 0
     const mastery = dojo.dojo_points_archer ?? 0
@@ -52,13 +52,13 @@ export default class Dojo extends SkyblockPlayerCommand {
       `Best Tenacity: ${formatNumber(tenacity)}`
     )
   }
+}
 
-  private static getBelt(points: number): string {
-    if (points >= 7000) return 'Black'
-    if (points >= 6000) return 'Brown'
-    if (points >= 4000) return 'Blue'
-    if (points >= 2000) return 'Green'
-    if (points >= 1000) return 'Yellow'
-    return 'White'
-  }
+function getBelt(points: number): string {
+  if (points >= 7000) return 'Black'
+  if (points >= 6000) return 'Brown'
+  if (points >= 4000) return 'Blue'
+  if (points >= 2000) return 'Green'
+  if (points >= 1000) return 'Yellow'
+  return 'White'
 }

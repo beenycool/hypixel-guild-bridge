@@ -39,7 +39,11 @@ async function generateChatCommands(): Promise<string> {
       | ChatCommandHandler
       | { resolveCommands: () => ChatCommandHandler[] })()
     if (loadedModule instanceof ChatCommandHandler) {
-      table.push([`\`${loadedModule.triggers[0]}\``, loadedModule.description])
+      const subcommands =
+        loadedModule.subcommands === undefined || loadedModule.subcommands.length === 0
+          ? ''
+          : ` - Subcommands: ${loadedModule.subcommands.map((subcommand) => subcommand.name).join(', ')}`
+      table.push([`\`${loadedModule.triggers[0]}\``, loadedModule.description + subcommands])
     } else if (typeof (loadedModule as { resolveCommands?: unknown }).resolveCommands === 'function') {
       for (const resolvedCommand of (
         loadedModule as { resolveCommands: () => ChatCommandHandler[] }
