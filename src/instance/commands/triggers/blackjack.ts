@@ -1,7 +1,6 @@
-import { ChannelType, InstanceType, PunishmentPurpose } from '../../../common/application-event.js'
+import { ChannelType, InstanceType } from '../../../common/application-event.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
-import Duration from '../../../utility/duration'
 import { canOnlyUseIngame } from '../common/utility'
 
 interface BlackjackGame {
@@ -12,14 +11,13 @@ interface BlackjackGame {
 
 export default class Blackjack extends ChatCommandHandler {
   private static readonly MaxCards = 5
-  private static readonly MuteDuration = Duration.minutes(15)
   private readonly activeGames = new Map<string, BlackjackGame>()
 
   constructor() {
     super({
       category: 'Fun',
       triggers: ['blackjack', 'bj'],
-      description: 'Play blackjack against the bot. Lose and you get muted for 15 minutes',
+      description: 'Play blackjack against the bot.',
       example: `bj | bj hit | bj stand`
     })
   }
@@ -120,17 +118,6 @@ export default class Blackjack extends ChatCommandHandler {
 
   private lose(context: ChatCommandContext, result: string): string {
     this.activeGames.delete(context.username)
-
-    void context.message.user
-      .mute(
-        context.eventHelper.fillBaseEvent(),
-        PunishmentPurpose.Game,
-        Blackjack.MuteDuration,
-        'Lost in Blackjack game'
-      )
-      .catch((error: unknown) => {
-        context.logger.error('Failed to mute blackjack loser', error)
-      })
 
     return `${this.message(context, 'lose')
       .replaceAll('{{username}}', context.username)

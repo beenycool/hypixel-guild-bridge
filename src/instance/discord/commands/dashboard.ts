@@ -38,8 +38,6 @@ export default {
             { name: 'History', value: 'rankup-history' },
             { name: 'Settings', value: 'settings' },
             { name: 'Bot Messages', value: 'bot-messages' },
-            { name: 'Punishments', value: 'punishments' },
-            { name: 'Inactivity', value: 'inactivity' },
             { name: 'Tournament', value: 'tournament' }
           )
       ),

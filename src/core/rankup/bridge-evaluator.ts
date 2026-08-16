@@ -78,12 +78,6 @@ export class BridgeEvaluator {
     for (const member of guild.members) {
       currentGuildUuids.add(member.uuid)
 
-      const inactiveEntry = this.application.core.inactivity.getActiveByUuid(member.uuid)
-      if (inactiveEntry !== undefined) {
-        this.pendingManager.removeReviewByUuid(bridgeId, member.uuid)
-        continue
-      }
-
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Hypixel API may omit weeklyExperience at runtime despite the type
       const weeklyGexp = member.weeklyExperience ?? 0
 

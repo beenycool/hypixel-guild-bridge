@@ -20,9 +20,7 @@ import {
   InstanceMessageType,
   InstanceType,
   MinecraftReactiveEventType,
-  MinecraftSendChatPriority,
-  PunishmentPurpose,
-  PunishmentType
+  MinecraftSendChatPriority
 } from '../../common/application-event.js'
 import Bridge from '../../common/bridge.js'
 import { Status } from '../../common/connectable-instance.js'
@@ -134,9 +132,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
       case InstanceMessageType.MinecraftKicked: {
         return 'getting kicked from the server'
       }
-      case InstanceMessageType.MinecraftProxyBroken: {
-        return 'a proxy issue'
-      }
       case InstanceMessageType.MinecraftIncompatible: {
         return 'a version incompatibility'
       }
@@ -202,18 +197,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     if (event.instanceName === this.clientInstance.instanceName) return
     if (event.type === GuildPlayerEventType.Online || event.type === GuildPlayerEventType.Offline) return
     if (!this.shouldProcessEvent(event, true)) return
-
-    if (event.type === GuildPlayerEventType.Mute) {
-      const game =
-        event.user
-          .punishments()
-          .all()
-          .filter((punishment) => punishment.type === PunishmentType.Mute)
-          .toSorted((a, b) => b.createdAt - a.createdAt)
-          .at(0)?.purpose === PunishmentPurpose.Game
-
-      if (game) return
-    }
 
     await this.handleInGameEvent(event)
   }

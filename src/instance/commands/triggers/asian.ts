@@ -1,8 +1,6 @@
 import type { ChatEvent } from '../../../common/application-event.js'
-import { PunishmentPurpose } from '../../../common/application-event.js'
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
-import Duration from '../../../utility/duration'
 import { Timeout } from '../../../utility/timeout.js'
 
 const CalculusAliases = new Set(['calculus', 'calculas', 'calc'])
@@ -56,12 +54,6 @@ export default class Asian extends ChatCommandHandler {
     if (result === problem.answer) {
       return 'Big brain!'
     } else {
-      await context.message.user.mute(
-        context.eventHelper.fillBaseEvent(),
-        PunishmentPurpose.Game,
-        Duration.minutes(1),
-        `failed ${context.commandPrefix}${this.triggers[0]}`
-      )
       return `haiyaaaaaaaaa this is so easy, you're a disappointment *takes off slipper* (answer: ${problem.answer})`
     }
   }

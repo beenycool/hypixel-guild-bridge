@@ -32,9 +32,7 @@ import {
   Color,
   GuildPlayerEventType,
   InstanceType,
-  MinecraftReactiveEventType,
-  PunishmentPurpose,
-  PunishmentType
+  MinecraftReactiveEventType
 } from '../../common/application-event.js'
 import Bridge from '../../common/bridge.js'
 import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.js'
@@ -392,18 +390,6 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     const bridgeConfigurations = this.application.core.bridgeConfigurations
     if (event.type === GuildPlayerEventType.Online && !bridgeConfigurations.getGuildOnline(effectiveBridgeId)) return
     if (event.type === GuildPlayerEventType.Offline && !bridgeConfigurations.getGuildOffline(effectiveBridgeId)) return
-
-    if (event.type === GuildPlayerEventType.Mute) {
-      const game =
-        event.user
-          .punishments()
-          .all()
-          .filter((punishment) => punishment.type === PunishmentType.Mute)
-          .toSorted((a, b) => b.createdAt - a.createdAt)
-          .at(0)?.purpose === PunishmentPurpose.Game
-
-      if (game) return
-    }
 
     if (event.type === GuildPlayerEventType.Leave || event.type === GuildPlayerEventType.Kick) {
       const userId = event.user.mojangProfile().id

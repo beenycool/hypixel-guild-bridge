@@ -6,10 +6,8 @@ import type { Cache, CacheFactory } from 'prismarine-auth'
 import type { DatabaseManager } from '../../common/database-manager'
 
 export class SessionsManager {
-  private readonly proxies = new Map<number, ProxyConfig>()
   private readonly instances = new Map<string, LoadedMinecraftInstance>()
   private readonly sessions = new Map<string, Map<string, StoredSession>>()
-  private nextProxyId = 1
 
   constructor(
     private readonly databaseManager: DatabaseManager,
@@ -17,7 +15,6 @@ export class SessionsManager {
   ) {}
 
   public async load(): Promise<void> {
-    const proxies = await this.databaseManager.queryRows<ProxyConfig>('SELECT * FROM "proxies" ORDER BY "id" ASC')
     const instances = await this.databaseManager.queryRows<StoredMinecraftInstance>(
       'SELECT * FROM "mojangInstances" ORDER BY "name" ASC'
     )
@@ -25,21 +22,10 @@ export class SessionsManager {
       'SELECT * FROM "mojangSessions" ORDER BY "name" ASC, "cacheName" ASC'
     )
 
-    this.proxies.clear()
-    for (const proxy of proxies) {
-      this.proxies.set(proxy.id, { ...proxy, user: proxy.user ?? undefined, password: proxy.password ?? undefined })
-    }
-    let maxProxyId = 0
-    for (const proxy of proxies) {
-      if (proxy.id > maxProxyId) maxProxyId = proxy.id
-    }
-    this.nextProxyId = maxProxyId + 1
-
     this.instances.clear()
     for (const instance of instances) {
       this.instances.set(instanceKey(instance.name), {
         name: instance.name,
-        proxyId: instance.proxyId ?? undefined,
         connect: instance.connect !== 0
       })
     }
@@ -133,8 +119,7 @@ export class SessionsManager {
 
   public getAllInstances(): readonly MinecraftInstanceConfig[] {
     return [...this.instances.values()].map((instance) => ({
-      name: instance.name,
-      proxy: instance.proxyId === undefined ? undefined : this.proxies.get(instance.proxyId)
+      name: instance.name
     }))
   }
 
@@ -143,23 +128,16 @@ export class SessionsManager {
     if (instance === undefined) return undefined
 
     return {
-      name: instance.name,
-      proxy: instance.proxyId === undefined ? undefined : this.proxies.get(instance.proxyId)
+      name: instance.name
     }
   }
 
   public addInstance(options: MinecraftInstanceConfig): void {
-    let proxyId: number | undefined
-    if (options.proxy !== undefined) {
-      proxyId = options.proxy.id || this.nextProxyId++
-      this.proxies.set(proxyId, { ...options.proxy, id: proxyId })
-    }
-
-    this.instances.set(instanceKey(options.name), { name: options.name, proxyId, connect: true })
+    this.instances.set(instanceKey(options.name), { name: options.name, connect: true })
 
     this.databaseManager.enqueueTransaction(`adding minecraft instance ${options.name}`, async (database) => {
-      const duplicateInstances = await database.query<{ name: string; proxyId: number | null }>(
-        'SELECT "name", "proxyId" FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1',
+      const duplicateInstances = await database.query<{ name: string }>(
+        'SELECT "name" FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1',
         [options.name]
       )
 
@@ -167,41 +145,13 @@ export class SessionsManager {
         await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1', [
           options.name
         ])
-        for (const duplicate of duplicateInstances.rows) {
-          if (duplicate.proxyId !== null && duplicate.proxyId !== proxyId) {
-            await database.query('DELETE FROM "proxies" WHERE "id" = $1', [duplicate.proxyId])
-          }
-        }
-      }
-
-      if (options.proxy !== undefined && proxyId !== undefined) {
-        await database.query(
-          `INSERT INTO "proxies" ("id", "protocol", "host", "port", "user", "password", "createdAt")
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT ("id") DO UPDATE SET
-             "protocol" = EXCLUDED."protocol",
-             "host" = EXCLUDED."host",
-             "port" = EXCLUDED."port",
-             "user" = EXCLUDED."user",
-             "password" = EXCLUDED."password"`,
-          [
-            proxyId,
-            options.proxy.protocol,
-            options.proxy.host,
-            options.proxy.port,
-            options.proxy.user ?? undefined,
-            options.proxy.password ?? undefined,
-            Math.floor(Date.now() / 1000)
-          ]
-        )
       }
 
       await database.query(
-        `INSERT INTO "mojangInstances" ("name", "proxyId", "connect") VALUES ($1, $2, $3)
+        `INSERT INTO "mojangInstances" ("name", "connect") VALUES ($1, $2)
          ON CONFLICT ("name") DO UPDATE SET
-           "proxyId" = EXCLUDED."proxyId",
            "connect" = EXCLUDED."connect"`,
-        [options.name, proxyId ?? undefined, 1]
+        [options.name, 1]
       )
     })
   }
@@ -212,15 +162,9 @@ export class SessionsManager {
     if (instance === undefined) return 0
 
     this.instances.delete(key)
-    if (instance.proxyId !== undefined) {
-      this.proxies.delete(instance.proxyId)
-    }
 
     this.databaseManager.enqueueTransaction(`deleting minecraft instance ${instanceName}`, async (database) => {
       await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1)', [instance.name])
-      if (instance.proxyId !== undefined) {
-        await database.query('DELETE FROM "proxies" WHERE "id" = $1', [instance.proxyId])
-      }
     })
 
     return 1
@@ -320,13 +264,11 @@ export class SessionsManager {
 
 interface StoredMinecraftInstance {
   name: string
-  proxyId: number | null
   connect: number
 }
 
 interface LoadedMinecraftInstance {
   name: string
-  proxyId: number | undefined
   connect: boolean
 }
 
@@ -339,21 +281,6 @@ interface StoredSession {
 
 export interface MinecraftInstanceConfig {
   name: string
-  proxy: ProxyConfig | undefined
-}
-
-export interface ProxyConfig {
-  id: number
-  host: string
-  port: number
-  user: string | undefined
-  password: string | undefined
-  protocol: ProxyProtocol
-}
-
-export enum ProxyProtocol {
-  Http = 'http',
-  Socks5 = 'socks5'
 }
 
 class Session implements Cache {

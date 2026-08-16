@@ -45,9 +45,6 @@ export function translateInstanceMessage(t: Translator, key: InstanceMessageType
     case InstanceMessageType.MinecraftNoAccount: {
       return t('instance.message.no-account')
     }
-    case InstanceMessageType.MinecraftProxyBroken: {
-      return t('instance.message.proxy-problem')
-    }
     case InstanceMessageType.MinecraftRestarting: {
       return t('instance.message.restarting')
     }

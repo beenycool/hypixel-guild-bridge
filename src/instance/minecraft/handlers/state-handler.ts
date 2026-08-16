@@ -10,7 +10,6 @@ import type MinecraftInstance from '../minecraft-instance'
 
 export const QuitOwnVolition = 'disconnect.quitting'
 
-export const QuitProxyError = 'Proxy encountered a problem while connecting'
 export default class StateHandler extends SubInstance<MinecraftInstance, InstanceType.Minecraft, ClientSession> {
   private static readonly MaxLoginAttempts = 100
   private static readonly MaxDuration = Duration.minutes(5)
@@ -125,8 +124,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async onEnd(clientSession: ClientSession, reason: string): Promise<void> {
-    this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'end', reason)
-
     if (this.clientInstance.currentStatus() === Status.Failed) {
       this.logger.warn(reason)
 
@@ -151,7 +148,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async onKicked(reason: string): Promise<void> {
-    this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'kicked', reason)
     this.logger.error(`Minecraft bot was kicked from the server for: ${reason}`)
 
     this.loginAttempts++
@@ -198,7 +194,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   }
 
   private async onError(error: Error & { code?: string }): Promise<void> {
-    this.application.core.disconnectLogger.logDisconnect(this.clientInstance.instanceName, 'error', error.message)
     this.logger.error('Minecraft Bot Error: ', error)
     this.loginAttempts++
     this.clientInstance.reconnectAttempts++
@@ -242,13 +237,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       })
 
       this.application.core.minecraftSessions.clearCachedSessions(this.clientInstance.instanceName)
-      await this.tryRestarting()
-    } else if (error.message.includes(QuitProxyError)) {
-      messageType = InstanceMessageType.MinecraftProxyBroken
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: messageType,
-        value: error.toString()
-      })
       await this.tryRestarting()
     } else if (
       error.message.includes('No IAS refresh token found') ||

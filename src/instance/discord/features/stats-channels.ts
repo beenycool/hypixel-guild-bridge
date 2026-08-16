@@ -327,26 +327,10 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
       if (rows.length === 0) return { topName: '—', topCount: 0, total }
       return { topName: top.username, topCount: top.count, total }
     } catch (error: unknown) {
-      this.logger.warn(
-        `Failed to query chat messages for stats topic of bridge ${bridgeId}, falling back to global scores.`
-      )
+      this.logger.warn(`Failed to query chat messages for stats topic of bridge ${bridgeId}.`)
       this.logger.error(error)
+      return { topName: '—', topCount: 0, total: 0 }
     }
-
-    const leaderboard = this.application.core.scoresManager.getMessages(startOfDay.getTime(), Date.now())
-    let total = 0
-    for (const entry of leaderboard) total += entry.count
-
-    const top = leaderboard[0]
-    if (leaderboard.length === 0) return { topName: '—', topCount: 0, total }
-
-    let name = top.uuid
-    try {
-      const profile = await this.application.mojangApi.profileByUuid(top.uuid)
-      name = profile.name
-    } catch {}
-
-    return { topName: name, topCount: top.count, total }
   }
 
   private async resolveUptimePercent(instanceName: string): Promise<number> {

@@ -1,6 +1,4 @@
-import { ChannelType, Color, GuildPlayerEventType, PunishmentPurpose } from '../../../common/application-event.js'
-import Duration from '../../../utility/duration'
-import { sufficeToTime } from '../../../utility/shared-utility'
+import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
 export default {
@@ -12,8 +10,6 @@ export default {
     if (match != undefined) {
       const responsible = match[1]
       const target = match[2]
-      const muteTime = Number(match[3])
-      const muteSuffice = match[4]
 
       const targetProfile = await context.application.mojangApi.profileByUsername(target)
       const targetUser = await context.application.core.initializeMinecraftUser(
@@ -32,15 +28,6 @@ export default {
         },
         {}
       )
-
-      if (responsible !== context.clientInstance.username()) {
-        await targetUser.mute(
-          context.eventHelper.fillBaseEvent(),
-          PunishmentPurpose.Manual,
-          Duration.seconds(muteTime * sufficeToTime(muteSuffice)),
-          context.message
-        )
-      }
 
       await context.application.emit('guildPlayer', {
         ...context.eventHelper.fillBaseEvent(),

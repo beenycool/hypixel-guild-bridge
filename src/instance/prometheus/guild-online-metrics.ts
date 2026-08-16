@@ -2,7 +2,6 @@ import type { Registry } from 'prom-client'
 import { Gauge } from 'prom-client'
 
 import type Application from '../../application.js'
-import { PunishmentType } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 import Duration from '../../utility/duration'
 import { setIntervalAsync } from '../../utility/scheduling'
@@ -21,8 +20,6 @@ interface StoredGuildMemberState {
 
 export default class GuildOnlineMetrics {
   private static readonly SnapshotInterval = Duration.minutes(30)
-  private static readonly EventRetention = Duration.days(90)
-  private static readonly SnapshotRetention = Duration.days(365)
   private static readonly GuildListCacheTtl = Duration.seconds(30)
   private guildListCache = new Map<
     string,
@@ -51,9 +48,7 @@ export default class GuildOnlineMetrics {
   private readonly memberOnline: Gauge
   private readonly discordRoleMembers: Gauge
   private readonly guildRankMembers: Gauge
-  private readonly guildActiveInactivityNotices: Gauge
   private readonly guildPendingRankupReviews: Gauge
-  private readonly guildActivePunishments: Gauge
 
   constructor(
     register: Registry,
@@ -138,30 +133,12 @@ export default class GuildOnlineMetrics {
     })
     register.registerMetric(this.guildRankMembers)
 
-    this.guildActiveInactivityNotices = new Gauge({
-      name: prefix + 'guild_active_inactivity_notices',
-      help: 'Active /inactivity notices for members currently in the guild',
-      labelNames: ['name']
-    })
-    register.registerMetric(this.guildActiveInactivityNotices)
-
     this.guildPendingRankupReviews = new Gauge({
       name: prefix + 'guild_pending_rankup_reviews',
       help: 'Pending manual rankup reviews for the bridge tied to this Minecraft instance',
       labelNames: ['name']
     })
     register.registerMetric(this.guildPendingRankupReviews)
-
-    this.guildActivePunishments = new Gauge({
-      name: prefix + 'guild_active_punishments',
-      help: 'Active punishments for guild members (by Minecraft UUID)',
-      labelNames: ['name', 'type']
-    })
-    register.registerMetric(this.guildActivePunishments)
-
-    this.app.core.databaseManager.registerCleaner(() => {
-      this.clean()
-    })
 
     setIntervalAsync(() => this.snapshotMemberState(), {
       delay: GuildOnlineMetrics.SnapshotInterval,
@@ -280,8 +257,6 @@ export default class GuildOnlineMetrics {
   private async snapshotMemberState(): Promise<void> {
     if (!this.exportPerMember) return
 
-    const currentDay = Math.floor(Date.now() / Duration.days(1).toMilliseconds())
-
     const connectedInstanceNames = this.app.minecraftManager
       .getAllInstances()
       .filter((inst) => inst.currentStatus() === Status.Connected)
@@ -342,50 +317,6 @@ export default class GuildOnlineMetrics {
             ]
           )
         )
-
-        writes.push(
-          this.app.core.databaseManager.execute(
-            `INSERT INTO "guildMemberEvents" (
-              "instanceName", "memberUuid", "memberName", "eventType", "rank", "weeklyGexp", "dailyGexp", "online"
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [
-              instanceName,
-              member.uuid,
-              memberName,
-              'snapshot',
-              member.rank,
-              member.weeklyExperience,
-              sortedHistory[0]?.exp ?? 0,
-              online ? 1 : 0
-            ]
-          )
-        )
-
-        writes.push(
-          this.app.core.databaseManager.execute(
-            `INSERT INTO "guildMemberDailySnapshots" (
-              "snapshotDay", "instanceName", "memberUuid", "memberName", "joinedAt", "lastSeenAt", "weeklyGexp", "dailyGexp", "online"
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT ("snapshotDay", "instanceName", "memberUuid") DO UPDATE SET
-              "memberName" = EXCLUDED."memberName",
-              "joinedAt" = EXCLUDED."joinedAt",
-              "lastSeenAt" = EXCLUDED."lastSeenAt",
-              "weeklyGexp" = EXCLUDED."weeklyGexp",
-              "dailyGexp" = EXCLUDED."dailyGexp",
-              "online" = EXCLUDED."online"`,
-            [
-              currentDay,
-              instanceName,
-              member.uuid,
-              memberName,
-              member.joinedAtTimestamp,
-              lastSeenAt,
-              member.weeklyExperience,
-              sortedHistory[0]?.exp ?? 0,
-              online ? 1 : 0
-            ]
-          )
-        )
       }
 
       await Promise.allSettled(writes)
@@ -427,13 +358,11 @@ export default class GuildOnlineMetrics {
 
   private recordGuildManagementMetrics(
     instanceName: string,
-    hypixelGuild: { members: readonly { uuid: string; rank: string }[] },
+    hypixelGuild: { members: readonly { rank: string }[] },
     app: Application
   ): void {
     const rankCounts = new Map<string, number>()
-    const memberUuids = new Set<string>()
     for (const member of hypixelGuild.members) {
-      memberUuids.add(member.uuid)
       const rankLabel = member.rank.length > 0 ? member.rank : 'UNKNOWN'
       rankCounts.set(rankLabel, (rankCounts.get(rankLabel) ?? 0) + 1)
     }
@@ -443,25 +372,9 @@ export default class GuildOnlineMetrics {
       /* eslint-enable @typescript-eslint/naming-convention */
     }
 
-    let inactivityForGuild = 0
-    for (const entry of app.core.inactivity.getAllActive()) {
-      if (memberUuids.has(entry.uuid)) inactivityForGuild++
-    }
-    this.guildActiveInactivityNotices.set({ name: instanceName }, inactivityForGuild)
-
     const bridgeId = this.bridgeIdForMinecraftInstance(instanceName)
     const pendingCount = bridgeId === undefined ? 0 : app.core.pendingReviewManager.getReviews(bridgeId).length
     this.guildPendingRankupReviews.set({ name: instanceName }, pendingCount)
-
-    let muteCount = 0
-    let banCount = 0
-    for (const punishment of app.core.allPunishments()) {
-      if (!memberUuids.has(punishment.userId)) continue
-      if (punishment.type === PunishmentType.Mute) muteCount++
-      else banCount++
-    }
-    this.guildActivePunishments.set({ name: instanceName, type: 'mute' }, muteCount)
-    this.guildActivePunishments.set({ name: instanceName, type: 'ban' }, banCount)
   }
 
   private resetMetrics(): void {
@@ -476,20 +389,6 @@ export default class GuildOnlineMetrics {
     this.memberOnline.reset()
     this.discordRoleMembers.reset()
     this.guildRankMembers.reset()
-    this.guildActiveInactivityNotices.reset()
     this.guildPendingRankupReviews.reset()
-    this.guildActivePunishments.reset()
-  }
-
-  private clean(): void {
-    const eventCutoff = Math.floor((Date.now() - GuildOnlineMetrics.EventRetention.toMilliseconds()) / 1000)
-    const snapshotCutoffDay = Math.floor(
-      (Date.now() - GuildOnlineMetrics.SnapshotRetention.toMilliseconds()) / Duration.days(1).toMilliseconds()
-    )
-
-    this.app.core.databaseManager.enqueueWrite('cleaning guild member analytics', async (database) => {
-      await database.query('DELETE FROM "guildMemberEvents" WHERE "createdAt" < $1', [eventCutoff])
-      await database.query('DELETE FROM "guildMemberDailySnapshots" WHERE "snapshotDay" < $1', [snapshotCutoffDay])
-    })
   }
 }

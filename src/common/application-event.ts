@@ -23,10 +23,6 @@ export interface ApplicationEvents {
 
   instanceReactive: Readonly<InstanceReactive>
 
-  punishmentAdd: Readonly<Punishment>
-
-  punishmentForgive: Readonly<PunishmentForgive>
-
   minecraftSelfBroadcast: Readonly<MinecraftSelfBroadcast>
 
   minecraftChat: Readonly<MinecraftRawChatEvent>
@@ -148,37 +144,6 @@ export interface DiscordChat extends BaseChat {
   readonly replyUsername: string | undefined
 
   readonly channelId: string
-}
-
-export interface BasePunishment {
-  readonly type: PunishmentType
-
-  readonly purpose: PunishmentPurpose
-
-  readonly reason: string
-
-  readonly createdAt: number
-
-  readonly till: number
-}
-
-export enum PunishmentPurpose {
-  Manual = 'manual',
-
-  Game = 'game'
-}
-
-export interface Punishment extends BasePunishment, InformEvent {
-  readonly user: User
-}
-
-export interface PunishmentForgive extends InformEvent {
-  readonly user: User
-}
-
-export enum PunishmentType {
-  Mute = 'mute',
-  Ban = 'ban'
 }
 
 export enum GuildPlayerEventType {
@@ -372,7 +337,6 @@ export enum InstanceMessageType {
   MinecraftXboxDown = 'minecraftXboxDown',
   MinecraftXboxThrottled = 'minecraftXboxThrottled',
   MinecraftNoAccount = 'minecraftNoAccount',
-  MinecraftProxyBroken = 'minecraftProxyBroken',
   MinecraftIncompatible = 'minecraftIncompatible',
   MinecraftBanned = 'minecraftBanned',
   MinecraftFailedTooManyTimes = 'minecraftFailedTooManyTimes',

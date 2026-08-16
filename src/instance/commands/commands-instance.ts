@@ -46,14 +46,11 @@ import Lesbian from './triggers/lesbian.js'
 import Mayor from './triggers/mayor.js'
 import Megawalls from './triggers/megawalls.js'
 import Murdermystery from './triggers/murdermystery.js'
-import Mute from './triggers/mute.js'
 import Paintball from './triggers/paintball.js'
 import PartyGames from './triggers/partygames.js'
 import Ping from './triggers/ping.js'
 import Pit from './triggers/pit.js'
 import Player from './triggers/player.js'
-import Points30days from './triggers/points-30days'
-import PointsAll from './triggers/points-all'
 import Praise from './triggers/praise'
 import QCommand from './triggers/q.js'
 import Quakecraft from './triggers/quakecraft.js'
@@ -120,15 +117,12 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Mayor(),
       new Megawalls(),
       new Murdermystery(),
-      new Mute(),
       ...new SessionCommands().resolveCommands(),
       new PartyGames(),
       new Paintball(),
       new Ping(),
       new Pit(),
       new Player(),
-      new Points30days(),
-      new PointsAll(),
       new Praise(),
       new QCommand(),
       new Racism(),
@@ -308,33 +302,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     } catch (error) {
       this.logger.error('Error while handling command', error)
 
-      const errorInstance = error instanceof Error ? error : new Error(String(error))
-      const errorType = errorInstance.name
-      const errorMessage = errorInstance.message
-      const errorStack = errorInstance.stack ?? ''
-
       const randomSuffix = (Math.random() + 1).toString(36).slice(7)
-
-      this.application.core.databaseManager.enqueueWrite(
-        `saving command error for ${command.triggers[0]}`,
-        async (database) => {
-          await database.query(
-            `INSERT INTO "commandErrors" ("commandName", "commandMessage", "username", "instanceName", "instanceType", "bridgeId", "errorType", "errorMessage", "errorStack")
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-            [
-              command.triggers[0],
-              event.message,
-              event.user.displayName(),
-              event.instanceName,
-              event.instanceType,
-              event.bridgeId ?? undefined,
-              errorType,
-              errorMessage,
-              errorStack
-            ]
-          )
-        }
-      )
 
       const userMessage =
         event.user.displayName() +

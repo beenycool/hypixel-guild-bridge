@@ -12,19 +12,11 @@ export async function initializeCoreDatabase(databaseManager: DatabaseManager): 
 
 async function syncSequences(databaseManager: DatabaseManager): Promise<void> {
   const tables = [
-    'AllMembers',
-    'OnlineMembers',
     'guildMemberStates',
-    'guildMemberEvents',
-    'guildMemberDailySnapshots',
-    'punishments',
-    'proxies',
     'instanceStatusHistory',
     'instanceMessageHistory',
     'rankupPendingReviews',
     'rankupHistory',
-    'disconnectLogs',
-    'commandErrors',
     'statMonitors',
     'ChatMessages'
   ]

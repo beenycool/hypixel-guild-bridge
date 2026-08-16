@@ -13,11 +13,7 @@ const NAV_ITEMS = [
   },
   {
     label: 'Guild',
-    items: [
-      { name: 'Guild', href: 'guild.html', key: 'guild' },
-      { name: 'Punishments', href: 'punishments.html', key: 'punishments' },
-      { name: 'Inactivity', href: 'inactivity.html', key: 'inactivity' }
-    ]
+    items: [{ name: 'Guild', href: 'guild.html', key: 'guild' }]
   },
   {
     label: 'System',

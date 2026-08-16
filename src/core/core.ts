@@ -28,16 +28,12 @@ import { DiscordEmojis } from './discord/discord-emojis'
 import { DiscordTemporarilyInteractions } from './discord/discord-temporarily-interactions'
 import { InstanceHistoryButton } from './discord/instance-history-button'
 import { initializeCoreDatabase } from './initialize-database'
-import { DisconnectLogger } from './instance/disconnect-logger'
 import { StatusHistory } from './instance/status-history'
 import { LanguageConfigurations } from './language-configurations'
 import { MinecraftAccounts } from './minecraft/minecraft-accounts'
 import { SessionsManager } from './minecraft/sessions-manager'
 import { ModerationConfigurations } from './moderation/moderation-configurations'
 import { Profanity } from './moderation/profanity'
-import type { SavedPunishment } from './moderation/punishments'
-import Punishments from './moderation/punishments'
-import PunishmentsEnforcer from './moderation/punishments-enforcer'
 import type { PendingReview, RankupHistoryEntry } from './rankup/pending-review-manager'
 import { PendingReviewManager } from './rankup/pending-review-manager'
 import { RankupManager } from './rankup/rankup-manager'
@@ -45,21 +41,15 @@ import { TournamentManager } from './tournament/tournament-manager.js'
 import { TournamentTestPanels } from './tournament/tournament-test-panels.js'
 import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
-import { Inactivity } from './users/inactivity'
 import { MojangApi } from './users/mojang'
-import ScoresManager from './users/scores-manager'
 import { Verification } from './users/verification'
 
 export class Core extends Instance<InstanceType.Core> {
   private readonly profanity: Profanity
-  private readonly punishments: Punishments
-  private readonly enforcer: PunishmentsEnforcer
 
   private readonly autoComplete: Autocomplete
   public readonly guildManager: GuildManager
   public readonly mojangApi: MojangApi
-  public readonly scoresManager: ScoresManager
-  public readonly inactivity: Inactivity
   public readonly verification: Verification
 
   public readonly bridgeConfigurations: BridgeConfigurations
@@ -71,7 +61,6 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly moderationConfiguration: ModerationConfigurations
   public readonly minecraftAccounts: MinecraftAccounts
 
-  public readonly disconnectLogger: DisconnectLogger
   public readonly statusHistory: StatusHistory
   public readonly pendingReviewManager: PendingReviewManager
   public readonly rankupManager: RankupManager
@@ -108,7 +97,6 @@ export class Core extends Instance<InstanceType.Core> {
     this.discordInstanceHistoryButton = new InstanceHistoryButton(this.databaseManager)
     this.discordEmojis = new DiscordEmojis(this.databaseManager)
 
-    this.disconnectLogger = new DisconnectLogger(this.databaseManager)
     this.statusHistory = new StatusHistory(this.databaseManager, this.logger)
     this.pendingReviewManager = new PendingReviewManager(this.databaseManager, (type, data) => {
       switch (type) {
@@ -153,8 +141,6 @@ export class Core extends Instance<InstanceType.Core> {
     this.mojangApi = new MojangApi(this.databaseManager)
 
     this.profanity = new Profanity(this.moderationConfiguration)
-    this.punishments = new Punishments(this.databaseManager, application, this.logger)
-    this.enforcer = new PunishmentsEnforcer(this)
 
     this.rankupManager = new RankupManager(
       application,
@@ -170,8 +156,6 @@ export class Core extends Instance<InstanceType.Core> {
     this.chatMessages.init()
 
     this.verification = new Verification(this.databaseManager)
-    this.inactivity = new Inactivity(this.databaseManager)
-    this.scoresManager = new ScoresManager(this, this.databaseManager)
 
     this.tournamentManager = new TournamentManager(this.databaseManager, application)
     this.tournamentTestPanels = new TournamentTestPanels(this.databaseManager, this.logger)
@@ -228,14 +212,6 @@ export class Core extends Instance<InstanceType.Core> {
     return this.profanity.filterProfanity(message)
   }
 
-  public allPunishments(): SavedPunishment[] {
-    return this.punishments.all()
-  }
-
-  public forgivePunishment(id: number): boolean {
-    return this.punishments.removeById(id)
-  }
-
   public async awaitReady(): Promise<void> {
     await this.ready
   }
@@ -252,9 +228,6 @@ export class Core extends Instance<InstanceType.Core> {
     await this.discordEmojis.load()
     await this.statusHistory.load()
     await this.pendingReviewManager.load()
-    await this.inactivity.load()
-    await this.punishments.initialize()
-    await this.scoresManager.load()
     await this.autoComplete.load()
     await this.tournamentManager.load()
     await this.tournamentTestPanels.load()
@@ -319,7 +292,6 @@ export class Core extends Instance<InstanceType.Core> {
 
   private userContext(): ManagerContext {
     return {
-      punishments: this.punishments,
       moderation: this.moderationConfiguration
     }
   }

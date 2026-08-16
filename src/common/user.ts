@@ -5,12 +5,9 @@ import type { Guild } from 'discord.js'
 
 import type Application from '../application'
 import type { ModerationConfigurations } from '../core/moderation/moderation-configurations'
-import type Punishments from '../core/moderation/punishments'
-import type { SavedPunishment } from '../core/moderation/punishments'
-import type Duration from '../utility/duration'
 
-import type { BasePunishment, InformEvent, PunishmentPurpose, UserLink } from './application-event'
-import { InstanceType, Permission, PunishmentType } from './application-event'
+import type { UserLink } from './application-event'
+import { InstanceType, Permission } from './application-event'
 import { Status } from './connectable-instance'
 
 export interface InitializeOptions {
@@ -156,62 +153,6 @@ export class User {
     return result
   }
 
-  public punishments(): PunishmentInstant {
-    const punishments = this.context.punishments.findByUser(this)
-    return new PunishmentInstant(this, punishments)
-  }
-
-  public async forgive(executor: InformEvent): Promise<SavedPunishment[]> {
-    const savedPunishments = this.context.punishments.remove(this)
-
-    await this.application.emit('punishmentForgive', { ...executor, user: this })
-
-    return savedPunishments
-  }
-
-  public async ban(
-    executor: InformEvent,
-    purpose: PunishmentPurpose,
-    duration: Duration,
-    reason: string
-  ): Promise<SavedPunishment> {
-    return await this.punish(executor, PunishmentType.Ban, purpose, duration, reason)
-  }
-
-  public async mute(
-    executor: InformEvent,
-    purpose: PunishmentPurpose,
-    duration: Duration,
-    reason: string
-  ): Promise<SavedPunishment> {
-    return await this.punish(executor, PunishmentType.Mute, purpose, duration, reason)
-  }
-
-  private async punish(
-    executor: InformEvent,
-    type: PunishmentType,
-    purpose: PunishmentPurpose,
-    duration: Duration,
-    reason: string
-  ): Promise<SavedPunishment> {
-    const currentTime = Date.now()
-
-    const punishment: BasePunishment = {
-      type: type,
-      purpose: purpose,
-      createdAt: currentTime,
-      till: currentTime + duration.toMilliseconds(),
-      reason: reason
-    }
-
-    const savedPunishment = { ...punishment, ...this.getUserIdentifier() }
-
-    this.context.punishments.add(savedPunishment)
-    await this.application.emit('punishmentAdd', { ...executor, user: this, ...punishment })
-
-    return savedPunishment
-  }
-
   public isMojangUser(): this is MinecraftUser {
     if (this.userIdentifier.originInstance === InstanceType.Minecraft) {
       assert.ok(this.userMojang !== undefined)
@@ -263,36 +204,6 @@ export interface MojangProfile {
   name: string
 }
 
-export class PunishmentInstant {
-  constructor(
-    private readonly user: User,
-    private readonly punishments: SavedPunishment[]
-  ) {}
-
-  public all(): SavedPunishment[] {
-    return this.punishments
-  }
-
-  public longestPunishment(type: PunishmentType): SavedPunishment | undefined {
-    const punishments = this.all()
-
-    let longestPunishment: SavedPunishment | undefined = undefined
-    for (const punishment of punishments) {
-      if (punishment.type !== type) continue
-
-      if (longestPunishment === undefined || punishment.till > longestPunishment.till) {
-        longestPunishment = punishment
-      }
-    }
-
-    return longestPunishment
-  }
-
-  public punishedTill(type: PunishmentType): number | undefined {
-    return this.longestPunishment(type)?.till
-  }
-}
-
 export interface UserIdentifier {
   readonly originInstance: InstanceType
 
@@ -300,6 +211,5 @@ export interface UserIdentifier {
 }
 
 export interface ManagerContext {
-  punishments: Punishments
   moderation: ModerationConfigurations
 }

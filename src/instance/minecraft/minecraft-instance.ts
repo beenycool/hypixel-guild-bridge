@@ -18,7 +18,6 @@ import type { Timeout } from '../../utility/timeout.js'
 import ChatManager from './chat-manager.js'
 import ClientSession from './client-session.js'
 import MessageAssociation from './common/message-association.js'
-import { resolveProxyIfExist } from './common/proxy-handler.js'
 import { CommandType, SendQueue } from './common/send-queue.js'
 import GameTogglesHandler from './handlers/game-toggles-handler.js'
 import JoinInterviewHandler from './handlers/join-interview-handler.js'
@@ -169,10 +168,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
         | string
         | false,
 
-      ...resolveProxyIfExist(this.logger, this.config.proxy, {
-        host: currentHost,
-        port: this.defaultPort
-      }),
       onMsaCode: usesIasAuth
         ? undefined
         : (code) => {
