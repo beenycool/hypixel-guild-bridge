@@ -26,21 +26,13 @@ export class StatusHistory {
   }
 
   public add(entry: InstanceStatus): void {
-    if (entry.status !== undefined) {
-      this.databaseManager.enqueueWrite(`saving status history for ${entry.instanceName}`, async (database) => {
-        await database.query(
-          `INSERT INTO "instanceStatusHistory" ("instanceName", "instanceType", "createdAt", "fromStatus", "toStatus")
-           VALUES ($1, $2, $3, $4, $5)`,
-          [
-            entry.instanceName,
-            entry.instanceType,
-            Math.floor(entry.createdAt / 1000),
-            entry.status.from,
-            entry.status.to
-          ]
-        )
-      })
-    }
+    this.databaseManager.enqueueWrite(`saving status history for ${entry.instanceName}`, async (database) => {
+      await database.query(
+        `INSERT INTO "instanceStatusHistory" ("instanceName", "instanceType", "createdAt", "fromStatus", "toStatus")
+         VALUES ($1, $2, $3, $4, $5)`,
+        [entry.instanceName, entry.instanceType, Math.floor(entry.createdAt / 1000), entry.status.from, entry.status.to]
+      )
+    })
   }
 
   public async getHistory(

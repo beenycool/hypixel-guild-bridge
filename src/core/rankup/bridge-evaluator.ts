@@ -59,8 +59,8 @@ export class BridgeEvaluator {
     const excludedPlayers = this.bridgeConfig.getRankupExcludedPlayers(bridgeId)
     const manualReview = this.bridgeConfig.getRankupManualReview(bridgeId)
     const officerChannels = this.bridgeConfig.getOfficerChannelIds(bridgeId)
-    const configuredNotificationChannels = this.bridgeConfig.getRankupNotificationChannelIds(bridgeId)
-    const notificationChannels = officerChannels.length > 0 ? officerChannels : configuredNotificationChannels
+    const notificationChannels =
+      officerChannels.length > 0 ? officerChannels : this.bridgeConfig.getRankupNotificationChannelIds(bridgeId)
     const cooldownHours = this.bridgeConfig.getRankupNotificationCooldown(bridgeId)
 
     const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())

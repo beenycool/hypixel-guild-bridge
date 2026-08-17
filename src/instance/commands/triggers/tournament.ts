@@ -99,21 +99,17 @@ export default class Tournament extends ChatCommandHandler {
         )
         if (match === undefined) return 'You have no active match to report.'
 
-        let claimedWinnerId = player.id
-        if (winnerChoice === 'opponent') {
-          claimedWinnerId = (match.player1Id === player.id ? match.player2Id : match.player1Id) ?? player.id
-        }
-        const isPlayer1 = match.player1Id === player.id
-        const p1Wins = isPlayer1 ? myWins : theirWins
-        const p2Wins = isPlayer1 ? theirWins : myWins
+        const claimedWinner =
+          winnerChoice === 'opponent' ? (match.player1Id === player.id ? match.player2Id : match.player1Id) : player.id
+        const isP1 = match.player1Id === player.id
 
         try {
           const result = await tournamentManager.matchManager.submitReport(
             match.id,
             player.id,
-            claimedWinnerId,
-            p1Wins,
-            p2Wins
+            claimedWinner ?? player.id,
+            isP1 ? myWins : theirWins,
+            isP1 ? theirWins : myWins
           )
           return result.message
         } catch (error) {

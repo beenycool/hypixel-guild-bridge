@@ -3,7 +3,7 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 import { formatOpenRouterError, OpenRouterClient } from '../../../utility/openrouter-client.js'
 import { SlidingWindowRateLimiter } from '../../../utility/sliding-window-rate-limiter.js'
 
-const RHYME_SYSTEM_PROMPT =
+const prompt =
   'You are a poetic assistant. Given a word, list 5-8 words that rhyme with it, ' +
   'then write a short rhyming couplet (2 lines) that uses at least two of those words. ' +
   'Format your response as:\nRhymes: word1, word2, word3, ...\nCouplet:\n<line 1>\n<line 2>'
@@ -50,7 +50,7 @@ export default class Rhyme extends ChatCommandHandler {
 
     try {
       const result = await client.chatCompletion({
-        systemPrompt: RHYME_SYSTEM_PROMPT,
+        systemPrompt: prompt,
         userPrompt: `Word: ${word}`,
         temperature: 0.7,
         reasoningEffort: 'low'

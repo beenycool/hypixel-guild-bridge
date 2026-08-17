@@ -17,7 +17,7 @@ const EMOJI_PATTERN =
 
 const EMOJI_REPLACE_REGEX = new RegExp(EMOJI_PATTERN, 'g')
 
-const EMOJI_NAME_BY_UNICODE = new Map(DISALLOWED_EMOJIS.map(([name, unicode]) => [unicode, name]))
+const emojiNames = new Map(DISALLOWED_EMOJIS.map(([name, unicode]) => [unicode, name]))
 
 const SUBSTITUTE_EMOJI_MAP = new Map<string, string[]>([
   [
@@ -48,6 +48,6 @@ export default class EmojiSanitizer {
   }
 
   private cleanStandardEmoji(message: string): string {
-    return message.replace(EMOJI_REPLACE_REGEX, (match) => `:${EMOJI_NAME_BY_UNICODE.get(match) ?? match}:`)
+    return message.replace(EMOJI_REPLACE_REGEX, (match) => `:${emojiNames.get(match) ?? match}:`)
   }
 }

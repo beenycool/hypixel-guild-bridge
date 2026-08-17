@@ -5,11 +5,7 @@ import { createClient, states } from 'minecraft-protocol'
 
 import type Application from '../../application.js'
 import type { ChannelType } from '../../common/application-event.js'
-import {
-  InstanceSignalType,
-  InstanceType,
-  MinecraftSendChatPriority
-} from '../../common/application-event.js'
+import { InstanceSignalType, InstanceType, MinecraftSendChatPriority } from '../../common/application-event.js'
 import { ConnectableInstance, Status } from '../../common/connectable-instance.js'
 import type { MinecraftInstanceConfig } from '../../core/minecraft/sessions-manager'
 import type { Timeout } from '../../utility/timeout.js'

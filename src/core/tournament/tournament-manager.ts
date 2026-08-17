@@ -816,7 +816,7 @@ export class TournamentManager {
     tournament.totalRounds = totalRounds
 
     const createdMatches: TournamentMatch[] = []
-    const roundIndexToDatabaseIdMap = new Map<string, number>()
+    const idMap = new Map<string, number>()
 
     this.logger.info(`Tournament ${tournamentId}: Inserting matches into database (reverse round order)`)
 
@@ -835,12 +835,11 @@ export class TournamentManager {
         for (const m of roundList) {
           let nextMatchId: number | undefined
           if (m.winnerNext !== undefined) {
-            nextMatchId = roundIndexToDatabaseIdMap.get(`${m.winnerNext.round}_${m.winnerNext.matchIndex}`) ?? undefined
+            nextMatchId = idMap.get(`${m.winnerNext.round}_${m.winnerNext.matchIndex}`) ?? undefined
           }
           let loserNextMatchId: number | undefined
           if (m.loserNext !== undefined) {
-            loserNextMatchId =
-              roundIndexToDatabaseIdMap.get(`${m.loserNext.round}_${m.loserNext.matchIndex}`) ?? undefined
+            loserNextMatchId = idMap.get(`${m.loserNext.round}_${m.loserNext.matchIndex}`) ?? undefined
           }
           const result = await client.query<{ id: number }>(
             `INSERT INTO "tournament_matches"
@@ -865,7 +864,7 @@ export class TournamentManager {
           )
 
           const databaseId = result.rows[0].id
-          roundIndexToDatabaseIdMap.set(`${r}_${m.matchIndex}`, databaseId)
+          idMap.set(`${r}_${m.matchIndex}`, databaseId)
 
           createdMatches.push({
             id: databaseId,

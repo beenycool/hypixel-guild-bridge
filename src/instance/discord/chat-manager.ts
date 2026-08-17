@@ -10,7 +10,7 @@ import type DiscordInstance from './discord-instance.js'
 
 export default class ChatManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
   private readonly lastUnmappedChannelWarn = new Map<string, number>()
-  private readonly unmappedChannelSuppressed = new Map<string, number>()
+  private readonly suppressedWarnings = new Map<string, number>()
 
   private readonly messageAssociation: MessageAssociation
   private readonly sweepInterval: NodeJS.Timeout
@@ -54,22 +54,17 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
       const suppressMs = 5 * 60 * 1000
       if (now - last > suppressMs) {
         this.lastUnmappedChannelWarn.set(event.channel.id, now)
-        const suppressed = this.unmappedChannelSuppressed.get(event.channel.id) ?? 0
-        this.unmappedChannelSuppressed.set(event.channel.id, 0)
-        if (suppressed > 0) {
+        const count = this.suppressedWarnings.get(event.channel.id) ?? 0
+        this.suppressedWarnings.set(event.channel.id, 0)
+        if (count > 0) {
           this.logger.warn(
-            `Ignoring guild message in unmapped channel ${event.channel.id} (suppressed ${suppressed} similar warnings in the last ${Math.floor(
-              suppressMs / 1000
-            )}s)`
+            `Ignoring guild message in unmapped channel ${event.channel.id} (suppressed ${count} warnings)`
           )
         } else {
           this.logger.warn(`Ignoring guild message in unmapped channel ${event.channel.id}`)
         }
       } else {
-        this.unmappedChannelSuppressed.set(
-          event.channel.id,
-          (this.unmappedChannelSuppressed.get(event.channel.id) ?? 0) + 1
-        )
+        this.suppressedWarnings.set(event.channel.id, (this.suppressedWarnings.get(event.channel.id) ?? 0) + 1)
       }
       return
     } else {
@@ -234,7 +229,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private sweepWarningMaps(): void {
     const now = Date.now()
     const maxAge = 24 * 60 * 60 * 1000
-    for (const map of [this.lastUnmappedChannelWarn, this.unmappedChannelSuppressed]) {
+    for (const map of [this.lastUnmappedChannelWarn, this.suppressedWarnings]) {
       for (const [key, timestamp] of map) {
         if (now - timestamp > maxAge) map.delete(key)
       }

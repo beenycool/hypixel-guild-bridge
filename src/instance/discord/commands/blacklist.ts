@@ -36,11 +36,9 @@ export default {
     const command = action === 'add' ? `/ignore add ${username}` : `/ignore remove ${username}`
     await context.application.sendMinecraft([instance], MinecraftSendChatPriority.High, undefined, command)
 
-    const verb = action === 'add' ? 'added' : 'removed'
-    const preposition = action === 'add' ? 'to' : 'from'
-    await context.interaction.editReply(
-      `Successfully ${verb} \`${escapeMarkdown(username)}\` ${preposition} the blacklist.`
-    )
+    const text =
+      action === 'add' ? `added \`${escapeMarkdown(username)}\` to` : `removed \`${escapeMarkdown(username)}\` from`
+    await context.interaction.editReply(`Successfully ${text} the blacklist.`)
   },
   autoComplete: async function (context) {
     const option = context.interaction.options.getFocused(true)

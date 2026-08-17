@@ -20,8 +20,7 @@ export class AntiAbuse {
 
   checkSignupRate(userId: string): AbuseCheckResult {
     if (!this.signupLimiter.tryAcquire(userId)) {
-      this.logger?.debug(`AntiAbuse: Rate limit hit for user ${userId}`)
-      return { allowed: false, reason: 'Please slow down. You are joining/leaving too fast.' }
+      return { allowed: false, reason: 'You are joining/leaving too fast. Please slow down.' }
     }
     return { allowed: true }
   }
@@ -29,14 +28,9 @@ export class AntiAbuse {
   checkForfeitPattern(playerUuid: string, opponentUuid: string): Promise<AbuseCheckResult> {
     const history = this.forfeitTracker.get(playerUuid) ?? []
     const entry = history.find((h) => h.opponent === opponentUuid)
-
     if (entry && entry.count >= 3) {
-      this.logger?.warn(
-        `AntiAbuse: Suspicious forfeit pattern — ${playerUuid} forfeiting to ${opponentUuid} (${entry.count}x)`
-      )
-      return Promise.resolve({ allowed: false, reason: 'FLAGGED: Suspicious forfeit pattern' })
+      return Promise.resolve({ allowed: false, reason: 'Suspicious forfeit pattern detected.' })
     }
-
     return Promise.resolve({ allowed: true })
   }
 
@@ -49,14 +43,12 @@ export class AntiAbuse {
       history.push({ opponent: opponentUuid, count: 1 })
       this.forfeitTracker.set(playerUuid, history)
     }
-    this.logger?.debug(`AntiAbuse: Recorded forfeit — ${playerUuid} vs ${opponentUuid}`)
   }
 
   checkFalseReporting(adminDiscordId: string): Promise<AbuseCheckResult> {
     const overrides = this.overrideTracker.get(adminDiscordId) ?? 0
     if (overrides >= 3) {
-      this.logger?.warn(`AntiAbuse: High override rate — admin ${adminDiscordId} (${overrides} overrides)`)
-      return Promise.resolve({ allowed: false, reason: 'FLAGGED: High admin override rate' })
+      return Promise.resolve({ allowed: false, reason: 'High admin override rate detected.' })
     }
     return Promise.resolve({ allowed: true })
   }
@@ -64,42 +56,29 @@ export class AntiAbuse {
   recordAdminOverride(adminDiscordId: string): void {
     const current = this.overrideTracker.get(adminDiscordId) ?? 0
     this.overrideTracker.set(adminDiscordId, current + 1)
-    this.logger?.debug(`AntiAbuse: Recorded admin override — ${adminDiscordId} (total: ${current + 1})`)
   }
 
   async checkAltAccounts(tournamentId: number, playerUuids: string[]): Promise<AbuseCheckResult> {
-    this.logger?.debug(
-      `AntiAbuse: Checking alt accounts for tournament ${tournamentId} (${playerUuids.length} player(s))`
-    )
-    if (playerUuids.length <= 1) {
-      return { allowed: true }
-    }
-
+    if (playerUuids.length <= 1) return { allowed: true }
     try {
       const rows = await this.databaseManager.queryRows<{ uuid: string; discordId: string }>(
         'SELECT "uuid", "discordId" FROM "links" WHERE "uuid" = ANY($1)',
         [playerUuids]
       )
-
       const discordMap = new Map<string, string[]>()
       for (const row of rows) {
         const existing = discordMap.get(row.discordId) ?? []
         existing.push(row.uuid)
         discordMap.set(row.discordId, existing)
       }
-
       for (const [discordId, uuids] of discordMap) {
         if (uuids.length > 1) {
-          this.logger?.warn(
-            `AntiAbuse: Potential alts detected — Discord ID ${discordId} shared by ${uuids.join(', ')}`
-          )
-          return { allowed: false, reason: `FLAGGED: Potential alt accounts sharing Discord account <@${discordId}>` }
+          return { allowed: false, reason: `Multiple accounts linked to Discord <@${discordId}>: ${uuids.join(', ')}` }
         }
       }
     } catch (error) {
-      this.logger?.error('Failed to check alt accounts:', error)
+      this.logger?.error('Alt check failed:', error)
     }
-
     return { allowed: true }
   }
 }

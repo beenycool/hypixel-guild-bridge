@@ -1,4 +1,4 @@
-import { InstanceType } from '../../../common/application-event.js'
+import type { InstanceType } from '../../../common/application-event.js'
 import { Status } from '../../../common/connectable-instance.js'
 import SubInstance from '../../../common/sub-instance'
 import Duration from '../../../utility/duration'

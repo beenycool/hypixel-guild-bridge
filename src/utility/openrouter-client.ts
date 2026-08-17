@@ -36,7 +36,7 @@ export class OpenRouterClient {
 
   async chatCompletion(options: ChatCompletionOptions): Promise<ChatCompletionResult> {
     const model = options.model ?? this.defaultModel
-    if (model === undefined) {
+    if (!model) {
       throw new Error('No model specified and no default model configured')
     }
 
@@ -55,16 +55,16 @@ export class OpenRouterClient {
 
     const response = await axios.post<OpenRouterResponse>(this.baseUrl, body, {
       headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         Authorization: `Bearer ${this.apiKey}`,
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         'Content-Type': 'application/json'
       },
       timeout: this.timeoutMs
     })
 
-    const content: unknown = response.data.choices?.[0]?.message?.content
-    if (typeof content !== 'string' || content.length === 0) {
+    const content = response.data.choices?.[0]?.message?.content
+    if (!content) {
       throw new Error('OpenRouter returned empty or invalid response content')
     }
 
@@ -74,31 +74,13 @@ export class OpenRouterClient {
 
 export function formatOpenRouterError(error: unknown, featureName: string, logger?: Logger): string {
   if (isAxiosError(error)) {
-    logger?.error(
-      `${featureName} API error: status=${error.response?.status.toString() ?? 'unknown'}, ` +
-        `message=${error.message}` +
-        (error.response?.data ? `, data=${JSON.stringify(error.response.data)}` : '')
-    )
-
-    if (error.response?.status === 401) {
-      return `${featureName} failed: Invalid API key`
-    }
-
-    if (error.response?.status === 402) {
-      return `${featureName} failed: Insufficient credits`
-    }
-
-    if (error.response?.status === 429) {
-      return `${featureName} failed: Rate limited. Please try again later.`
-    }
-
-    if (error.code === 'ECONNABORTED') {
-      return `${featureName} failed: Request timed out. Please try again.`
-    }
-
-    const apiMessage: unknown = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error?.message
-    const fallback = typeof apiMessage === 'string' ? apiMessage : error.message
-    return `${featureName} failed: ${fallback}`
+    logger?.error(`${featureName} API error:`, error.message)
+    const status = error.response?.status
+    if (status === 401) return `${featureName} failed: Invalid API key`
+    if (status === 402) return `${featureName} failed: Insufficient credits`
+    const message =
+      (error.response?.data as { error?: { message?: string } } | undefined)?.error?.message ?? error.message
+    return `${featureName} failed: ${message}`
   }
 
   logger?.error(error)

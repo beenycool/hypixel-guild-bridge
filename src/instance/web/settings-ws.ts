@@ -28,7 +28,7 @@ export class SettingsWsEvents {
   }
 
   public start(): void {
-    // Event-driven: no background timer required
+    void 0
   }
 
   public stop(): void {

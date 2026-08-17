@@ -11,7 +11,6 @@ import type {
   CommandFeedbackEvent,
   GuildGeneralEvent,
   GuildPlayerEvent,
-  InstanceStatus,
   MinecraftReactiveEvent
 } from '../../common/application-event.js'
 import {
@@ -52,7 +51,7 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     return instanceBridgeId === event.bridgeId
   }
 
-  async onInstance(_event: InstanceStatus): Promise<void> {
+  async onInstance(): Promise<void> {
     // No-op: instance status/disconnect messages are not broadcast to Minecraft chat
   }
 

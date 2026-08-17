@@ -3,20 +3,19 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 import { formatOpenRouterError, OpenRouterClient } from '../../../utility/openrouter-client.js'
 import { SlidingWindowRateLimiter } from '../../../utility/sliding-window-rate-limiter.js'
 
-import { IQ_DEFAULT_MODEL, IQ_MAX, IQ_MIN, IQ_MIN_MESSAGES, IQ_SYSTEM_PROMPT } from './iq-constants.js'
-
 const rateLimiter = new SlidingWindowRateLimiter([
   { windowMs: 60_000, maxRequests: 2 },
   { windowMs: 300_000, maxRequests: 5 }
 ])
 
-function parseIqScore(content: string): number {
-  const parsed = Number.parseInt(content.trim(), 10)
-  if (Number.isNaN(parsed)) {
-    throw new TypeError(`Invalid IQ value from API: "${content}"`)
-  }
-  return Math.max(IQ_MIN, Math.min(IQ_MAX, parsed))
-}
+const defaultModel = 'nvidia/nemotron-3-super-120b-a12b:free'
+const minMessages = 10
+const prompt =
+  'You are evaluating intelligence based on chat messages from a Hypixel Minecraft guild. ' +
+  'Consider: vocabulary range, grammar, logical reasoning, game knowledge depth, humor, and critical thinking. ' +
+  'Note: gaming abbreviations ("idk", "lol", "u") and Minecraft shorthand ("f7", "hyperion", "mana") are normal for this context — do NOT penalize for them. ' +
+  'Estimate an IQ (0-200) based on the substance of what they are saying, not just surface formatting. ' +
+  'Respond with ONLY the number, nothing else.'
 
 export default class Iq extends ChatCommandHandler {
   constructor() {
@@ -45,7 +44,6 @@ export default class Iq extends ChatCommandHandler {
     }
 
     const chatMessages = context.app.core.chatMessages
-
     const targetKey = givenUsername.toLowerCase()
 
     const cachedIq = await chatMessages.getCachedIq(targetKey)
@@ -57,8 +55,8 @@ export default class Iq extends ChatCommandHandler {
       ? await chatMessages.getMessages(senderId)
       : await chatMessages.getMessagesByUsername(givenUsername)
 
-    if (messages.length < IQ_MIN_MESSAGES) {
-      return `${givenUsername}, not enough chat messages to estimate IQ (need at least ${IQ_MIN_MESSAGES}).`
+    if (messages.length < minMessages) {
+      return `${givenUsername}, not enough chat messages to estimate IQ (need at least ${minMessages}).`
     }
 
     const apiKey = context.app.openrouterApiKey
@@ -66,17 +64,18 @@ export default class Iq extends ChatCommandHandler {
       return 'OpenRouter API key is not configured. Set `openrouterApiKey` in config.yaml.'
     }
 
-    const model = context.app.openrouterModel ?? IQ_DEFAULT_MODEL
+    const model = context.app.openrouterModel ?? defaultModel
     const client = new OpenRouterClient(apiKey, { defaultModel: model })
 
     try {
       const result = await client.chatCompletion({
-        systemPrompt: IQ_SYSTEM_PROMPT,
+        systemPrompt: prompt,
         userPrompt: `Chat messages from ${givenUsername}:\n${messages.join('\n')}`,
         reasoningEffort: 'high'
       })
 
-      const iq = parseIqScore(result.content)
+      const parsed = Number.parseInt(result.content.trim(), 10)
+      const iq = Number.isNaN(parsed) ? 100 : Math.max(0, Math.min(200, parsed))
       await chatMessages.setCachedIq(targetKey, iq)
       return `${givenUsername} has an IQ of ${iq}`
     } catch (error: unknown) {
