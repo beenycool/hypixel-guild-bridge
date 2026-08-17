@@ -38,6 +38,7 @@
   "commands.error.never-joined-skyblock": "{{username}} has never played skyblock before?",
   "commands.urchin.no-key": "Urchin API key is not configured in the general settings.",
   "commands.urchin.no-tags": "{{username}} has no Urchin tags.",
+  "commands.urchin.no-both-tags": "{{username}} has no Urchin or Seraph tags.",
   "commands.urchin.tags": "{{username}} has the following Urchin tags: {{tags}}",
   "commands.urchin.not-found": "{{username}} was not found in the Urchin database.",
   "commands.urchin.invalid-key": "Invalid Urchin API key.",

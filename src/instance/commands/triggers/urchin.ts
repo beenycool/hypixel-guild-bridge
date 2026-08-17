@@ -66,6 +66,11 @@ interface SeraphResponse {
   data?: SeraphData
 }
 
+interface CheckResult {
+  hasNoTags: boolean
+  message: string
+}
+
 export default class Urchin extends ChatCommandHandler {
   constructor() {
     super({
@@ -87,14 +92,21 @@ export default class Urchin extends ChatCommandHandler {
       this.getSeraphSection(context, givenUsername, uuid)
     ])
 
-    return [urchinResult, seraphResult].join('\n')
+    if (urchinResult.hasNoTags && seraphResult.hasNoTags) {
+      return context.app.i18n.t(($) => $['commands.urchin.no-both-tags'], { username: givenUsername })
+    }
+
+    return [urchinResult.message, seraphResult.message].join('\n')
   }
 
-  private async getUrchinSection(context: ChatCommandContext, username: string, uuid: string): Promise<string> {
+  private async getUrchinSection(context: ChatCommandContext, username: string, uuid: string): Promise<CheckResult> {
     const urchinApiKey = context.app.urchinApiKey
 
     if (!urchinApiKey) {
-      return context.app.i18n.t(($) => $['commands.urchin.no-key'])
+      return {
+        hasNoTags: false,
+        message: context.app.i18n.t(($) => $['commands.urchin.no-key'])
+      }
     }
 
     try {
@@ -111,31 +123,52 @@ export default class Urchin extends ChatCommandHandler {
       const { data } = response as { data: unknown }
       const urchinData = data as UrchinResponse
       if (!urchinData.tags || urchinData.tags.length === 0) {
-        return context.app.i18n.t(($) => $['commands.urchin.no-tags'], { username })
+        return {
+          hasNoTags: true,
+          message: context.app.i18n.t(($) => $['commands.urchin.no-tags'], { username })
+        }
       }
 
       const tags = urchinData.tags.map((tag) => `${tag.tag_type}: ${tag.reason}`).join(', ')
-      return context.app.i18n.t(($) => $['commands.urchin.tags'], { username, tags })
+      return {
+        hasNoTags: false,
+        message: context.app.i18n.t(($) => $['commands.urchin.tags'], { username, tags })
+      }
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.status === 404) {
-        return context.app.i18n.t(($) => $['commands.urchin.not-found'], { username })
+        return {
+          hasNoTags: true,
+          message: context.app.i18n.t(($) => $['commands.urchin.not-found'], { username })
+        }
       }
       if (isAxiosError(error) && error.response?.status === 401) {
-        return context.app.i18n.t(($) => $['commands.urchin.invalid-key'])
+        return {
+          hasNoTags: false,
+          message: context.app.i18n.t(($) => $['commands.urchin.invalid-key'])
+        }
       }
       if (isAxiosError(error) && error.response?.status === 403) {
-        return context.app.i18n.t(($) => $['commands.urchin.locked-key'])
+        return {
+          hasNoTags: false,
+          message: context.app.i18n.t(($) => $['commands.urchin.locked-key'])
+        }
       }
       context.logger.error(error)
-      return context.app.i18n.t(($) => $['commands.urchin.error'], { username })
+      return {
+        hasNoTags: false,
+        message: context.app.i18n.t(($) => $['commands.urchin.error'], { username })
+      }
     }
   }
 
-  private async getSeraphSection(context: ChatCommandContext, username: string, uuid: string): Promise<string> {
+  private async getSeraphSection(context: ChatCommandContext, username: string, uuid: string): Promise<CheckResult> {
     const seraphApiKey = context.app.seraphApiKey
 
     if (!seraphApiKey) {
-      return context.app.i18n.t(($) => $['commands.seraph.no-key'])
+      return {
+        hasNoTags: false,
+        message: context.app.i18n.t(($) => $['commands.seraph.no-key'])
+      }
     }
 
     try {
@@ -150,16 +183,28 @@ export default class Urchin extends ChatCommandHandler {
       const seraphData = data as SeraphResponse
       const tags = this.getSeraphTags(seraphData.data)
       if (tags.length === 0) {
-        return context.app.i18n.t(($) => $['commands.seraph.no-tags'], { username })
+        return {
+          hasNoTags: true,
+          message: context.app.i18n.t(($) => $['commands.seraph.no-tags'], { username })
+        }
       }
 
-      return context.app.i18n.t(($) => $['commands.seraph.tags'], { username, tags: tags.join(', ') })
+      return {
+        hasNoTags: false,
+        message: context.app.i18n.t(($) => $['commands.seraph.tags'], { username, tags: tags.join(', ') })
+      }
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.status === 403) {
-        return context.app.i18n.t(($) => $['commands.seraph.invalid-key'])
+        return {
+          hasNoTags: false,
+          message: context.app.i18n.t(($) => $['commands.seraph.invalid-key'])
+        }
       }
       context.logger.error(error)
-      return context.app.i18n.t(($) => $['commands.seraph.error'], { username })
+      return {
+        hasNoTags: false,
+        message: context.app.i18n.t(($) => $['commands.seraph.error'], { username })
+      }
     }
   }
 

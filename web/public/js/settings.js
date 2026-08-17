@@ -368,6 +368,7 @@ const CATEGORIES = [
           { id: 'commands.error.never-joined-skyblock', t: 'text', label: 'Error: Never joined Skyblock' },
           { id: 'commands.urchin.no-key', t: 'text', label: 'Urchin: No API key' },
           { id: 'commands.urchin.no-tags', t: 'text', label: 'Urchin: No tags' },
+          { id: 'commands.urchin.no-both-tags', t: 'text', label: 'Urchin: No Urchin or Seraph tags' },
           { id: 'commands.urchin.tags', t: 'text', label: 'Urchin: Tags result' },
           { id: 'commands.urchin.not-found', t: 'text', label: 'Urchin: Not found' },
           { id: 'commands.urchin.invalid-key', t: 'text', label: 'Urchin: Invalid key' },
