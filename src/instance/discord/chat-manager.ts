@@ -1,19 +1,14 @@
-import assert from 'node:assert'
-
 import type { Client, Message } from 'discord.js'
 
 import type { InstanceType } from '../../common/application-event.js'
 import { ChannelType } from '../../common/application-event.js'
 import SubInstance from '../../common/sub-instance'
 
-import { FilteredReaction, UnverifiedReaction } from './common/discord-config.js'
+import { FilteredReaction } from './common/discord-config.js'
 import type MessageAssociation from './common/message-association.js'
 import type DiscordInstance from './discord-instance.js'
 
 export default class ChatManager extends SubInstance<DiscordInstance, InstanceType.Discord, Client> {
-  private static readonly WarnVerificationEvery = 10 * 60 * 1000
-  private readonly lastVerificationWarn = new Map<string, number>()
-
   private readonly lastUnmappedChannelWarn = new Map<string, number>()
   private readonly unmappedChannelSuppressed = new Map<string, number>()
 
@@ -83,31 +78,6 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
 
     const userProfile = this.clientInstance.profileByUser(event.author, event.member ?? undefined)
     const user = await this.application.core.initializeDiscordUser(userProfile, {})
-
-    const enforce =
-      bridgeId !== undefined && this.application.core.bridgeConfigurations.getEnforceVerification(bridgeId)
-    if (!user.verified() && enforce) {
-      const emoji = this.clientInstance.emojiHandler.emojiByName.get(UnverifiedReaction.name)
-      if (emoji !== undefined) await event.react(emoji)
-
-      const currentTimestamp = Date.now()
-      if (
-        (this.lastVerificationWarn.get(event.author.id) ?? 0) + ChatManager.WarnVerificationEvery <
-        currentTimestamp
-      ) {
-        this.lastVerificationWarn.set(event.author.id, currentTimestamp)
-        assert.ok(event.inGuild())
-        const commands = await event.guild.commands.fetch()
-        const linkCommand = commands.find((command) => command.name === 'link')
-
-        await event.reply({
-          content:
-            `**Verification Warning:**\n` +
-            `You can not talk in this channel unless you </link:${linkCommand?.id}> (press the blue link button here) first.`
-        })
-      }
-      return
-    }
 
     const readableReplyUsername = await this.getReplyUsername(event)
 
@@ -264,7 +234,7 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
   private sweepWarningMaps(): void {
     const now = Date.now()
     const maxAge = 24 * 60 * 60 * 1000
-    for (const map of [this.lastVerificationWarn, this.lastUnmappedChannelWarn, this.unmappedChannelSuppressed]) {
+    for (const map of [this.lastUnmappedChannelWarn, this.unmappedChannelSuppressed]) {
       for (const [key, timestamp] of map) {
         if (now - timestamp > maxAge) map.delete(key)
       }

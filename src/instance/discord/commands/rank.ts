@@ -21,6 +21,9 @@ export default {
           .addStringOption((opt) =>
             opt.setName('username').setDescription('Username of the player').setRequired(true).setAutocomplete(true)
           )
+          .addStringOption((opt) =>
+            opt.setName('rank').setDescription('Rank to set').setRequired(false).setAutocomplete(true)
+          )
       )
       .addSubcommand((sub) =>
         sub
@@ -28,17 +31,6 @@ export default {
           .setDescription('Demote a guild member')
           .addStringOption((opt) =>
             opt.setName('username').setDescription('Username of the player').setRequired(true).setAutocomplete(true)
-          )
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName('setrank')
-          .setDescription("Set a guild member's rank directly")
-          .addStringOption((opt) =>
-            opt.setName('username').setDescription('Username of the player').setRequired(true).setAutocomplete(true)
-          )
-          .addStringOption((opt) =>
-            opt.setName('rank').setDescription('Rank to set').setRequired(true).setAutocomplete(true)
           )
       ),
   permission: Permission.Owner,
@@ -57,15 +49,17 @@ export default {
     let command: string
     let label: string
     if (subcommand === 'promote') {
-      command = `/g promote ${username}`
-      label = `Promote ${escapeMarkdown(username)}`
-    } else if (subcommand === 'demote') {
+      const rank = context.interaction.options.getString('rank')
+      if (rank === null) {
+        command = `/g promote ${username}`
+        label = `Promote ${escapeMarkdown(username)}`
+      } else {
+        command = `/g setrank ${username} ${rank}`
+        label = `Setrank ${escapeMarkdown(username)}`
+      }
+    } else {
       command = `/g demote ${username}`
       label = `Demote ${escapeMarkdown(username)}`
-    } else {
-      const rank = context.interaction.options.getString('rank', true)
-      command = `/g setrank ${username} ${rank}`
-      label = `Setrank ${escapeMarkdown(username)}`
     }
 
     const result = await checkChatTriggers(

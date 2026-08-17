@@ -1,8 +1,7 @@
-
 ## Chat Commands
 
 | Command         | Description                                                                                                                                                                                                                      |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------- |
 | `8ball`         | Returns a basic 8 ball response                                                                                                                                                                                                  |
 | `arcade`        | Returns a player's Arcade games stats with optional game mode filter                                                                                                                                                             |
 | `asian`         | Challenge yourself with math! Use calculus for calculus problems.                                                                                                                                                                |
@@ -28,7 +27,7 @@
 | `gtop`          | Shows the top 5 GEXP earners in the guild for today                                                                                                                                                                              |
 | `guildstats`    | Show guild activity stats for a period.                                                                                                                                                                                          |
 | `guild`         | Returns a player's guild, if they're in one                                                                                                                                                                                      |
-| `guildexp`      | Guild experience of specified user. Usage: gexp [daily|weekly|monthly] [username]                                                                                                                                                |
+| `guildexp`      | Guild experience of specified user. Usage: gexp [daily                                                                                                                                                                           | weekly | monthly] [username] |
 | `help`          | Shows available command categories and how to use commands                                                                                                                                                                       |
 | `insult`        | insult a player                                                                                                                                                                                                                  |
 | `iq`            | Returns a player's IQ (0-200)                                                                                                                                                                                                    |
@@ -69,28 +68,27 @@
 
 ## Discord Commands
 
-| Command        | Description                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------- |
-| `/accept`      | accept a player to the guild if they have a join request in-game                                    |
-| `/blacklist`   | Add or remove a player from the ignore list                                                         |
-| `/dashboard`   | Open the web dashboard for bridge management                                                        |
-| `/disconnect`  | disconnect minecraft clients                                                                        |
-| `/execute`     | execute command in-game via Minecraft client                                                        |
-| `/interrogate` | Party-invite a player that requested to join the guild and ask if they are an alt                   |
-| `/invite`      | invite player to the guild in-game                                                                  |
-| `/join`        | Instruct the Minecraft account to join a guild.                                                     |
-| `/kick`        | kick player from the guild in-game                                                                  |
-| `/list`        | List players in your guild(s)                                                                       |
-| `/log`         | View guild activity logs                                                                            |
-| `/messages`    | Open the Bot Messages page to customize what the bot says                                           |
-| `/mute`        | Mute a guild member in-game                                                                         |
-| `/nick`        | Set a custom name for rendered chat images / Discord messages                                       |
-| `/rank`        | Manage guild member ranks                                                                           |
-| `/reconnect`   | reconnect minecraft clients                                                                         |
-| `/restart`     | Send signal to restart the bridge                                                                   |
-| `/summarise`   | Manually trigger the daily chat summary generation                                                  |
-| `/tournament`  | Player commands for guild tournaments — admin actions are managed in the web dashboard (/dashboard) |
-| `/unmute`      | Unmute a guild member in-game                                                                       |
+| Command       | Description                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| `/accept`     | accept a player to the guild if they have a join request in-game                                    |
+| `/blacklist`  | Add or remove a player from the ignore list                                                         |
+| `/dashboard`  | Open the web dashboard for bridge management                                                        |
+| `/disconnect` | disconnect minecraft clients                                                                        |
+| `/execute`    | execute command in-game via Minecraft client                                                        |
+| `/invite`     | invite player to the guild in-game                                                                  |
+| `/join`       | Instruct the Minecraft account to join a guild.                                                     |
+| `/kick`       | kick player from the guild in-game                                                                  |
+| `/list`       | List players in your guild(s)                                                                       |
+| `/log`        | View guild activity logs                                                                            |
+| `/messages`   | Open the Bot Messages page to customize what the bot says                                           |
+| `/mute`       | Mute a guild member in-game                                                                         |
+| `/nick`       | Set a custom name for rendered chat images / Discord messages                                       |
+| `/rank`       | Manage guild member ranks                                                                           |
+| `/reconnect`  | reconnect minecraft clients                                                                         |
+| `/restart`    | Send signal to restart the bridge                                                                   |
+| `/summarise`  | Manually trigger the daily chat summary generation                                                  |
+| `/tournament` | Player commands for guild tournaments — admin actions are managed in the web dashboard (/dashboard) |
+| `/unmute`     | Unmute a guild member in-game                                                                       |
 
 ---
 

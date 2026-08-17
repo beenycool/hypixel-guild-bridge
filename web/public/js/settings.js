@@ -130,7 +130,7 @@ const CATEGORIES = [
             ],
             missing: [
               'Destructive punishments (Owner) \u2014 ban, kick, forgive',
-              'Rank management (Owner) \u2014 /demote, /promote, /setrank',
+              'Rank management (Owner) \u2014 /rank promote, /rank demote',
               'Raw command execution (Owner) \u2014 /execute',
               'Bridge restart & raw in-game exec (Admin) \u2014 /restart, !execute'
             ]
@@ -141,7 +141,7 @@ const CATEGORIES = [
             note: 'Includes all Helper commands.',
             grants: [
               'Destructive punishments \u2014 ban, kick, forgive',
-              'Rank management \u2014 /demote, /promote, /setrank',
+              'Rank management \u2014 /rank promote, /rank demote',
               'Raw command execution \u2014 /execute'
             ],
             missing: ['Bridge restart & raw in-game exec (Admin only) \u2014 /restart, !execute']
