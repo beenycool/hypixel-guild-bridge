@@ -1,0 +1,262 @@
+import assert from 'node:assert'
+
+import type { Logger } from 'log4js'
+import type { Cache, CacheFactory } from 'prismarine-auth'
+
+import type { DatabaseManager } from '../../common/database-manager'
+
+export class SessionsManager {
+  private readonly instances = new Map<string, LoadedMinecraftInstance>()
+  private readonly sessions = new Map<string, Map<string, StoredSession>>()
+
+  constructor(
+    private readonly databaseManager: DatabaseManager,
+    private readonly logger: Logger
+  ) {}
+
+  public async load(): Promise<void> {
+    const instances = await this.databaseManager.queryRows<StoredMinecraftInstance>(
+      'SELECT * FROM "mojangInstances" ORDER BY "name" ASC'
+    )
+    const sessions = await this.databaseManager.queryRows<StoredSession>(
+      'SELECT * FROM "mojangSessions" ORDER BY "name" ASC, "cacheName" ASC'
+    )
+
+    this.instances.clear()
+    for (const instance of instances) {
+      this.instances.set(instanceKey(instance.name), {
+        name: instance.name,
+        connect: instance.connect !== 0
+      })
+    }
+
+    this.sessions.clear()
+    for (const session of sessions) {
+      const sessionMap = getOrCreate(this.sessions, sessionKey(session.name), () => new Map())
+      sessionMap.set(session.cacheName, { ...session })
+    }
+  }
+
+  public getSessionsFactory(instanceName: string): CacheFactory {
+    return (options: { username: string; cacheName: string }): Cache => {
+      return new Session(this, this.logger, instanceName, options.username, options.cacheName)
+    }
+  }
+
+  public deleteSession(instanceName: string): number {
+    const key = sessionKey(instanceName)
+    const count = this.sessions.get(key)?.size ?? 0
+    this.sessions.delete(key)
+
+    this.databaseManager.enqueueWrite(`deleting sessions for ${instanceName}`, async (database) => {
+      await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1)', [instanceName])
+    })
+
+    return count
+  }
+
+  public clearCachedSessions(instanceName: string): number {
+    const mainSessionName = 'live'
+    const sessionMap = this.sessions.get(sessionKey(instanceName))
+    if (sessionMap === undefined) return 0
+
+    let deleted = 0
+    for (const cacheName of sessionMap.keys()) {
+      if (cacheName !== mainSessionName) {
+        sessionMap.delete(cacheName)
+        deleted++
+      }
+    }
+
+    if (deleted !== 0) {
+      this.databaseManager.enqueueWrite(`deleting cached sessions for ${instanceName}`, async (database) => {
+        await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" != $2', [
+          instanceName,
+          mainSessionName
+        ])
+      })
+    }
+
+    return deleted
+  }
+
+  public setSession(instanceName: string, name: string, cacheName: string, value: Record<string, unknown>): void {
+    const createdAt = Math.floor(Date.now() / 1000)
+    const sessionMap = getOrCreate(this.sessions, sessionKey(name), () => new Map())
+    sessionMap.set(cacheName, { name, cacheName, value: JSON.stringify(value), createdAt })
+
+    this.databaseManager.enqueueWrite(`saving session ${name}:${cacheName}`, async (database) => {
+      await database.query(
+        'DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" = $2 AND "name" != $1',
+        [name, cacheName]
+      )
+      await database.query(
+        `INSERT INTO "mojangSessions" ("name", "cacheName", "value", "createdAt") VALUES ($1, $2, $3, $4)
+         ON CONFLICT ("name", "cacheName") DO UPDATE SET
+           "value" = EXCLUDED."value",
+           "createdAt" = EXCLUDED."createdAt"`,
+        [name, cacheName, JSON.stringify(value), createdAt]
+      )
+    })
+  }
+
+  public setInstanceAutoConnect(instanceName: string, enabled: boolean): void {
+    const instance = this.instances.get(instanceKey(instanceName))
+    assert.ok(instance !== undefined, 'Did not manage to change the instance auto-connect settings?')
+    instance.connect = enabled
+
+    this.databaseManager.enqueueWrite(`updating auto-connect for ${instanceName}`, async (database) => {
+      await database.query('UPDATE "mojangInstances" SET "connect" = $1 WHERE LOWER("name") = LOWER($2)', [
+        enabled ? 1 : 0,
+        instanceName
+      ])
+    })
+  }
+
+  public getInstanceAutoConnect(instanceName: string): boolean {
+    return this.instances.get(instanceKey(instanceName))?.connect ?? true
+  }
+
+  public getAllInstances(): readonly MinecraftInstanceConfig[] {
+    return [...this.instances.values()].map((instance) => ({
+      name: instance.name
+    }))
+  }
+
+  public getInstance(instanceName: string): MinecraftInstanceConfig | undefined {
+    const instance = this.instances.get(instanceKey(instanceName))
+    if (instance === undefined) return undefined
+
+    return {
+      name: instance.name
+    }
+  }
+
+  public addInstance(options: MinecraftInstanceConfig): void {
+    this.instances.set(instanceKey(options.name), { name: options.name, connect: true })
+
+    this.databaseManager.enqueueTransaction(`adding minecraft instance ${options.name}`, async (database) => {
+      const duplicateInstances = await database.query<{ name: string }>(
+        'SELECT "name" FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1',
+        [options.name]
+      )
+
+      if (duplicateInstances.rowCount !== 0) {
+        await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1) AND "name" != $1', [
+          options.name
+        ])
+      }
+
+      await database.query(
+        `INSERT INTO "mojangInstances" ("name", "connect") VALUES ($1, $2)
+         ON CONFLICT ("name") DO UPDATE SET
+           "connect" = EXCLUDED."connect"`,
+        [options.name, 1]
+      )
+    })
+  }
+
+  public deleteInstance(instanceName: string): number {
+    const key = instanceKey(instanceName)
+    const instance = this.instances.get(key)
+    if (instance === undefined) return 0
+
+    this.instances.delete(key)
+
+    this.databaseManager.enqueueTransaction(`deleting minecraft instance ${instanceName}`, async (database) => {
+      await database.query('DELETE FROM "mojangInstances" WHERE LOWER("name") = LOWER($1)', [instance.name])
+    })
+
+    return 1
+  }
+
+  public deleteSingleCache(name: string, cacheName: string): number {
+    const sessionMap = this.sessions.get(sessionKey(name))
+    const deleted = sessionMap?.delete(cacheName) ? 1 : 0
+
+    this.databaseManager.enqueueWrite(`deleting session cache ${name}:${cacheName}`, async (database) => {
+      await database.query('DELETE FROM "mojangSessions" WHERE LOWER("name") = LOWER($1) AND "cacheName" = $2', [
+        name,
+        cacheName
+      ])
+    })
+
+    return deleted
+  }
+
+  public getCacheSync(name: string, cacheName: string): Record<string, unknown> {
+    const result = this.sessions.get(sessionKey(name))?.get(cacheName)?.value
+    return result === undefined ? {} : (JSON.parse(result) as Record<string, unknown>)
+  }
+}
+
+interface StoredMinecraftInstance {
+  name: string
+  connect: number
+}
+
+interface LoadedMinecraftInstance {
+  name: string
+  connect: boolean
+}
+
+interface StoredSession {
+  name: string
+  cacheName: string
+  value: string
+  createdAt: number
+}
+
+export interface MinecraftInstanceConfig {
+  name: string
+}
+
+class Session implements Cache {
+  constructor(
+    private readonly sessionsManager: SessionsManager,
+    private readonly logger: Logger,
+    readonly instanceName: string,
+    readonly name: string,
+    readonly cacheName: string
+  ) {}
+
+  async reset(): Promise<void> {
+    await Promise.resolve()
+
+    this.sessionsManager.deleteSingleCache(this.name, this.cacheName)
+  }
+
+  async getCached(): Promise<Record<string, unknown>> {
+    await Promise.resolve()
+    return this.sessionsManager.getCacheSync(this.name, this.cacheName)
+  }
+
+  async setCached(value: Record<string, unknown>): Promise<void> {
+    await Promise.resolve()
+    this.sessionsManager.setSession(this.instanceName, this.name, this.cacheName, value)
+  }
+
+  async setCachedPartial(value: Record<string, unknown>): Promise<void> {
+    await Promise.resolve()
+
+    const partial = this.sessionsManager.getCacheSync(this.name, this.cacheName)
+    this.sessionsManager.setSession(this.instanceName, this.name, this.cacheName, { ...partial, ...value })
+  }
+}
+
+function getOrCreate<K, V>(map: Map<K, V>, key: K, create: () => V): V {
+  const existing = map.get(key)
+  if (existing !== undefined) return existing
+
+  const value = create()
+  map.set(key, value)
+  return value
+}
+
+function instanceKey(name: string): string {
+  return name.toLowerCase()
+}
+
+function sessionKey(name: string): string {
+  return name.toLowerCase()
+}

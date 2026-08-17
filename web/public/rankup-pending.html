@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pending Reviews — Rankup</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container">
+      <div class="page-header">
+        <h1 class="page-title">Pending Reviews</h1>
+        <div class="bridge-selector">
+          <label class="form-label">Bridge:</label>
+          <select class="select" id="bridge-select"></select>
+        </div>
+      </div>
+      <div id="pending-summary"></div>
+      <div id="pending-list">
+        <div class="loading"><div class="loading-spinner"></div></div>
+      </div>
+    </div>
+    <script type="module" src="js/pending.js"></script>
+  </body>
+</html>

@@ -1,0 +1,70 @@
+syntax = "proto3";
+package lunarclient.websocket.v1;
+import "common.proto";
+
+message UuidAndUsername {
+  lunarclient.common.v1.Uuid uuid     = 1;
+  string                     username = 2;
+}
+
+message VersionInfo {
+  string version = 1;
+}
+
+message Language {
+  string language = 1;
+  string locale   = 2;
+}
+
+message MinecraftVersion {
+  string version = 1;
+}
+
+message LunarClientVersion {
+  string branch     = 1;
+  string git_commit = 2;
+  string version    = 3;
+}
+
+message GameBlock {
+  MinecraftVersion   minecraft_version    = 1;
+  LunarClientVersion lunar_client_version = 2;
+}
+
+message MinecraftIdentity {
+  UuidAndUsername player            = 1;
+  int32           type              = 2;
+  string          authenticator_jwt = 3;
+}
+
+message Handshake {
+  MinecraftIdentity identity     = 1;
+  VersionInfo       version_info = 2;
+  string            os           = 5;
+  string            arch         = 6;
+  Language          language     = 7;
+  GameBlock         game_block   = 8;
+}
+
+message ServerboundWebSocketMessage {
+  bytes  request_id = 1;
+  string service    = 2;
+  string method     = 3;
+  bytes  input      = 4;
+}
+
+message RpcResponse {
+  bytes request_id = 1;
+  bytes output     = 2;
+}
+
+message PushNotification {
+  string service = 1;
+  string push    = 2;
+  bytes  payload = 3;
+}
+
+message ClientboundWebSocketMessage {
+  RpcResponse      rpc_response      = 1;
+  PushNotification push_notification = 2;
+}
