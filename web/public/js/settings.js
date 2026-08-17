@@ -362,14 +362,7 @@ const CATEGORIES = [
             label: 'Insult Messages (normal)',
             hint: '58 normal insult messages.'
           },
-          {
-            id: 'commands.explain',
-            t: 'textarea',
-            label: 'Explain Command',
-            hint: 'What the bot says when asked !explain.'
-          },
           { id: 'commands.error.must-be-ingame', t: 'text', label: 'Error: Must be in-game' },
-          { id: 'commands.error.must-be-admin', t: 'text', label: 'Error: Must be admin' },
           { id: 'commands.error.username-not-exists', t: 'text', label: 'Error: Username not found' },
           { id: 'commands.error.never-joined-hypixel', t: 'text', label: 'Error: Never joined Hypixel' },
           { id: 'commands.error.never-joined-skyblock', t: 'text', label: 'Error: Never joined Skyblock' },
@@ -505,44 +498,11 @@ const CATEGORIES = [
         title: 'Tournament',
         collapsible: true,
         children: [
-          { id: 'tournament.create.success', t: 'text', label: 'Create Success' },
-          { id: 'tournament.start.insufficient', t: 'text', label: 'Start Insufficient' },
-          { id: 'tournament.report.invalid', t: 'text', label: 'Report Invalid' },
-          { id: 'tournament.report.disputed', t: 'text', label: 'Report Disputed' },
           { id: 'tournament.deadline.warning', t: 'text', label: 'Deadline Warning' },
           { id: 'tournament.match.whisper', t: 'textarea', label: 'Match Whisper' },
-          { id: 'tournament.thread.title', t: 'text', label: 'Thread Title' },
-          { id: 'tournament.tracker.title', t: 'text', label: 'Tracker Title' },
-          { id: 'tournament.round.complete', t: 'text', label: 'Round Complete' },
-          { id: 'tournament.winner.announce', t: 'text', label: 'Winner Announce' },
           { id: 'tournament.cancelled', t: 'text', label: 'Cancelled' },
           { id: 'tournament.forfeit', t: 'text', label: 'Forfeit' },
-          { id: 'tournament.checkin.open', t: 'text', label: 'Checkin Open' },
-          { id: 'tournament.checkin.reminder', t: 'text', label: 'Checkin Reminder' },
-          { id: 'tournament.report.score', t: 'text', label: 'Report Score' },
-          { id: 'tournament.bye', t: 'text', label: 'Bye' },
-          { id: 'tournament.join.rate_limit', t: 'text', label: 'Join Rate Limit' },
-          { id: 'tournament.stats.header', t: 'text', label: 'Stats Header' },
-          { id: 'tournament.stats.no_data', t: 'text', label: 'Stats No Data' },
-          { id: 'tournament.sub.whisper', t: 'text', label: 'Sub Whisper' },
-          { id: 'tournament.audit.title', t: 'text', label: 'Audit Title' },
-          { id: 'tournament.audit.no_entries', t: 'text', label: 'Audit No Entries' },
-          { id: 'tournament.schedule.title', t: 'text', label: 'Schedule Title' },
-          { id: 'tournament.proof.added', t: 'text', label: 'Proof Added' },
-          { id: 'tournament.signup.embed.title', t: 'text', label: 'Signup Embed Title' },
-          { id: 'tournament.signup.embed.footer', t: 'text', label: 'Signup Embed Footer' },
-          { id: 'tournament.live.announce', t: 'text', label: 'Live Announce' }
-        ]
-      },
-      {
-        t: 'section',
-        title: 'Hypixel',
-        collapsible: true,
-        children: [
-          { id: 'instance.hypixel.news', t: 'text', label: 'News' },
-          { id: 'instance.hypixel.status', t: 'text', label: 'Status' },
-          { id: 'instance.hypixel.statusUpdate', t: 'text', label: 'Status Update' },
-          { id: 'instance.hypixel.alpha', t: 'text', label: 'Alpha' }
+          { id: 'tournament.bye', t: 'text', label: 'Bye' }
         ]
       },
       {

@@ -159,7 +159,7 @@ export default class JoinInterviewHandler extends SubInstance<
     await this.sendCommand(instanceName, `/party invite ${username}`, MinecraftSendChatPriority.High)
     await this.sendCommand(
       instanceName,
-      `/msg ${username} Please accept the party invite to start the interview.`,
+      `/msg ${username} Please accept the party invite to start the interview to join this guild.`,
       MinecraftSendChatPriority.High
     )
   }
@@ -219,7 +219,14 @@ export default class JoinInterviewHandler extends SubInstance<
 
   private async askQuestion(instanceName: string, session: InterviewSession): Promise<void> {
     this.armTimeout(session)
-    await this.sendCommand(instanceName, `/pc ${session.question}`, MinecraftSendChatPriority.Default)
+    await this.sendCommand(
+      instanceName,
+      '/pc Hello! I am an automated bot. Guild staff would like to ask you a few questions:',
+      MinecraftSendChatPriority.Default
+    )
+    await this.sendCommand(instanceName, '/pc 1) Are you Zonked or Marrow?', MinecraftSendChatPriority.Default)
+    await this.sendCommand(instanceName, `/pc 2) ${session.question}`, MinecraftSendChatPriority.Default)
+    await this.sendCommand(instanceName, '/pc 3) Are you ok at bridge?', MinecraftSendChatPriority.Default)
   }
 
   private async onPlayerMessage(instanceName: string, session: InterviewSession, message: string): Promise<void> {
