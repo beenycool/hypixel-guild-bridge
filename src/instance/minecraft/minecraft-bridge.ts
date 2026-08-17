@@ -138,9 +138,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
       case InstanceMessageType.MinecraftBanned: {
         return 'the account being banned'
       }
-      case InstanceMessageType.MinecraftAuthExpired: {
-        return 'authentication expiring'
-      }
       case InstanceMessageType.MinecraftNoAccount: {
         return 'the account not owning Minecraft'
       }
@@ -161,9 +158,6 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
 
   private getBlameText(type: InstanceMessageType): string {
     switch (type) {
-      case InstanceMessageType.MinecraftAuthExpired: {
-        return 'Beeny needs to re-import the refresh token.'
-      }
       case InstanceMessageType.MinecraftNoAccount: {
         return 'Beeny needs to own Minecraft on this account.'
       }

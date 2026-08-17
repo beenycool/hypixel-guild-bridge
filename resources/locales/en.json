@@ -16,8 +16,6 @@
   "instance.message.proxy-problem": "Encountered a problem while working with Minecraft instance proxy.",
   "instance.message.restarting": "Minecraft instance will try to restart soon.",
   "instance.message.guild-kicked": "Minecraft account has been kicked off the guild.",
-  "instance.message.auth-expired": "IAS Microsoft authentication has expired or failed. Please re-import the refresh token via /settings.",
-  "instance.message.auth-invalid": "IAS Microsoft authentication token is invalid. Please re-import the refresh token via /settings.",
 
   "instance.status.change": "Status changed from {{from}} to {{to}}.",
   "instance.status.fresh": "FRESH",

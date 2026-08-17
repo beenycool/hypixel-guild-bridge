@@ -410,8 +410,6 @@ const CATEGORIES = [
           { id: 'instance.message.proxy-problem', t: 'text', label: 'Proxy Problem' },
           { id: 'instance.message.restarting', t: 'text', label: 'Restarting' },
           { id: 'instance.message.guild-kicked', t: 'text', label: 'Guild Kicked' },
-          { id: 'instance.message.auth-expired', t: 'textarea', label: 'Auth Expired' },
-          { id: 'instance.message.auth-invalid', t: 'textarea', label: 'Auth Invalid' },
           { id: 'instance.status.change', t: 'text', label: 'Status Change' },
           { id: 'instance.status.fresh', t: 'text', label: 'Status Fresh' },
           { id: 'instance.status.connecting', t: 'text', label: 'Status Connecting' },

@@ -238,22 +238,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
 
       this.application.core.minecraftSessions.clearCachedSessions(this.clientInstance.instanceName)
       await this.tryRestarting()
-    } else if (
-      error.message.includes('No IAS refresh token found') ||
-      error.message.includes('Microsoft token refresh failed') ||
-      error.message.includes('Xbox Live authentication failed') ||
-      error.message.includes('XSTS authorization failed') ||
-      error.message.includes('Minecraft login failed') ||
-      error.message.includes('Minecraft profile fetch failed')
-    ) {
-      messageType = InstanceMessageType.MinecraftAuthExpired
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: messageType,
-        value: error.message
-      })
-
-      this.application.core.minecraftSessions.deleteSingleCache(this.clientInstance.instanceName, 'iasRefreshToken')
-      await this.tryRestarting()
     } else {
       messageType = InstanceMessageType.MinecraftEnded
       this.clientInstance.lastDisconnectMessage = { type: messageType, value: error.message }

@@ -26,7 +26,6 @@ import PlayerMuted from './handlers/player-muted.js'
 import Reaction from './handlers/reaction.js'
 import SelfbroadcastHandler from './handlers/selfbroadcast-handler.js'
 import StateHandler, { QuitOwnVolition } from './handlers/state-handler.js'
-import { createIasAuthFunction, type IasAuthCache } from './microsoft-ias-auth.js'
 import MinecraftBridge from './minecraft-bridge.js'
 
 export default class MinecraftInstance extends ConnectableInstance<InstanceType.Minecraft> {
@@ -144,38 +143,22 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
     this.latestTabPingMs = undefined
 
     const sessionsManager = this.application.core.minecraftSessions
-    const iasTokenCache = sessionsManager.getCacheSync(this.instanceName, 'iasRefreshToken')
-    const usesIasAuth = typeof iasTokenCache.token === 'string'
-
-    const authOption = usesIasAuth
-      ? createIasAuthFunction({
-          instanceName: this.instanceName,
-          cache: this.buildIasAuthCache(),
-          onError: (message) => {
-            this.logger.warn(`IAS auth error for ${this.instanceName}: ${message}`)
-          }
-        })
-      : 'microsoft'
 
     const client = createClient({
       host: currentHost,
       port: this.defaultPort,
       version: this.defaultVersion,
       username: this.config.name,
-      auth: authOption,
+      auth: 'microsoft',
 
-      profilesFolder: (usesIasAuth ? false : sessionsManager.getSessionsFactory(this.instanceName)) as unknown as
-        | string
-        | false,
+      profilesFolder: sessionsManager.getSessionsFactory(this.instanceName) as unknown as string | false,
 
-      onMsaCode: usesIasAuth
-        ? undefined
-        : (code) => {
-            void this.broadcastInstanceMessage({
-              type: InstanceMessageType.MinecraftAuthenticationCode,
-              value: `${code.verification_uri}?otc=${code.user_code}`
-            }).catch(this.errorHandler.promiseCatch('broadcasting authentication code'))
-          }
+      onMsaCode: (code) => {
+        void this.broadcastInstanceMessage({
+          type: InstanceMessageType.MinecraftAuthenticationCode,
+          value: `${code.verification_uri}?otc=${code.user_code}`
+        }).catch(this.errorHandler.promiseCatch('broadcasting authentication code'))
+      }
     })
 
     this.clientSession = new ClientSession(client)
@@ -423,16 +406,5 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   private static normalizeUuidForCompare(uuid: string | undefined): string | undefined {
     if (uuid === undefined || uuid.length === 0) return undefined
     return uuid.replaceAll('-', '').toLowerCase()
-  }
-
-  private buildIasAuthCache(): IasAuthCache {
-    const sessionsManager = this.application.core.minecraftSessions
-    return {
-      getCacheSync: (name: string, cacheName: string) => sessionsManager.getCacheSync(name, cacheName),
-      setSession: (instanceName: string, name: string, cacheName: string, value: Record<string, unknown>) => {
-        sessionsManager.setSession(instanceName, name, cacheName, value)
-      },
-      deleteSingleCache: (name: string, cacheName: string) => sessionsManager.deleteSingleCache(name, cacheName)
-    }
   }
 }

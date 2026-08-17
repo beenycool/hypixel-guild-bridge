@@ -51,12 +51,6 @@ export function translateInstanceMessage(t: Translator, key: InstanceMessageType
     case InstanceMessageType.MinecraftGuildKicked: {
       return t('instance.message.guild-kicked')
     }
-    case InstanceMessageType.MinecraftAuthExpired: {
-      return t('instance.message.auth-expired')
-    }
-    case InstanceMessageType.MinecraftAuthInvalid: {
-      return t('instance.message.auth-invalid')
-    }
     default: {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       throw new Error(`Unknown instance type ${key satisfies never}`)
