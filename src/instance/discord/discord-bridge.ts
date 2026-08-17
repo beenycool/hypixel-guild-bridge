@@ -777,12 +777,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
   }
 
-  onCommand(event: CommandEvent): void {
-    void event
+  async onCommand(event: CommandEvent): Promise<void> {
+    await this.sendCommandResponse(event)
   }
 
-  onCommandFeedback(event: CommandFeedbackEvent): void {
-    void event
+  async onCommandFeedback(event: CommandFeedbackEvent): Promise<void> {
+    await this.sendCommandResponse(event)
   }
 
   private lastInstanceReactiveEvent = new Map<InstanceReactiveType, number>()
@@ -967,6 +967,61 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     )
 
     return results.filter((m): m is Message<true> => m !== undefined)
+  }
+
+  private async sendCommandResponse(event: CommandEvent): Promise<void> {
+    const replyIds = this.messageAssociation.getMessageId(event.originEventId)
+
+    const bots = this.application.minecraftManager.getMinecraftBots()
+    let botName = 'Bridge Bot'
+    let botInstanceName: string | undefined
+
+    if (event.instanceType === InstanceType.Minecraft) {
+      botInstanceName = event.instanceName
+      const bot = bots.find((b) => b.instanceName === botInstanceName)
+      if (bot) botName = bot.username
+    } else {
+      const bridgeBots = bots.filter((bot) =>
+        this.application.bridgeResolver.shouldProcessEvent(event.bridgeId, bot.instanceName)
+      )
+      if (bridgeBots.length > 0) {
+        botInstanceName = bridgeBots[0].instanceName
+        botName = bridgeBots[0].username
+      }
+    }
+
+    const botUsernameOverride =
+      event.bridgeId === undefined
+        ? undefined
+        : this.application.core.bridgeConfigurations.getBotUsernameOverride(event.bridgeId)
+    const effectiveBotName = botUsernameOverride ?? botName
+
+    const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
+    const namePart = botRank
+      ? botUsernameOverride === undefined
+        ? `${botRank}§f`
+        : `${botRank.replace(new RegExp(botName, 'i'), botUsernameOverride)}§f`
+      : `§7${effectiveBotName}§f`
+
+    const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
+      kind: 'command',
+      instanceName: event.instanceName
+    })
+    const isPublicChannel = (channelId: string) => publicChannelIds.includes(channelId)
+
+    for (const replyId of replyIds) {
+      try {
+        const channelType = isPublicChannel(replyId.channelId) ? ChannelType.Public : ChannelType.Officer
+
+        const formattedMessage = `${this.getRenderedChannelPrefix(channelType)}{skin} ${namePart}: §f${event.commandResponse}`
+        const image = await this.messageToImage.generateMessageImage(formattedMessage, {
+          username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
+        })
+        await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
+      } catch (error: unknown) {
+        this.logger.error(error, 'failed to send command response')
+      }
+    }
   }
 
   private assignAvatar(embed: APIEmbed, user: User): void {

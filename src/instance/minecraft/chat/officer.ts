@@ -18,7 +18,25 @@ export default {
 
       context.application.mojangApi.cache([{ name: username, id: uuid }])
       if (context.application.minecraftManager.isMinecraftBot(username)) {
-        context.clientInstance.notifyChatEvent(ChannelType.Officer, playerMessage)
+        const isEcho = context.clientInstance.notifyChatEvent(ChannelType.Officer, playerMessage)
+        if (isEcho) {
+          const prefixes = ['§2Guild > ', '§3Officer > ']
+          let body = context.rawMessage
+          for (const prefix of prefixes) {
+            if (body.startsWith(prefix)) {
+              body = body.slice(prefix.length)
+              break
+            }
+          }
+          const colonIndex = body.indexOf(': ')
+          if (colonIndex !== -1) {
+            const rankPart = body.slice(0, colonIndex)
+            if (rankPart.length > 0) {
+              context.application.minecraftManager.setBotRank(context.instanceName, rankPart)
+            }
+          }
+          return
+        }
 
         if (context.application.core.isRecentlyFiltered(playerMessage)) {
           return
