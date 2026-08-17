@@ -113,7 +113,7 @@ export function getBridgeStatsFromRawDuels(
       losses,
       winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${prefix}`),
       bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${prefix}`),
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       WLRatio: divideLikeHypixel(wins, losses)
     }
   }
@@ -126,7 +126,7 @@ export function getBridgeStatsFromRawDuels(
     losses,
     winstreak: readRawNumber(rawDuels, 'current_bridge_winstreak'),
     bestWinstreak: readRawNumber(rawDuels, 'best_bridge_winstreak'),
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     WLRatio: divideLikeHypixel(wins, losses)
   }
 }
@@ -151,7 +151,7 @@ function getBedwarsStatsFromRawDuels(rawDuels: Record<string, unknown>, mode: Be
     losses,
     winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${prefix}`),
     bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${prefix}`),
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     WLRatio: divideLikeHypixel(wins, losses)
   }
 }
@@ -173,7 +173,7 @@ function getSpleefStatsFromRawDuels(rawDuels: Record<string, unknown>): Gamemode
     losses,
     winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${SPLEEF_RAW_PREFIX}`),
     bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${SPLEEF_RAW_PREFIX}`),
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     WLRatio: divideLikeHypixel(wins, losses)
   }
 }
@@ -218,9 +218,9 @@ export default class Duels extends HypixelPlayerCommand {
     nodebuff: 'NoDebuff',
     bow: 'Bow',
     skywars: 'SkyWars',
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- keys are Duel type wire IDs
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     bedwars_two_one: 'BW 1v1',
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- keys are Duel type wire IDs
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     bedwars_rush: 'BW Rush'
   }
 
@@ -374,7 +374,7 @@ export default class Duels extends HypixelPlayerCommand {
       const losses = subModeData.losses
       const winstreak = subModeData.winstreak
       const bestWinstreak = subModeData.bestWinstreak
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: raw API data may lack the field despite the cast
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const wlRatio = subModeData.WLRatio ?? 0
       const division = calculateDuelsDivision(wins, 'long')
 
@@ -416,7 +416,7 @@ export default class Duels extends HypixelPlayerCommand {
     const losses = dataObject.losses
     const winstreak = dataObject.winstreak
     const bestWinstreak = dataObject.bestWinstreak
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: raw API data may lack the field despite the cast
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const wlRatio = dataObject.WLRatio ?? 0
     const divisionMode: DuelsDivisionMode = LongModeDuelTypes.has(duelType) ? 'long' : 'short'
     const division = calculateDuelsDivision(wins, divisionMode)

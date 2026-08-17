@@ -383,7 +383,9 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
             })
             .catch(() => undefined)
         }
-      } catch {}
+      } catch {
+        // Dispute message send failed
+      }
     }
 
     const targetWins = Math.ceil(tournament.bestOf / 2)

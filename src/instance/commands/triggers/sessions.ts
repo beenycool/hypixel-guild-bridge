@@ -533,18 +533,18 @@ class SessionCommand extends ChatCommandHandler {
     if (uuid === undefined) return usernameNotExists(context, givenUsername)
 
     try {
+      /* eslint-disable @typescript-eslint/naming-convention */
       const response = await httpClient.get<{
         uuid: string
         displayname?: string | null
         from: number
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- API response field name
         from_readable: string
         delta: Record<string, unknown>
       }>(`https://api.urchin.gg/v3/player/sessions/${isCustom ? 'custom' : this.period}`, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the API
         headers: { 'X-API-Key': apiKey },
         params: { player: uuid, ...(isCustom && duration ? { duration } : {}) }
       })
+      /* eslint-enable @typescript-eslint/naming-convention */
 
       const delta = response.data.delta
       const stats = delta.stats as Record<string, unknown> | undefined
@@ -610,7 +610,7 @@ class SessionCommand extends ChatCommandHandler {
 
       try {
         const healthResp = await httpClient.get<{ status?: string }>('https://api.urchin.gg/health', { timeout: 3000 })
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: health endpoint may return an empty body
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (healthResp.status !== 200 || healthResp.data?.status !== 'healthy') {
           return context.app.i18n.t(($) => $['commands.sessions.api-degraded'])
         }

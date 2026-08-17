@@ -11,7 +11,7 @@ export const skillsView: SkyblockView = {
   description: 'Skills and Skill Average of specified user.',
   example: 'sb %s skills',
   needsProfile: true,
-  // eslint-disable-next-line @typescript-eslint/require-await -- SkyblockView contract requires Promise<string>
+  // eslint-disable-next-line @typescript-eslint/require-await
   async render(
     context: ChatCommandContext,
     username: string,

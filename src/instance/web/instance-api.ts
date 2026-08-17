@@ -5,7 +5,7 @@ import type { Logger } from 'log4js'
 import type Application from '../../application.js'
 import { InstanceSignalType, MinecraftSendChatPriority, Permission } from '../../common/application-event.js'
 
-import { sendError, sendSuccess } from './api-utils.js'
+import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
 
 const InstancePrefix = '/api/instance'
@@ -35,7 +35,8 @@ export class InstanceApiHandler {
     if (!pathPart.startsWith(InstancePrefix)) return false
 
     if (request.method !== 'POST') {
-      this.sendMethodNotAllowed(response, ['POST'])
+      response.setHeader('Allow', 'POST')
+      sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
       return true
     }
 
@@ -123,10 +124,10 @@ export class InstanceApiHandler {
   }
 
   private async handleExecute(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<{ command?: unknown; instance?: unknown }>(request, response, this.logger)
     if (body === undefined) return
 
-    const { command, instance: instanceName } = body as { command?: unknown; instance?: unknown }
+    const { command, instance: instanceName } = body
 
     if (typeof command !== 'string' || command.length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'Missing or invalid command', 400)
@@ -154,46 +155,5 @@ export class InstanceApiHandler {
       this.logger.error('Failed to execute command on instance', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to execute command', 500)
     }
-  }
-
-  private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
-    let raw: string
-    try {
-      raw = await this.readBody(request)
-    } catch (error: unknown) {
-      this.logger.warn('Failed to read request body', error)
-      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
-      return undefined
-    }
-    if (raw.length === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
-      return undefined
-    }
-    try {
-      return JSON.parse(raw)
-    } catch (error: unknown) {
-      this.logger.warn('Invalid JSON body', error)
-      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
-      return undefined
-    }
-  }
-
-  private readBody(request: http.IncomingMessage): Promise<string> {
-    request.setEncoding('utf8')
-    return new Promise((resolve, reject) => {
-      let body = ''
-      request.on('data', (chunk: string) => {
-        body += chunk
-      })
-      request.on('end', () => {
-        resolve(body)
-      })
-      request.on('error', reject)
-    })
-  }
-
-  private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
-    response.setHeader('Allow', allowed.join(', '))
-    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

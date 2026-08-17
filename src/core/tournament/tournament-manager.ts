@@ -1097,17 +1097,17 @@ export class TournamentManager {
         const wins = playerMatches.filter((m) => m.winnerId === player.id).length
         const losses = playerMatches.filter(
           (m) =>
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB winnerId is nullable; null must not count as a loss
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             m.winnerId !== null && m.winnerId !== player.id && (m.player1Id === player.id || m.player2Id === player.id)
         ).length
 
         const isWinner = tournament.winnerId === player.id
         const roundsReached = isWinner
-          ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB row may omit totalRounds at runtime despite the type
+          ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             (tournament.totalRounds ?? 1)
           : Math.max(...playerMatches.filter((m) => m.winnerId !== player.id).map((m) => m.round), 1)
 
-        this.logger.info(
+        this.logger.debug(
           `Tournament ${tournamentId}: Player ${player.playerUuid} — wins=${wins}, losses=${losses}, roundsReached=${roundsReached}, champion=${isWinner}`
         )
 
@@ -1118,7 +1118,7 @@ export class TournamentManager {
             player.playerUuid,
             player.discordId,
             tournamentId,
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB row may omit totalRounds at runtime despite the type
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             isWinner ? 1 : (tournament.totalRounds ?? 1) - roundsReached + 2,
             roundsReached,
             wins,

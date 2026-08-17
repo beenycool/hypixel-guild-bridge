@@ -138,7 +138,9 @@ const HealthServer = http.createServer((request, response) => {
   }
 })
 
-HealthServer.on('clientError', () => {})
+HealthServer.on('clientError', () => {
+  // Ignore client errors on health server
+})
 
 HealthServer.on('upgrade', (request, socket, head) => {
   const pathname = request.url ? request.url.split('?')[0] : '/'

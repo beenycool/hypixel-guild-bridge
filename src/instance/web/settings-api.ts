@@ -8,7 +8,7 @@ import { Permission } from '../../common/application-event.js'
 import { ApplicationLanguages } from '../../core/language-configurations.js'
 import Duration from '../../utility/duration.js'
 
-import { sendError, sendSuccess } from './api-utils.js'
+import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
 
 type Primitive = boolean | number | string
@@ -27,6 +27,7 @@ function bool(s: unknown, d = false): boolean {
   if (s === undefined || s === null) return d
   return true
 }
+
 function boolOrUndefined(s: unknown): boolean | undefined {
   if (typeof s === 'boolean') return s
   if (s === undefined || s === null) return undefined
@@ -87,9 +88,9 @@ export class SettingsApiHandler {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
-      const body = await this.readJsonBody(request as never, response)
+      const body = await readJsonBody<{ bridgeId?: unknown }>(request, response, this.logger)
       if (body === undefined) return true
-      this.handleCreateBridge(response, body as { bridgeId?: unknown })
+      this.handleCreateBridge(response, body)
       return true
     }
 
@@ -125,9 +126,9 @@ export class SettingsApiHandler {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
-      const body = await this.readJsonBody(request as never, response)
+      const body = await readJsonBody<SettingObject>(request, response, this.logger)
       if (body === undefined) return true
-      this.handlePut(response, segments[0], segments[2], body as SettingObject)
+      this.handlePut(response, segments[0], segments[2], body)
       return true
     }
 
@@ -202,7 +203,9 @@ export class SettingsApiHandler {
       try {
         const ch = await client.channels.fetch(id).catch(() => undefined)
         if (ch && 'name' in ch) name = (ch as { name: string }).name
-      } catch {}
+      } catch {
+        // Channel fetch failed or channel not found
+      }
       resolvedChannels.push({ id, name })
     }
 
@@ -216,14 +219,18 @@ export class SettingsApiHandler {
             try {
               const fetched = await guild.roles.fetch(id)
               if (fetched) role = fetched
-            } catch {}
+            } catch {
+              // Role fetch failed
+            }
           }
           if (role) {
             name = role.name
             break
           }
         }
-      } catch {}
+      } catch {
+        // Guild search failed
+      }
       resolvedRoles.push({ id, name })
     }
 
@@ -240,9 +247,11 @@ export class SettingsApiHandler {
       if (botUuid) {
         try {
           const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getGuild('player', ...) returns null at runtime for players without a guild despite the Promise<Guild> typing
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (guild) guildRanks = guild.ranks.map((r) => r.name)
-        } catch {}
+        } catch {
+          // Guild fetch failed
+        }
       }
     }
 
@@ -454,43 +463,5 @@ export class SettingsApiHandler {
     this.application.core.bridgeConfigurations.removeBridgeId(bridgeId)
     this.application.bridgeResolver.rebuildLookupMaps()
     sendSuccess(response, { success: true })
-  }
-
-  private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
-    let raw: string
-    try {
-      raw = await this.readBody(request)
-    } catch (error: unknown) {
-      this.logger.warn('Failed to read request body', error)
-      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
-      return undefined
-    }
-
-    if (raw.length === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
-      return undefined
-    }
-
-    try {
-      return JSON.parse(raw)
-    } catch (error: unknown) {
-      this.logger.warn('Invalid JSON body', error)
-      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
-      return undefined
-    }
-  }
-
-  private readBody(request: http.IncomingMessage): Promise<string> {
-    request.setEncoding('utf8')
-    return new Promise((resolve, reject) => {
-      let body = ''
-      request.on('data', (chunk: string) => {
-        body += chunk
-      })
-      request.on('end', () => {
-        resolve(body)
-      })
-      request.on('error', reject)
-    })
   }
 }

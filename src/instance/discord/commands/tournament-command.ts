@@ -444,7 +444,9 @@ export default {
                 content: `📅 **${pName}** is available:\n${response}`
               })
             }
-          } catch {}
+          } catch {
+            // Match thread notification failed
+          }
         }
 
         await context.interaction.reply({ content: response, flags: MessageFlags.Ephemeral })

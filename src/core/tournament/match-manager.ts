@@ -34,7 +34,7 @@ export class MatchManager {
     p1Wins: number,
     p2Wins: number
   ): Promise<{ status: MatchStatus; message: string }> {
-    this.logger?.info(
+    this.logger?.debug(
       `Match ${matchId}: submitReport — reporterPlayerId=${reporterPlayerId}, claimedWinnerId=${claimedWinnerId}, p1Wins=${p1Wins}, p2Wins=${p2Wins}`
     )
 
@@ -45,7 +45,7 @@ export class MatchManager {
     )
     if (preMatch?.discordThreadId !== undefined && this.checkProofAttachment !== undefined) {
       hasProof = await this.checkProofAttachment(preMatch.discordThreadId)
-      this.logger?.info(`Match ${matchId}: Proof attachment check — hasProof=${hasProof}`)
+      this.logger?.debug(`Match ${matchId}: Proof attachment check — hasProof=${hasProof}`)
     }
 
     return await this.databaseManager.transaction(async (txClient) => {
@@ -54,16 +54,16 @@ export class MatchManager {
         [matchId]
       )
       const match = matchResult.rows[0]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- query rows are typed non-optional but the DB may return no rows at runtime
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (match === undefined) {
         throw new Error('Match not found.')
       }
       if (match.status === MatchStatus.Completed || match.status === MatchStatus.Bye) {
-        this.logger?.info(`Match ${matchId}: Report rejected — match already ${match.status}`)
+        this.logger?.debug(`Match ${matchId}: Report rejected — match already ${match.status}`)
         return { status: match.status, message: 'This match is already completed.' }
       }
       if (match.status === MatchStatus.Disputed) {
-        this.logger?.info(`Match ${matchId}: Report rejected — match is disputed`)
+        this.logger?.debug(`Match ${matchId}: Report rejected — match is disputed`)
         return { status: MatchStatus.Disputed, message: 'This match is under dispute. Please wait for an admin.' }
       }
 
@@ -78,11 +78,11 @@ export class MatchManager {
 
       const scoreCheck = validateSeriesScore(tournament.bestOf, p1Wins, p2Wins)
       if (!scoreCheck.valid) {
-        this.logger?.info(`Match ${matchId}: Score validation failed — ${scoreCheck.message}`)
+        this.logger?.debug(`Match ${matchId}: Score validation failed — ${scoreCheck.message}`)
         return { status: match.status, message: scoreCheck.message }
       }
 
-      this.logger?.info(
+      this.logger?.debug(
         `Match ${matchId}: Inserting report for reporter=${reporterPlayerId}, claimedWinner=${claimedWinnerId}`
       )
       await txClient.query(
@@ -118,7 +118,7 @@ export class MatchManager {
             : MatchStatus.Disputed
       }
 
-      this.logger?.info(
+      this.logger?.debug(
         `Match ${matchId}: Report comparison — reports=${reports.length}/${expectedReportCount}, newStatus=${newStatus}`
       )
 
@@ -142,7 +142,7 @@ export class MatchManager {
         return { status: MatchStatus.Disputed, message: 'Reports conflict! Match is now disputed.' }
       }
 
-      this.logger?.info(`Match ${matchId}: Report submitted, waiting for opponent`)
+      this.logger?.debug(`Match ${matchId}: Report submitted, waiting for opponent`)
       return { status: MatchStatus.Reported, message: 'Report submitted. Waiting for opponent to report.' }
     })
   }
@@ -343,7 +343,7 @@ export class MatchManager {
         [matchId]
       )
       const match = matchResult.rows[0]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- query rows are typed non-optional but the DB may return no rows at runtime
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!match) return { success: false, message: 'Match not found.' }
 
       const isPlayer1 = match.player1Id === oldPlayerId
@@ -397,7 +397,7 @@ export class MatchManager {
         const otherPlayer = otherResult.rows[0]
         const newPlayer = newPlayerResult.rows[0]
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- query rows are typed non-optional but the DB may return no rows at runtime
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (otherPlayer !== undefined && newPlayer !== undefined) {
           const names = await this.getPlayerNames(tournament.id)
           const p1 = isPlayer1 ? newPlayer : otherPlayer
@@ -500,7 +500,7 @@ export class MatchManager {
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000)
 
-    this.logger?.info(`Match ${matchId}: resolveWinner — winnerId=${winnerId}`)
+    this.logger?.debug(`Match ${matchId}: resolveWinner — winnerId=${winnerId}`)
 
     const match = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
@@ -512,11 +512,11 @@ export class MatchManager {
     const tournament = await this.getTournament(match.tournamentId)
     if (tournament === undefined) return
 
-    this.logger?.info(
+    this.logger?.debug(
       `Tournament ${tournament.id}, Match ${matchId}: Resolving winner, round=${match.round}, matchIndex=${match.matchIndex}`
     )
 
-    this.logger?.info(`Match ${matchId}: Marking as completed`)
+    this.logger?.debug(`Match ${matchId}: Marking as completed`)
     await this.databaseManager.execute(
       'UPDATE "tournament_matches" SET "status" = $1, "winnerId" = $2, "completedAt" = $3, "player1Wins" = COALESCE($4, "player1Wins"), "player2Wins" = COALESCE($5, "player2Wins") WHERE "id" = $6',
       [MatchStatus.Completed, winnerId, now, p1Wins ?? undefined, p2Wins ?? undefined, matchId],
@@ -526,12 +526,12 @@ export class MatchManager {
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
     const strategy = this.bracketGenerator?.getStrategy(tournament.bracketFormat ?? 'single-elim')
     if (loserId !== undefined && match.loserNextMatchId !== undefined) {
-      this.logger?.info(
+      this.logger?.debug(
         `Tournament ${tournament.id}, Match ${matchId}: Advancing loser ${loserId} to match ${match.loserNextMatchId}`
       )
       await this.placePlayerIntoNextMatch(loserId, match.loserNextMatchId, match.matchIndex, tournament, now, database)
     } else if (loserId !== undefined && (strategy?.eliminatesLoser() ?? true)) {
-      this.logger?.info(`Tournament ${tournament.id}, Match ${matchId}: Eliminating player ${loserId}`)
+      this.logger?.debug(`Tournament ${tournament.id}, Match ${matchId}: Eliminating player ${loserId}`)
       await this.databaseManager.execute(
         'UPDATE "tournament_players" SET "status" = $1 WHERE "id" = $2',
         [PlayerStatus.Eliminated, loserId],
@@ -540,7 +540,7 @@ export class MatchManager {
     }
 
     if (match.status !== MatchStatus.Bye) {
-      this.logger?.info(`Match ${matchId}: Sending live update notification`)
+      this.logger?.debug(`Match ${matchId}: Sending live update notification`)
       const liveNames = await this.getPlayerNames(match.tournamentId)
       await this.notifications
         .announceLiveUpdate(tournament, match, winnerId, loserId, liveNames)
@@ -548,7 +548,7 @@ export class MatchManager {
     }
 
     if (match.discordThreadId !== undefined) {
-      this.logger?.info(`Match ${matchId}: Archiving thread ${match.discordThreadId}`)
+      this.logger?.debug(`Match ${matchId}: Archiving thread ${match.discordThreadId}`)
       const names = await this.getPlayerNames(match.tournamentId)
       const winnerName = names.get(winnerId) ?? 'Winner'
       const loserName = loserId === undefined ? 'BYE' : (names.get(loserId) ?? 'Loser')
@@ -595,18 +595,18 @@ export class MatchManager {
           }
         })
       } else {
-        this.logger?.info(
+        this.logger?.debug(
           `Tournament ${tournament.id}: Match ${matchId} resolved, no next match — waiting for other matches`
         )
       }
     } else {
-      this.logger?.info(
+      this.logger?.debug(
         `Match ${matchId}: Advancing winner ${winnerId} to next match ${match.nextMatchId} (slot based on matchIndex=${match.matchIndex})`
       )
       await this.placePlayerIntoNextMatch(winnerId, match.nextMatchId, match.matchIndex, tournament, now, database)
     }
 
-    this.logger?.info(`Tournament ${tournament.id}: Updating bracket embed after match ${matchId} resolution`)
+    this.logger?.debug(`Tournament ${tournament.id}: Updating bracket embed after match ${matchId} resolution`)
     const allMatches = await this.databaseManager.queryRows<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
       [tournament.id],
@@ -691,7 +691,7 @@ export class MatchManager {
       playerField = alternateField
     }
 
-    this.logger?.info(`Match ${nextMatchId}: Placing player ${playerId} into field ${playerField}`)
+    this.logger?.debug(`Match ${nextMatchId}: Placing player ${playerId} into field ${playerField}`)
     await this.databaseManager.execute(
       `UPDATE "tournament_matches" SET "${playerField}" = $1 WHERE "id" = $2`,
       [playerId, nextMatchId],
@@ -726,7 +726,7 @@ export class MatchManager {
       )
 
       if (p1 !== undefined && p2 !== undefined && tournament.discordChannelId !== undefined) {
-        this.logger?.info(`Match ${updatedNextMatch.id}: Spawning new match thread`)
+        this.logger?.debug(`Match ${updatedNextMatch.id}: Spawning new match thread`)
         const names = await this.getPlayerNames(tournament.id)
         const p1Name = names.get(p1.id) ?? 'Player 1'
         const p2Name = names.get(p2.id) ?? 'Player 2'
@@ -741,7 +741,7 @@ export class MatchManager {
         )
 
         if (threadId !== undefined) {
-          this.logger?.info(`Match ${updatedNextMatch.id}: Thread created (threadId=${threadId})`)
+          this.logger?.debug(`Match ${updatedNextMatch.id}: Thread created (threadId=${threadId})`)
           await this.databaseManager.execute(
             'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
             [threadId, updatedNextMatch.id],
@@ -761,7 +761,7 @@ export class MatchManager {
         )
       }
     } else {
-      this.logger?.info(
+      this.logger?.debug(
         `Match ${nextMatchId}: Waiting for second player (p1=${updatedNextMatch?.player1Id ?? 'none'}, p2=${updatedNextMatch?.player2Id ?? 'none'})`
       )
     }

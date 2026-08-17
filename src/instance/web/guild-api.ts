@@ -8,7 +8,7 @@ import { Status } from '../../common/connectable-instance.js'
 import type EventHelper from '../../common/event-helper.js'
 import { checkChatTriggers, InviteAcceptChat, RankChat } from '../../utility/chat-triggers.js'
 
-import { sendError, sendSuccess } from './api-utils.js'
+import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
 
 const GuildPrefix = '/api/guild'
@@ -194,7 +194,9 @@ export class GuildApiHandler {
           try {
             const profile = await this.application.mojangApi.profileByUuid(m.uuid)
             name = profile.name
-          } catch {}
+          } catch {
+            // Profile fetch failed, fallback to uuid
+          }
           return {
             uuid: m.uuid,
             name,
@@ -255,7 +257,7 @@ export class GuildApiHandler {
   }
 
   private async handleMemberAccept(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
@@ -295,7 +297,7 @@ export class GuildApiHandler {
   }
 
   private async handleMemberInvite(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
@@ -335,7 +337,7 @@ export class GuildApiHandler {
   }
 
   private async handleMemberPromote(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
@@ -375,7 +377,7 @@ export class GuildApiHandler {
   }
 
   private async handleMemberDemote(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
     if (!username || typeof username !== 'string') {
@@ -415,7 +417,7 @@ export class GuildApiHandler {
   }
 
   private async handleMemberSetrank(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username, rank } = body as { username?: string; rank?: string }
     if (!username || typeof username !== 'string') {
@@ -459,7 +461,7 @@ export class GuildApiHandler {
   }
 
   private async handleBlacklist(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { action, username } = body as { action?: string; username?: string }
     if (!action || typeof action !== 'string' || (action !== 'add' && action !== 'remove')) {
@@ -485,42 +487,6 @@ export class GuildApiHandler {
       this.logger.error('Failed to update blacklist', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to update blacklist', 500)
     }
-  }
-
-  private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
-    let raw: string
-    try {
-      raw = await this.readBody(request)
-    } catch (error: unknown) {
-      this.logger.warn('Failed to read request body', error)
-      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
-      return undefined
-    }
-    if (raw.length === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
-      return undefined
-    }
-    try {
-      return JSON.parse(raw)
-    } catch (error: unknown) {
-      this.logger.warn('Invalid JSON body', error)
-      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
-      return undefined
-    }
-  }
-
-  private readBody(request: http.IncomingMessage): Promise<string> {
-    request.setEncoding('utf8')
-    return new Promise((resolve, reject) => {
-      let body = ''
-      request.on('data', (chunk: string) => {
-        body += chunk
-      })
-      request.on('end', () => {
-        resolve(body)
-      })
-      request.on('error', reject)
-    })
   }
 
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {

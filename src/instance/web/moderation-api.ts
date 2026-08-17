@@ -5,7 +5,7 @@ import type { Logger } from 'log4js'
 import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 
-import { sendError, sendSuccess } from './api-utils.js'
+import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
 
 const ModerationPrefix = '/api/moderation'
@@ -71,9 +71,9 @@ export class ModerationApiHandler {
         sendError(response, 'FORBIDDEN', 'Forbidden', 403)
         return true
       }
-      const body = await this.readJsonBody(request, response)
+      const body = await readJsonBody<{ whitelist?: unknown; blacklist?: unknown }>(request, response, this.logger)
       if (body === undefined) return true
-      this.handlePut(response, body as { whitelist?: unknown; blacklist?: unknown })
+      this.handlePut(response, body)
       return true
     }
 
@@ -115,43 +115,5 @@ export class ModerationApiHandler {
         500
       )
     }
-  }
-
-  private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
-    let raw: string
-    try {
-      raw = await this.readBody(request)
-    } catch (error: unknown) {
-      this.logger.warn('Failed to read request body', error)
-      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
-      return undefined
-    }
-
-    if (raw.length === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
-      return undefined
-    }
-
-    try {
-      return JSON.parse(raw)
-    } catch (error: unknown) {
-      this.logger.warn('Invalid JSON body', error)
-      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
-      return undefined
-    }
-  }
-
-  private readBody(request: http.IncomingMessage): Promise<string> {
-    request.setEncoding('utf8')
-    return new Promise((resolve, reject) => {
-      let body = ''
-      request.on('data', (chunk: string) => {
-        body += chunk
-      })
-      request.on('end', () => {
-        resolve(body)
-      })
-      request.on('error', reject)
-    })
   }
 }

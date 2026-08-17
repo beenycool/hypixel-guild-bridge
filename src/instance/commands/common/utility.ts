@@ -132,7 +132,7 @@ export async function fetchAuroraPing(uuid: string, apiKey: string): Promise<Aur
   try {
     const url = `${AuroraPingBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
     const response = await httpClient.get<{ success: boolean; data?: AuroraPingEntry[] }>(url, {
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-Ping/1.0.0' }
     })
     if (!response.data.success || !response.data.data || response.data.data.length === 0) return undefined
@@ -145,7 +145,7 @@ export async function fetchAuroraPing(uuid: string, apiKey: string): Promise<Aur
 export interface AuroraWinstreakData {
   uuid: string
   winstreak: number
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case field required by external API contract
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   accurate_winstreak: number | null
   estimated: boolean
   confirmed: number
@@ -157,7 +157,7 @@ export async function fetchAuroraWinstreak(uuid: string, apiKey: string): Promis
   try {
     const url = `${AuroraWinstreakBaseUrl}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
     const response = await httpClient.get<{ success: boolean; data?: AuroraWinstreakData }>(url, {
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       headers: { 'User-Agent': 'Hypixel-Guild-Discord-Bridge-AuroraApi/1.0.0' }
     })
     if (!response.data.success || !response.data.data) return undefined

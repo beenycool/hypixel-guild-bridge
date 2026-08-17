@@ -21,7 +21,7 @@ import {
   fetchParticipantCount
 } from '../discord/features/tournament-buttons.js'
 
-import { sendError, sendSuccess } from './api-utils.js'
+import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
 
 const TournamentPrefix = '/api/tournament'
@@ -470,7 +470,7 @@ export class TournamentApiHandler {
   }
 
   private async handleConfirm(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const matchId = body.matchId
@@ -502,7 +502,7 @@ export class TournamentApiHandler {
   }
 
   private async handleSubstitute(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const matchId = body.matchId
@@ -547,7 +547,7 @@ export class TournamentApiHandler {
     response: http.ServerResponse,
     auth: { permission: Permission; userId?: string }
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const bridgeId = body.bridgeId
@@ -760,7 +760,7 @@ export class TournamentApiHandler {
     response: http.ServerResponse,
     tournamentId: number
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const guildId = typeof body.guildId === 'string' ? body.guildId : undefined
@@ -784,7 +784,7 @@ export class TournamentApiHandler {
   }
 
   private async handleForfeit(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const matchId = body.matchId
@@ -804,7 +804,7 @@ export class TournamentApiHandler {
   }
 
   private async handleExtend(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const matchId = body.matchId
@@ -838,7 +838,7 @@ export class TournamentApiHandler {
     tournamentId: number,
     auth: { permission: Permission; userId?: string }
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const matchId = body.matchId
@@ -921,7 +921,7 @@ export class TournamentApiHandler {
     response: http.ServerResponse,
     tournamentId: number
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const playerUuid = body.playerUuid
@@ -950,7 +950,7 @@ export class TournamentApiHandler {
     response: http.ServerResponse,
     tournamentId: number
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const playerUuid = body.playerUuid
@@ -974,7 +974,7 @@ export class TournamentApiHandler {
     tournamentId: number,
     auth: { permission: Permission; userId?: string }
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const seeds = body.seeds
@@ -1013,7 +1013,7 @@ export class TournamentApiHandler {
     tournamentId: number,
     auth: { permission: Permission; userId?: string }
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const updates: {
@@ -1103,7 +1103,7 @@ export class TournamentApiHandler {
     tournamentId: number,
     auth: { permission: Permission; userId?: string }
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const matchId = body.matchId
@@ -1186,7 +1186,7 @@ export class TournamentApiHandler {
     response: http.ServerResponse,
     auth: { permission: Permission; userId?: string }
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
     const bridgeId = body.bridgeId
@@ -1356,53 +1356,6 @@ export class TournamentApiHandler {
     }
 
     return { resolved: resolved.length, matches: resolved }
-  }
-
-  private async readJsonBody(
-    request: http.IncomingMessage,
-    response: http.ServerResponse
-  ): Promise<Record<string, unknown> | undefined> {
-    let raw: string
-    try {
-      raw = await this.readBody(request)
-    } catch {
-      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
-      return undefined
-    }
-
-    if (raw.length === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
-      return undefined
-    }
-
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(raw)
-    } catch {
-      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
-      return undefined
-    }
-
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      sendError(response, 'VALIDATION_ERROR', 'Body must be a JSON object', 400)
-      return undefined
-    }
-
-    return parsed as Record<string, unknown>
-  }
-
-  private readBody(request: http.IncomingMessage): Promise<string> {
-    request.setEncoding('utf8')
-    return new Promise((resolve, reject) => {
-      let body = ''
-      request.on('data', (chunk: string) => {
-        body += chunk
-      })
-      request.on('end', () => {
-        resolve(body)
-      })
-      request.on('error', reject)
-    })
   }
 
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {

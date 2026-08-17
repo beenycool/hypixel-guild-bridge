@@ -385,7 +385,9 @@ export default class MessageToImage {
           context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
           width += messageWidth
           continue
-        } catch {}
+        } catch {
+          // Fall back to text rendering if skin fails to load
+        }
       }
 
       if (colorCode) {

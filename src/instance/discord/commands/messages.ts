@@ -14,7 +14,9 @@ async function getBaseUrl(context: Readonly<DiscordCommandContext>): Promise<str
       `SELECT "value" FROM "app_settings" WHERE "key" = 'public_url'`
     )
     if (rows.length > 0 && rows[0].value) return rows[0].value
-  } catch {}
+  } catch {
+    // Database lookup failed, fall back to environment defaults
+  }
 
   const herokuApp = process.env.HEROKU_APP_NAME
   if (herokuApp) return `https://${herokuApp}.herokuapp.com`

@@ -22,7 +22,9 @@ export class RankupWsEvents {
       try {
         const profile = await this.application.mojangApi.profileByUuid(data.uuid)
         data.name = profile.name
-      } catch {}
+      } catch {
+        // Mojang profile lookup failed
+      }
       this.broadcast({ type: 'rankup.reviewAdded', data })
     })
 
@@ -36,7 +38,9 @@ export class RankupWsEvents {
       try {
         const profile = await this.application.mojangApi.profileByUuid(data.uuid)
         data.name = profile.name
-      } catch {}
+      } catch {
+        // Mojang profile lookup failed
+      }
       this.broadcast({ type: 'rankup.historyAppended', data })
     })
   }
@@ -54,7 +58,9 @@ export class RankupWsEvents {
     return 0
   }
 
-  public start(): void {}
+  public start(): void {
+    // Event-driven: no background timer required
+  }
 
   public stop(): void {
     this.subscribers.clear()

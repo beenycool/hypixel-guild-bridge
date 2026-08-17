@@ -27,7 +27,9 @@ export class SettingsWsEvents {
     this.subscribers.delete(socket)
   }
 
-  public start(): void {}
+  public start(): void {
+    // Event-driven: no background timer required
+  }
 
   public stop(): void {
     this.subscribers.clear()

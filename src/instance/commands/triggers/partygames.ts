@@ -14,7 +14,7 @@ export default class PartyGames extends HypixelPlayerCommand {
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const arcade = player.stats?.arcade as
       | { partyGames?: { wins: number; roundWins: number; stars: number } }

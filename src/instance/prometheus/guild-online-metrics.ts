@@ -217,7 +217,9 @@ export default class GuildOnlineMetrics {
             const onlineUsernames = guildList.members.filter((member) => member.online).map((member) => member.username)
             const onlineProfiles = await this.resolveOnlineProfiles(onlineUsernames)
             onlineUuids = new Set([...onlineProfiles.values()].filter((uuid): uuid is string => uuid !== undefined))
-          } catch {}
+          } catch {
+            // Online UUID resolution failed, proceed with empty set
+          }
 
           const lastSeenRows = await app.core.databaseManager.queryRows<{ memberUuid: string; lastSeenAt: number }>(
             'SELECT "memberUuid", "lastSeenAt" FROM "guildMemberStates" WHERE "instanceName" = $1',

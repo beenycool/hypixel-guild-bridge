@@ -37,7 +37,7 @@ export class TournamentChannelManager {
     if (guild === undefined) return undefined
 
     const channelName = `🏆-${tournamentName.toLowerCase().replaceAll(/\s+/g, '-')}`
-    this.application.logger.info(
+    this.application.logger.debug(
       `createBracketChannel: Creating channel "${channelName}" in guild ${guildId} (${guild.name}), category=${parentCategoryId ?? 'none'}`
     )
     const channel = await guild.channels
@@ -54,12 +54,12 @@ export class TournamentChannelManager {
         reason: `Tournament ${tournamentName} bracket channel`
       })
       .catch((error: unknown): TextChannel | undefined => {
-        this.application.logger.info(`createBracketChannel: Failed to create channel: ${String(error)}`)
+        this.application.logger.warn(`createBracketChannel: Failed to create channel: ${String(error)}`)
         return undefined
       })
 
     if (channel !== undefined) {
-      this.application.logger.info(`createBracketChannel: Channel created — ${channel.name} (${channel.id})`)
+      this.application.logger.debug(`createBracketChannel: Channel created — ${channel.name} (${channel.id})`)
     }
     return channel
   }
@@ -67,11 +67,11 @@ export class TournamentChannelManager {
   public async createTournamentCategory(guildId: string, tournamentName: string): Promise<string | undefined> {
     const client = this.application.discordInstance.getClient()
     const guild = await client.guilds.fetch(guildId).catch(() => {
-      this.application.logger.info(`createTournamentCategory: Failed to fetch guild ${guildId}`)
+      this.application.logger.warn(`createTournamentCategory: Failed to fetch guild ${guildId}`)
       return
     })
     if (guild === undefined) return undefined
-    this.application.logger.info(
+    this.application.logger.debug(
       `createTournamentCategory: Creating category for "${tournamentName}" in guild ${guildId} (${guild.name})`
     )
     const category = await guild.channels
@@ -81,11 +81,11 @@ export class TournamentChannelManager {
         reason: `Tournament ${tournamentName} category`
       })
       .catch((error: unknown) => {
-        this.application.logger.info(`createTournamentCategory: Failed to create category: ${String(error)}`)
+        this.application.logger.warn(`createTournamentCategory: Failed to create category: ${String(error)}`)
         return
       })
     if (category !== undefined) {
-      this.application.logger.info(`createTournamentCategory: Category created — ${category.name} (${category.id})`)
+      this.application.logger.debug(`createTournamentCategory: Category created — ${category.name} (${category.id})`)
     }
     return category?.id
   }
@@ -97,12 +97,12 @@ export class TournamentChannelManager {
   ): Promise<string | undefined> {
     const client = this.application.discordInstance.getClient()
     const guild = await client.guilds.fetch(guildId).catch(() => {
-      this.application.logger.info(`createLiveChannel: Failed to fetch guild ${guildId}`)
+      this.application.logger.warn(`createLiveChannel: Failed to fetch guild ${guildId}`)
       return
     })
     if (guild === undefined) return undefined
     const slug = tournamentName.toLowerCase().replaceAll(/\s+/g, '-')
-    this.application.logger.info(
+    this.application.logger.debug(
       `createLiveChannel: Creating live channel "🏆-${slug}-live" in guild ${guildId} (${guild.name})`
     )
     const channel = await guild.channels
@@ -119,11 +119,11 @@ export class TournamentChannelManager {
         reason: `Tournament ${tournamentName} live updates`
       })
       .catch((error: unknown) => {
-        this.application.logger.info(`createLiveChannel: Failed to create channel: ${String(error)}`)
+        this.application.logger.warn(`createLiveChannel: Failed to create channel: ${String(error)}`)
         return
       })
     if (channel !== undefined) {
-      this.application.logger.info(`createLiveChannel: Live channel created — ${channel.name} (${channel.id})`)
+      this.application.logger.debug(`createLiveChannel: Live channel created — ${channel.name} (${channel.id})`)
     }
     return channel?.id
   }
@@ -201,7 +201,7 @@ export class TournamentChannelManager {
     const textChannel = channel
     const threadName = `Round ${match.round} - Match ${match.matchIndex + 1}: ${p1Name} vs ${p2Name}`
 
-    this.application.logger.info(`createMatchThread: Creating thread "${threadName}" in channel ${parentChannelId}`)
+    this.application.logger.debug(`createMatchThread: Creating thread "${threadName}" in channel ${parentChannelId}`)
 
     const thread = await textChannel.threads
       .create({
@@ -211,19 +211,16 @@ export class TournamentChannelManager {
         reason: `Match thread for ${p1Name} vs ${p2Name}`
       })
       .catch((error: unknown) => {
-        this.application.logger.info(`createMatchThread: Failed to create thread: ${String(error)}`)
+        this.application.logger.warn(`createMatchThread: Failed to create thread: ${String(error)}`)
         return
       })
 
     if (thread === undefined) return undefined
 
-    this.application.logger.info(`createMatchThread: Thread created — ${thread.id}`)
+    this.application.logger.debug(`createMatchThread: Thread created — ${thread.id}`)
 
     const guild = textChannel.guild
     if (player1.discordId != undefined) {
-      this.application.logger.info(
-        `createMatchThread: Adding player1 discord ${player1.discordId} to thread ${thread.id}`
-      )
       if (await this.isGuildMember(guild.id, player1.discordId)) {
         await this.addMemberWithRetry(thread, player1.discordId)
       } else {
@@ -233,9 +230,6 @@ export class TournamentChannelManager {
       }
     }
     if (player2.discordId != undefined) {
-      this.application.logger.info(
-        `createMatchThread: Adding player2 discord ${player2.discordId} to thread ${thread.id}`
-      )
       if (await this.isGuildMember(guild.id, player2.discordId)) {
         await this.addMemberWithRetry(thread, player2.discordId)
       } else {
@@ -389,7 +383,6 @@ export class TournamentChannelManager {
     const client = this.application.discordInstance.getClient()
     const thread = await client.channels.fetch(threadId).catch(() => undefined)
     if (!thread?.isTextBased()) {
-      this.application.logger.info(`checkProofAttachment: Thread ${threadId} not found or not text-based`)
       return false
     }
     const messages = await thread.messages.fetch({ limit: 50 }).catch(() => undefined)
@@ -397,7 +390,6 @@ export class TournamentChannelManager {
     const hasProof = messages.some(
       (m) => m.attachments.size > 0 || m.embeds.some((embed) => embed.image !== null || embed.url !== null)
     )
-    this.application.logger.info(`checkProofAttachment: Thread ${threadId} — hasProof=${hasProof}`)
     return hasProof
   }
 
@@ -424,7 +416,6 @@ export class TournamentChannelManager {
         }
       }
     }
-    this.application.logger.info(`getProofUrls: Thread ${threadId} — collected ${urls.length} proof URL(s)`)
     return urls
   }
 
@@ -436,13 +427,12 @@ export class TournamentChannelManager {
     players: TournamentPlayer[],
     playerNamesMap: Map<number, string>
   ): Promise<void> {
-    this.application.logger.info(
+    this.application.logger.debug(
       `updateBracketEmbed: Tournament ${tournament.id} — updating bracket embed (messageId=${messageId})`
     )
     const client = this.application.discordInstance.getClient()
     const channel = await client.channels.fetch(parentChannelId).catch(() => undefined)
     if (!channel || channel.type !== ChannelType.GuildText) {
-      this.application.logger.info(`updateBracketEmbed: Channel ${parentChannelId} not available`)
       return
     }
 

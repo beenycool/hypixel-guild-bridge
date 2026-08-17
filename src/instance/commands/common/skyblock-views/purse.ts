@@ -10,7 +10,7 @@ export const purseView: SkyblockView = {
   description: "Returns a player's skyblock coins",
   example: 'sb %s purse',
   needsProfile: true,
-  // eslint-disable-next-line @typescript-eslint/require-await -- SkyblockView contract requires Promise<string>
+  // eslint-disable-next-line @typescript-eslint/require-await
   async render(
     context: ChatCommandContext,
     username: string,

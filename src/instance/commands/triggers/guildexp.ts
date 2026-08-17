@@ -121,7 +121,7 @@ export default class GuildExperience extends ChatCommandHandler {
     const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
     const weeklyExp = member.weeklyExperience ?? 0
     const joinedAtTime =
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: member data may lack joinedAt at runtime despite the type
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       typeof member.joinedAt === 'number' ? member.joinedAt : member.joinedAt ? member.joinedAt.getTime() : Date.now()
     const daysInGuild = (Date.now() - joinedAtTime) / (1000 * 60 * 60 * 24)
 
@@ -171,7 +171,7 @@ export default class GuildExperience extends ChatCommandHandler {
         })
 
       const nextRule = nextRules[0]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: nextRules may be empty at runtime despite the type
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (nextRule) {
         const gexpNeeded = Math.max(0, nextRule.minWeeklyGexp - weeklyExp)
         const gexpProgress = `${weeklyExp.toLocaleString('en-US')} / ${nextRule.minWeeklyGexp.toLocaleString('en-US')} GEXP`

@@ -116,13 +116,17 @@ export class PlayerApiHandler {
           joinedAt: member.joinedAt.getTime()
         }
       }
-    } catch {}
+    } catch {
+      // Guild fetch failed or player is not in a guild
+    }
 
     let skyblockProfiles: unknown[] | undefined
     try {
       const raw = await this.application.hypixelApi.getSkyblockProfiles(uuid, { raw: true })
       skyblockProfiles = raw as unknown as unknown[]
-    } catch {}
+    } catch {
+      // Skyblock profile fetch failed
+    }
 
     sendSuccess(response, {
       uuid,

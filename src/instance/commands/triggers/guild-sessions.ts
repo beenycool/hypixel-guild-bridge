@@ -61,19 +61,18 @@ export default class GuildSessions extends ChatCommandHandler {
     }
 
     try {
+      /* eslint-disable @typescript-eslint/naming-convention */
       const response = await httpClient.get<{
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- API response field name
         guild_id: string
         name: string
         from: number
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- API response field name
         from_readable: string
         members?: Record<string, { gexp?: { total: number } }>
       }>(`https://api.urchin.gg/v3/guild/sessions/${period}`, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the API
         headers: { 'X-API-Key': apiKey },
         params: { guild: guildName }
       })
+      /* eslint-enable @typescript-eslint/naming-convention */
 
       const members = response.data.members ?? {}
       if (Object.keys(members).length === 0) {

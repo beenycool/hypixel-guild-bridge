@@ -77,7 +77,7 @@ export class BridgeEvaluator {
     for (const member of guild.members) {
       currentGuildUuids.add(member.uuid)
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Hypixel API may omit weeklyExperience at runtime despite the type
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const weeklyGexp = member.weeklyExperience ?? 0
 
       const memberLastSeen = lastSeenByUuid.get(member.uuid)

@@ -242,7 +242,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     ): string => {
       if (typeof keyOrSelector === 'string') {
         const override = overrides[keyOrSelector]
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: override map may lack the key at runtime despite Record type
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (override !== undefined) return override
       }
       return (this.i18n.t as unknown as TranslatorFunction)(keyOrSelector, {
@@ -288,7 +288,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
         try {
           const guild = await this.hypixelApi.getGuild('player', botUuid)
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: API may return no guild for unknown players despite the type
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (guild?.name) {
             this.core.bridgeConfigurations.setGuildName(bridgeId, guild.name)
             this.logger.info(`Resolved guild for bridge ${bridgeId}: ${guild.name}`)

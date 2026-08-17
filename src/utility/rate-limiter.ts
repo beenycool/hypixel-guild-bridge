@@ -24,6 +24,15 @@ export default class RateLimiter {
     this.currentTokens--
   }
 
+  tryAcquire(): boolean {
+    this.refill()
+    if (this.currentTokens > 0) {
+      this.currentTokens--
+      return true
+    }
+    return false
+  }
+
   private refill(): void {
     const now = Date.now()
     const elapsed = now - this.lastRefill

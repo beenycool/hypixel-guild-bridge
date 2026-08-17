@@ -6,7 +6,7 @@ import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
 
-import { sendError, sendSuccess } from './api-utils.js'
+import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { buildTokenSet, verifyToken } from './auth.js'
 
 interface BridgeListEntry {
@@ -271,7 +271,7 @@ export class RankupApiHandler {
     response: http.ServerResponse,
     bridgeId: string
   ): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
 
     const error = this.validateRulesBody(body)
@@ -414,7 +414,7 @@ export class RankupApiHandler {
   }
 
   private async handleRunCheck(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
-    const body = await this.readJsonBody(request, response)
+    const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
 
     if (typeof body !== 'object' || body === null || Array.isArray(body)) {
@@ -599,7 +599,9 @@ export class RankupApiHandler {
         try {
           const profile = await this.application.mojangApi.profileByUuid(uuid)
           names.set(uuid, profile.name)
-        } catch {}
+        } catch {
+          // Profile lookup failed
+        }
       })
     )
     return items.map((item) => ({ ...item, name: names.get(item.uuid) }))
@@ -613,47 +615,6 @@ export class RankupApiHandler {
       return undefined
     }
     return value
-  }
-
-  private async readJsonBody(request: http.IncomingMessage, response: http.ServerResponse): Promise<unknown> {
-    let raw: string
-    try {
-      raw = await this.readBody(request)
-    } catch (error: unknown) {
-      this.logger.warn('Failed to read request body', error)
-      sendError(response, 'INTERNAL_ERROR', 'Failed to read request body', 400)
-      return undefined
-    }
-
-    if (raw.length === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
-      return undefined
-    }
-
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(raw)
-    } catch (error: unknown) {
-      this.logger.warn('Invalid JSON body', error)
-      sendError(response, 'VALIDATION_ERROR', 'Invalid JSON body', 400)
-      return undefined
-    }
-
-    return parsed
-  }
-
-  private readBody(request: http.IncomingMessage): Promise<string> {
-    request.setEncoding('utf8')
-    return new Promise((resolve, reject) => {
-      let body = ''
-      request.on('data', (chunk: string) => {
-        body += chunk
-      })
-      request.on('end', () => {
-        resolve(body)
-      })
-      request.on('error', reject)
-    })
   }
 
   private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {

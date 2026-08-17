@@ -77,24 +77,19 @@ const BORDIC_MODE_LABELS: Record<string, string> = {
   four_three_underworld: '3s UW',
   four_four_underworld: '4s UW'
 }
-/* eslint-enable @typescript-eslint/naming-convention */
-
+/* eslint-disable @typescript-eslint/naming-convention */
 const SUBMODE_STAT_FIELD: Record<string, keyof Omit<BedwarsSubmodeStats, 'name'>> = {
   wins: 'wins',
   losses: 'losses',
   kills: 'kills',
   deaths: 'deaths',
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case key from the API
   final_kills: 'finalKills',
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case key from the API
   final_deaths: 'finalDeaths',
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case key from the API
   beds_broken: 'bedsBroken',
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case key from the API
   beds_lost: 'bedsLost',
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case key from the API
   games_played: 'gamesPlayed'
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 const SUBMODE_STAT_NAMES = Object.keys(SUBMODE_STAT_FIELD).toSorted()
 
@@ -268,7 +263,7 @@ export default class Bedwars extends HypixelPlayerCommand {
     try {
       const url = `${Bedwars.BordicSessionsBaseUrl}/${period}?key=${encodeURIComponent(apiKey)}&uuid=${uuid}`
       const response = await httpClient.get<BordicSessionResponse>(url, {
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+        // eslint-disable-next-line @typescript-eslint/naming-convention
         headers: { 'User-Agent': Bedwars.BordicSessionsUserAgent }
       })
 

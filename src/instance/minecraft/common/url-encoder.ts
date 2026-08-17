@@ -5,7 +5,9 @@ export function stufEncode(message: string): string {
     .map((part) => {
       try {
         if (part.startsWith('https:') || part.startsWith('http')) return encode(part)
-      } catch {}
+      } catch {
+        // Ignore encoding errors
+      }
       return part
     })
     .join(' ')
@@ -18,7 +20,9 @@ export function stufDecode(message: string): string {
     .map((part) => {
       try {
         if (part.startsWith('l$')) return decode(part)
-      } catch {}
+      } catch {
+        // Ignore decoding errors
+      }
 
       return part
     })

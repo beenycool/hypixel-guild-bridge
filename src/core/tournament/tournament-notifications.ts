@@ -377,7 +377,7 @@ export class TournamentNotifications {
     tournamentName: string,
     playerName: string,
     streamUrl: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- API stub: reserved for per-channel announcements
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     channelId: string
   ): Promise<void> {
     this.application.logger.info(`announceStream: ${playerName} streaming ${tournamentName} at ${streamUrl}`)

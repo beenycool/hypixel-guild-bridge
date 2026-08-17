@@ -122,7 +122,7 @@ export class LunarService {
     return new Promise<string | undefined>((resolve, reject) => {
       const ws = new WebSocket(AUTHENTICATOR_URL, {
         headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           'User-Agent': USER_AGENT
         }
       })
@@ -183,20 +183,19 @@ export class LunarService {
 
     return new Promise<void>((resolve, reject) => {
       const parsed = new URL(JOIN_SERVER_URL)
+      /* eslint-disable @typescript-eslint/naming-convention */
       const request = https.request(
         {
           hostname: parsed.hostname,
           path: parsed.pathname,
           method: 'POST',
           headers: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'Content-Type': 'application/json',
-            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'Content-Length': Buffer.byteLength(postData),
-            // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
             'User-Agent': USER_AGENT
           }
         },
+        /* eslint-enable @typescript-eslint/naming-convention */
         (response) => {
           if (
             response.statusCode === 204 ||
@@ -220,7 +219,7 @@ export class LunarService {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(GAME_WS_URL, {
         headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the protocol
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           'User-Agent': USER_AGENT
         }
       })

@@ -109,7 +109,9 @@ export default class AutoLinker extends Instance<InstanceType.Utility> {
             linked++
             break
           }
-        } catch {}
+        } catch {
+          // Hypixel player fetch failed
+        }
       }
     }
 

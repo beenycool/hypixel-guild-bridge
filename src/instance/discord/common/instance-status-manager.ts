@@ -150,7 +150,9 @@ export class InstanceStatusManager {
     })
   }
 
-  public async send(): Promise<void> {}
+  public async send(): Promise<void> {
+    // Stub implementation for backwards compatibility
+  }
 
   private generateButtons(): MessageActionRowComponentData[] {
     return [

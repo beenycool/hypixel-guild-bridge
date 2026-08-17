@@ -42,21 +42,19 @@ export class DeadlineScheduler {
 
   public async checkDeadlines(): Promise<void> {
     if (this.isRunning) {
-      this.logger.info('DeadlineScheduler: Already running, skipping cycle')
+      this.logger.debug('DeadlineScheduler: Already running, skipping cycle')
       return
     }
     this.isRunning = true
 
     try {
       const now = Math.floor(Date.now() / 1000)
-      this.logger.info(`DeadlineScheduler: Running check at timestamp ${now}`)
+      this.logger.debug(`DeadlineScheduler: Running check at timestamp ${now}`)
 
       const activeTournaments = await this.databaseManager.queryRows<Tournament>(
         'SELECT * FROM "tournaments" WHERE "status" = $1',
         [TournamentStatus.Active]
       )
-
-      this.logger.info(`DeadlineScheduler: Found ${activeTournaments.length} active tournament(s)`)
 
       for (const tournament of activeTournaments) {
         const matches = await this.databaseManager.queryRows<TournamentMatch>(
@@ -66,8 +64,6 @@ export class DeadlineScheduler {
              AND "deadlineAt" IS NOT NULL`,
           [tournament.id, MatchStatus.Active, MatchStatus.Reported, MatchStatus.Disputed]
         )
-
-        this.logger.info(`Tournament ${tournament.id}: Checking deadlines for ${matches.length} match(es)`)
 
         const names = await this.getPlayerNames(tournament.id)
 
@@ -120,10 +116,6 @@ export class DeadlineScheduler {
                   this.logger.error(`Failed to send deadline warning for match ${match.id}:`, error)
                 })
             }
-          } else {
-            this.logger.info(
-              `Match ${match.id}: Deadline OK (${Math.floor(timeRemaining / 3600)}h remaining, warningsSent=${match.warningsSent})`
-            )
           }
         }
       }

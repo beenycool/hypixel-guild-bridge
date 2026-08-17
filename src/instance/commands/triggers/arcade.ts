@@ -104,9 +104,9 @@ interface ArcadeGameStats {
   kills?: number
   deaths?: number
   losses?: number
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   KDRatio?: number
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   WLRatio?: number
   roundWins?: number
   stars?: number
@@ -252,7 +252,7 @@ export default class Arcade extends HypixelPlayerCommand {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- override of the abstract async onPlayer; body is synchronous
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const { subcommand } = this.parseArgs(context)
     const stats = player.stats?.arcade as ArcadeStats | undefined

@@ -10,7 +10,7 @@ export const timecharmsView: SkyblockView = {
   example: 'sb %s timecharms',
   needsProfile: true,
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
+  // eslint-disable-next-line @typescript-eslint/require-await
   async render(
     context: ChatCommandContext,
     username: string,

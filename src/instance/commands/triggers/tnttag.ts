@@ -14,17 +14,17 @@ export default class Tnttag extends HypixelPlayerCommand {
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- base class contract requires Promise<string>
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const tntGames = player.stats?.tntgames
     if (tntGames === undefined) return `${givenUsername} has never played TNT Tag.` + this.formatPingSuffix()
 
     const tnttag = tntGames.tnttag
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: Hypixel API may omit fields despite the types
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (tnttag?.wins === undefined) return `${givenUsername} has never played TNT Tag.` + this.formatPingSuffix()
 
     const wins = tnttag.wins
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: Hypixel API may omit fields despite the types
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const kills = tnttag.kills ?? 0
     const deaths = (tnttag as { deaths?: number }).deaths ?? 0
     const kdr = deaths > 0 ? (kills / deaths).toFixed(2) : kills > 0 ? '\u221E' : '0.00'

@@ -91,8 +91,7 @@ export class DatabaseManager {
         const pool = this.getPool()
 
         let timeout: NodeJS.Timeout | undefined
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- Promise executor requires two params; resolve is intentionally unused (only the timeout rejection is used)
-        const timeoutPromise = new Promise((_, reject) => {
+        const timeoutPromise = new Promise((unusedResolve, reject) => {
           timeout = setTimeout(() => {
             reject(new Error('Database write operation timed out'))
           }, 30_000)
@@ -122,8 +121,7 @@ export class DatabaseManager {
         try {
           await client.query('BEGIN')
 
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- Promise executor requires two params; resolve is intentionally unused (only the timeout rejection is used)
-          const timeoutPromise = new Promise((_, reject) => {
+          const timeoutPromise = new Promise((unusedResolve, reject) => {
             timeout = setTimeout(() => {
               reject(new Error('Database transaction operation timed out'))
             }, 30_000)
@@ -221,17 +219,16 @@ export class DatabaseManager {
     } else {
       const ssl = this.resolveSsl(databaseUrl)
       const maxConnections = this.resolveMaxConnections()
+      /* eslint-disable @typescript-eslint/naming-convention */
       this.pool = new Pool({
         connectionString: databaseUrl,
         ssl: ssl ? { rejectUnauthorized: false } : undefined,
         max: maxConnections,
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case option required by the pg library
         statement_timeout: 30_000,
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case option required by the pg library
         lock_timeout: 10_000,
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case option required by the pg library
         idle_in_transaction_session_timeout: 30_000
       }) as unknown as PoolLike
+      /* eslint-enable @typescript-eslint/naming-convention */
       this.logger.info(`Using PostgreSQL database connection with max connections: ${maxConnections}`)
     }
 
