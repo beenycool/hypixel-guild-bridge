@@ -37,6 +37,7 @@ function resolveDemotion(rule: DemotionRule, reason: string): EvaluateResult {
   return { action: 'demote', targetRank: rule.targetRank, reason }
 }
 
+// checks if a guild member qualifies for a promo or needs to get demoted/kicked
 export class RulesEvaluator {
   public evaluate(
     member: MemberStats,
@@ -46,6 +47,7 @@ export class RulesEvaluator {
     excludedPlayers: string[],
     rankPriority: string[]
   ): EvaluateResult {
+    // don't touch excluded members (e.g. guild master, alts, officers)
     if (excludedPlayers.includes(member.uuid) || excludedRanks.includes(member.rank)) {
       return { action: 'none' }
     }
@@ -53,6 +55,7 @@ export class RulesEvaluator {
     const currentRankIndex = rankPriority.indexOf(member.rank.toLowerCase())
     if (currentRankIndex === -1) return { action: 'none' }
 
+    // sort available promotions by highest priority rank first
     const possiblePromotions = promotionRules
       .filter((rule) => rankPriority.indexOf(rule.targetRank.toLowerCase()) > currentRankIndex)
       .toSorted(
@@ -71,6 +74,7 @@ export class RulesEvaluator {
       }
     }
 
+    // check if member is slacking and due for demote/kick
     const demotionRule = demotionRules.find((r) => r.fromRank.toLowerCase() === member.rank.toLowerCase())
     if (demotionRule && daysInGuild > demotionRule.gracePeriod) {
       if (member.weeklyGexp < demotionRule.maxWeeklyGexp) {

@@ -233,7 +233,7 @@ export default class GuildOnlineMetrics {
             const profile = await this.app.mojangApi.profileByUuid(member.uuid).catch(() => undefined)
             const memberName = profile?.name ?? member.uuid
 
-            /* eslint-disable @typescript-eslint/naming-convention -- Prometheus label names must match labelNames declarations */
+            /* eslint-disable @typescript-eslint/naming-convention */
             const labels = {
               name: instanceName,
               member_uuid: member.uuid,
@@ -336,7 +336,7 @@ export default class GuildOnlineMetrics {
           await guild.members.fetch().catch(() => undefined)
           const roles = await guild.roles.fetch()
           for (const role of roles.values()) {
-            /* eslint-disable @typescript-eslint/naming-convention -- Prometheus label names must match labelNames declarations */
+            /* eslint-disable @typescript-eslint/naming-convention */
             this.discordRoleMembers.set(
               { guild_id: guild.id, role_id: role.id, role_name: role.name },
               role.members.size
@@ -369,7 +369,7 @@ export default class GuildOnlineMetrics {
       rankCounts.set(rankLabel, (rankCounts.get(rankLabel) ?? 0) + 1)
     }
     for (const [rankName, count] of rankCounts) {
-      /* eslint-disable @typescript-eslint/naming-convention -- Prometheus label name must match labelNames declaration */
+      /* eslint-disable @typescript-eslint/naming-convention */
       this.guildRankMembers.set({ name: instanceName, rank_name: rankName }, count)
       /* eslint-enable @typescript-eslint/naming-convention */
     }

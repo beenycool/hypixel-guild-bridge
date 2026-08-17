@@ -1,11 +1,12 @@
 import crypto from 'node:crypto'
 
 export function sha1Hex(...buffers: Buffer[]): Buffer {
-  const h = crypto.createHash('sha1')
-  for (const buf of buffers) h.update(buf)
-  return h.digest()
+  const hash = crypto.createHash('sha1')
+  for (const buffer of buffers) hash.update(buffer)
+  return hash.digest()
 }
 
+// minecraft's cursed two's complement sha1 hex formatting (why did notch do it this way lol)
 export function formatServerId(digest: Buffer): string {
   const hex = digest.toString('hex')
   let value = BigInt('0x' + hex)

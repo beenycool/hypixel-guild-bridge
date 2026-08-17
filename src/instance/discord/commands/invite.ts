@@ -22,10 +22,9 @@ export default {
   handler: async function (context) {
     await context.interaction.deferReply()
 
-    const username: string = context.interaction.options.getString('username', true)
-    const command = `/g invite ${username}`
+    const username = context.interaction.options.getString('username', true)
     const instance = getFirstConnectedBridgeMinecraftInstanceName(context.application, context.bridgeId)
-    if (instance === undefined) {
+    if (!instance) {
       await context.interaction.editReply(getBridgeMinecraftInstanceError(context.application, context.bridgeId))
       return
     }
@@ -35,11 +34,10 @@ export default {
       context.eventHelper,
       InviteAcceptChat,
       [instance],
-      command,
+      `/g invite ${username}`,
       username
     )
     const formatted = formatChatTriggerResponse(result, `Invite ${escapeMarkdown(username)}`)
-
     await context.interaction.editReply({ embeds: [formatted] })
   },
   autoComplete: async function (context) {

@@ -48,13 +48,13 @@ interface GamemodeStats {
 interface RawPlayerResponse {
   player?: {
     stats?: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Hypixel API field name
+      // eslint-disable-next-line @typescript-eslint/naming-convention
       Duels?: Record<string, unknown>
     }
   }
 }
 
-/* eslint-disable @typescript-eslint/naming-convention -- keys are Bridge sub-mode wire IDs */
+/* eslint-disable @typescript-eslint/naming-convention */
 const BridgeRawPrefixes: Record<BridgeSubMode, string> = {
   solo: 'bridge_duel',
   doubles: 'bridge_doubles',
@@ -75,7 +75,7 @@ const BridgeOverallPrefixes = [
   'capture_threes'
 ] as const
 
-/* eslint-disable @typescript-eslint/naming-convention -- keys are Hypixel Duel type wire IDs */
+/* eslint-disable @typescript-eslint/naming-convention */
 const BedwarsRawPrefixes = {
   bedwars_two_one: 'bedwars_two_one_duels',
   bedwars_rush: 'bedwars_two_one_duels_rush'

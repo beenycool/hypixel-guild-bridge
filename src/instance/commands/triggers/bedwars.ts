@@ -37,7 +37,7 @@ interface BordicSessionResponse {
   delta: Record<string, unknown>
 }
 
-/* eslint-disable @typescript-eslint/naming-convention -- keys are Bedwars mode wire IDs from the Hypixel API */
+/* eslint-disable @typescript-eslint/naming-convention */
 const BORDIC_MODE_LABELS: Record<string, string> = {
   eight_one: 'Solo',
   eight_two: 'Dubs',

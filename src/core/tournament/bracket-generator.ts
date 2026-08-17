@@ -12,7 +12,7 @@ export type GeneratedMatch = Omit<Partial<TournamentMatch>, 'nextMatchId' | 'los
   loserNext?: MatchLinkReference
 }
 
-interface BracketStrategy {
+export interface BracketStrategy {
   name: string
   generate(
     tournamentId: number,
@@ -30,80 +30,65 @@ interface BracketStrategy {
   eliminatesLoser(): boolean
 }
 
-class SingleElimBracketStrategy implements BracketStrategy {
-  name = 'single-elim'
-
-  constructor(private readonly logger?: Logger) {}
-
-  getSeedOrder(n: number): number[] {
-    let order = [1]
-    while (order.length < n) {
-      const nextOrder: number[] = []
-      const target = order.length * 2 + 1
-      for (const value of order) {
-        nextOrder.push(value)
-        nextOrder.push(target - value)
-      }
-      order = nextOrder
+// classic power-of-2 seed ordering so #1 plays lowest seed, #2 plays 2nd lowest etc
+function getSeedOrder(totalSlots: number): number[] {
+  let order = [1]
+  while (order.length < totalSlots) {
+    const nextOrder: number[] = []
+    const target = order.length * 2 + 1
+    for (const value of order) {
+      nextOrder.push(value, target - value)
     }
-    return order
+    order = nextOrder
   }
+  return order
+}
 
-  generate(
-    tournamentId: number,
-    players: TournamentPlayer[],
-    roundDeadlineHours: number
-  ): { totalRounds: number; matches: GeneratedMatch[] } {
+// single elimination - standard tournament tree
+const singleElim: BracketStrategy = {
+  name: 'single-elim',
+
+  generate(tournamentId: number, players: TournamentPlayer[], roundDeadlineHours: number) {
     const playerCount = players.length
-    if (playerCount < 2) {
-      throw new Error('Cannot generate bracket with less than 2 players.')
-    }
+    if (playerCount < 2) throw new Error('Need at least 2 players to generate a bracket lol')
 
     const totalSlots = Math.pow(2, Math.ceil(Math.log2(playerCount)))
     const totalRounds = Math.ceil(Math.log2(totalSlots))
 
-    const sortedPlayers = players.toSorted((a, b) => a.seed - b.seed)
-    for (const [index, element] of sortedPlayers.entries()) {
-      if (element.seed === 0) {
-        element.seed = index + 1
-      }
+    const sorted = players.toSorted((a, b) => a.seed - b.seed)
+    for (const [index, player] of sorted.entries()) {
+      if (player.seed === 0) player.seed = index + 1
     }
 
-    const seedToPlayerMap = new Map<number, TournamentPlayer>()
-    for (const p of sortedPlayers) {
-      seedToPlayerMap.set(p.seed, p)
-    }
+    const seedMap = new Map<number, TournamentPlayer>()
+    for (const player of sorted) seedMap.set(player.seed, player)
 
-    const seedOrder = this.getSeedOrder(totalSlots)
+    const seedOrder = getSeedOrder(totalSlots)
     const matches: GeneratedMatch[] = []
-    const round1MatchCount = totalSlots / 2
+    const round1Count = totalSlots / 2
     const now = Math.floor(Date.now() / 1000)
     const deadlineAt = now + roundDeadlineHours * 3600
 
-    for (let index = 0; index < round1MatchCount; index++) {
-      const seed1 = seedOrder[2 * index]
-      const seed2 = seedOrder[2 * index + 1]
+    for (let index = 0; index < round1Count; index++) {
+      const p1 = seedMap.get(seedOrder[2 * index])
+      const p2 = seedMap.get(seedOrder[2 * index + 1])
 
-      const p1 = seedToPlayerMap.get(seed1)
-      const p2 = seedToPlayerMap.get(seed2)
-
-      let status = MatchStatus.Pending
+      let status = MatchStatus.Active
       let winnerId: number | undefined
       let completedAt: number | undefined
 
-      if (p1 !== undefined && p2 === undefined) {
+      // handle byes when player count isn't an exact power of 2
+      if (p1 && !p2) {
         status = MatchStatus.Bye
         winnerId = p1.id
         completedAt = now
-      } else if (p1 === undefined && p2 !== undefined) {
+      } else if (!p1 && p2) {
         status = MatchStatus.Bye
         winnerId = p2.id
         completedAt = now
-      } else if (p1 === undefined && p2 === undefined) {
+      } else if (!p1 && !p2) {
         status = MatchStatus.Bye
         completedAt = now
-      } else {
-        status = MatchStatus.Active
       }
 
       matches.push({
@@ -122,12 +107,12 @@ class SingleElimBracketStrategy implements BracketStrategy {
       })
     }
 
-    for (let r = 2; r <= totalRounds; r++) {
-      const matchCount = totalSlots / Math.pow(2, r)
+    for (let round = 2; round <= totalRounds; round++) {
+      const matchCount = totalSlots / Math.pow(2, round)
       for (let index = 0; index < matchCount; index++) {
         matches.push({
           tournamentId,
-          round: r,
+          round,
           matchIndex: index,
           player1Id: undefined,
           player2Id: undefined,
@@ -137,64 +122,45 @@ class SingleElimBracketStrategy implements BracketStrategy {
           player2Wins: 0,
           deadlineAt: undefined,
           completedAt: undefined,
-          winnerNext: r < totalRounds ? { round: r + 1, matchIndex: Math.floor(index / 2) } : undefined
+          winnerNext: round < totalRounds ? { round: round + 1, matchIndex: Math.floor(index / 2) } : undefined
         })
       }
     }
 
     return { totalRounds, matches }
-  }
+  },
 
-  advanceWinner(
-    match: TournamentMatch,
-    winnerId: number
-  ): { winnerId: number; nextMatchId?: number; loserId?: number } {
+  advanceWinner(match: TournamentMatch, winnerId: number) {
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
-    return {
-      winnerId,
-      nextMatchId: match.nextMatchId ?? undefined,
-      loserId: loserId ?? undefined
-    }
-  }
+    return { winnerId, nextMatchId: match.nextMatchId ?? undefined, loserId: loserId ?? undefined }
+  },
 
-  isComplete(matches: TournamentMatch[]): boolean {
+  isComplete(matches: TournamentMatch[]) {
     const finalRound = Math.max(...matches.map((m) => m.round))
-    const finalMatches = matches.filter((m) => m.round === finalRound)
-    return finalMatches.every((m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye)
-  }
+    const finals = matches.filter((m) => m.round === finalRound)
+    return finals.every((m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye)
+  },
 
-  championId(matches: TournamentMatch[]): number | undefined {
-    if (matches.length === 0) return undefined
+  championId(matches: TournamentMatch[]) {
+    if (matches.length === 0) return
     const finalRound = Math.max(...matches.map((m) => m.round))
-    const finalMatch = matches.find((m) => m.round === finalRound)
-    return finalMatch?.winnerId
-  }
+    return matches.find((m) => m.round === finalRound)?.winnerId
+  },
 
-  progressesRounds(): boolean {
-    return true
-  }
-
-  eliminatesLoser(): boolean {
-    return true
-  }
+  progressesRounds: () => true,
+  eliminatesLoser: () => true
 }
-class DoubleElimBracketStrategy implements BracketStrategy {
-  name = 'double-elim'
 
-  constructor(private readonly logger?: Logger) {}
+// double elimination - losers drop into lower bracket
+const doubleElim: BracketStrategy = {
+  name: 'double-elim',
 
-  generate(
-    tournamentId: number,
-    players: TournamentPlayer[],
-    roundDeadlineHours: number
-  ): { totalRounds: number; matches: GeneratedMatch[] } {
-    const n = players.length
-    if (n < 2) {
-      throw new Error('Cannot generate bracket with less than 2 players.')
-    }
+  generate(tournamentId: number, players: TournamentPlayer[], roundDeadlineHours: number) {
+    const playerCount = players.length
+    if (playerCount < 2) throw new Error('Need at least 2 players for double elim')
 
-    const upper = new SingleElimBracketStrategy(this.logger).generate(tournamentId, players, roundDeadlineHours)
-    const totalUpperRounds = upper.totalRounds
+    const upper = singleElim.generate(tournamentId, players, roundDeadlineHours)
+    const upperRounds = upper.totalRounds
 
     const ubByRound = new Map<number, GeneratedMatch[]>()
     for (const m of upper.matches) {
@@ -211,80 +177,65 @@ class DoubleElimBracketStrategy implements BracketStrategy {
     }
 
     const matches: GeneratedMatch[] = [...upper.matches]
-    const lbIndexMap = new Map<string, GeneratedMatch>()
-    let lbRoundNumber = totalUpperRounds + 1
+    const lbMap = new Map<string, GeneratedMatch>()
+    let lbRound = upperRounds + 1
     let pending: LbEntrant[] = []
 
-    const linkSource = (entrant: LbEntrant, destinationRound: number, destinationIndex: number): void => {
-      const destination = { round: destinationRound, matchIndex: destinationIndex }
+    const linkSource = (entrant: LbEntrant, targetRound: number, targetIndex: number) => {
+      const destination = { round: targetRound, matchIndex: targetIndex }
       if (entrant.kind === 'ub') {
         const source = (ubByRound.get(entrant.round) ?? []).find((m) => m.matchIndex === entrant.matchIndex)
-        if (source !== undefined) {
-          source.loserNext = destination
-        }
+        if (source) source.loserNext = destination
       } else {
-        const source = lbIndexMap.get(`${entrant.round}_${entrant.matchIndex}`)
-        if (source !== undefined) {
-          source.winnerNext = destination
-        }
+        const source = lbMap.get(`${entrant.round}_${entrant.matchIndex}`)
+        if (source) source.winnerNext = destination
       }
     }
 
-    const pairEntrants = (entrants: LbEntrant[]): { pairs: [LbEntrant, LbEntrant][]; leftover: LbEntrant[] } => {
+    const pairEntrants = (entrants: LbEntrant[]) => {
       const evens = entrants.filter((entrant) => entrant.matchIndex % 2 === 0)
       const odds = entrants.filter((entrant) => entrant.matchIndex % 2 === 1)
       const pairs: [LbEntrant, LbEntrant][] = []
-      const take = (from: LbEntrant[]): LbEntrant => {
-        const entrant = from.shift()
-        if (entrant === undefined) throw new Error('Unexpected empty entrant list')
-        return entrant
+      const pop = (array: LbEntrant[]) => {
+        const item = array.shift()
+        if (!item) throw new Error('Empty entrant queue in bracket pairer')
+        return item
       }
-      while (evens.length > 0 && odds.length > 0) {
-        pairs.push([take(evens), take(odds)])
-      }
-      while (evens.length > 1) {
-        pairs.push([take(evens), take(evens)])
-      }
-      while (odds.length > 1) {
-        pairs.push([take(odds), take(odds)])
-      }
+      while (evens.length > 0 && odds.length > 0) pairs.push([pop(evens), pop(odds)])
+      while (evens.length > 1) pairs.push([pop(evens), pop(evens)])
+      while (odds.length > 1) pairs.push([pop(odds), pop(odds)])
       return { pairs, leftover: [...evens, ...odds] }
     }
 
-    const pickRoundIndices = (matchCount: number, nextUbLosers: number, leftover: LbEntrant[]): number[] => {
-      const firstLeftover = leftover[0] as LbEntrant | undefined
-      const targetEvans =
-        Math.ceil(nextUbLosers / 2) + (firstLeftover !== undefined && firstLeftover.matchIndex % 2 === 0 ? 1 : 0)
-      const targetOdds =
-        Math.floor(nextUbLosers / 2) + (firstLeftover !== undefined && firstLeftover.matchIndex % 2 === 1 ? 1 : 0)
-      const nextEntrantCount = matchCount + nextUbLosers + leftover.length
-      const slack = nextEntrantCount % 2
+    const pickIndices = (matchCount: number, nextUbLosers: number, leftover: LbEntrant[]): number[] => {
+      const first = leftover[0] as LbEntrant | undefined
+      const targetEvens = Math.ceil(nextUbLosers / 2) + (first && first.matchIndex % 2 === 0 ? 1 : 0)
+      const targetOdds = Math.floor(nextUbLosers / 2) + (first && first.matchIndex % 2 === 1 ? 1 : 0)
+      const slack = (matchCount + nextUbLosers + leftover.length) % 2
       const candidates: number[] = []
-      for (let diff = -matchCount; diff <= matchCount; diff += 2) {
-        if (Math.abs(diff - (targetOdds - targetEvans)) <= slack) {
-          candidates.push(diff)
-        }
+      for (let difference = -matchCount; difference <= matchCount; difference += 2) {
+        if (Math.abs(difference - (targetOdds - targetEvens)) <= slack) candidates.push(difference)
       }
       candidates.sort((a, b) => {
-        const distanceA = Math.abs(a - (targetOdds - targetEvans))
-        const distanceB = Math.abs(b - (targetOdds - targetEvans))
-        if (distanceA !== distanceB) return distanceA - distanceB
-        return a - b
+        const distanceA = Math.abs(a - (targetOdds - targetEvens))
+        const distanceB = Math.abs(b - (targetOdds - targetEvens))
+        if (distanceA === distanceB) return a - b
+        return distanceA - distanceB
       })
-      const chosenDiff = candidates[0] ?? (matchCount % 2 === 1 ? -1 : 0)
-      const evenCount = (matchCount + chosenDiff) / 2
-      const oddCount = matchCount - evenCount
+      const difference = candidates[0] ?? (matchCount % 2 === 1 ? -1 : 0)
+      const evenCount = (matchCount + difference) / 2
       const evenIndices = Array.from({ length: evenCount }, (unused, index) => index * 2)
-      const oddIndices = Array.from({ length: oddCount }, (unused, index) => index * 2 + 1)
+      const oddIndices = Array.from({ length: matchCount - evenCount }, (unused, index) => index * 2 + 1)
       return [...evenIndices, ...oddIndices].toSorted((a, b) => a - b)
     }
 
     const addLbRound = (entrants: LbEntrant[], nextUbLosers: number): LbEntrant[] => {
       const { pairs, leftover } = pairEntrants(entrants)
       if (pairs.length === 0) return leftover
-      const round = lbRoundNumber++
-      const destinationIndices = pickRoundIndices(pairs.length, nextUbLosers, leftover)
+      const round = lbRound++
+      const destinationIndices = pickIndices(pairs.length, nextUbLosers, leftover)
       const roundMatches: GeneratedMatch[] = []
+
       for (const [index, pair] of pairs.entries()) {
         const destinationIndex = destinationIndices[index]
         linkSource(pair[0], round, destinationIndex)
@@ -303,44 +254,43 @@ class DoubleElimBracketStrategy implements BracketStrategy {
           completedAt: undefined
         }
         roundMatches.push(match)
-        lbIndexMap.set(`${round}_${destinationIndex}`, match)
+        lbMap.set(`${round}_${destinationIndex}`, match)
       }
+
       matches.push(...roundMatches)
       const winners: LbEntrant[] = roundMatches.flatMap((m) =>
-        m.round === undefined || m.matchIndex === undefined
-          ? []
-          : [{ kind: 'lb', round: m.round, matchIndex: m.matchIndex }]
+        m.round !== undefined && m.matchIndex !== undefined
+          ? [{ kind: 'lb', round: m.round, matchIndex: m.matchIndex }]
+          : []
       )
       return [...winners, ...leftover]
     }
 
-    for (let r = 1; r <= totalUpperRounds; r++) {
-      const losers: LbEntrant[] = (ubByRound.get(r) ?? [])
+    for (let round = 1; round <= upperRounds; round++) {
+      const losers: LbEntrant[] = (ubByRound.get(round) ?? [])
         .filter(
           (m): m is GeneratedMatch & { matchIndex: number } =>
-            m.matchIndex !== undefined && (r === 1 ? m.status !== MatchStatus.Bye : true)
+            m.matchIndex !== undefined && (round === 1 ? m.status !== MatchStatus.Bye : true)
         )
-        .map((m) => ({ kind: 'ub', round: r, matchIndex: m.matchIndex }))
-      const nextLosers = (ubByRound.get(r + 1) ?? []).length
+        .map((m) => ({ kind: 'ub', round, matchIndex: m.matchIndex }))
+      const nextLosers = (ubByRound.get(round + 1) ?? []).length
       pending = addLbRound([...pending, ...losers], nextLosers)
     }
+
     while (pending.length >= 2) {
       pending = addLbRound(pending, 0)
     }
 
-    const grandFinalRound = lbRoundNumber
-    const ubFinal = (ubByRound.get(totalUpperRounds) ?? [])[0] as GeneratedMatch | undefined
-    if (ubFinal !== undefined) {
-      ubFinal.winnerNext = { round: grandFinalRound, matchIndex: 0 }
-    }
+    // Grand finals
+    const grandFinal = lbRound
+    const ubFinal = (ubByRound.get(upperRounds) ?? [])[0] as GeneratedMatch | undefined
+    if (ubFinal) ubFinal.winnerNext = { round: grandFinal, matchIndex: 0 }
     const firstPending = pending[0] as LbEntrant | undefined
-    if (firstPending !== undefined) {
-      linkSource(firstPending, grandFinalRound, 0)
-    }
+    if (firstPending) linkSource(firstPending, grandFinal, 0)
 
     matches.push({
       tournamentId,
-      round: grandFinalRound,
+      round: grandFinal,
       matchIndex: 0,
       player1Id: undefined,
       player2Id: undefined,
@@ -352,69 +302,52 @@ class DoubleElimBracketStrategy implements BracketStrategy {
       completedAt: undefined
     })
 
-    return { totalRounds: grandFinalRound, matches }
-  }
+    return { totalRounds: grandFinal, matches }
+  },
 
-  advanceWinner(
-    match: TournamentMatch,
-    winnerId: number
-  ): { winnerId: number; nextMatchId?: number; loserId?: number } {
+  advanceWinner(match: TournamentMatch, winnerId: number) {
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
-    return {
-      winnerId,
-      nextMatchId: match.nextMatchId ?? undefined,
-      loserId: loserId ?? undefined
-    }
-  }
+    return { winnerId, nextMatchId: match.nextMatchId ?? undefined, loserId: loserId ?? undefined }
+  },
 
-  isComplete(matches: TournamentMatch[]): boolean {
+  isComplete(matches: TournamentMatch[]) {
     if (matches.length === 0) return false
     const finalRound = Math.max(...matches.map((m) => m.round))
     const grandFinal = matches.find((m) => m.round === finalRound)
     return grandFinal?.status === MatchStatus.Completed && grandFinal.winnerId !== undefined
-  }
+  },
 
-  championId(matches: TournamentMatch[]): number | undefined {
-    if (matches.length === 0) return undefined
+  championId(matches: TournamentMatch[]) {
+    if (matches.length === 0) return
     const finalRound = Math.max(...matches.map((m) => m.round))
     return matches.find((m) => m.round === finalRound)?.winnerId
-  }
+  },
 
-  progressesRounds(): boolean {
-    return false
-  }
-
-  eliminatesLoser(): boolean {
-    return true
-  }
+  progressesRounds: () => false,
+  eliminatesLoser: () => true
 }
 
-class RoundRobinBracketStrategy implements BracketStrategy {
-  name = 'round-robin'
+// round robin - everybody plays everybody once
+const roundRobin: BracketStrategy = {
+  name: 'round-robin',
 
-  constructor(private readonly logger?: Logger) {}
-
-  generate(
-    tournamentId: number,
-    players: TournamentPlayer[],
-    roundDeadlineHours: number
-  ): { totalRounds: number; matches: GeneratedMatch[] } {
-    const n = players.length
-    if (n < 2) return { totalRounds: 1, matches: [] }
+  generate(tournamentId: number, players: TournamentPlayer[], roundDeadlineHours: number) {
+    const playerCount = players.length
+    if (playerCount < 2) return { totalRounds: 1, matches: [] }
 
     const now = Math.floor(Date.now() / 1000)
     const deadlineAt = now + roundDeadlineHours * 3600
     const matches: GeneratedMatch[] = []
     let matchIndex = 0
 
-    for (let index = 0; index < n; index++) {
-      for (let otherIndex = index + 1; otherIndex < n; otherIndex++) {
+    for (let playerA = 0; playerA < playerCount; playerA++) {
+      for (let playerB = playerA + 1; playerB < playerCount; playerB++) {
         matches.push({
           tournamentId,
           round: 1,
           matchIndex: matchIndex++,
-          player1Id: players[index].id,
-          player2Id: players[otherIndex].id,
+          player1Id: players[playerA].id,
+          player2Id: players[playerB].id,
           status: MatchStatus.Active,
           player1Wins: 0,
           player2Wins: 0,
@@ -425,73 +358,62 @@ class RoundRobinBracketStrategy implements BracketStrategy {
     }
 
     return { totalRounds: 1, matches }
-  }
+  },
 
-  advanceWinner(
-    match: TournamentMatch,
-    winnerId: number
-  ): { winnerId: number; nextMatchId?: number; loserId?: number } {
+  advanceWinner(match: TournamentMatch, winnerId: number) {
     const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id
     return { winnerId, loserId: loserId ?? undefined }
-  }
+  },
 
-  isComplete(matches: TournamentMatch[]): boolean {
+  isComplete(matches: TournamentMatch[]) {
     return matches.every((m) => m.status === MatchStatus.Completed || m.status === MatchStatus.Bye)
-  }
+  },
 
-  championId(matches: TournamentMatch[]): number | undefined {
-    const records = new Map<number, { wins: number; losses: number }>()
+  championId(matches: TournamentMatch[]) {
+    const scores = new Map<number, { wins: number; losses: number }>()
     for (const m of matches) {
       if (m.status !== MatchStatus.Completed) continue
       if (m.winnerId === undefined || m.player1Id === undefined || m.player2Id === undefined) continue
-      const winner = records.get(m.winnerId) ?? { wins: 0, losses: 0 }
-      winner.wins++
-      records.set(m.winnerId, winner)
+
+      const winnerRecord = scores.get(m.winnerId) ?? { wins: 0, losses: 0 }
+      winnerRecord.wins++
+      scores.set(m.winnerId, winnerRecord)
+
       const loserId = m.player1Id === m.winnerId ? m.player2Id : m.player1Id
-      const loser = records.get(loserId) ?? { wins: 0, losses: 0 }
-      loser.losses++
-      records.set(loserId, loser)
+      const loserRecord = scores.get(loserId) ?? { wins: 0, losses: 0 }
+      loserRecord.losses++
+      scores.set(loserId, loserRecord)
     }
-    const ranked = [...records.entries()].toSorted(([aId, a], [bId, b]) => {
+
+    const sorted = [...scores.entries()].toSorted(([idA, a], [idB, b]) => {
       if (a.wins !== b.wins) return b.wins - a.wins
       if (a.losses !== b.losses) return a.losses - b.losses
-      return aId - bId
+      return idA - idB
     })
-    return ranked[0]?.[0]
-  }
+    return sorted[0]?.[0]
+  },
 
-  progressesRounds(): boolean {
-    return false
-  }
-
-  eliminatesLoser(): boolean {
-    return false
-  }
+  progressesRounds: () => false,
+  eliminatesLoser: () => false
 }
 
+/* eslint-disable @typescript-eslint/naming-convention */
+const formats: Record<string, BracketStrategy> = {
+  'single-elim': singleElim,
+  'double-elim': doubleElim,
+  'round-robin': roundRobin
+}
+/* eslint-enable @typescript-eslint/naming-convention */
+
 export class BracketGenerator {
-  private strategies = new Map<string, BracketStrategy>()
+  constructor(private readonly logger?: Logger) {}
 
-  constructor(private readonly logger?: Logger) {
-    this.registerStrategy(new SingleElimBracketStrategy(this.logger))
-    this.registerStrategy(new DoubleElimBracketStrategy(this.logger))
-    this.registerStrategy(new RoundRobinBracketStrategy(this.logger))
+  getStrategy(format: string): BracketStrategy {
+    return formats[format] ?? singleElim
   }
 
-  registerStrategy(strategy: BracketStrategy): void {
-    this.strategies.set(strategy.name, strategy)
-  }
-
-  getStrategy(name: string): BracketStrategy {
-    const strategy = this.strategies.get(name) ?? this.strategies.get('single-elim')
-    if (strategy === undefined) {
-      throw new Error('Default bracket strategy "single-elim" is not registered')
-    }
-    return strategy
-  }
-
-  getSeedOrder(n: number): number[] {
-    return new SingleElimBracketStrategy().getSeedOrder(n)
+  getSeedOrder(totalSlots: number): number[] {
+    return getSeedOrder(totalSlots)
   }
 
   generateInitialMatches(
@@ -500,7 +422,8 @@ export class BracketGenerator {
     roundDeadlineHours: number,
     format = 'single-elim'
   ): { totalRounds: number; matches: GeneratedMatch[] } {
-    const result = this.getStrategy(format).generate(tournamentId, players, roundDeadlineHours)
+    const handler = this.getStrategy(format)
+    const result = handler.generate(tournamentId, players, roundDeadlineHours)
     return { totalRounds: result.totalRounds, matches: result.matches }
   }
 }

@@ -8,7 +8,7 @@ import {
 } from 'discord.js'
 
 import type Application from '../../application.js'
-// eslint-disable-next-line import/no-restricted-paths -- known architecture violation (core importing instance); pending refactor
+// eslint-disable-next-line import/no-restricted-paths
 import { buildThreadComponents } from '../../instance/discord/features/tournament-buttons.js'
 import RateLimiter from '../../utility/rate-limiter.js'
 

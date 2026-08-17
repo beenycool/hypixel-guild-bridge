@@ -7,7 +7,7 @@ import { Instance } from '../common/instance.js'
 import Duration from '../utility/duration.js'
 import { setIntervalAsync } from '../utility/scheduling.js'
 
-/* eslint-disable @typescript-eslint/naming-convention -- interface mirrors OpenRouter/OpenAI API wire format */
+/* eslint-disable @typescript-eslint/naming-convention */
 interface ChatCompletionResponse {
   choices?: { message?: { content?: string } }[]
   usage?: {
@@ -160,7 +160,7 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
 
         const logsText = rows
           .map((r) => {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB rows may contain NULL for username
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             const username = r.username ?? r.userId ?? 'Unknown'
             const mentionInfo = r.discordId ? ` (Discord: <@${r.discordId}>)` : ''
             return `${username}${mentionInfo}: ${r.message}`
@@ -172,29 +172,11 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
 
         const model = 'anthropic/claude-sonnet-5'
 
-        const systemPrompt = `You are the ultimate, hyper-dramatic "Gossip Girl" of a chaotic Minecraft Discord server. Your job is to read today's raw chat logs and write a highly entertaining, juicy, cohesive narrative summary of the drama.
-
-STRICT GUIDELINES:
-
-Narrative Flow: Write a continuous gossip column. Do NOT give a timeline or bullet points. Connect topics via natural, cause-and-effect transitions (e.g., A-plot, B-plot, C-plot).
-
-Tone: Exaggerated, drama-obsessed, and slightly sassy. Speculate wildly on the users' motivations. Use phrases like "swoops in like a super-villain," "so intense," etc.
-
-Format: Write in 3-4 long, flowing paragraphs.
-
-Authenticity: Preserve specific emoticons (like ( ﾟ◡ﾟ)/), inside jokes, and exact slang. Do not sanitize the culture.
-
-Slang: Use lots of internet/gen-z slang like "fr", "no cap", "based", "cooked", "ate", "bet", "W", "L", "brainrot", "skibidi", "gyatt" etc. Make it feel like a group chat recap.
-
-Quotes & Drama: Focus heavily on conflicts, pile-ons, and smug moments. Weave direct, short quotes naturally into your sentences.
-
-ZERO CENSORSHIP (CRITICAL): Do not censor ANY language from the logs. You MUST quote crude words exactly as written. No asterisks (*), no redactions. Reframe crude moments as part of the story.
-
-Emojis: Use lots of emojis. Sprinkle them everywhere — every paragraph should have 3-5+ emojis. Drama, laughing, fire, skull, clown, pray, etc.
-
-Length Requirement: HARD LIMIT — your final output MUST be between 1,900 and 2,000 characters. Count your characters before outputting. Shorter sentences, tighter phrasing. Do not exceed 2,000.
-
-Output: No meta-commentary, no greetings. Output ONLY the final summary.`
+        const systemPrompt =
+          'You are writing a dramatic, humorous gossip column recapping today in a Minecraft guild chat.\n' +
+          'Write a continuous 3-4 paragraph story connecting the drama, funny quotes, inside jokes, and slang. ' +
+          'Use emojis and quote people directly. Keep total length strictly under 2000 characters so it fits in Discord. ' +
+          'No intro greetings or meta commentary, just output the recap directly.'
 
         const userContent = `Here are the chat logs from today:\n\n${logsText}`
 
@@ -211,7 +193,7 @@ Output: No meta-commentary, no greetings. Output ONLY the final summary.`
             reasoning: { effort: 'high' }
           },
           {
-            /* eslint-disable @typescript-eslint/naming-convention -- HTTP header names required by the protocol */
+            /* eslint-disable @typescript-eslint/naming-convention */
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json'

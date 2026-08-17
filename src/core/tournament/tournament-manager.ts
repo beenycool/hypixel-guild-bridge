@@ -81,34 +81,27 @@ export class TournamentManager {
     this.activeTournaments.clear()
     for (const t of active) {
       this.activeTournaments.set(t.id, t)
-      this.logger.info(
-        `Tournament ${t.id} (${t.name}): Loaded active tournament, status=${t.status}, bridgeId=${t.bridgeId}`
-      )
+      this.logger.info(`[Tournament] Loaded #${t.id} (${t.name}) [${t.status}]`)
     }
-    this.logger.info(`Loaded ${this.activeTournaments.size} active tournaments from database.`)
+    this.logger.info(`[Tournament] ${this.activeTournaments.size} active tournament(s) in memory`)
   }
 
   async rehydrate(): Promise<void> {
-    this.logger.info('Rehydrating tournament state from database...')
-
     for (const [id, tournament] of this.activeTournaments) {
       if (tournament.status !== TournamentStatus.Active && tournament.status !== TournamentStatus.Signup) {
-        this.logger.info(`Tournament ${id}: Skipping rehydration, status=${tournament.status}`)
         continue
       }
 
-      this.logger.info(`Tournament ${id} (${tournament.name}): Rehydrating ${tournament.status} state...`)
+      this.logger.info(`[Tournament] Restoring state for #${id} (${tournament.name})`)
 
       const matches = await this.databaseManager.queryRows<TournamentMatch>(
         'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1 ORDER BY "round", "matchIndex"',
         [id]
       )
 
-      this.logger.info(`Tournament ${id}: Found ${matches.length} matches for rehydration`)
-
       for (const match of matches) {
         if (match.status === MatchStatus.Active || match.status === MatchStatus.Reported) {
-          this.logger.info(`Match ${match.id}: Rehydrating, status=${match.status}, round=${match.round}`)
+          this.logger.info(`[Tournament] Match #${match.id} (R${match.round}): status=${match.status}`)
           if (match.discordThreadId) {
             try {
               const client = this.application.discordInstance.getClient()
@@ -1096,14 +1089,13 @@ export class TournamentManager {
         const wins = playerMatches.filter((m) => m.winnerId === player.id).length
         const losses = playerMatches.filter(
           (m) =>
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            m.winnerId !== null && m.winnerId !== player.id && (m.player1Id === player.id || m.player2Id === player.id)
+            Boolean(m.winnerId) && m.winnerId !== player.id && (m.player1Id === player.id || m.player2Id === player.id)
         ).length
 
         const isWinner = tournament.winnerId === player.id
+        const totalRounds = tournament.totalRounds || 1
         const roundsReached = isWinner
-          ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            (tournament.totalRounds ?? 1)
+          ? totalRounds
           : Math.max(...playerMatches.filter((m) => m.winnerId !== player.id).map((m) => m.round), 1)
 
         this.logger.debug(
@@ -1117,8 +1109,7 @@ export class TournamentManager {
             player.playerUuid,
             player.discordId,
             tournamentId,
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            isWinner ? 1 : (tournament.totalRounds ?? 1) - roundsReached + 2,
+            isWinner ? 1 : totalRounds - roundsReached + 2,
             roundsReached,
             wins,
             losses,

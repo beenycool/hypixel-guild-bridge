@@ -59,7 +59,7 @@ export class RankupWsEvents {
   }
 
   public start(): void {
-    // Event-driven: no background timer required
+    this.subscribers.clear()
   }
 
   public stop(): void {

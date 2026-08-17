@@ -11,11 +11,9 @@ const rateLimiter = new SlidingWindowRateLimiter([
 const defaultModel = 'nvidia/nemotron-3-super-120b-a12b:free'
 const minMessages = 10
 const prompt =
-  'You are evaluating intelligence based on chat messages from a Hypixel Minecraft guild. ' +
-  'Consider: vocabulary range, grammar, logical reasoning, game knowledge depth, humor, and critical thinking. ' +
-  'Note: gaming abbreviations ("idk", "lol", "u") and Minecraft shorthand ("f7", "hyperion", "mana") are normal for this context — do NOT penalize for them. ' +
-  'Estimate an IQ (0-200) based on the substance of what they are saying, not just surface formatting. ' +
-  'Respond with ONLY the number, nothing else.'
+  'Estimate the user IQ (0 to 200) based on their Minecraft guild chat messages. ' +
+  'Consider vocabulary, context, game knowledge and humor. Normal gaming slang (idk, f7, mana) is fine. ' +
+  'Return ONLY the number.'
 
 export default class Iq extends ChatCommandHandler {
   constructor() {

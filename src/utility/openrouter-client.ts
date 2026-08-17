@@ -21,26 +21,27 @@ interface OpenRouterResponse {
   }[]
 }
 
+// openrouter wrapper - nothing fancy, just post to their endpoint
 export class OpenRouterClient {
-  private readonly apiKey: string
-  private readonly defaultModel: string | undefined
-  private readonly timeoutMs: number
-  private readonly baseUrl: string
+  private readonly key: string
+  private readonly defaultModel?: string
+  private readonly timeout: number
+  private readonly endpoint: string
 
   constructor(apiKey: string, options?: { defaultModel?: string; timeoutMs?: number; baseUrl?: string }) {
-    this.apiKey = apiKey
+    this.key = apiKey
     this.defaultModel = options?.defaultModel
-    this.timeoutMs = options?.timeoutMs ?? 30_000
-    this.baseUrl = options?.baseUrl ?? 'https://openrouter.ai/api/v1/chat/completions'
+    this.timeout = options?.timeoutMs ?? 30_000
+    this.endpoint = options?.baseUrl ?? 'https://openrouter.ai/api/v1/chat/completions'
   }
 
   async chatCompletion(options: ChatCompletionOptions): Promise<ChatCompletionResult> {
     const model = options.model ?? this.defaultModel
     if (!model) {
-      throw new Error('No model specified and no default model configured')
+      throw new Error('No model provided and no fallback model configured in config')
     }
 
-    const body: Record<string, unknown> = {
+    const payload: Record<string, unknown> = {
       model,
       messages: [
         { role: 'system', content: options.systemPrompt },
@@ -49,42 +50,42 @@ export class OpenRouterClient {
       temperature: options.temperature ?? 0
     }
 
-    if (options.reasoningEffort !== undefined) {
-      body.reasoning = { effort: options.reasoningEffort }
+    if (options.reasoningEffort) {
+      payload.reasoning = { effort: options.reasoningEffort }
     }
 
-    const response = await axios.post<OpenRouterResponse>(this.baseUrl, body, {
+    const response = await axios.post<OpenRouterResponse>(this.endpoint, payload, {
       headers: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.key}`,
         // eslint-disable-next-line @typescript-eslint/naming-convention
         'Content-Type': 'application/json'
       },
-      timeout: this.timeoutMs
+      timeout: this.timeout
     })
 
-    const content = response.data.choices?.[0]?.message?.content
-    if (!content) {
-      throw new Error('OpenRouter returned empty or invalid response content')
+    const txt = response.data.choices?.[0]?.message?.content
+    if (!txt) {
+      throw new Error('OpenRouter returned empty response??')
     }
 
-    return { content }
+    return { content: txt }
   }
 }
 
 export function formatOpenRouterError(error: unknown, featureName: string, logger?: Logger): string {
   if (isAxiosError(error)) {
-    logger?.error(`${featureName} API error:`, error.message)
-    const status = error.response?.status
-    if (status === 401) return `${featureName} failed: Invalid API key`
-    if (status === 402) return `${featureName} failed: Insufficient credits`
-    const message =
-      (error.response?.data as { error?: { message?: string } } | undefined)?.error?.message ?? error.message
+    logger?.error(`[${featureName}] OpenRouter error:`, error.message)
+    const code = error.response?.status
+    if (code === 401) return `${featureName} failed: Bad API key (check your openrouter key)`
+    if (code === 402) return `${featureName} failed: Out of credits lol`
+    const data = error.response?.data as { error?: { message?: string } } | undefined
+    const message = data?.error?.message ?? error.message
     return `${featureName} failed: ${message}`
   }
 
-  logger?.error(error)
-  return `${featureName} failed: An unexpected error occurred`
+  logger?.error(`[${featureName}] Unexpected failure:`, error)
+  return `${featureName} failed: Something went wrong`
 }
 
 export { isAxiosError } from 'axios'

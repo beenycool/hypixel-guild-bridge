@@ -57,7 +57,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     this.staticConfig = config
 
     this.client = new Client({
-      /* eslint-disable @typescript-eslint/naming-convention -- discord.js cache manager keys must match Client manager property names */
+      /* eslint-disable @typescript-eslint/naming-convention */
       makeCache: Options.cacheWithLimits({
         ApplicationEmojiManager: {},
         AutoModerationRuleManager: { maxSize: 0 },
@@ -69,7 +69,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
         GuildStickerManager: { maxSize: 0 },
         MessageManager: {
           maxSize: 5,
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- with Partials.Message the author can be null at runtime
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           keepOverLimit: (message: Message) => message.author?.id === message.client.user.id
         },
         PresenceManager: { maxSize: 0 },
@@ -81,7 +81,7 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
       /* eslint-enable @typescript-eslint/naming-convention */
       sweepers: {
         messages: { interval: 300, lifetime: 1800 },
-        // eslint-disable-next-line unicorn/no-null -- discord.js sweeper filter requires null to disable user sweeping
+        // eslint-disable-next-line unicorn/no-null
         users: { interval: 3600, filter: () => null },
         threads: { interval: 3600, lifetime: 3600 }
       },

@@ -81,21 +81,9 @@ export class InstanceApiHandler extends BaseApiHandler {
       return
     }
 
+    const signal = action === 'disconnect' ? InstanceSignalType.Shutdown : InstanceSignalType.Restart
     try {
-      switch (action) {
-        case 'disconnect': {
-          await this.application.sendSignal([instance.instanceName], InstanceSignalType.Shutdown)
-          break
-        }
-        case 'reconnect': {
-          await this.application.sendSignal([instance.instanceName], InstanceSignalType.Restart)
-          break
-        }
-        case 'restart': {
-          await this.application.sendSignal([instance.instanceName], InstanceSignalType.Restart)
-          break
-        }
-      }
+      await this.application.sendSignal([instance.instanceName], signal)
       sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to %s instance %s', action, instanceName, error)

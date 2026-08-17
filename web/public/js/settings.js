@@ -136,9 +136,24 @@ const CATEGORIES = [
             ]
           },
           {
+            name: 'Officer',
+            badge: 'info',
+            note: 'Includes all Helper commands and tournament management.',
+            grants: [
+              'Tournament administration \u2014 manage brackets, match results, test panels',
+              'Guild queue moderation \u2014 !q'
+            ],
+            missing: [
+              'Destructive punishments (Owner) \u2014 ban, kick, forgive',
+              'Rank management (Owner) \u2014 /rank promote, /rank demote',
+              'Raw command execution (Owner) \u2014 /execute',
+              'Bridge restart & raw in-game exec (Admin) \u2014 /restart, !execute'
+            ]
+          },
+          {
             name: 'Owner',
             badge: 'warning',
-            note: 'Includes all Helper commands.',
+            note: 'Includes all Helper and Officer commands.',
             grants: [
               'Destructive punishments \u2014 ban, kick, forgive',
               'Rank management \u2014 /rank promote, /rank demote',
@@ -169,6 +184,15 @@ const CATEGORIES = [
         roleLabel: true
       },
       {
+        id: 'officerRoleIds',
+        t: 'tag',
+        label: 'Officer Roles',
+        hint: 'Officer privilege tier and tournament access (max 5).',
+        placeholder: 'Search roles\u2026',
+        max: 5,
+        roleLabel: true
+      },
+      {
         id: 'ownerRoleIds',
         t: 'tag',
         label: 'Owner Roles',
@@ -177,6 +201,15 @@ const CATEGORIES = [
         max: 5,
         roleLabel: true,
         warning: true
+      },
+      {
+        id: 'joinRequestRoleIds',
+        t: 'tag',
+        label: 'Join Request Roles',
+        hint: 'Roles to ping when someone requests to join the guild (max 5).',
+        placeholder: 'Search roles\u2026',
+        max: 5,
+        roleLabel: true
       }
     ]
   },

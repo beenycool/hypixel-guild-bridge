@@ -283,7 +283,7 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     try {
       const response = await httpClient.get<UrchinDailyResponse>(UrchinDailyEndpoint, {
         headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the API
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           'X-API-Key': apiKey
         },
         params: { guild: guildName }

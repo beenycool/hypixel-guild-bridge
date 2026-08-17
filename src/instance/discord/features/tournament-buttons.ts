@@ -152,12 +152,12 @@ function buildReportModal(matchId: number): ModalBuilder {
     new ModalBuilder()
       .setCustomId(`${Prefix}:${ReportAction}:${matchId}`)
       .setTitle('Report Match Result')
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- ModalBuilder.addComponents deprecated in discord.js 14.25; migrating to LabelBuilder/TextDisplayBuilder components requires modal restructuring
+      // eslint-disable-next-line @typescript-eslint/no-deprecated
       .addComponents(
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
             .setCustomId('my-wins')
-            // eslint-disable-next-line @typescript-eslint/no-deprecated -- TextInputBuilder.setLabel deprecated; label requires LabelBuilder component restructure
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
             .setLabel('Your wins')
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
@@ -168,7 +168,7 @@ function buildReportModal(matchId: number): ModalBuilder {
         new ActionRowBuilder<TextInputBuilder>().addComponents(
           new TextInputBuilder()
             .setCustomId('their-wins')
-            // eslint-disable-next-line @typescript-eslint/no-deprecated -- TextInputBuilder.setLabel deprecated; label requires LabelBuilder component restructure
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
             .setLabel('Opponent wins')
             .setStyle(TextInputStyle.Short)
             .setRequired(true)

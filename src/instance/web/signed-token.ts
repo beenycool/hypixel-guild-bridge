@@ -7,10 +7,11 @@ interface TokenPayload {
   iat: number
 }
 
+// simple HMAC token signing - basically a homebrewed mini-JWT so we don't have to pull in another npm dependency
 export function signToken(payload: TokenPayload, secret: string): string {
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url')
-  const sig = createHmac('sha256', secret).update(data).digest('base64url')
-  return `${data}.${sig}`
+  const signature = createHmac('sha256', secret).update(data).digest('base64url')
+  return `${data}.${signature}`
 }
 
 export function verifySignedToken(token: string, secret: string): TokenPayload | undefined {
@@ -18,14 +19,14 @@ export function verifySignedToken(token: string, secret: string): TokenPayload |
   if (dot === -1) return undefined
 
   const data = token.slice(0, dot)
-  const sig = token.slice(dot + 1)
-  if (!data || !sig) return undefined
+  const signature = token.slice(dot + 1)
+  if (!data || !signature) return undefined
 
   const expected = createHmac('sha256', secret).update(data).digest('base64url')
-  if (sig.length !== expected.length) return undefined
+  if (signature.length !== expected.length) return undefined
 
   try {
-    if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return undefined
+    if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return undefined
   } catch {
     return undefined
   }
@@ -38,6 +39,7 @@ export function verifySignedToken(token: string, secret: string): TokenPayload |
     if (typeof payload.sub !== 'string' || typeof payload.perm !== 'number' || typeof payload.exp !== 'number') {
       return undefined
     }
+    // token expired
     if (payload.exp < Math.floor(Date.now() / 1000)) return undefined
     return payload as TokenPayload
   } catch {

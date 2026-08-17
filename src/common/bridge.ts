@@ -1,7 +1,7 @@
 import type { Logger } from 'log4js'
 
 import type Application from '../application.js'
-// eslint-disable-next-line import/no-restricted-paths -- known architecture violation: common bridge uses utility executor, pending refactor
+// eslint-disable-next-line import/no-restricted-paths
 import { SerialExecutor } from '../utility/serial-executor.js'
 
 import type {

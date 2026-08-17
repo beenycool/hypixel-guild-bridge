@@ -13,9 +13,8 @@ export default {
   handler: async function (context) {
     await context.interaction.deferReply()
 
-    const targetInstance: string = context.interaction.options.getString('instance', true)
-
-    await context.application.sendSignal([targetInstance], InstanceSignalType.Shutdown)
+    const target = context.interaction.options.getString('instance', true)
+    await context.application.sendSignal([target], InstanceSignalType.Shutdown)
     await context.interaction.editReply('disconnect signal has been sent!')
   }
 } satisfies DiscordCommandHandler

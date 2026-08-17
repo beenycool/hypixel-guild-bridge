@@ -7,7 +7,7 @@ import { validateSeriesScore } from '../../../core/tournament/score-validator.js
 import { MatchStatus, PlayerStatus, TournamentStatus } from '../../../core/tournament/types.js'
 import type { TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
 
-async function notifyStaffForUnlinkedUser(
+async function notifyStaffUnlinked(
   context: Readonly<DiscordCommandContext>,
   bridgeId: string,
   description: string
@@ -156,7 +156,7 @@ export default {
         await context.interaction.editReply(
           'You must link your Minecraft account first. Staff have been notified to help you verify.'
         )
-        await notifyStaffForUnlinkedUser(
+        await notifyStaffUnlinked(
           context,
           bridgeId,
           `<@${context.interaction.user.id}> tried to join the tournament, but their Minecraft account could not be resolved to a Discord link. Please help them get verified.`
@@ -223,7 +223,7 @@ export default {
         await context.interaction.editReply(
           'You must link your Minecraft account first. Staff have been notified to help you verify.'
         )
-        await notifyStaffForUnlinkedUser(
+        await notifyStaffUnlinked(
           context,
           bridgeId,
           `<@${context.interaction.user.id}> tried to check in for the tournament, but their Minecraft account could not be resolved to a Discord link. Please help them get verified.`

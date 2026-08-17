@@ -1,5 +1,5 @@
 import { type Canvas, createCanvas, type Image, loadImage, registerFont } from 'canvas'
-// eslint-disable-next-line import/no-extraneous-dependencies -- lru-cache is a transitive dependency; adding to package.json is out of lane scope
+// eslint-disable-next-line import/no-extraneous-dependencies
 import LRUCache from 'lru-cache'
 
 import type Application from '../../../application'

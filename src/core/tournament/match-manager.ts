@@ -35,7 +35,7 @@ export class MatchManager {
     p2Wins: number
   ): Promise<{ status: MatchStatus; message: string }> {
     this.logger?.debug(
-      `Match ${matchId}: submitReport — reporterPlayerId=${reporterPlayerId}, claimedWinnerId=${claimedWinnerId}, p1Wins=${p1Wins}, p2Wins=${p2Wins}`
+      `[Tournament] Match #${matchId}: report by P${reporterPlayerId} -> winner P${claimedWinnerId} (${p1Wins}-${p2Wins})`
     )
 
     let hasProof = false
@@ -45,7 +45,7 @@ export class MatchManager {
     )
     if (preMatch?.discordThreadId !== undefined && this.checkProofAttachment !== undefined) {
       hasProof = await this.checkProofAttachment(preMatch.discordThreadId)
-      this.logger?.debug(`Match ${matchId}: Proof attachment check — hasProof=${hasProof}`)
+      this.logger?.debug(`[Tournament] Match #${matchId}: proof attachment check -> ${hasProof}`)
     }
 
     return await this.databaseManager.transaction(async (txClient) => {
@@ -53,17 +53,16 @@ export class MatchManager {
         'SELECT * FROM "tournament_matches" WHERE "id" = $1 FOR UPDATE',
         [matchId]
       )
-      const match = matchResult.rows[0]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (match === undefined) {
+      const match = matchResult.rows[0] as TournamentMatch | undefined
+      if (!match) {
         throw new Error('Match not found.')
       }
       if (match.status === MatchStatus.Completed || match.status === MatchStatus.Bye) {
-        this.logger?.debug(`Match ${matchId}: Report rejected — match already ${match.status}`)
+        this.logger?.debug(`[Tournament] Match #${matchId}: report ignored (already ${match.status})`)
         return { status: match.status, message: 'This match is already completed.' }
       }
       if (match.status === MatchStatus.Disputed) {
-        this.logger?.debug(`Match ${matchId}: Report rejected — match is disputed`)
+        this.logger?.debug(`[Tournament] Match #${matchId}: report ignored (disputed)`)
         return { status: MatchStatus.Disputed, message: 'This match is under dispute. Please wait for an admin.' }
       }
 
@@ -78,13 +77,11 @@ export class MatchManager {
 
       const scoreCheck = validateSeriesScore(tournament.bestOf, p1Wins, p2Wins)
       if (!scoreCheck.valid) {
-        this.logger?.debug(`Match ${matchId}: Score validation failed — ${scoreCheck.message}`)
+        this.logger?.debug(`[Tournament] Match #${matchId}: invalid score (${scoreCheck.message})`)
         return { status: match.status, message: scoreCheck.message }
       }
 
-      this.logger?.debug(
-        `Match ${matchId}: Inserting report for reporter=${reporterPlayerId}, claimedWinner=${claimedWinnerId}`
-      )
+      this.logger?.debug(`[Tournament] Match #${matchId}: saving report for P${reporterPlayerId}`)
       await txClient.query(
         `INSERT INTO "tournament_reports" ("matchId", "reporterId", "claimedWinnerId", "player1Wins", "player2Wins")
          VALUES ($1, $2, $3, $4, $5)
@@ -119,18 +116,18 @@ export class MatchManager {
       }
 
       this.logger?.debug(
-        `Match ${matchId}: Report comparison — reports=${reports.length}/${expectedReportCount}, newStatus=${newStatus}`
+        `[Tournament] Match #${matchId}: ${reports.length}/${expectedReportCount} reports -> ${newStatus}`
       )
 
       await txClient.query('UPDATE "tournament_matches" SET "status" = $1 WHERE "id" = $2', [newStatus, matchId])
       match.status = newStatus
 
       if (newStatus === MatchStatus.BothConfirmed) {
-        this.logger?.info(`Match ${matchId}: Both reports agree, resolving with winner ${claimedWinnerId}`)
+        this.logger?.info(`[Tournament] Match #${matchId}: both reports match! Winner is P${claimedWinnerId}`)
         await this.resolveWinner(matchId, claimedWinnerId, txClient, p1Wins, p2Wins)
         return { status: MatchStatus.Completed, message: 'Match successfully resolved!' }
       } else if (newStatus === MatchStatus.Disputed) {
-        this.logger?.info(`Match ${matchId}: Reports conflict — match is disputed`)
+        this.logger?.info(`[Tournament] Match #${matchId}: conflicting reports! Match marked as disputed`)
         const names = await this.getPlayerNames(match.tournamentId)
         const p1Name = match.player1Id === undefined ? 'Player 1' : (names.get(match.player1Id) ?? 'Player 1')
         const p2Name = match.player2Id === undefined ? 'Player 2' : (names.get(match.player2Id) ?? 'Player 2')
@@ -142,7 +139,7 @@ export class MatchManager {
         return { status: MatchStatus.Disputed, message: 'Reports conflict! Match is now disputed.' }
       }
 
-      this.logger?.debug(`Match ${matchId}: Report submitted, waiting for opponent`)
+      this.logger?.debug(`[Tournament] Match #${matchId}: waiting for opponent report`)
       return { status: MatchStatus.Reported, message: 'Report submitted. Waiting for opponent to report.' }
     })
   }
@@ -152,7 +149,7 @@ export class MatchManager {
     hours: number,
     maxExtensionHours: number
   ): Promise<{ newDeadlineAt: number; addedMinutes: number }> {
-    this.logger?.info(`Match ${matchId}: extendDeadline — hours=${hours}, maxExtensionHours=${maxExtensionHours}`)
+    this.logger?.info(`[Tournament] Match #${matchId}: extending deadline +${hours}h (max: ${maxExtensionHours}h)`)
 
     const match = await this.databaseManager.queryOne<TournamentMatch>(
       'SELECT * FROM "tournament_matches" WHERE "id" = $1',
@@ -342,8 +339,7 @@ export class MatchManager {
         'SELECT * FROM "tournament_matches" WHERE "id" = $1 FOR UPDATE',
         [matchId]
       )
-      const match = matchResult.rows[0]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const match = matchResult.rows[0] as TournamentMatch | undefined
       if (!match) return { success: false, message: 'Match not found.' }
 
       const isPlayer1 = match.player1Id === oldPlayerId
@@ -373,18 +369,15 @@ export class MatchManager {
 
       await txClient.query('DELETE FROM "tournament_reports" WHERE "matchId" = $1', [matchId])
 
-      if (match.status !== MatchStatus.Completed && match.status !== MatchStatus.Bye) {
-        await txClient.query(
-          `UPDATE "tournament_matches" SET ${slotColumn} = $1, "status" = $2, "player1Wins" = NULL, "player2Wins" = NULL, "winnerId" = NULL WHERE "id" = $3`,
-          [newPlayerId, MatchStatus.Pending, matchId]
-        )
-      }
+      const isFinished = match.status === MatchStatus.Completed || match.status === MatchStatus.Bye
+      await (isFinished
+        ? txClient.query(`UPDATE "tournament_matches" SET ${slotColumn} = $1 WHERE "id" = $2`, [newPlayerId, matchId])
+        : txClient.query(
+            `UPDATE "tournament_matches" SET ${slotColumn} = $1, "status" = $2, "player1Wins" = NULL, "player2Wins" = NULL, "winnerId" = NULL WHERE "id" = $3`,
+            [newPlayerId, MatchStatus.Pending, matchId]
+          ))
 
       if (match.discordThreadId !== undefined) {
-        await this.channelManager.archiveMatchThread(match.discordThreadId, 'Player substituted')
-      }
-
-      if (tournament.discordChannelId !== undefined) {
         const otherPlayerId = isPlayer1 ? match.player2Id : match.player1Id
         const otherResult = await txClient.query<TournamentPlayer>(
           'SELECT * FROM "tournament_players" WHERE "id" = $1',
@@ -394,11 +387,10 @@ export class MatchManager {
           'SELECT * FROM "tournament_players" WHERE "id" = $1',
           [newPlayerId]
         )
-        const otherPlayer = otherResult.rows[0]
-        const newPlayer = newPlayerResult.rows[0]
+        const otherPlayer = otherResult.rows[0] as TournamentPlayer | undefined
+        const newPlayer = newPlayerResult.rows[0] as TournamentPlayer | undefined
 
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (otherPlayer !== undefined && newPlayer !== undefined) {
+        if (tournament.discordChannelId && otherPlayer && newPlayer) {
           const names = await this.getPlayerNames(tournament.id)
           const p1 = isPlayer1 ? newPlayer : otherPlayer
           const p2 = isPlayer1 ? otherPlayer : newPlayer

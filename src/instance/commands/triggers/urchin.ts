@@ -6,7 +6,7 @@ import { httpClient } from '../../../common/http.js'
 import { getUuidIfExists, usernameNotExists } from '../common/utility.js'
 
 interface UrchinTag {
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case field required by the Urchin API
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   tag_type: string
   reason: string
 }
@@ -20,7 +20,7 @@ interface UrchinResponse {
 interface SeraphBlacklist {
   tagged?: boolean
   reason?: string
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case field required by the Seraph API
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   report_type?: string
   verified?: boolean
   tooltip?: string
@@ -44,7 +44,7 @@ interface SeraphSafelist {
 
 interface SeraphStatistics {
   encounters?: number
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case field required by the Seraph API
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   threat_level?: number
 }
 
@@ -53,7 +53,7 @@ interface SeraphData {
   uuid?: string
   blacklist?: SeraphBlacklist
   annoylist?: SeraphAnnoylist
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case field required by the Seraph API
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   name_change?: SeraphNameChange
   safelist?: SeraphSafelist
   statistics?: SeraphStatistics
@@ -115,7 +115,7 @@ export default class Urchin extends ChatCommandHandler {
           player: uuid
         },
         headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the Urchin API
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           'X-API-Key': urchinApiKey
         }
       })
@@ -174,7 +174,7 @@ export default class Urchin extends ChatCommandHandler {
     try {
       const response = await httpClient.get(`https://api.seraph.si/${uuid}/blacklist`, {
         headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- HTTP header name required by the Seraph API
+          // eslint-disable-next-line @typescript-eslint/naming-convention
           'seraph-api-key': seraphApiKey
         }
       })

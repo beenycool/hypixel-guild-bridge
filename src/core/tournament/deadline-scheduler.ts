@@ -8,7 +8,7 @@ import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 import { MatchStatus, PlayerStatus, TournamentStatus } from './types.js'
 
 export class DeadlineScheduler {
-  private intervalHandle: NodeJS.Timeout | undefined = undefined
+  private timer?: NodeJS.Timeout
   private isRunning = false
 
   constructor(
@@ -20,9 +20,7 @@ export class DeadlineScheduler {
   ) {}
 
   public start(): void {
-    this.logger.info('DeadlineScheduler: Starting (interval=5m)')
-
-    this.intervalHandle = setInterval(
+    this.timer = setInterval(
       () => {
         this.checkDeadlines().catch((error: unknown) => {
           this.logger.error('Error checking tournament deadlines:', error)
@@ -33,18 +31,14 @@ export class DeadlineScheduler {
   }
 
   public stop(): void {
-    this.logger.info('DeadlineScheduler: Stopping')
-    if (this.intervalHandle !== undefined) {
-      clearInterval(this.intervalHandle)
-      this.intervalHandle = undefined
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = undefined
     }
   }
 
   public async checkDeadlines(): Promise<void> {
-    if (this.isRunning) {
-      this.logger.debug('DeadlineScheduler: Already running, skipping cycle')
-      return
-    }
+    if (this.isRunning) return
     this.isRunning = true
 
     try {

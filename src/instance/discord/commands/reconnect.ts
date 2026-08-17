@@ -14,10 +14,10 @@ export default {
   handler: async function (context) {
     await context.interaction.deferReply()
 
-    const targetInstance: string = context.interaction.options.getString('instance', true)
-    assert.ok(targetInstance)
+    const target = context.interaction.options.getString('instance', true)
+    assert.ok(target)
 
-    await context.application.sendSignal([targetInstance], InstanceSignalType.Restart)
+    await context.application.sendSignal([target], InstanceSignalType.Restart)
     await context.interaction.editReply('Reconnect signal has been sent!')
   }
 } satisfies DiscordCommandHandler

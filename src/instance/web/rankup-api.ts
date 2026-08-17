@@ -295,14 +295,13 @@ export class RankupApiHandler extends BaseApiHandler {
     }
 
     try {
-      const guild = await this.application.hypixelApi.getGuild('player', botUuid, {})
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- getGuild('player', ...) returns null at runtime for players without a guild despite the Promise<Guild> typing
-      if (!guild) {
+      const guild = (await this.application.hypixelApi.getGuild('player', botUuid, {})) as unknown
+      if (!guild || typeof guild !== 'object' || !('ranks' in guild)) {
         this.logger.info(`Guild not found for bridge ${bridgeId} (bot UUID: ${botUuid}) — returning empty ranks`)
         sendSuccess(response, { ranks: [] })
         return
       }
-      const rankNames = guild.ranks.map((r) => r.name)
+      const rankNames = (guild as { ranks: { name: string }[] }).ranks.map((r) => r.name)
       sendSuccess(response, { ranks: rankNames })
     } catch (error: unknown) {
       this.logger.error(`Failed to fetch guild ranks for bridge ${bridgeId} (bot UUID: ${botUuid}):`, error)
@@ -360,9 +359,7 @@ export class RankupApiHandler extends BaseApiHandler {
     const excludedPlayers = bridgeConfig.getRankupExcludedPlayers(bridgeId)
 
     const rankPriority = guild.ranks.toSorted((a, b) => a.priority - b.priority).map((r) => r.name.toLowerCase())
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- hypixel-api-reborn sets weeklyExperience to null at runtime when expHistory is missing despite the number typing
-    const weeklyGexp = member.weeklyExperience ?? 0
+    const weeklyGexp = member.weeklyExperience || 0
 
     const stats = {
       uuid: member.uuid,

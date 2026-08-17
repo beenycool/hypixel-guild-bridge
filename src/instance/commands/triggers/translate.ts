@@ -91,7 +91,7 @@ export default class Translate extends ChatCommandHandler {
 
     try {
       const result = await client.chatCompletion({
-        systemPrompt: 'You are a fast, direct translator. Respond with ONLY the translated text, nothing else.',
+        systemPrompt: 'Translate text directly. Respond with ONLY the translated text.',
         userPrompt: userContent,
         temperature: 0.3,
         reasoningEffort: 'low'

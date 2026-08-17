@@ -4,9 +4,8 @@ import { formatOpenRouterError, OpenRouterClient } from '../../../utility/openro
 import { SlidingWindowRateLimiter } from '../../../utility/sliding-window-rate-limiter.js'
 
 const prompt =
-  'You are a poetic assistant. Given a word, list 5-8 words that rhyme with it, ' +
-  'then write a short rhyming couplet (2 lines) that uses at least two of those words. ' +
-  'Format your response as:\nRhymes: word1, word2, word3, ...\nCouplet:\n<line 1>\n<line 2>'
+  'Give 5-8 words that rhyme with the input word, then a 2-line rhyming couplet using some of them.\n' +
+  'Format:\nRhymes: word1, word2, ...\nCouplet:\n<line 1>\n<line 2>'
 
 const rateLimiter = new SlidingWindowRateLimiter([
   { windowMs: 60_000, maxRequests: 3 },

@@ -3,64 +3,61 @@ interface RateLimitWindow {
   maxRequests: number
 }
 
+// quick and dirty sliding window rate limiter so people don't spam expensive commands
 export class SlidingWindowRateLimiter {
-  private readonly timestamps = new Map<string, number[]>()
+  private readonly hits = new Map<string, number[]>()
   private readonly windows: readonly RateLimitWindow[]
-  private readonly maxWindowMs: number
-  private readonly cleanupInterval: NodeJS.Timeout
+  private readonly longestWindow: number
+  private readonly timer: NodeJS.Timeout
 
-  constructor(windows: RateLimitWindow[], cleanupIntervalMs = 300_000) {
+  constructor(windows: RateLimitWindow[], gcIntervalMs = 300_000) {
     if (windows.length === 0) {
-      throw new Error('At least one rate limit window is required')
+      throw new Error('Need at least one window for rate limiter lol')
     }
 
     this.windows = windows
-    this.maxWindowMs = Math.max(...windows.map((w) => w.windowMs))
+    this.longestWindow = Math.max(...windows.map((w) => w.windowMs))
 
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup()
-    }, cleanupIntervalMs)
-    this.cleanupInterval.unref()
+    // clean up stale entries periodically so we don't leak memory
+    this.timer = setInterval(() => {
+      this.sweep()
+    }, gcIntervalMs)
+    this.timer.unref()
   }
 
   check(key: string): { allowed: boolean; retryAfterMs: number } {
     const now = Date.now()
-    const entries = this.timestamps.get(key) ?? []
+    const ts = (this.hits.get(key) ?? []).filter((t) => t > now - this.longestWindow)
 
-    const cutoff = now - this.maxWindowMs
-    const pruned = entries.filter((t) => t > cutoff)
-
-    let maxRetryAfterMs = 0
-
-    for (const window of this.windows) {
-      const windowStart = now - window.windowMs
-      const windowEntries = pruned.filter((t) => t > windowStart)
-
-      if (windowEntries.length >= window.maxRequests) {
-        const earliest = windowEntries[windowEntries.length - window.maxRequests]
-        const retryAfterMs = earliest + window.windowMs - now
-        maxRetryAfterMs = Math.max(maxRetryAfterMs, retryAfterMs)
+    let waitMs = 0
+    for (const win of this.windows) {
+      const inWin = ts.filter((t) => t > now - win.windowMs)
+      if (inWin.length >= win.maxRequests) {
+        // user hit limit for this window
+        const oldest = inWin[inWin.length - win.maxRequests]
+        const retry = oldest + win.windowMs - now
+        if (retry > waitMs) waitMs = retry
       }
     }
 
-    if (maxRetryAfterMs > 0) {
-      this.timestamps.set(key, pruned)
-      return { allowed: false, retryAfterMs: maxRetryAfterMs }
+    if (waitMs > 0) {
+      this.hits.set(key, ts)
+      return { allowed: false, retryAfterMs: waitMs }
     }
 
-    pruned.push(now)
-    this.timestamps.set(key, pruned)
+    ts.push(now)
+    this.hits.set(key, ts)
     return { allowed: true, retryAfterMs: 0 }
   }
 
-  private cleanup(): void {
-    const cutoff = Date.now() - this.maxWindowMs
-    for (const [key, entries] of this.timestamps) {
-      const pruned = entries.filter((t) => t > cutoff)
-      if (pruned.length === 0) {
-        this.timestamps.delete(key)
+  private sweep(): void {
+    const cutoff = Date.now() - this.longestWindow
+    for (const [k, ts] of this.hits) {
+      const keep = ts.filter((t) => t > cutoff)
+      if (keep.length === 0) {
+        this.hits.delete(k)
       } else {
-        this.timestamps.set(key, pruned)
+        this.hits.set(k, keep)
       }
     }
   }

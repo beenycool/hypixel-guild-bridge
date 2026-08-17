@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/no-restricted-paths -- known architecture violation: common events reference core rankup types, pending refactor
+// eslint-disable-next-line import/no-restricted-paths
 import type { PendingReview, RankupHistoryEntry } from '../core/rankup/pending-review-manager.js'
 
 import type { Status } from './connectable-instance.js'

@@ -26,14 +26,13 @@ export default {
   handler: async function (context) {
     await context.interaction.deferReply()
 
-    const username: string = context.interaction.options.getString('username', true)
-    const duration: string = context.interaction.options.getString('duration', true)
-    const reason: string | null = context.interaction.options.getString('reason')
-    let command = `/g mute ${username} ${duration}`
-    if (reason !== null) command += ` ${reason}`
+    const username = context.interaction.options.getString('username', true)
+    const duration = context.interaction.options.getString('duration', true)
+    const reason = context.interaction.options.getString('reason')
+    const command = reason ? `/g mute ${username} ${duration} ${reason}` : `/g mute ${username} ${duration}`
 
     const instance = getFirstConnectedBridgeMinecraftInstanceName(context.application, context.bridgeId)
-    if (instance === undefined) {
+    if (!instance) {
       await context.interaction.editReply(getBridgeMinecraftInstanceError(context.application, context.bridgeId))
       return
     }
@@ -47,7 +46,6 @@ export default {
       username
     )
     const formatted = formatChatTriggerResponse(result, `Mute ${escapeMarkdown(username)}`)
-
     await context.interaction.editReply({ embeds: [formatted] })
   },
   autoComplete: async function (context) {

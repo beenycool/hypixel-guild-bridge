@@ -481,6 +481,18 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     let allowedMentions: MessageMentionOptions | undefined
 
     if (activeEvent.type === GuildPlayerEventType.Request) {
+      const roleIds = [
+        ...this.application.core.bridgeConfigurations.getJoinRequestRoleIds(effectiveBridgeId),
+        ...this.application.core.bridgeConfigurations.getOfficerRoleIds(effectiveBridgeId),
+        ...this.application.core.bridgeConfigurations.getHelperRoleIds(effectiveBridgeId),
+        ...this.application.core.bridgeConfigurations.getOwnerRoleIds(effectiveBridgeId)
+      ]
+      const uniqueRoleIds = [...new Set(roleIds.filter((id) => id.length > 0))]
+      if (uniqueRoleIds.length > 0) {
+        pingContent = uniqueRoleIds.map((id) => `<@&${id}>`).join(' ')
+        allowedMentions = { parse: [], roles: uniqueRoleIds }
+      }
+
       const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`join-request:accept:${activeEvent.instanceName}:${username}`)

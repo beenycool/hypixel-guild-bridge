@@ -95,12 +95,12 @@ export default class ApplicationMetrics {
   }
 
   onTournamentParticipants(tournamentId: number, status: string, count: number): void {
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- Prometheus label name must match labelNames declaration
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     this.tournamentParticipants.set({ tournament_id: String(tournamentId), status }, count)
   }
 
   onTournamentMatches(tournamentId: number, status: string, count: number): void {
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- Prometheus label name must match labelNames declaration
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     this.tournamentMatches.set({ tournament_id: String(tournamentId), status }, count)
   }
 

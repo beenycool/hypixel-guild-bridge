@@ -37,7 +37,7 @@ export class PendingReviewManager {
   constructor(
     private readonly databaseManager: DatabaseManager,
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous event payloads
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private readonly onEvent?: (type: string, data: any) => void
   ) {
     this.databaseManager.registerCleaner(() => {

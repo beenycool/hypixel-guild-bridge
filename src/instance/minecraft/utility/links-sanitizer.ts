@@ -91,7 +91,7 @@ export class LinksSanitizer {
         mediaUrl = converted
       }
 
-      /* eslint-disable @typescript-eslint/naming-convention -- OpenAI content-block wire format */
+      /* eslint-disable @typescript-eslint/naming-convention */
       const contentBlock =
         type === 'video'
           ? { type: 'video_url', video_url: { url: mediaUrl } }
@@ -101,7 +101,7 @@ export class LinksSanitizer {
       const response = await this.http.post<ChatCompletionResponse>(
         'https://openrouter.ai/api/v1/chat/completions',
         {
-          /* eslint-disable @typescript-eslint/naming-convention -- OpenRouter API request body wire format */
+          /* eslint-disable @typescript-eslint/naming-convention */
           model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
           messages: [
             {
@@ -118,7 +118,7 @@ export class LinksSanitizer {
           /* eslint-enable @typescript-eslint/naming-convention */
         },
         {
-          /* eslint-disable @typescript-eslint/naming-convention -- HTTP header names required by the protocol */
+          /* eslint-disable @typescript-eslint/naming-convention */
           headers: {
             Authorization: `Bearer ${this.openrouterApiKey}`,
             'Content-Type': 'application/json'

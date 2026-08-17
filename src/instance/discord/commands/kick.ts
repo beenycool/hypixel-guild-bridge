@@ -23,11 +23,10 @@ export default {
   handler: async function (context) {
     await context.interaction.deferReply()
 
-    const username: string = context.interaction.options.getString('username', true)
-    const reason: string = context.interaction.options.getString('reason', true)
-    const command = `/g kick ${username} ${reason}`
+    const username = context.interaction.options.getString('username', true)
+    const reason = context.interaction.options.getString('reason', true)
     const instance = getFirstConnectedBridgeMinecraftInstanceName(context.application, context.bridgeId)
-    if (instance === undefined) {
+    if (!instance) {
       await context.interaction.editReply(getBridgeMinecraftInstanceError(context.application, context.bridgeId))
       return
     }
@@ -37,11 +36,10 @@ export default {
       context.eventHelper,
       KickChat,
       [instance],
-      command,
+      `/g kick ${username} ${reason}`,
       username
     )
     const formatted = formatChatTriggerResponse(result, `Kick ${escapeMarkdown(username)}`)
-
     await context.interaction.editReply({ embeds: [formatted] })
   },
   autoComplete: async function (context) {
