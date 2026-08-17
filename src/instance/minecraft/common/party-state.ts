@@ -1,21 +1,22 @@
 export const PartyInviteRegex = [
-  /^(?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32}) has invited you to join their party!/,
-  /^You have been invited to join (?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32})'s party!/
+  /^(?:\[[^\]]+\]\s*)*(\w{3,32}) has invited you to join their party!/i,
+  /^You have been invited to join (?:\[[^\]]+\]\s*)*(\w{3,32})'s party!/i
 ]
 
 export const PartyJoinRegex = [
-  /^Party created!/,
-  /^You are now in a party with /,
-  /^You (?:have )?joined (?:\[[+A-Z]{3,10}] )*\w{3,32}'s party!?/,
-  /^(?:\[[+A-Z]{3,10}] ){0,3}\w{3,32} joined the party\./
+  /^Party created!/i,
+  /^You are now in a party with /i,
+  /^You (?:have )?joined (?:\[[^\]]+\]\s*)*\w{3,32}'s party!?/i,
+  /^(?:\[[^\]]+\]\s*)*\w{3,32} joined the party\./i
 ]
 
-export const PartyMemberJoinedRegex = [/^(?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32}) joined the party!?/]
+export const PartyMemberJoinedRegex = [/^(?:\[[^\]]+\]\s*)*(\w{3,32}) joined the party!?/i]
 
 export function findPartyMemberJoined(message: string): string | undefined {
-  for (const line of message.split('\n')) {
+  const clean = message.replaceAll(/§./g, '').trim()
+  for (const line of clean.split('\n')) {
     for (const regex of PartyMemberJoinedRegex) {
-      const match = regex.exec(line)
+      const match = regex.exec(line.trim())
       if (match != undefined) return match[1]
     }
   }
@@ -23,15 +24,16 @@ export function findPartyMemberJoined(message: string): string | undefined {
 }
 
 export const PartyLeaveRegex = [
-  /^You left the party\./,
-  /^The party was disbanded\./,
-  /^You have been kicked from the party\./
+  /^You left the party\./i,
+  /^The party was disbanded\./i,
+  /^You have been kicked from the party\./i
 ]
 
 export function findPartyInvite(message: string): string | undefined {
-  for (const line of message.split('\n')) {
+  const clean = message.replaceAll(/§./g, '').trim()
+  for (const line of clean.split('\n')) {
     for (const regex of PartyInviteRegex) {
-      const match = regex.exec(line)
+      const match = regex.exec(line.trim())
       if (match != undefined) return match[1]
     }
   }
@@ -39,7 +41,8 @@ export function findPartyInvite(message: string): string | undefined {
 }
 
 function matchesAny(message: string, regexes: RegExp[]): boolean {
-  return message.split('\n').some((line) => regexes.some((regex) => regex.test(line)))
+  const clean = message.replaceAll(/§./g, '').trim()
+  return clean.split('\n').some((line) => regexes.some((regex) => regex.test(line.trim())))
 }
 
 export function updatePartyState(message: string, current: boolean): boolean {

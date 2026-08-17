@@ -30,7 +30,8 @@ export default class JoinInterviewHandler extends SubInstance<
   private static readonly DefaultTimeoutMs = 10 * 60_000
   private static readonly ExcludePrefix = '-'
 
-  private static readonly PartyChatRegex = /^(?:Party > )?(?:\[[+A-Z]{3,10}] ){0,3}(\w{3,32}): (.{1,256})$/
+  private static readonly PartyChatRegex =
+    /^(?:(?:Party|P)\s*>\s*)?(?:\[[^\]]+\]\s*)*([a-zA-Z0-9_]{3,32})(?:\s*\[[^\]]+\])*:\s*(.+)$/i
 
   private readonly sessions = new Map<string, InterviewSession>()
   private readonly inParty = new Map<string, boolean>()
@@ -167,7 +168,7 @@ export default class JoinInterviewHandler extends SubInstance<
   private async onMinecraftChat(event: MinecraftRawChatEvent): Promise<void> {
     if (event.instanceName !== this.clientInstance.instanceName) return
 
-    const message = event.message
+    const message = event.message.replaceAll(/§./g, '').trim()
     this.inParty.set(event.instanceName, updatePartyState(message, this.isInParty(event.instanceName)))
 
     for (const session of this.sessions.values()) {
