@@ -1,35 +1,16 @@
 import type http from 'node:http'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application.js'
 import { type InstanceType, MinecraftSendChatPriority, Permission } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 import type EventHelper from '../../common/event-helper.js'
 import { checkChatTriggers, InviteAcceptChat, RankChat } from '../../utility/chat-triggers.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { BaseApiHandler } from './base-api.js'
 
 const GuildPrefix = '/api/guild'
 
-export class GuildApiHandler {
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
-    if (!result.ok) {
-      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-      return undefined
-    }
-    return result.permission
-  }
-
+export class GuildApiHandler extends BaseApiHandler {
   async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
     if (!rawUrl) return false
@@ -487,10 +468,5 @@ export class GuildApiHandler {
       this.logger.error('Failed to update blacklist', error)
       sendError(response, 'INTERNAL_ERROR', 'Failed to update blacklist', 500)
     }
-  }
-
-  private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
-    response.setHeader('Allow', allowed.join(', '))
-    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

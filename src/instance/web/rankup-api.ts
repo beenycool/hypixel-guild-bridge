@@ -1,13 +1,10 @@
 import type http from 'node:http'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { BaseApiHandler } from './base-api.js'
 
 interface BridgeListEntry {
   bridgeId: string
@@ -30,6 +27,7 @@ interface DemotionRule {
   targetRank?: string
   maxWeeklyGexp: number
   gracePeriod: number
+  maxDaysInactive?: number
 }
 
 interface RulesResponse {
@@ -37,7 +35,7 @@ interface RulesResponse {
   manualReview: boolean
   notificationCooldown: number
   notificationChannelIds: string[]
-  notificationChannels: { id: string; name: string | undefined }[]
+  notificationChannels?: { id: string; name: string | undefined }[]
   promotionRules: PromotionRule[]
   demotionRules: DemotionRule[]
   excludedRanks: string[]
@@ -48,24 +46,8 @@ const PREFIX = '/api/rankup'
 const DEFAULT_HISTORY_LIMIT = 20
 const MAX_HISTORY_LIMIT = 200
 
-export class RankupApiHandler {
+export class RankupApiHandler extends BaseApiHandler {
   private readonly lastCheckByBridge = new Map<string, number>()
-
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const authHeader = request.headers.authorization
-    const tokens = buildTokenSet(webConfig)
-    const result = verifyToken(tokens, authHeader)
-    if (result.ok) return result.permission
-    sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-    return undefined
-  }
 
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
@@ -615,10 +597,5 @@ export class RankupApiHandler {
       return undefined
     }
     return value
-  }
-
-  private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
-    response.setHeader('Allow', allowed.join(', '))
-    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

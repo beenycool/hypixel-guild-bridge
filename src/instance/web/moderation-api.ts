@@ -1,12 +1,9 @@
 import type http from 'node:http'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { BaseApiHandler } from './base-api.js'
 
 const ModerationPrefix = '/api/moderation'
 
@@ -23,23 +20,7 @@ function array(s: unknown): string[] {
   return []
 }
 
-export class ModerationApiHandler {
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
-    if (!result.ok) {
-      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-      return undefined
-    }
-    return result.permission
-  }
-
+export class ModerationApiHandler extends BaseApiHandler {
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
     if (!rawUrl) return false

@@ -1,34 +1,14 @@
 import type http from 'node:http'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application.js'
-import type { Permission } from '../../common/application-event.js'
 import { Status } from '../../common/connectable-instance.js'
 
-import { sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { sendSuccess } from './api-utils.js'
+import { BaseApiHandler } from './base-api.js'
 
 const StatusPrefix = '/api/status'
 
-export class StatusApiHandler {
+export class StatusApiHandler extends BaseApiHandler {
   private readonly startTime = Date.now()
-
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
-    if (!result.ok) {
-      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-      return undefined
-    }
-    return result.permission
-  }
 
   async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
@@ -103,10 +83,5 @@ export class StatusApiHandler {
       bridges,
       guild: guildInfo
     })
-  }
-
-  private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
-    response.setHeader('Allow', allowed.join(', '))
-    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

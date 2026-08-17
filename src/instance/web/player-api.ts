@@ -1,12 +1,7 @@
 import type http from 'node:http'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application.js'
-import type { Permission } from '../../common/application-event.js'
-
 import { sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { BaseApiHandler } from './base-api.js'
 
 const PlayerPrefix = '/api/player'
 
@@ -43,23 +38,7 @@ interface PlayerStats {
     | undefined
 }
 
-export class PlayerApiHandler {
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
-    if (!result.ok) {
-      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-      return undefined
-    }
-    return result.permission
-  }
-
+export class PlayerApiHandler extends BaseApiHandler {
   async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
     if (!rawUrl) return false
@@ -197,10 +176,5 @@ export class PlayerApiHandler {
       currentWinstreak: d.current_winstreak as number,
       bestWinstreak: d.best_winstreak as number
     }
-  }
-
-  private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
-    response.setHeader('Allow', allowed.join(', '))
-    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

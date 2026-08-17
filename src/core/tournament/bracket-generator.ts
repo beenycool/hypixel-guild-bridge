@@ -55,17 +55,12 @@ class SingleElimBracketStrategy implements BracketStrategy {
     roundDeadlineHours: number
   ): { totalRounds: number; matches: GeneratedMatch[] } {
     const playerCount = players.length
-    this.logger?.debug(
-      `Tournament ${tournamentId}: SingleElim — generating bracket with ${playerCount} players, deadline=${roundDeadlineHours}h`
-    )
-
     if (playerCount < 2) {
       throw new Error('Cannot generate bracket with less than 2 players.')
     }
 
     const totalSlots = Math.pow(2, Math.ceil(Math.log2(playerCount)))
     const totalRounds = Math.ceil(Math.log2(totalSlots))
-    this.logger?.debug(`Tournament ${tournamentId}: SingleElim — ${totalSlots} slots across ${totalRounds} rounds`)
 
     const sortedPlayers = players.toSorted((a, b) => a.seed - b.seed)
     for (const [index, element] of sortedPlayers.entries()) {
@@ -79,57 +74,44 @@ class SingleElimBracketStrategy implements BracketStrategy {
       seedToPlayerMap.set(p.seed, p)
     }
 
-    this.logger?.debug(
-      `Tournament ${tournamentId}: SingleElim — player seeds: ${[...seedToPlayerMap.keys()].join(', ')}`
-    )
-
     const seedOrder = this.getSeedOrder(totalSlots)
-    this.logger?.debug(`Tournament ${tournamentId}: SingleElim — seed order: ${seedOrder.join(', ')}`)
-
     const matches: GeneratedMatch[] = []
-
     const round1MatchCount = totalSlots / 2
     const now = Math.floor(Date.now() / 1000)
     const deadlineAt = now + roundDeadlineHours * 3600
 
-    let byeCount = 0
-    let activeCount = 0
     for (let index = 0; index < round1MatchCount; index++) {
       const seed1 = seedOrder[2 * index]
       const seed2 = seedOrder[2 * index + 1]
 
-      const p1 = seedToPlayerMap.get(seed1) ?? undefined
-      const p2 = seedToPlayerMap.get(seed2) ?? undefined
+      const p1 = seedToPlayerMap.get(seed1)
+      const p2 = seedToPlayerMap.get(seed2)
 
       let status = MatchStatus.Pending
-      let winnerId: number | undefined = undefined
-      let completedAt: number | undefined = undefined
+      let winnerId: number | undefined
+      let completedAt: number | undefined
 
       if (p1 !== undefined && p2 === undefined) {
         status = MatchStatus.Bye
         winnerId = p1.id
         completedAt = now
-        byeCount++
       } else if (p1 === undefined && p2 !== undefined) {
         status = MatchStatus.Bye
         winnerId = p2.id
         completedAt = now
-        byeCount++
       } else if (p1 === undefined && p2 === undefined) {
         status = MatchStatus.Bye
         completedAt = now
-        byeCount++
       } else {
         status = MatchStatus.Active
-        activeCount++
       }
 
       matches.push({
         tournamentId,
         round: 1,
         matchIndex: index,
-        player1Id: p1 === undefined ? undefined : p1.id,
-        player2Id: p2 === undefined ? undefined : p2.id,
+        player1Id: p1?.id,
+        player2Id: p2?.id,
         winnerId,
         status,
         player1Wins: 0,
@@ -140,13 +122,8 @@ class SingleElimBracketStrategy implements BracketStrategy {
       })
     }
 
-    this.logger?.debug(
-      `Tournament ${tournamentId}: SingleElim — round 1: ${activeCount} active, ${byeCount} BYE matches`
-    )
-
     for (let r = 2; r <= totalRounds; r++) {
       const matchCount = totalSlots / Math.pow(2, r)
-      this.logger?.debug(`Tournament ${tournamentId}: SingleElim — round ${r}: ${matchCount} matches (pending)`)
       for (let index = 0; index < matchCount; index++) {
         matches.push({
           tournamentId,
@@ -165,7 +142,6 @@ class SingleElimBracketStrategy implements BracketStrategy {
       }
     }
 
-    this.logger?.debug(`Tournament ${tournamentId}: SingleElim — generated ${matches.length} total matches`)
     return { totalRounds, matches }
   }
 
@@ -213,7 +189,6 @@ class DoubleElimBracketStrategy implements BracketStrategy {
     roundDeadlineHours: number
   ): { totalRounds: number; matches: GeneratedMatch[] } {
     const n = players.length
-    this.logger?.debug(`Tournament ${tournamentId}: DoubleElim — generating bracket with ${n} players`)
     if (n < 2) {
       throw new Error('Cannot generate bracket with less than 2 players.')
     }
@@ -339,8 +314,6 @@ class DoubleElimBracketStrategy implements BracketStrategy {
       return [...winners, ...leftover]
     }
 
-    this.logger?.debug(`Tournament ${tournamentId}: DoubleElim — upper bracket rounds=${totalUpperRounds}`)
-
     for (let r = 1; r <= totalUpperRounds; r++) {
       const losers: LbEntrant[] = (ubByRound.get(r) ?? [])
         .filter(
@@ -356,10 +329,6 @@ class DoubleElimBracketStrategy implements BracketStrategy {
     }
 
     const grandFinalRound = lbRoundNumber
-    this.logger?.debug(
-      `Tournament ${tournamentId}: DoubleElim — ${matches.length} bracket matches so far, grand final in round ${grandFinalRound}`
-    )
-
     const ubFinal = (ubByRound.get(totalUpperRounds) ?? [])[0] as GeneratedMatch | undefined
     if (ubFinal !== undefined) {
       ubFinal.winnerNext = { round: grandFinalRound, matchIndex: 0 }
@@ -383,9 +352,6 @@ class DoubleElimBracketStrategy implements BracketStrategy {
       completedAt: undefined
     })
 
-    this.logger?.debug(
-      `Tournament ${tournamentId}: DoubleElim — generated ${matches.length} total matches across ${grandFinalRound} rounds`
-    )
     return { totalRounds: grandFinalRound, matches }
   }
 
@@ -434,7 +400,6 @@ class RoundRobinBracketStrategy implements BracketStrategy {
     roundDeadlineHours: number
   ): { totalRounds: number; matches: GeneratedMatch[] } {
     const n = players.length
-    this.logger?.debug(`Tournament ${tournamentId}: RoundRobin — generating bracket with ${n} players`)
     if (n < 2) return { totalRounds: 1, matches: [] }
 
     const now = Math.floor(Date.now() / 1000)
@@ -459,7 +424,6 @@ class RoundRobinBracketStrategy implements BracketStrategy {
       }
     }
 
-    this.logger?.debug(`Tournament ${tournamentId}: RoundRobin — generated ${matches.length} matches across 1 round`)
     return { totalRounds: 1, matches }
   }
 

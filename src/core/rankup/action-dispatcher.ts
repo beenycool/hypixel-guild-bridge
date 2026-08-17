@@ -4,7 +4,7 @@ import type Application from '../../application.js'
 import { MinecraftSendChatPriority } from '../../common/application-event.js'
 
 import type { PendingReviewManager } from './pending-review-manager.js'
-import type { RankupDecision } from './rankup-decision.js'
+import type { RankupDecision } from './types.js'
 
 export class ActionDispatcher {
   constructor(

@@ -60,14 +60,14 @@ git clone https://github.com/aidn3/hypixel-guild-discord-bridge
 
 `config.yaml` only holds **bootstrap** settings that are needed before the database and web server are available:
 
-| Setting | Purpose |
-| --- | --- |
-| `general.hypixelApiKey` | Hypixel API access |
-| `discord.key` | Discord bot token |
-| `discord.adminIds` | Admin permission (fallback for web auth) |
-| `web.*` | Web server port + `signingSecret` for dashboard auth |
-| `prometheus.*` | Metrics endpoint |
-| `database.*` | Database connection |
+| Setting                 | Purpose                                              |
+| ----------------------- | ---------------------------------------------------- |
+| `general.hypixelApiKey` | Hypixel API access                                   |
+| `discord.key`           | Discord bot token                                    |
+| `discord.adminIds`      | Admin permission (fallback for web auth)             |
+| `web.*`                 | Web server port + `signingSecret` for dashboard auth |
+| `prometheus.*`          | Metrics endpoint                                     |
+| `database.*`            | Database connection                                  |
 
 Everything else is managed from the **web dashboard** and stored in the database (no restart required):
 

@@ -1,9 +1,7 @@
 import type http from 'node:http'
 
 import { ChannelType } from 'discord.js'
-import type { Logger } from 'log4js'
 
-import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 import {
   MatchStatus,
@@ -22,7 +20,7 @@ import {
 } from '../discord/features/tournament-buttons.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { BaseApiHandler } from './base-api.js'
 
 const TournamentPrefix = '/api/tournament'
 
@@ -41,27 +39,8 @@ interface TournamentResult {
   createdAt: number
 }
 
-export class TournamentApiHandler {
+export class TournamentApiHandler extends BaseApiHandler {
   private readonly userProfileCache = new Map<string, { expiresAt: number; profile: unknown }>()
-
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
-  private verifyAuth(
-    request: http.IncomingMessage,
-    response: http.ServerResponse
-  ): { permission: Permission; userId?: string } | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const authHeader = request.headers.authorization
-    const tokens = buildTokenSet(webConfig)
-    const result = verifyToken(tokens, authHeader)
-    if (result.ok) return { permission: result.permission, userId: result.userId }
-    sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-    return undefined
-  }
 
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
@@ -74,7 +53,7 @@ export class TournamentApiHandler {
 
     this.logger.info(`API ${method} ${pathPart}`)
 
-    const auth = this.verifyAuth(request, response)
+    const auth = this.verifyAuthWithUser(request, response)
     if (auth === undefined) return true
     const permission = auth.permission
 
@@ -1356,10 +1335,5 @@ export class TournamentApiHandler {
     }
 
     return { resolved: resolved.length, matches: resolved }
-  }
-
-  private sendMethodNotAllowed(response: http.ServerResponse, allowed: string[]): void {
-    response.setHeader('Allow', allowed.join(', '))
-    sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
   }
 }

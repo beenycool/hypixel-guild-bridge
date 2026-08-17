@@ -10,7 +10,6 @@ import {
 import type Application from '../../application.js'
 // eslint-disable-next-line import/no-restricted-paths -- known architecture violation (core importing instance); pending refactor
 import { buildThreadComponents } from '../../instance/discord/features/tournament-buttons.js'
-import { CircuitBreaker } from '../../utility/circuit-breaker.js'
 import RateLimiter from '../../utility/rate-limiter.js'
 
 import { BracketVisualizer } from './bracket-visualizer.js'
@@ -19,7 +18,6 @@ import { MatchStatus, TournamentStatus } from './types.js'
 
 export class TournamentChannelManager {
   private readonly threadCreationLimiter = new RateLimiter(5, 10_000)
-  private readonly circuitBreaker = new CircuitBreaker(3, 15_000)
   private readonly visualizer = new BracketVisualizer()
 
   constructor(private readonly application: Application) {}
@@ -160,9 +158,7 @@ export class TournamentChannelManager {
   private async addMemberWithRetry(thread: AnyThreadChannel, userId: string): Promise<void> {
     await this.threadCreationLimiter.wait()
     try {
-      await this.circuitBreaker.execute(async () => {
-        await thread.members.add(userId)
-      })
+      await thread.members.add(userId)
     } catch (error) {
       if (error instanceof DiscordAPIError && this.isIgnorableMemberAddError(error.code)) {
         this.application.logger.warn(
@@ -355,23 +351,21 @@ export class TournamentChannelManager {
   }
 
   private async archiveThreadWithRetry(threadId: string, resultMessage?: string): Promise<void> {
-    await this.circuitBreaker.execute(async () => {
-      const client = this.application.discordInstance.getClient()
-      const thread = await client.channels.fetch(threadId).catch(() => undefined)
-      if (!thread || (thread.type !== ChannelType.PrivateThread && thread.type !== ChannelType.PublicThread)) return
+    const client = this.application.discordInstance.getClient()
+    const thread = await client.channels.fetch(threadId).catch(() => undefined)
+    if (!thread || (thread.type !== ChannelType.PrivateThread && thread.type !== ChannelType.PublicThread)) return
 
-      const threadChannel = thread as ThreadChannel
-      const embed = new EmbedBuilder()
-        .setTitle('🏁 Match Completed')
-        .setColor('#00FF00')
-        .setDescription(resultMessage ?? '')
-        .setTimestamp()
+    const threadChannel = thread as ThreadChannel
+    const embed = new EmbedBuilder()
+      .setTitle('🏁 Match Completed')
+      .setColor('#00FF00')
+      .setDescription(resultMessage ?? '')
+      .setTimestamp()
 
-      await threadChannel.send({ embeds: [embed] }).catch(() => undefined)
-      await threadChannel.setLocked(true).catch(() => undefined)
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      await threadChannel.setArchived(true).catch(() => undefined)
-    })
+    await threadChannel.send({ embeds: [embed] }).catch(() => undefined)
+    await threadChannel.setLocked(true).catch(() => undefined)
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await threadChannel.setArchived(true).catch(() => undefined)
   }
 
   public async archiveMatchThread(threadId: string, resultMessage: string): Promise<void> {

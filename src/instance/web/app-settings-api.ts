@@ -1,19 +1,11 @@
 import type http from 'node:http'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application.js'
 import { Permission } from '../../common/application-event.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { BaseApiHandler } from './base-api.js'
 
-export class AppSettingsApiHandler {
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
+export class AppSettingsApiHandler extends BaseApiHandler {
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
     if (!rawUrl) return false
@@ -43,17 +35,6 @@ export class AppSettingsApiHandler {
 
     sendError(response, 'NOT_FOUND', 'Not found', 404)
     return true
-  }
-
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const authHeader = request.headers.authorization
-    const tokens = buildTokenSet(webConfig)
-    const result = verifyToken(tokens, authHeader)
-    if (result.ok) return result.permission
-    sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-    return undefined
   }
 
   private handleGet(response: http.ServerResponse): void {

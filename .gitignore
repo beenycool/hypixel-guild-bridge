@@ -16,3 +16,4 @@ outputs/
 *.log
 blockops-yesterday.txt
 .all-paths.txt
+digest.txt

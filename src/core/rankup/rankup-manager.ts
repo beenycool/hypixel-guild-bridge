@@ -5,10 +5,9 @@ import type { BridgeConfigurations } from '../discord/bridge-configurations'
 
 import { ActionDispatcher } from './action-dispatcher.js'
 import { BridgeEvaluator } from './bridge-evaluator.js'
-import { POLL_INTERVAL_MS } from './constants.js'
 import { NotificationManager } from './notification-manager.js'
 import type { PendingReviewManager } from './pending-review-manager.js'
-import type { RankupDecision } from './rankup-decision.js'
+import { POLL_INTERVAL_MS, type RankupDecision } from './types.js'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 

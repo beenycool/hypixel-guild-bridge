@@ -6,8 +6,8 @@ import type { BridgeConfigurations } from '../discord/bridge-configurations.js'
 import type { ActionDispatcher } from './action-dispatcher.js'
 import type { NotificationManager } from './notification-manager.js'
 import type { PendingReviewManager } from './pending-review-manager.js'
-import type { RankupDecision } from './rankup-decision.js'
 import { RulesEvaluator } from './rules-evaluator.js'
+import type { RankupDecision } from './types.js'
 
 export class BridgeEvaluator {
   constructor(

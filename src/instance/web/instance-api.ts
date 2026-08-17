@@ -1,32 +1,13 @@
 import type http from 'node:http'
 
-import type { Logger } from 'log4js'
-
-import type Application from '../../application.js'
 import { InstanceSignalType, MinecraftSendChatPriority, Permission } from '../../common/application-event.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { BaseApiHandler } from './base-api.js'
 
 const InstancePrefix = '/api/instance'
 
-export class InstanceApiHandler {
-  constructor(
-    private readonly application: Application,
-    private readonly logger: Logger
-  ) {}
-
-  private verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
-    if (!result.ok) {
-      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-      return undefined
-    }
-    return result.permission
-  }
-
+export class InstanceApiHandler extends BaseApiHandler {
   async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {
     const rawUrl = request.url
     if (!rawUrl) return false
@@ -35,8 +16,7 @@ export class InstanceApiHandler {
     if (!pathPart.startsWith(InstancePrefix)) return false
 
     if (request.method !== 'POST') {
-      response.setHeader('Allow', 'POST')
-      sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
+      this.sendMethodNotAllowed(response, ['POST'])
       return true
     }
 
