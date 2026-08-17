@@ -24,7 +24,7 @@ export default class Discord extends ChatCommandHandler {
       return `${mojangProfile.name} has linked to ${discordProfile.username} (${discordProfile.id})`
     }
 
-    const player = await context.app.hypixelApi.getPlayer(mojangProfile.id, {}).catch(() => {})
+    const player = await context.app.hypixelApi.getPlayer(mojangProfile.id, {}).catch(() => undefined)
     if (player == undefined) return playerNeverPlayedHypixel(context, givenUsername)
 
     const discordSocial = player.socialMedia.find((social) => social.id === 'DISCORD')

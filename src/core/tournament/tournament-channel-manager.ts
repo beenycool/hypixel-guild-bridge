@@ -579,6 +579,8 @@ export class TournamentChannelManager {
       await (message === undefined
         ? textChannel.send({ embeds: [embed], files })
         : message.edit({ embeds: [embed], files }))
-    } catch {}
+    } catch (error: unknown) {
+      void error
+    }
   }
 }

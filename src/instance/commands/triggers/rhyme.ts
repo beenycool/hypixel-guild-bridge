@@ -1,6 +1,6 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
-import { isAxiosError, OpenRouterClient } from '../../../utility/openrouter-client.js'
+import { formatOpenRouterError, OpenRouterClient } from '../../../utility/openrouter-client.js'
 import { SlidingWindowRateLimiter } from '../../../utility/sliding-window-rate-limiter.js'
 
 const RHYME_SYSTEM_PROMPT =
@@ -58,41 +58,7 @@ export default class Rhyme extends ChatCommandHandler {
 
       return result.content
     } catch (error: unknown) {
-      return this.handleError(context, error)
+      return formatOpenRouterError(error, 'Rhyme', context.logger)
     }
-  }
-
-  private handleError(context: ChatCommandContext, error: unknown): string {
-    if (isAxiosError(error)) {
-      context.logger.error(
-        `Rhyme API error: status=${error.response?.status.toString() ?? 'unknown'}, ` +
-          `message=${error.message}` +
-          (error.response?.data ? `, data=${JSON.stringify(error.response.data)}` : '')
-      )
-
-      if (error.response?.status === 401) {
-        return 'Rhyme failed: Invalid API key'
-      }
-
-      if (error.response?.status === 402) {
-        return 'Rhyme failed: Insufficient credits'
-      }
-
-      if (error.response?.status === 429) {
-        return 'Rhyme failed: Rate limited. Please try again later.'
-      }
-
-      if (error.code === 'ECONNABORTED') {
-        return 'Rhyme failed: Request timed out. Please try again.'
-      }
-
-      const apiMessage: unknown = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error
-        ?.message
-      const fallback = typeof apiMessage === 'string' ? apiMessage : error.message
-      return `Rhyme failed: ${fallback}`
-    }
-
-    context.logger.error(error)
-    return 'Rhyme failed: An unexpected error occurred'
   }
 }

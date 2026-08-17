@@ -33,11 +33,8 @@ export default class GtopCommand extends ChatCommandHandler {
 
     const lines = await Promise.all(
       topMembers.map(async (entry, index) => {
-        let name = entry.uuid
-        try {
-          const profile = await context.app.mojangApi.profileByUuid(entry.uuid)
-          name = profile.name
-        } catch {}
+        const profile = await context.app.mojangApi.profileByUuid(entry.uuid).catch(() => undefined)
+        const name = profile?.name ?? entry.uuid
         return `${index + 1}. ${name} (${entry.exp.toLocaleString()} EXP)`
       })
     )

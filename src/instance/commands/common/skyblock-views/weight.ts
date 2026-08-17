@@ -1,8 +1,3 @@
-/*
- CREDIT: Idea by Aura
- Discord: Aura#5051
- Minecraft username: _aura
-*/
 import assert from 'node:assert'
 
 import { type AxiosResponse } from 'axios'

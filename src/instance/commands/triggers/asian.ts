@@ -51,11 +51,9 @@ export default class Asian extends ChatCommandHandler {
     const result = await timeout.wait()
     context.app.off('chat', listener)
 
-    if (result === problem.answer) {
-      return 'Big brain!'
-    } else {
-      return `haiyaaaaaaaaa this is so easy, you're a disappointment *takes off slipper* (answer: ${problem.answer})`
-    }
+    return result === problem.answer
+      ? 'Big brain!'
+      : `haiyaaaaaaaaa this is so easy, you're a disappointment *takes off slipper* (answer: ${problem.answer})`
   }
 
   private createCalculus(): { expression: string; answer: number } {

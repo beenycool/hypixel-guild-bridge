@@ -80,8 +80,8 @@ export default class Autocomplete extends SubInstance<Core, InstanceType.Core, v
     })
   }
 
-  public async load(): Promise<void> {
-    // No longer loading into RAM to prevent memory issues
+  public load(): Promise<void> {
+    return Promise.resolve()
   }
 
   public async username(query: string, limit: number): Promise<string[]> {

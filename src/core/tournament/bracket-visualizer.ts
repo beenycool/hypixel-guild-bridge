@@ -16,16 +16,17 @@ export class BracketVisualizer {
   constructor() {
     try {
       registerFont(path.join('resources', 'fonts', 'MinecraftRegular-Bmg3.ttf'), { family: 'Minecraft' })
-    } catch {}
+    } catch (error: unknown) {
+      void error
+    }
   }
 
   buildBracketImage(data: BracketData): Buffer | null {
     try {
-      // eslint-disable-next-line unicorn/no-null -- null is the documented no-image sentinel (callers and tests compare === null)
+      /* eslint-disable unicorn/no-null */
       if (data.matches.length === 0) return null
 
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB row may omit totalRounds at runtime despite the type
-      const totalRounds = Math.max(1, data.tournament.totalRounds ?? 1)
+      const totalRounds = Math.max(1, data.tournament.totalRounds)
       const maxMatchesRound1 = Math.pow(2, totalRounds - 1)
 
       const matchHeight = 60
@@ -77,9 +78,8 @@ export class BracketVisualizer {
         const boxX = colX + 15
         const boxWidth = columnWidth - 30
 
-        for (const [index, match] of roundMatches.entries()) {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- matchIndex may be omitted at runtime (see tests) despite the type
-          const matchIndex = match.matchIndex ?? index
+        for (const match of roundMatches) {
+          const matchIndex = match.matchIndex
           const slotsInRound = Math.pow(2, round - 1)
           const centerSlotIndex = matchIndex * slotsInRound + (slotsInRound - 1) / 2
           const centerY = headerHeight + padding + (centerSlotIndex + 0.5) * slotHeight
@@ -123,11 +123,8 @@ export class BracketVisualizer {
           context.stroke()
 
           const p1Name = match.player1Id ? (data.playerNames.get(match.player1Id) ?? 'TBD') : '—'
-          const p1Score =
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
-            match.player1Wins !== null && match.player1Wins !== undefined ? match.player1Wins.toString() : ''
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB column may be NULL at runtime despite the TS type
-          const p1IsWinner = match.winnerId !== null && match.player1Id === match.winnerId
+          const p1Score = match.player1Wins ? String(match.player1Wins) : ''
+          const p1IsWinner = match.winnerId !== undefined && match.player1Id === match.winnerId
 
           context.font = '12px Minecraft, sans-serif'
           context.textAlign = 'left'
@@ -148,11 +145,8 @@ export class BracketVisualizer {
           context.stroke()
 
           const p2Name = match.player2Id ? (data.playerNames.get(match.player2Id) ?? 'TBD') : '—'
-          const p2Score =
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
-            match.player2Wins !== null && match.player2Wins !== undefined ? match.player2Wins.toString() : ''
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB column may be NULL at runtime despite the TS type
-          const p2IsWinner = match.winnerId !== null && match.player2Id === match.winnerId
+          const p2Score = match.player2Wins ? String(match.player2Wins) : ''
+          const p2IsWinner = match.winnerId !== undefined && match.player2Id === match.winnerId
 
           context.textAlign = 'left'
           context.fillStyle = p2IsWinner ? '#2ecc71' : match.player2Id ? '#cccccc' : '#666666'
@@ -188,7 +182,6 @@ export class BracketVisualizer {
 
       return canvas.toBuffer('image/png')
     } catch {
-      // eslint-disable-next-line unicorn/no-null -- null is the documented no-image sentinel (callers and tests compare === null)
       return null
     }
   }
@@ -208,8 +201,7 @@ export class BracketVisualizer {
     }
 
     for (const [round, roundMatches] of matchesByRound) {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB row may omit totalRounds at runtime despite the type
-      const label = round === (data.tournament.totalRounds ?? 1) ? '&e&lFINAL' : `&e&lRound ${round}`
+      const label = round === data.tournament.totalRounds ? '&e&lFINAL' : `&e&lRound ${round}`
       lines.push('')
       lines.push(label)
 
@@ -239,8 +231,7 @@ export class BracketVisualizer {
 
         if (match.status === MatchStatus.Completed && match.winnerId) {
           const winnerName = match.winnerId === match.player1Id ? p1 : p2
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- DB columns are nullable at runtime despite the TS types
-          const score = `${match.player1Wins ?? 0}-${match.player2Wins ?? 0}`
+          const score = `${match.player1Wins}-${match.player2Wins}`
           lines.push(`${statusIcon} ${p1} vs ${p2} &7(${score}) &a${winnerName} wins`)
         } else if (match.status === MatchStatus.Bye) {
           const advancerId = match.player1Id ?? match.player2Id

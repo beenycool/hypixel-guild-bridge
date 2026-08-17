@@ -30,6 +30,13 @@ export interface DemotionRule {
   maxDaysInactive?: number
 }
 
+function resolveDemotion(rule: DemotionRule, reason: string): EvaluateResult {
+  if (rule.action === 'kick') return { action: 'kick', reason }
+  if (rule.action === 'notify') return { action: 'notify', reason }
+  if (!rule.targetRank) return { action: 'none' }
+  return { action: 'demote', targetRank: rule.targetRank, reason }
+}
+
 export class RulesEvaluator {
   public evaluate(
     member: MemberStats,
@@ -47,15 +54,10 @@ export class RulesEvaluator {
     if (currentRankIndex === -1) return { action: 'none' }
 
     const possiblePromotions = promotionRules
-      .filter((rule) => {
-        const targetIndex = rankPriority.indexOf(rule.targetRank.toLowerCase())
-        return targetIndex > currentRankIndex
-      })
-      .toSorted((a, b) => {
-        const indexA = rankPriority.indexOf(a.targetRank.toLowerCase())
-        const indexB = rankPriority.indexOf(b.targetRank.toLowerCase())
-        return indexB - indexA
-      })
+      .filter((rule) => rankPriority.indexOf(rule.targetRank.toLowerCase()) > currentRankIndex)
+      .toSorted(
+        (a, b) => rankPriority.indexOf(b.targetRank.toLowerCase()) - rankPriority.indexOf(a.targetRank.toLowerCase())
+      )
 
     const daysInGuild = (Date.now() - member.joinedAt) / (1000 * 60 * 60 * 24)
 
@@ -69,63 +71,24 @@ export class RulesEvaluator {
       }
     }
 
-    const applicableDemotion = demotionRules.find((r) => r.fromRank.toLowerCase() === member.rank.toLowerCase())
-    if (
-      applicableDemotion &&
-      daysInGuild > applicableDemotion.gracePeriod &&
-      member.weeklyGexp < applicableDemotion.maxWeeklyGexp
-    ) {
-      const reason = `Below requirements: ${member.weeklyGexp} < ${applicableDemotion.maxWeeklyGexp} GEXP after ${applicableDemotion.gracePeriod} days.`
-
-      if (applicableDemotion.action === 'kick') {
-        return { action: 'kick', reason }
+    const demotionRule = demotionRules.find((r) => r.fromRank.toLowerCase() === member.rank.toLowerCase())
+    if (demotionRule && daysInGuild > demotionRule.gracePeriod) {
+      if (member.weeklyGexp < demotionRule.maxWeeklyGexp) {
+        return resolveDemotion(
+          demotionRule,
+          `Below requirements: ${member.weeklyGexp} < ${demotionRule.maxWeeklyGexp} GEXP after ${demotionRule.gracePeriod} days.`
+        )
       }
 
-      if (applicableDemotion.action === 'notify') {
-        return { action: 'notify', reason }
-      }
-
-      if (applicableDemotion.targetRank === undefined) {
-        return { action: 'none' }
-      }
-
-      return {
-        action: 'demote' as const,
-        targetRank: applicableDemotion.targetRank,
-        reason
-      }
-    }
-
-    if (member.daysSinceLastSeen !== undefined) {
-      const inactiveRule = demotionRules.find(
-        (r) => r.fromRank.toLowerCase() === member.rank.toLowerCase() && r.maxDaysInactive !== undefined
-      )
-      const maxDaysInactive = inactiveRule?.maxDaysInactive
       if (
-        inactiveRule &&
-        daysInGuild > inactiveRule.gracePeriod &&
-        maxDaysInactive !== undefined &&
-        member.daysSinceLastSeen > maxDaysInactive
+        member.daysSinceLastSeen !== undefined &&
+        demotionRule.maxDaysInactive !== undefined &&
+        member.daysSinceLastSeen > demotionRule.maxDaysInactive
       ) {
-        const reason = `Inactive for ${member.daysSinceLastSeen.toFixed(1)} days (max ${maxDaysInactive}).`
-
-        if (inactiveRule.action === 'kick') {
-          return { action: 'kick', reason }
-        }
-
-        if (inactiveRule.action === 'notify') {
-          return { action: 'notify', reason }
-        }
-
-        if (inactiveRule.targetRank === undefined) {
-          return { action: 'none' }
-        }
-
-        return {
-          action: 'demote' as const,
-          targetRank: inactiveRule.targetRank,
-          reason
-        }
+        return resolveDemotion(
+          demotionRule,
+          `Inactive for ${member.daysSinceLastSeen.toFixed(1)} days (max ${demotionRule.maxDaysInactive}).`
+        )
       }
     }
 

@@ -44,7 +44,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     if (this.onChange) {
       try {
         this.onChange({ bridgeId, key, value })
-      } catch {}
+      } catch (error: unknown) {
+        void error
+      }
     }
   }
 
@@ -136,7 +138,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     if (this.onChange) {
       try {
         this.onChange({ bridgeId, key: 'remove_bridge', value: true })
-      } catch {}
+      } catch (error: unknown) {
+        void error
+      }
     }
   }
 

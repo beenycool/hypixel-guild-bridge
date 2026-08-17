@@ -1,8 +1,3 @@
-/*
- CREDIT: Idea by Aura
- Discord: Aura#5051
- Minecraft username: _aura
-*/
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 

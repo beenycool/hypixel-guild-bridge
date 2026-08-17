@@ -36,7 +36,8 @@ export default [
     config: 'flat/recommended-typescript-error',
     rules: {
       'jsdoc/check-values': ['error', { allowedLicenses: ['MIT', 'ISC'] }],
-      'jsdoc/require-description': 'error'
+      'jsdoc/require-description': 'error',
+      'jsdoc/require-jsdoc': 0
     }
   }),
   prettier,

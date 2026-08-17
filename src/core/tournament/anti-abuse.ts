@@ -26,36 +26,39 @@ export class AntiAbuse {
     return { allowed: true }
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- async signature kept: MatchManager awaits it and tests mock it as Promise-returning
-  async checkForfeitPattern(playerUuid: string, opponentUuid: string): Promise<AbuseCheckResult> {
+  checkForfeitPattern(playerUuid: string, opponentUuid: string): Promise<AbuseCheckResult> {
     const history = this.forfeitTracker.get(playerUuid) ?? []
-    const sameOpponent = history.filter((h) => h.opponent === opponentUuid)
+    const entry = history.find((h) => h.opponent === opponentUuid)
 
-    if (sameOpponent.length >= 3) {
+    if (entry && entry.count >= 3) {
       this.logger?.info(
-        `AntiAbuse: Suspicious forfeit pattern — ${playerUuid} forfeiting to ${opponentUuid} (${sameOpponent.length}x)`
+        `AntiAbuse: Suspicious forfeit pattern — ${playerUuid} forfeiting to ${opponentUuid} (${entry.count}x)`
       )
-      return { allowed: false, reason: 'FLAGGED: Suspicious forfeit pattern' }
+      return Promise.resolve({ allowed: false, reason: 'FLAGGED: Suspicious forfeit pattern' })
     }
 
-    return { allowed: true }
+    return Promise.resolve({ allowed: true })
   }
 
   recordForfeit(playerUuid: string, opponentUuid: string): void {
     const history = this.forfeitTracker.get(playerUuid) ?? []
-    history.push({ opponent: opponentUuid, count: (history.find((h) => h.opponent === opponentUuid)?.count ?? 0) + 1 })
-    this.forfeitTracker.set(playerUuid, history)
+    const entry = history.find((h) => h.opponent === opponentUuid)
+    if (entry) {
+      entry.count++
+    } else {
+      history.push({ opponent: opponentUuid, count: 1 })
+      this.forfeitTracker.set(playerUuid, history)
+    }
     this.logger?.info(`AntiAbuse: Recorded forfeit — ${playerUuid} vs ${opponentUuid}`)
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await -- async signature kept: MatchManager awaits it and tests mock it as Promise-returning
-  async checkFalseReporting(adminDiscordId: string): Promise<AbuseCheckResult> {
+  checkFalseReporting(adminDiscordId: string): Promise<AbuseCheckResult> {
     const overrides = this.overrideTracker.get(adminDiscordId) ?? 0
     if (overrides >= 3) {
       this.logger?.info(`AntiAbuse: High override rate — admin ${adminDiscordId} (${overrides} overrides)`)
-      return { allowed: false, reason: 'FLAGGED: High admin override rate' }
+      return Promise.resolve({ allowed: false, reason: 'FLAGGED: High admin override rate' })
     }
-    return { allowed: true }
+    return Promise.resolve({ allowed: true })
   }
 
   recordAdminOverride(adminDiscordId: string): void {
@@ -68,28 +71,34 @@ export class AntiAbuse {
     this.logger?.info(
       `AntiAbuse: Checking alt accounts for tournament ${tournamentId} (${playerUuids.length} player(s))`
     )
+    if (playerUuids.length <= 1) {
+      return { allowed: true }
+    }
+
     try {
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- snake_case column name required by the mojang table
-      const rows = await this.databaseManager.queryRows<{ player_uuid: string; ip: string | null }>(
-        'SELECT player_uuid, ip FROM mojang WHERE player_uuid = ANY($1)',
+      const rows = await this.databaseManager.queryRows<{ uuid: string; discordId: string }>(
+        'SELECT "uuid", "discordId" FROM "links" WHERE "uuid" = ANY($1)',
         [playerUuids]
       )
 
-      const ipMap = new Map<string, string[]>()
+      const discordMap = new Map<string, string[]>()
       for (const row of rows) {
-        if (!row.ip) continue
-        const existing = ipMap.get(row.ip) ?? []
-        existing.push(row.player_uuid)
-        ipMap.set(row.ip, existing)
+        const existing = discordMap.get(row.discordId) ?? []
+        existing.push(row.uuid)
+        discordMap.set(row.discordId, existing)
       }
 
-      for (const [ip, uuids] of ipMap) {
+      for (const [discordId, uuids] of discordMap) {
         if (uuids.length > 1) {
-          this.logger?.info(`AntiAbuse: Potential alts detected — IP ${ip} shared by ${uuids.join(', ')}`)
-          return { allowed: false, reason: `FLAGGED: Potential alt accounts sharing IP ${ip}` }
+          this.logger?.info(
+            `AntiAbuse: Potential alts detected — Discord ID ${discordId} shared by ${uuids.join(', ')}`
+          )
+          return { allowed: false, reason: `FLAGGED: Potential alt accounts sharing Discord account <@${discordId}>` }
         }
       }
-    } catch {}
+    } catch (error) {
+      this.logger?.error('Failed to check alt accounts:', error)
+    }
 
     return { allowed: true }
   }

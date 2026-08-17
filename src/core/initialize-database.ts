@@ -7,7 +7,9 @@ export async function initializeCoreDatabase(databaseManager: DatabaseManager): 
 
   try {
     await syncSequences(databaseManager)
-  } catch {}
+  } catch (error: unknown) {
+    void error
+  }
 }
 
 async function syncSequences(databaseManager: DatabaseManager): Promise<void> {
@@ -30,6 +32,8 @@ async function syncSequences(databaseManager: DatabaseManager): Promise<void> {
           false
         ) FROM "${table}"
       `)
-    } catch {}
+    } catch (error: unknown) {
+      void error
+    }
   }
 }

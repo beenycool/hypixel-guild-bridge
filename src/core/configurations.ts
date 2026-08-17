@@ -1,7 +1,12 @@
 import assert from 'node:assert'
 
 import type { DatabaseManager } from '../common/database-manager'
-import { isValidTableName } from '../utility/input-validation.js'
+
+const VALID_TABLE_NAME = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+
+function isValidTableName(name: string): boolean {
+  return VALID_TABLE_NAME.test(name)
+}
 
 export class ConfigurationsManager {
   private static readonly Tablename = 'configurations'

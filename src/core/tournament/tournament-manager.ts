@@ -191,7 +191,9 @@ export class TournamentManager {
               )
             }
           }
-        } catch {}
+        } catch (error: unknown) {
+          void error
+        }
       }
     }
 

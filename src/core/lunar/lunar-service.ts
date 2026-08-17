@@ -242,19 +242,23 @@ export class LunarService {
       })
 
       ws.on('message', (data: Buffer) => {
-        ;(async () => {
-          const message = (await decodeWsMessage(data)) as {
-            rpcResponse?: { requestId: { toString(): string }; output: Buffer }
-          }
-          if (message.rpcResponse) {
-            const requestId = message.rpcResponse.requestId.toString()
-            const callback = this.pendingRpcRequests.get(requestId)
-            if (callback) {
-              this.pendingRpcRequests.delete(requestId)
-              callback(message.rpcResponse.output)
+        decodeWsMessage(data)
+          .then((decoded) => {
+            const message = decoded as {
+              rpcResponse?: { requestId: { toString(): string }; output: Buffer }
             }
-          }
-        })().catch(() => {})
+            if (message.rpcResponse) {
+              const requestId = message.rpcResponse.requestId.toString()
+              const callback = this.pendingRpcRequests.get(requestId)
+              if (callback) {
+                this.pendingRpcRequests.delete(requestId)
+                callback(message.rpcResponse.output)
+              }
+            }
+          })
+          .catch((error: unknown) => {
+            void error
+          })
       })
 
       ws.on('close', (code, reason) => {

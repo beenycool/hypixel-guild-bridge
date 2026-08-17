@@ -22,7 +22,9 @@ export class StatusHistory {
     })
   }
 
-  public async load(): Promise<void> {}
+  public load(): Promise<void> {
+    return Promise.resolve()
+  }
 
   public add(entry: InstanceStatus): void {
     if (entry.status !== undefined) {

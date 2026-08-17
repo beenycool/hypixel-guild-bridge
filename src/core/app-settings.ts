@@ -5,13 +5,6 @@ import type { Logger } from 'log4js'
 import type { ApplicationConfig } from '../application-config.js'
 import type { DatabaseManager } from '../common/database-manager'
 
-/**
- * Global application settings that are editable from the web dashboard.
- *
- * Values are stored in the "app_settings" table and override the bootstrap
- * defaults provided by config.yaml. Keys not present in the database fall
- * back to config.yaml, so an unset value behaves exactly like the old setup.
- */
 export class AppSettingsManager {
   private static readonly TableName = 'app_settings'
 

@@ -277,12 +277,11 @@ class DoubleElimBracketStrategy implements BracketStrategy {
     }
 
     const pickRoundIndices = (matchCount: number, nextUbLosers: number, leftover: LbEntrant[]): number[] => {
+      const firstLeftover = leftover[0] as LbEntrant | undefined
       const targetEvans =
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- leftover may be empty at runtime
-        Math.ceil(nextUbLosers / 2) + (leftover[0] !== undefined && leftover[0].matchIndex % 2 === 0 ? 1 : 0)
+        Math.ceil(nextUbLosers / 2) + (firstLeftover !== undefined && firstLeftover.matchIndex % 2 === 0 ? 1 : 0)
       const targetOdds =
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- leftover may be empty at runtime
-        Math.floor(nextUbLosers / 2) + (leftover[0] !== undefined && leftover[0].matchIndex % 2 === 1 ? 1 : 0)
+        Math.floor(nextUbLosers / 2) + (firstLeftover !== undefined && firstLeftover.matchIndex % 2 === 1 ? 1 : 0)
       const nextEntrantCount = matchCount + nextUbLosers + leftover.length
       const slack = nextEntrantCount % 2
       const candidates: number[] = []
@@ -361,14 +360,13 @@ class DoubleElimBracketStrategy implements BracketStrategy {
       `Tournament ${tournamentId}: DoubleElim — ${matches.length} bracket matches so far, grand final in round ${grandFinalRound}`
     )
 
-    const ubFinal = (ubByRound.get(totalUpperRounds) ?? [])[0]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- array may be empty at runtime
+    const ubFinal = (ubByRound.get(totalUpperRounds) ?? [])[0] as GeneratedMatch | undefined
     if (ubFinal !== undefined) {
       ubFinal.winnerNext = { round: grandFinalRound, matchIndex: 0 }
     }
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- array may be empty at runtime
-    if (pending[0] !== undefined) {
-      linkSource(pending[0], grandFinalRound, 0)
+    const firstPending = pending[0] as LbEntrant | undefined
+    if (firstPending !== undefined) {
+      linkSource(firstPending, grandFinalRound, 0)
     }
 
     matches.push({

@@ -1,12 +1,6 @@
-/*
- CREDIT: Idea by Aura
- Discord: Aura#5051
- Minecraft username: _aura
-*/
-
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
-import { isAxiosError, OpenRouterClient } from '../../../utility/openrouter-client.js'
+import { formatOpenRouterError, OpenRouterClient } from '../../../utility/openrouter-client.js'
 import { SlidingWindowRateLimiter } from '../../../utility/sliding-window-rate-limiter.js'
 
 import { IQ_DEFAULT_MODEL, IQ_MAX, IQ_MIN, IQ_MIN_MESSAGES, IQ_SYSTEM_PROMPT } from './iq-constants.js'
@@ -86,41 +80,7 @@ export default class Iq extends ChatCommandHandler {
       await chatMessages.setCachedIq(targetKey, iq)
       return `${givenUsername} has an IQ of ${iq}`
     } catch (error: unknown) {
-      return this.handleError(context, error)
+      return formatOpenRouterError(error, 'IQ estimation', context.logger)
     }
-  }
-
-  private handleError(context: ChatCommandContext, error: unknown): string {
-    if (isAxiosError(error)) {
-      context.logger.error(
-        `IQ API error: status=${error.response?.status.toString() ?? 'unknown'}, ` +
-          `message=${error.message}` +
-          (error.response?.data ? `, data=${JSON.stringify(error.response.data)}` : '')
-      )
-
-      if (error.response?.status === 401) {
-        return 'IQ estimation failed: Invalid API key'
-      }
-
-      if (error.response?.status === 402) {
-        return 'IQ estimation failed: Insufficient credits'
-      }
-
-      if (error.response?.status === 429) {
-        return 'IQ estimation failed: Rate limited. Please try again later.'
-      }
-
-      if (error.code === 'ECONNABORTED') {
-        return 'IQ estimation failed: Request timed out. Please try again.'
-      }
-
-      const apiMessage: unknown = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error
-        ?.message
-      const fallback = typeof apiMessage === 'string' ? apiMessage : error.message
-      return `IQ estimation failed: ${fallback}`
-    }
-
-    context.logger.error(error)
-    return 'IQ estimation failed: An unexpected error occurred'
   }
 }

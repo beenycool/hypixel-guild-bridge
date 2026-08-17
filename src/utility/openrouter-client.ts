@@ -1,4 +1,5 @@
-import axios from 'axios'
+import axios, { isAxiosError } from 'axios'
+import type { Logger } from 'log4js'
 
 interface ChatCompletionOptions {
   model?: string
@@ -69,6 +70,39 @@ export class OpenRouterClient {
 
     return { content }
   }
+}
+
+export function formatOpenRouterError(error: unknown, featureName: string, logger?: Logger): string {
+  if (isAxiosError(error)) {
+    logger?.error(
+      `${featureName} API error: status=${error.response?.status.toString() ?? 'unknown'}, ` +
+        `message=${error.message}` +
+        (error.response?.data ? `, data=${JSON.stringify(error.response.data)}` : '')
+    )
+
+    if (error.response?.status === 401) {
+      return `${featureName} failed: Invalid API key`
+    }
+
+    if (error.response?.status === 402) {
+      return `${featureName} failed: Insufficient credits`
+    }
+
+    if (error.response?.status === 429) {
+      return `${featureName} failed: Rate limited. Please try again later.`
+    }
+
+    if (error.code === 'ECONNABORTED') {
+      return `${featureName} failed: Request timed out. Please try again.`
+    }
+
+    const apiMessage: unknown = (error.response?.data as { error?: { message?: unknown } } | undefined)?.error?.message
+    const fallback = typeof apiMessage === 'string' ? apiMessage : error.message
+    return `${featureName} failed: ${fallback}`
+  }
+
+  logger?.error(error)
+  return `${featureName} failed: An unexpected error occurred`
 }
 
 export { isAxiosError } from 'axios'

@@ -11,10 +11,6 @@ export interface SkyblockView {
   readonly name: string
   readonly description: string
   readonly example: string
-  /**
-   * Whether the view needs the shared raw skyblock profile fetch.
-   * Views with this set to `false` (e.g. weight, hotm, garden) fetch their own data.
-   */
   readonly needsProfile: boolean
   render(
     context: ChatCommandContext,

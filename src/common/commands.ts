@@ -165,15 +165,6 @@ export function formatCommandHelp(command: ChatCommandHandler, commandPrefix: st
   return `${appendSubcommands(messageWithoutAliases).slice(0, MaxHelpLength - 3)}...`
 }
 
-/**
- * Formats the help line for a single subcommand of a command with subcommands.
- * Returns undefined when the command has no subcommand with the given name.
- * @param command - the command owning the subcommand
- * @param subcommandName - the name of the subcommand to format help for
- * @param commandPrefix - the configured chat command prefix
- * @param username - optional username to substitute into the example
- * @returns the formatted help line, or undefined when the subcommand does not exist
- */
 export function formatSubcommandHelp(
   command: ChatCommandHandler,
   subcommandName: string,

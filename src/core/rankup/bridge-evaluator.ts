@@ -4,7 +4,6 @@ import type Application from '../../application.js'
 import type { BridgeConfigurations } from '../discord/bridge-configurations.js'
 
 import type { ActionDispatcher } from './action-dispatcher.js'
-import { isNotificationDue } from './notification-cooldown.js'
 import type { NotificationManager } from './notification-manager.js'
 import type { PendingReviewManager } from './pending-review-manager.js'
 import type { RankupDecision } from './rankup-decision.js'
@@ -210,7 +209,7 @@ export class BridgeEvaluator {
     const pending = this.pendingManager.getReviews(bridgeId)
     const cooldownMs = cooldownHours * 60 * 60 * 1000
     const now = Date.now()
-    const unnotified = pending.filter((p) => isNotificationDue(p.notifiedAt, cooldownMs, now))
+    const unnotified = pending.filter((p) => p.notifiedAt === undefined || now - p.notifiedAt * 1000 > cooldownMs)
 
     if (unnotified.length > 0 && notificationChannels.length > 0) {
       const sent = await this.notificationManager.sendReviewNotification(bridgeId, notificationChannels, unnotified)

@@ -1,8 +1,3 @@
-/*
- * Credit: https://github.com/michelegera/devexcuses-api
- * License: https://github.com/michelegera/devexcuses-api/blob/main/LICENSE.txt
- */
-
 import Yaml from 'yaml'
 
 import type { ChatCommandContext } from '../../../common/commands.js'

@@ -1,9 +1,3 @@
-/**
- * Formats a number with suffixes (K, M, B, T, etc.)
- * @param number - The number to format
- * @param decimals - The number of decimal places to include
- * @returns The formatted number string
- */
 export function formatNumber(number: number | undefined | null, decimals = 2): string {
   if (number === undefined || number === null || number === 0) return '0'
 
@@ -24,11 +18,6 @@ export function formatNumber(number: number | undefined | null, decimals = 2): s
   return `${isNegative ? '-' : ''}${shortNumber}${abbrev[abbrevIndex]}`
 }
 
-/**
- * Title-cases the given string
- * @param inputString - The string to convert
- * @returns The title-cased string
- */
 export function titleCase(inputString: string | undefined | null): string {
   if (!inputString) return ''
   return inputString

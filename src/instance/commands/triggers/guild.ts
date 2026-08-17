@@ -1,9 +1,3 @@
-/*
- CREDIT: Idea by Aura
- Discord: Aura#5051
- Minecraft username: _aura
-*/
-
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 import Duration from '../../../utility/duration'
@@ -26,7 +20,7 @@ export default class Guild extends ChatCommandHandler {
     const uuid = await getUuidIfExists(context.app.mojangApi, givenUsername)
     if (uuid == undefined) return usernameNotExists(context, givenUsername)
 
-    const guild = await context.app.hypixelApi.getGuild('player', uuid, {}).catch(() => {})
+    const guild = await context.app.hypixelApi.getGuild('player', uuid, {}).catch(() => undefined)
     if (guild == undefined) return `${givenUsername} is not in a guild.`
 
     const member = guild.members.find((m: { uuid: string }) => m.uuid === uuid)

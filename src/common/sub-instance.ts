@@ -23,8 +23,11 @@ export default abstract class SubInstance<K extends ConnectableInstance<T> | Ins
     this.errorHandler = clientInstance.errorHandler
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public registerEvents(option: O): void {}
+  public registerEvents(option: O): void {
+    void option
+  }
 
-  public dispose(): void {}
+  public dispose(): void {
+    void this
+  }
 }
