@@ -377,16 +377,7 @@ const CATEGORIES = [
           { id: 'commands.seraph.no-tags', t: 'text', label: 'Seraph: No tags' },
           { id: 'commands.seraph.tags', t: 'text', label: 'Seraph: Tags result' },
           { id: 'commands.seraph.invalid-key', t: 'text', label: 'Seraph: Invalid key' },
-          { id: 'commands.seraph.error', t: 'text', label: 'Seraph: Error' },
-          { id: 'commands.sessions.no-key', t: 'text', label: 'Sessions: No API key' },
-          { id: 'commands.sessions.game-not-found', t: 'text', label: 'Sessions: Game not found' },
-          { id: 'commands.sessions.no-changes', t: 'text', label: 'Sessions: No changes' },
-          { id: 'commands.sessions.result', t: 'textarea', label: 'Sessions: Result' },
-          { id: 'commands.sessions.not-found', t: 'text', label: 'Sessions: Not found' },
-          { id: 'commands.sessions.invalid-key', t: 'text', label: 'Sessions: Invalid key' },
-          { id: 'commands.sessions.api-degraded', t: 'text', label: 'Sessions: API degraded' },
-          { id: 'commands.sessions.api-ok-but-error', t: 'text', label: 'Sessions: API returned error' },
-          { id: 'commands.sessions.api-down', t: 'text', label: 'Sessions: API down' }
+          { id: 'commands.seraph.error', t: 'text', label: 'Seraph: Error' }
         ]
       },
       {

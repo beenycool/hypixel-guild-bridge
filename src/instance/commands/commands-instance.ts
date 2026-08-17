@@ -36,7 +36,6 @@ import Duels from './triggers/duels.js'
 import Fetchur from './triggers/fetchur.js'
 import Gay from './triggers/gay.js'
 import Gtop from './triggers/gtop.js'
-import GuildSessions from './triggers/guild-sessions.js'
 import Guild from './triggers/guild.js'
 import GuildExperience from './triggers/guildexp.js'
 import Help from './triggers/help.js'
@@ -59,7 +58,6 @@ import Rhyme from './triggers/rhyme.js'
 import Rng from './triggers/rng.js'
 import RockPaperScissors from './triggers/rock-paper-scissors.js'
 import Select from './triggers/select'
-import SessionCommands from './triggers/sessions.js'
 import Skyblock from './triggers/skyblock.js'
 import Skywars from './triggers/skywars'
 import Starfall from './triggers/starfall.js'
@@ -110,14 +108,12 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Lesbian(),
       new Guild(),
       new GuildExperience(),
-      new GuildSessions(),
       new Help(),
       new Insult(),
       new Iq(),
       new Mayor(),
       new Megawalls(),
       new Murdermystery(),
-      ...new SessionCommands().resolveCommands(),
       new PartyGames(),
       new Paintball(),
       new Ping(),
