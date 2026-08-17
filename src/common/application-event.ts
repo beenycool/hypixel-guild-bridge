@@ -298,23 +298,9 @@ export interface UserLink {
   discordId: string
 }
 
-interface InstanceStatusWithBroadcast extends InformEvent {
-  readonly message: InstanceMessage
-  readonly status: undefined
-}
-
-interface InstanceStatusWithChange extends InformEvent {
-  readonly message: undefined
+export interface InstanceStatus extends InformEvent {
   readonly status: StatusChange
 }
-
-interface InstanceStatusWithBoth extends InformEvent {
-  readonly message: InstanceMessage
-
-  readonly status: StatusChange & { to: Exclude<Status, Status.Connected> }
-}
-
-export type InstanceStatus = InstanceStatusWithBroadcast | InstanceStatusWithChange | InstanceStatusWithBoth
 
 export interface MinecraftRawChatEvent extends InformEvent, MinecraftRawMessage {
   readonly message: string
@@ -324,29 +310,6 @@ export interface MinecraftSelfBroadcast extends InformEvent {
   readonly username: string
 
   readonly uuid: string
-}
-
-export enum InstanceMessageType {
-  MinecraftAuthenticationCode = 'minecraftAuthenticationCode',
-  MinecraftGuildKicked = 'minecraftGuildKicked',
-  MinecraftInstanceNotAutoConnect = 'minecraftInstanceNotAutoConnect',
-  MinecraftEnded = 'minecraftEnded',
-  MinecraftRestarting = 'minecraftRestarting',
-  MinecraftKicked = 'minecraftKicked',
-  MinecraftInternetProblems = 'minecraftInternetProblems',
-  MinecraftXboxDown = 'minecraftXboxDown',
-  MinecraftXboxThrottled = 'minecraftXboxThrottled',
-  MinecraftNoAccount = 'minecraftNoAccount',
-  MinecraftIncompatible = 'minecraftIncompatible',
-  MinecraftBanned = 'minecraftBanned',
-  MinecraftFailedTooManyTimes = 'minecraftFailedTooManyTimes',
-  MinecraftKickedLoggedFromAnotherLocation = 'minecraftKickedLoggedFromAnotherLocation'
-}
-
-export interface InstanceMessage {
-  readonly type: InstanceMessageType
-
-  readonly value: string | undefined
 }
 
 export interface StatusChange {

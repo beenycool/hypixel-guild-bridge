@@ -2,14 +2,9 @@ import type { ButtonInteraction, MessageActionRowComponentData } from 'discord.j
 import { ButtonStyle, ComponentType, escapeMarkdown, MessageFlags } from 'discord.js'
 
 import type Application from '../../../application'
-import { InstanceMessageType, Permission } from '../../../common/application-event'
+import { Permission } from '../../../common/application-event'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler'
-import {
-  translateAuthenticationCodeExpired,
-  translateInstanceMessage,
-  translateInstanceStatus
-} from '../../../core/instance/instance-language'
-import { StatusHistoryEntryType } from '../../../core/instance/status-history'
+import { translateInstanceStatus } from '../../../core/instance/instance-language'
 import { beautifyInstanceName } from '../../../utility/shared-utility'
 import type DiscordInstance from '../discord-instance'
 import { DefaultTimeout, interactivePaging } from '../utility/discord-pager'
@@ -75,29 +70,6 @@ export class InstanceStatusManager {
       )
       const entries = history.toReversed()
 
-      let firstAuthenticationIndex = -1
-      let authenticationFound = false
-      for (let index = 0; index < entries.length; index++) {
-        const currentEntry = entries[index]
-
-        const currentIsAuthentication =
-          currentEntry.entryType === StatusHistoryEntryType.Message &&
-          currentEntry.type === InstanceMessageType.MinecraftAuthenticationCode
-
-        if (currentIsAuthentication) {
-          if (firstAuthenticationIndex === -1) firstAuthenticationIndex = index
-
-          if (authenticationFound) {
-            entries.splice(index, 1)
-            index--
-          } else {
-            authenticationFound = true
-          }
-        } else {
-          authenticationFound = false
-        }
-      }
-
       const start = requestedPage * InstanceStatusManager.EntriesPerPage
       const end = Math.min((requestedPage + 1) * InstanceStatusManager.EntriesPerPage, entries.length)
 
@@ -106,34 +78,7 @@ export class InstanceStatusManager {
         const element = entries[index]
         const t = this.application.getTranslatorForBridge(element.bridgeId)
         result += `${index + 1}. <t:${Math.floor(element.createdAt / 1000)}:S> `
-
-        switch (element.entryType) {
-          case StatusHistoryEntryType.Message: {
-            result += escapeMarkdown(translateInstanceMessage(t, element.type)) + '\n'
-            if (element.value !== undefined) {
-              // eslint-disable-next-line unicorn/prefer-ternary
-              if (
-                element.type === InstanceMessageType.MinecraftAuthenticationCode &&
-                index !== firstAuthenticationIndex
-              ) {
-                result += escapeMarkdown(translateAuthenticationCodeExpired(t)) + '\n'
-              } else {
-                result += escapeMarkdown(element.value.trim()) + '\n'
-              }
-            }
-
-            break
-          }
-          case StatusHistoryEntryType.Status: {
-            result +=
-              escapeMarkdown(translateInstanceStatus(t, { from: element.fromStatus, to: element.toStatus })) + '\n'
-            break
-          }
-
-          default: {
-            throw new Error(`unknown type: ${JSON.stringify(element satisfies never)}`)
-          }
-        }
+        result += escapeMarkdown(translateInstanceStatus(t, { from: element.fromStatus, to: element.toStatus })) + '\n'
       }
 
       if (result.length === 0) {

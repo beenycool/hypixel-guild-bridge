@@ -68,7 +68,6 @@ export class StatusApiHandler extends BaseApiHandler {
       connected: inst.currentStatus() === Status.Connected,
       status: inst.currentStatus(),
       type: 'minecraft',
-      disconnectMessage: inst.lastDisconnectMessage,
       disconnectTime: inst.lastDisconnectTime,
       reconnectAttempts: inst.reconnectAttempts
     }))

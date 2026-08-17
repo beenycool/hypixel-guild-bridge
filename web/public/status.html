@@ -59,25 +59,6 @@
         return new Date(ts).toLocaleTimeString()
       }
 
-      function disconnectReasonText(msg) {
-        if (!msg) return null
-        const map = {
-          minecraftKicked: 'Kicked from server',
-          minecraftInternetProblems: 'Internet problems',
-          minecraftXboxDown: 'Xbox servers down',
-          minecraftXboxThrottled: 'Xbox throttling requests',
-          minecraftNoAccount: 'Account does not own Minecraft',
-          minecraftProxyBroken: 'Proxy issue',
-          minecraftIncompatible: 'Version incompatibility',
-          minecraftBanned: 'Account banned',
-          minecraftAuthExpired: 'Authentication expired',
-          minecraftKickedLoggedFromAnotherLocation: 'Logged in from another location',
-          minecraftEnded: 'Connection ended',
-          minecraftFailedTooManyTimes: 'Too many connection failures'
-        }
-        return map[msg.type] || msg.type
-      }
-
       function statusBadge(status) {
         const map = {
           connected: '<span class="badge badge-success">Connected</span>',
@@ -134,7 +115,7 @@
           html += '<div class="flex-column gap-sm">'
           for (var i = 0; i < instances.length; i++) {
             var inst = instances[i]
-            var hasDisconnect = inst.disconnectMessage && inst.status !== 'connected'
+            var hasDisconnect = inst.disconnectTime && inst.status !== 'connected'
             var detailRows = ''
 
             detailRows +=
@@ -146,17 +127,6 @@
             }
 
             if (hasDisconnect) {
-              var reason = disconnectReasonText(inst.disconnectMessage)
-              var reasonDetail = inst.disconnectMessage.value
-                ? '<span class="text-xs text-muted block" style="margin-top:2px">' +
-                  Ui.escapeHtml(inst.disconnectMessage.value) +
-                  '</span>'
-                : ''
-              detailRows +=
-                '<div class="flex-between"><span class="stat-label">Reason</span><span class="text-sm text-danger">' +
-                Ui.escapeHtml(reason) +
-                reasonDetail +
-                '</span></div>'
               detailRows +=
                 '<div class="flex-between"><span class="stat-label">Disconnected</span><span class="text-sm text-mono">' +
                 fmtTimeAgo(inst.disconnectTime) +

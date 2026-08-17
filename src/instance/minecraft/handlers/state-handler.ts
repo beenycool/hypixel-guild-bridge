@@ -1,10 +1,8 @@
-import type { InstanceStatus, InstanceType } from '../../../common/application-event.js'
-import { InstanceMessageType } from '../../../common/application-event.js'
+import { InstanceType } from '../../../common/application-event.js'
 import { Status } from '../../../common/connectable-instance.js'
 import SubInstance from '../../../common/sub-instance'
 import Duration from '../../../utility/duration'
 import { setTimeoutAsync } from '../../../utility/scheduling'
-import { formatTime } from '../../../utility/shared-utility'
 import type ClientSession from '../client-session.js'
 import type MinecraftInstance from '../minecraft-instance'
 
@@ -18,8 +16,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   private loginAttempts
   private loggedIn
   private connectionTimeoutId: NodeJS.Timeout | undefined
-  private authenticationCodeRequested: boolean
-  private instanceStatusListener: ((event: InstanceStatus) => void) | undefined
 
   constructor(clientInstance: MinecraftInstance) {
     super(clientInstance)
@@ -27,7 +23,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     this.loginAttempts = 0
     this.loggedIn = false
     this.connectionTimeoutId = undefined
-    this.authenticationCodeRequested = false
   }
 
   public resetLoginAttempts() {
@@ -36,27 +31,12 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
 
   override registerEvents(clientSession: ClientSession): void {
     this.clearConnectionTimeout()
-    this.authenticationCodeRequested = false
-
-    this.instanceStatusListener = (event: InstanceStatus) => {
-      if (
-        event.instanceName === this.clientInstance.instanceName &&
-        event.message?.type === InstanceMessageType.MinecraftAuthenticationCode
-      ) {
-        this.authenticationCodeRequested = true
-      }
-    }
-    this.application.on('instanceStatus', this.instanceStatusListener)
 
     this.connectionTimeoutId = setTimeout(() => {
-      this.clearInstanceStatusListener()
-
       if (this.clientInstance.currentStatus() === Status.Connecting && !this.loggedIn) {
-        const timeoutMessage = this.authenticationCodeRequested
-          ? `Authentication timeout after ${StateHandler.ConnectionTimeout.toSeconds()} seconds. The Microsoft authentication code may have expired or was not completed. Forcing disconnect to retry with a new code.`
-          : `Connection timeout after ${StateHandler.ConnectionTimeout.toSeconds()} seconds. Forcing disconnect and retry.`
-
-        this.logger.warn(timeoutMessage)
+        this.logger.warn(
+          `Connection timeout after ${StateHandler.ConnectionTimeout.toSeconds()} seconds. Forcing disconnect and retry.`
+        )
 
         clientSession.client.end('Connection timeout - authentication or connection took too long')
       }
@@ -100,14 +80,6 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       clearTimeout(this.connectionTimeoutId)
       this.connectionTimeoutId = undefined
     }
-    this.clearInstanceStatusListener()
-  }
-
-  private clearInstanceStatusListener(): void {
-    if (this.instanceStatusListener !== undefined) {
-      this.application.off('instanceStatus', this.instanceStatusListener)
-      this.instanceStatusListener = undefined
-    }
   }
 
   private async onLogin(): Promise<void> {
@@ -126,22 +98,12 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
   private async onEnd(clientSession: ClientSession, reason: string): Promise<void> {
     if (this.clientInstance.currentStatus() === Status.Failed) {
       this.logger.warn(reason)
-
-      if (!clientSession.silentQuit) {
-        await this.clientInstance.broadcastInstanceMessage({ type: InstanceMessageType.MinecraftEnded, value: reason })
-      }
       return
     } else if (reason === QuitOwnVolition) {
-      // eslint-disable-next-line unicorn/prefer-ternary
-      if (clientSession.silentQuit) {
-        await this.clientInstance.setAndBroadcastNewStatus(Status.Ended)
-      } else {
-        await this.clientInstance.setAndBroadcastNewStatus(Status.Ended)
-      }
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Ended)
       return
     }
 
-    this.clientInstance.lastDisconnectMessage = { type: InstanceMessageType.MinecraftEnded, value: reason }
     this.clientInstance.lastDisconnectTime = Date.now()
     this.clientInstance.reconnectAttempts++
     await this.tryRestarting()
@@ -152,44 +114,21 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
 
     this.loginAttempts++
     this.clientInstance.reconnectAttempts++
-    let messageType: InstanceMessageType
     if (reason.includes('You logged in from another location')) {
-      messageType = InstanceMessageType.MinecraftKickedLoggedFromAnotherLocation
       this.logger.fatal('Instance will shut off since someone logged in from another place')
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: messageType,
-        value: undefined
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Failed)
     } else if (reason.includes('You are permanently banned') || reason.includes('You are temporarily banned')) {
-      messageType = InstanceMessageType.MinecraftBanned
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: messageType,
-        value: reason
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Failed)
     } else if (
       reason.includes('Your account has been blocked') ||
       reason.includes('Your account is temporarily blocked')
     ) {
-      messageType = InstanceMessageType.MinecraftBanned
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: messageType,
-        value: reason
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Failed)
     } else if (reason.includes('of Minecraft is disabled on Hypixel due to compatibility issues')) {
-      messageType = InstanceMessageType.MinecraftIncompatible
-
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: messageType,
-        value: reason
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Failed)
     } else {
-      messageType = InstanceMessageType.MinecraftKicked
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: messageType,
-        value: reason
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Disconnected)
     }
-    this.clientInstance.lastDisconnectMessage = { type: messageType, value: reason }
     this.clientInstance.lastDisconnectTime = Date.now()
   }
 
@@ -204,52 +143,30 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
       return
     }
 
-    let messageType: InstanceMessageType
     if (error.message.includes('socket disconnected before secure TLS connection')) {
-      messageType = InstanceMessageType.MinecraftInternetProblems
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: messageType,
-        value: error.message
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Disconnected)
       await this.tryRestarting()
     } else if (error.message.includes('503 Service Unavailable')) {
-      messageType = InstanceMessageType.MinecraftXboxDown
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: messageType,
-        value: undefined
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Disconnected)
       await this.tryRestarting()
     } else if (error.message.includes('Too Many Requests')) {
-      messageType = InstanceMessageType.MinecraftXboxThrottled
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: messageType,
-        value: undefined
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Disconnected)
       await this.tryRestarting()
     } else if (
       error.message.includes('does the account own minecraft') ||
       error.message.includes('Profile not found')
     ) {
-      messageType = InstanceMessageType.MinecraftNoAccount
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Disconnected, {
-        type: messageType,
-        value: undefined
-      })
-
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Disconnected)
       this.application.core.minecraftSessions.clearCachedSessions(this.clientInstance.instanceName)
       await this.tryRestarting()
     } else {
-      messageType = InstanceMessageType.MinecraftEnded
-      this.clientInstance.lastDisconnectMessage = { type: messageType, value: error.message }
       this.clientInstance.lastDisconnectTime = Date.now()
       return
     }
-    this.clientInstance.lastDisconnectMessage = { type: messageType, value: error.message }
     this.clientInstance.lastDisconnectTime = Date.now()
   }
 
   public override dispose(): void {
-    this.clearInstanceStatusListener()
     this.clearConnectionTimeout()
   }
 
@@ -257,10 +174,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     this.logger.info(`minecraft attempt ${this.loginAttempts}`)
     if (this.loginAttempts > StateHandler.MaxLoginAttempts) {
       this.logger.error(`Client failed to connect too many times. No further trying to reconnect.`)
-      await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Failed, {
-        type: InstanceMessageType.MinecraftFailedTooManyTimes,
-        value: undefined
-      })
+      await this.clientInstance.setAndBroadcastNewStatus(Status.Failed)
       return
     }
 
@@ -269,10 +183,7 @@ export default class StateHandler extends SubInstance<MinecraftInstance, Instanc
     let loginDelay = (this.loginAttempts + 1) * 5000
     if (loginDelay > StateHandler.MaxDuration.toMilliseconds()) loginDelay = StateHandler.MaxDuration.toMilliseconds()
 
-    await this.clientInstance.setAndBroadcastNewStatusWithMessage(Status.Connecting, {
-      type: InstanceMessageType.MinecraftRestarting,
-      value: formatTime(Math.floor(loginDelay / 1000))
-    })
+    await this.clientInstance.setAndBroadcastNewStatus(Status.Connecting)
 
     setTimeoutAsync(() => this.clientInstance.automaticReconnect(), {
       delay: Duration.milliseconds(loginDelay),

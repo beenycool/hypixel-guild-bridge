@@ -1,4 +1,4 @@
-import type { InstanceMessage, InstanceStatus, InstanceType } from './application-event.js'
+import type { InstanceStatus, InstanceType } from './application-event.js'
 import { InstanceSignalType } from './application-event.js'
 import { Instance } from './instance.js'
 
@@ -31,37 +31,8 @@ export abstract class ConnectableInstance<T extends InstanceType> extends Instan
     const event = {
       ...this.eventHelper.fillBaseEvent(),
 
-      status: { from: oldStatus, to: status },
-      message: undefined
+      status: { from: oldStatus, to: status }
     } satisfies InstanceStatus
-    await this.broadcastStatusEvent(event)
-  }
-
-  public async setAndBroadcastNewStatusWithMessage(
-    status: Exclude<Status, Status.Connected>,
-    message: InstanceMessage
-  ): Promise<void> {
-    if (this.status === status) return
-    const oldStatus = this.status
-    this.status = status
-
-    const event = {
-      ...this.eventHelper.fillBaseEvent(),
-
-      status: { from: oldStatus, to: status },
-      message: message
-    } satisfies InstanceStatus
-    await this.broadcastStatusEvent(event)
-  }
-
-  public async broadcastInstanceMessage(message: InstanceMessage): Promise<void> {
-    const event = {
-      ...this.eventHelper.fillBaseEvent(),
-
-      status: undefined,
-      message: message
-    } satisfies InstanceStatus
-
     await this.broadcastStatusEvent(event)
   }
 

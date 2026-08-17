@@ -6,7 +6,6 @@ import { createClient, states } from 'minecraft-protocol'
 import type Application from '../../application.js'
 import type { ChannelType } from '../../common/application-event.js'
 import {
-  InstanceMessageType,
   InstanceSignalType,
   InstanceType,
   MinecraftSendChatPriority
@@ -53,7 +52,6 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
 
   private latestTabPingMs: number | undefined
 
-  public lastDisconnectMessage: { type: string; value?: string } | undefined
   public lastDisconnectTime: number | undefined
   public reconnectAttempts = 0
 
@@ -130,10 +128,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
   public async automaticReconnect(): Promise<void> {
     const autoConnect = this.application.core.minecraftSessions.getInstanceAutoConnect(this.instanceName)
     if (!autoConnect) {
-      await this.broadcastInstanceMessage({
-        type: InstanceMessageType.MinecraftInstanceNotAutoConnect,
-        value: undefined
-      })
+      this.logger.info(`Minecraft instance ${this.instanceName} is set to not auto connect.`)
       return
     }
 
@@ -154,10 +149,7 @@ export default class MinecraftInstance extends ConnectableInstance<InstanceType.
       profilesFolder: sessionsManager.getSessionsFactory(this.instanceName) as unknown as string | false,
 
       onMsaCode: (code) => {
-        void this.broadcastInstanceMessage({
-          type: InstanceMessageType.MinecraftAuthenticationCode,
-          value: `${code.verification_uri}?otc=${code.user_code}`
-        }).catch(this.errorHandler.promiseCatch('broadcasting authentication code'))
+        this.logger.info(`Microsoft Auth: Open ${code.verification_uri} and enter code ${code.user_code}`)
       }
     })
 

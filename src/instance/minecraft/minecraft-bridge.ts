@@ -17,13 +17,11 @@ import type {
 import {
   ChannelType,
   GuildPlayerEventType,
-  InstanceMessageType,
   InstanceType,
   MinecraftReactiveEventType,
   MinecraftSendChatPriority
 } from '../../common/application-event.js'
 import Bridge from '../../common/bridge.js'
-import { Status } from '../../common/connectable-instance.js'
 import type UnexpectedErrorHandler from '../../common/unexpected-error-handler.js'
 
 import type MessageAssociation from './common/message-association.js'
@@ -54,120 +52,8 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     return instanceBridgeId === event.bridgeId
   }
 
-  private disconnectReason: { type: InstanceMessageType; value: string | undefined } | undefined
-  private disconnectMessageSent = false
-
-  async onInstance(event: InstanceStatus): Promise<void> {
-    if (event.instanceName !== this.clientInstance.instanceName) return
-    if (!this.shouldProcessEvent(event)) return
-
-    if (
-      event.message !== undefined &&
-      event.status !== undefined &&
-      (event.status.to === Status.Disconnected || event.status.to === Status.Failed)
-    ) {
-      this.disconnectReason = { type: event.message.type, value: event.message.value }
-      this.disconnectMessageSent = true
-
-      await this.sendDisconnectMessage(event.message.type)
-      return
-    }
-
-    if (event.status !== undefined && event.status.to === Status.Connected && this.disconnectMessageSent) {
-      await this.sendReconnectMessage()
-      this.disconnectMessageSent = false
-      this.disconnectReason = undefined
-      return
-    }
-
-    if (
-      event.status !== undefined &&
-      event.status.to === Status.Failed &&
-      event.message === undefined &&
-      !this.disconnectMessageSent
-    ) {
-      await this.clientInstance.send(
-        `/gc hi! :3 I've permanently failed. Manual intervention is needed.`,
-        MinecraftSendChatPriority.High,
-        undefined
-      )
-    }
-  }
-
-  private async sendDisconnectMessage(type: InstanceMessageType): Promise<void> {
-    const reason = this.getReasonText(type)
-    const blame = this.getBlameText(type)
-    await this.clientInstance.send(
-      `/gc hi! :3 I disconnected because of ${reason}. ${blame}`,
-      MinecraftSendChatPriority.High,
-      undefined
-    )
-  }
-
-  private async sendReconnectMessage(): Promise<void> {
-    if (this.disconnectReason === undefined) {
-      await this.clientInstance.send(`/gc hi! :3 I reconnected!`, MinecraftSendChatPriority.High, undefined)
-      return
-    }
-    const reason = this.getReasonText(this.disconnectReason.type)
-    const blame = this.getBlameText(this.disconnectReason.type)
-    await this.clientInstance.send(
-      `/gc hi! :3 I reconnected! Previous disconnect was due to ${reason}. ${blame}`,
-      MinecraftSendChatPriority.High,
-      undefined
-    )
-  }
-
-  private getReasonText(type: InstanceMessageType): string {
-    switch (type) {
-      case InstanceMessageType.MinecraftInternetProblems: {
-        return 'an internet problem'
-      }
-      case InstanceMessageType.MinecraftXboxDown: {
-        return 'Xbox servers being down'
-      }
-      case InstanceMessageType.MinecraftXboxThrottled: {
-        return 'Xbox throttling requests'
-      }
-      case InstanceMessageType.MinecraftKicked: {
-        return 'getting kicked from the server'
-      }
-      case InstanceMessageType.MinecraftIncompatible: {
-        return 'a version incompatibility'
-      }
-      case InstanceMessageType.MinecraftBanned: {
-        return 'the account being banned'
-      }
-      case InstanceMessageType.MinecraftNoAccount: {
-        return 'the account not owning Minecraft'
-      }
-      case InstanceMessageType.MinecraftKickedLoggedFromAnotherLocation: {
-        return 'someone else logging into the account'
-      }
-      case InstanceMessageType.MinecraftEnded: {
-        return 'the connection ending'
-      }
-      case InstanceMessageType.MinecraftFailedTooManyTimes: {
-        return 'too many connection failures'
-      }
-      default: {
-        return 'an unknown issue'
-      }
-    }
-  }
-
-  private getBlameText(type: InstanceMessageType): string {
-    switch (type) {
-      case InstanceMessageType.MinecraftNoAccount: {
-        return 'Beeny needs to own Minecraft on this account.'
-      }
-      case InstanceMessageType.MinecraftKickedLoggedFromAnotherLocation: {
-        return 'Beeny is logged in elsewhere.'
-      }
-      default: {
-        return "Not beeny's fault."
-      }
-    }
+  async onInstance(_event: InstanceStatus): Promise<void> {
+    // No-op: instance status/disconnect messages are not broadcast to Minecraft chat
   }
 
   async onChat(event: ChatEvent): Promise<void> {

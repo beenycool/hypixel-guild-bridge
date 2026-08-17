@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 
-import { ChannelType, Color, GuildPlayerEventType, InstanceMessageType } from '../../../common/application-event.js'
+import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
 export default {
@@ -26,11 +26,6 @@ export default {
         user: botUser,
         message: t('instance.reaction.guild-kicked'),
         rawMessage: context.rawMessage
-      })
-
-      await context.clientInstance.broadcastInstanceMessage({
-        type: InstanceMessageType.MinecraftGuildKicked,
-        value: context.message
       })
     }
   }
