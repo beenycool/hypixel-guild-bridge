@@ -25,6 +25,7 @@ import Boop from './triggers/boop.js'
 import Bow from './triggers/bow.js'
 import Buildbattle from './triggers/buildbattle'
 import Calculate from './triggers/calculate.js'
+import Cf from './triggers/cf.js'
 import Cops from './triggers/cops.js'
 import DadJoke from './triggers/dadjoke.js'
 import Denick from './triggers/denick.js'
@@ -95,6 +96,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       new Buildbattle(),
       new Blackjack(),
       new Calculate(),
+      new Cf(),
       new Cops(),
       new DadJoke(),
       new Denick(),
