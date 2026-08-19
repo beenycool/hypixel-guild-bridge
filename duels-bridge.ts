@@ -1,3 +1,6 @@
+// IGNORE, JUST FOR GITHUB
+
+
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 
