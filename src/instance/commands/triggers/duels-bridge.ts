@@ -12,7 +12,7 @@ export default class DuelsBridge extends ChatCommandHandler {
       category: 'Minigames',
       triggers: ['b'],
       description:
-        "Shortcut for 'duels bridge' (bridge duels stats). Supports 'guild' to aggregate Bridge stats for the entire guild.",
+        "Shortcut for 'duels bridge' (bridge duels stats). Supports 'guild' for guild-wide stats, or sub-modes: 1v1/solo, 2v2/duos, 3v3, 4v4.",
       example: `b [mode] %s`
     })
   }
