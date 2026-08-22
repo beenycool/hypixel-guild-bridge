@@ -1190,6 +1190,8 @@ export class TournamentManager {
       let rrPlacements: Map<number, number> | undefined
       if (isRoundRobin) {
         const sorted = players.toSorted((a, b) => {
+          if (tournament.winnerId === a.id) return -1
+          if (tournament.winnerId === b.id) return 1
           const ra = records.get(a.id) ?? { wins: 0, losses: 0, roundsReached: 1 }
           const rb = records.get(b.id) ?? { wins: 0, losses: 0, roundsReached: 1 }
           if (ra.wins !== rb.wins) return rb.wins - ra.wins
@@ -1200,16 +1202,11 @@ export class TournamentManager {
           if (h2h?.winnerId !== undefined) return h2h.winnerId === a.id ? -1 : 1
           return a.seed - b.seed
         })
+        // Placements follow the sorted order directly so the head-to-head and seed
+        // tiebreakers decide final positions for players with identical records.
         rrPlacements = new Map<number, number>()
-        let lastKey: string | undefined
-        let lastPlacement = 1
         for (const [index, player] of sorted.entries()) {
-          const record = records.get(player.id) ?? { wins: 0, losses: 0, roundsReached: 1 }
-          const key = `${record.wins}-${record.losses}`
-          const placement = key === lastKey ? lastPlacement : index + 1
-          rrPlacements.set(player.id, placement)
-          lastKey = key
-          lastPlacement = placement
+          rrPlacements.set(player.id, index + 1)
         }
       }
       const placementFor = (player: TournamentPlayer): number => {

@@ -656,8 +656,10 @@ export class TournamentApiHandler extends BaseApiHandler {
         bracketFormat
       )
 
-      if (typeof body.categoryId === 'string' && categoryId.length > 0) {
-        config.setTournamentCategoryId(bridgeId, categoryId)
+      if (typeof body.categoryId === 'string') {
+        // An explicit blank string is the "Auto" option — clear any stored category
+        // so startTournament creates a fresh one instead of reusing stale config.
+        config.setTournamentCategoryId(bridgeId, categoryId.length > 0 ? categoryId : undefined)
       }
 
       try {

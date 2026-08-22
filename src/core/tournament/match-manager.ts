@@ -843,11 +843,17 @@ export class MatchManager {
       const embedChannelId = tournament.discordChannelId
       const currentBracketMessageId = tournament.bracketMessageId
       postCommit.push(async () => {
+        // Refetch: earlier post-commit actions may have written new discordThreadIds
+        // for next-round matches that the in-transaction snapshot predates.
+        const freshMatches = await this.databaseManager.queryRows<TournamentMatch>(
+          'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
+          [tournament.id]
+        )
         const usedMessageId = await this.channelManager.updateBracketEmbed(
           embedChannelId,
           currentBracketMessageId,
           tournament,
-          allMatches,
+          freshMatches,
           allPlayers,
           await this.getPlayerNames(tournament.id)
         )
@@ -887,11 +893,15 @@ export class MatchManager {
         const embedChannelId = tournament.discordChannelId
         const currentBracketMessageId = tournament.bracketMessageId
         postCommit.push(async () => {
+          const freshMatches = await this.databaseManager.queryRows<TournamentMatch>(
+            'SELECT * FROM "tournament_matches" WHERE "tournamentId" = $1',
+            [tournament.id]
+          )
           const usedMessageId = await this.channelManager.updateBracketEmbed(
             embedChannelId,
             currentBracketMessageId,
             tournament,
-            allMatches,
+            freshMatches,
             allPlayers,
             await this.getPlayerNames(tournament.id)
           )
