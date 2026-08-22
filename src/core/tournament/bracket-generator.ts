@@ -333,7 +333,7 @@ const roundRobin: BracketStrategy = {
 
   generate(tournamentId: number, players: TournamentPlayer[], roundDeadlineHours: number) {
     const playerCount = players.length
-    if (playerCount < 2) return { totalRounds: 1, matches: [] }
+    if (playerCount < 2) throw new Error('Need at least 2 players for round robin')
 
     const now = Math.floor(Date.now() / 1000)
     const deadlineAt = now + roundDeadlineHours * 3600

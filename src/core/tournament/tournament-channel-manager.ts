@@ -420,7 +420,7 @@ export class TournamentChannelManager {
     matches: TournamentMatch[],
     players: TournamentPlayer[],
     playerNamesMap: Map<number, string>
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     this.application.logger.debug(
       `updateBracketEmbed: Tournament ${tournament.id} — updating bracket embed (messageId=${messageId})`
     )
@@ -560,11 +560,18 @@ export class TournamentChannelManager {
     const files = bracketImage === null ? [] : [{ attachment: bracketImage, name: 'bracket.png' }]
     try {
       const message = await textChannel.messages.fetch(messageId).catch(() => undefined)
-      await (message === undefined
-        ? textChannel.send({ embeds: [embed], files })
-        : message.edit({ embeds: [embed], files }))
+      if (message !== undefined) {
+        await message.edit({ embeds: [embed], files })
+        return messageId
+      }
+      const sent = await textChannel.send({ embeds: [embed], files })
+      this.application.logger.warn(
+        `updateBracketEmbed: Bracket message ${messageId} not found, re-sent as ${sent.id} (callers persist the new id)`
+      )
+      return sent.id
     } catch (error: unknown) {
-      void error
+      this.application.logger.warn(`updateBracketEmbed: Failed to update bracket embed: ${String(error)}`)
+      return undefined
     }
   }
 }

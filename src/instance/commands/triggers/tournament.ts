@@ -9,7 +9,7 @@ export default class Tournament extends ChatCommandHandler {
     super({
       category: 'Guild',
       triggers: ['tournament', 'tour', 't'],
-      description: 'Tournament commands — join, checkin, report, forfeit, bracket, status',
+      description: 'Tournament commands — join, leave, checkin, report, forfeit, bracket, status',
       example: 'tournament join'
     })
   }
@@ -50,13 +50,26 @@ export default class Tournament extends ChatCommandHandler {
         }
       }
 
+      case 'leave': {
+        context.app.logger.info(`MC tournament leave: tournament=${tournament.id}, player=${playerUuid}`)
+        if (tournament.status !== TournamentStatus.Signup) {
+          return 'You can only leave during the signup phase.'
+        }
+        try {
+          await tournamentManager.removePlayer(tournament.id, playerUuid)
+          return 'You have left the tournament.'
+        } catch (error) {
+          return error instanceof Error ? error.message : String(error)
+        }
+      }
+
       case 'checkin': {
         context.app.logger.info(`MC tournament checkin: tournament=${tournament.id}, player=${playerUuid}`)
         if (tournament.status !== TournamentStatus.Signup) {
           return 'Tournament is not in signup phase.'
         }
         try {
-          await tournamentManager.checkinPlayer(tournament.id, playerUuid, playerUuid)
+          await tournamentManager.checkinPlayer(tournament.id, playerUuid)
           return 'You have checked in!'
         } catch (error) {
           return error instanceof Error ? error.message : String(error)
@@ -101,13 +114,16 @@ export default class Tournament extends ChatCommandHandler {
 
         const claimedWinner =
           winnerChoice === 'opponent' ? (match.player1Id === player.id ? match.player2Id : match.player1Id) : player.id
+        if (claimedWinner === undefined) {
+          return 'Your opponent is not set for this match yet.'
+        }
         const isP1 = match.player1Id === player.id
 
         try {
           const result = await tournamentManager.matchManager.submitReport(
             match.id,
             player.id,
-            claimedWinner ?? player.id,
+            claimedWinner,
             isP1 ? myWins : theirWins,
             isP1 ? theirWins : myWins
           )

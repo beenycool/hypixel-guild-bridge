@@ -26,8 +26,22 @@ export class BracketVisualizer {
       /* eslint-disable unicorn/no-null */
       if (data.matches.length === 0) return null
 
-      const totalRounds = Math.max(1, data.tournament.totalRounds)
-      const maxMatchesRound1 = Math.pow(2, totalRounds - 1)
+      const matchesByRound = new Map<number, TournamentMatch[]>()
+      for (const match of data.matches) {
+        const round = match.round
+        const roundMatches = matchesByRound.get(round)
+        if (roundMatches === undefined) {
+          matchesByRound.set(round, [match])
+        } else {
+          roundMatches.push(match)
+        }
+      }
+      const rounds = [...matchesByRound.keys()].toSorted((a, b) => a - b)
+      const totalRounds = Math.max(1, rounds.length)
+      const roundIndex = new Map<number, number>()
+      for (const [index, round] of rounds.entries()) roundIndex.set(round, index)
+
+      const maxMatches = Math.max(1, ...rounds.map((r) => (matchesByRound.get(r) ?? []).length))
 
       const matchHeight = 60
       const matchSpacing = 20
@@ -37,7 +51,7 @@ export class BracketVisualizer {
       const headerHeight = 50
 
       const width = totalRounds * columnWidth + padding * 2
-      const height = Math.max(headerHeight + padding * 2 + maxMatchesRound1 * slotHeight, 200)
+      const height = Math.max(headerHeight + padding * 2 + maxMatches * slotHeight, 200)
 
       const canvas = createCanvas(width, height)
       const context = canvas.getContext('2d')
@@ -50,42 +64,32 @@ export class BracketVisualizer {
       context.textAlign = 'center'
       context.fillText(`${data.tournament.name} — Bracket`, width / 2, 28, width - 40)
 
-      const matchesByRound = new Map<number, TournamentMatch[]>()
-      for (const match of data.matches) {
-        const round = match.round
-        const roundMatches = matchesByRound.get(round)
-        if (roundMatches === undefined) {
-          matchesByRound.set(round, [match])
-        } else {
-          roundMatches.push(match)
-        }
-      }
-
       context.font = '14px Minecraft, sans-serif'
       context.fillStyle = '#888888'
       context.textAlign = 'center'
-      for (let r = 1; r <= totalRounds; r++) {
-        const headerX = padding + (r - 1) * columnWidth + columnWidth / 2
-        const label = r === totalRounds ? 'Finals' : r === totalRounds - 1 ? 'Semifinals' : `Round ${r}`
+      const lastRound = rounds.at(-1)
+      const secondLastRound = rounds.at(-2)
+      for (const [round, column] of roundIndex) {
+        const headerX = padding + column * columnWidth + columnWidth / 2
+        const label = round === lastRound ? 'Finals' : round === secondLastRound ? 'Semifinals' : `Round ${round}`
         context.fillText(label, headerX, headerHeight + 5, columnWidth - 20)
       }
 
-      const centerYMap = new Map<number, number>()
+      const positions = new Map<number, { column: number; centerY: number }>()
 
-      for (let round = 1; round <= totalRounds; round++) {
+      for (const [round, column] of roundIndex) {
         const roundMatches = matchesByRound.get(round) ?? []
-        const colX = padding + (round - 1) * columnWidth
+        roundMatches.toSorted((a, b) => a.matchIndex - b.matchIndex)
+        const colX = padding + column * columnWidth
         const boxX = colX + 15
         const boxWidth = columnWidth - 30
+        const scale = maxMatches / Math.max(1, roundMatches.length)
 
-        for (const match of roundMatches) {
-          const matchIndex = match.matchIndex
-          const slotsInRound = Math.pow(2, round - 1)
-          const centerSlotIndex = matchIndex * slotsInRound + (slotsInRound - 1) / 2
-          const centerY = headerHeight + padding + (centerSlotIndex + 0.5) * slotHeight
+        for (const [index, match] of roundMatches.entries()) {
+          const centerY = headerHeight + padding + (index + 0.5) * scale * slotHeight
           const y = centerY - matchHeight / 2
 
-          centerYMap.set(match.id, centerY)
+          positions.set(match.id, { column, centerY })
 
           let borderColor: string
           let bgColor: string
@@ -157,24 +161,33 @@ export class BracketVisualizer {
             context.fillStyle = p2IsWinner ? '#2ecc71' : '#888888'
             context.fillText(p2Score, boxX + boxWidth - 8, y + matchHeight / 2 + 20)
           }
+        }
+      }
 
-          if (round < totalRounds) {
-            const nextColX = padding + round * columnWidth
-            const nextBoxX = nextColX + 15
-            const midX = (boxX + boxWidth + nextBoxX) / 2
+      for (const [round, column] of roundIndex) {
+        const roundMatches = matchesByRound.get(round) ?? []
+        const colX = padding + column * columnWidth
+        const boxX = colX + 15
+        const boxWidth = columnWidth - 30
 
-            const nextMatchIndex = Math.floor(matchIndex / 2)
-            const nextSlotsInRound = Math.pow(2, round)
-            const nextCenterSlotIndex = nextMatchIndex * nextSlotsInRound + (nextSlotsInRound - 1) / 2
-            const nextCenterY = headerHeight + padding + (nextCenterSlotIndex + 0.5) * slotHeight
+        context.lineWidth = 1.5
+        for (const match of roundMatches) {
+          const source = positions.get(match.id)
+          if (source === undefined) continue
+          const targets = [match.nextMatchId, match.loserNextMatchId].filter((id): id is number => id !== undefined)
+          for (const targetId of targets) {
+            const target = positions.get(targetId)
+            if (target === undefined) continue
+            const targetColX = padding + target.column * columnWidth
+            const targetBoxX = targetColX + 15
+            const midX = (boxX + boxWidth + targetBoxX) / 2
 
-            context.strokeStyle = borderColor
-            context.lineWidth = 1.5
+            context.strokeStyle = '#888888'
             context.beginPath()
-            context.moveTo(boxX + boxWidth, centerY)
-            context.lineTo(midX, centerY)
-            context.lineTo(midX, nextCenterY)
-            context.lineTo(nextBoxX, nextCenterY)
+            context.moveTo(boxX + boxWidth, source.centerY)
+            context.lineTo(midX, source.centerY)
+            context.lineTo(midX, target.centerY)
+            context.lineTo(targetBoxX, target.centerY)
             context.stroke()
           }
         }

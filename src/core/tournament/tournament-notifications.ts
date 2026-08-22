@@ -6,6 +6,10 @@ import { Status } from '../../common/connectable-instance.js'
 
 import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
 
+function isTestPlayer(uuid: string): boolean {
+  return uuid.startsWith('00000000-0000-0000-0000-')
+}
+
 export interface TournamentResultRow {
   id: number
   playerUuid: string
@@ -135,15 +139,16 @@ export class TournamentNotifications {
       `Match ${match.id}: Notifying match start — ${p1Name} vs ${p2Name} (round ${match.round})`
     )
 
-    const isTestPlayer = p1Uuid.startsWith('00000000-0000-0000-0000-')
-    if (!isTestPlayer) {
+    if (!isTestPlayer(p1Uuid)) {
       const mcMessage = this.t(bridgeId, 'tournament.match.whisper', {
         round: match.round,
         p1: p1Name,
         p2: p2Name
       })
       await this.sendWhisper(bridgeId, p1Uuid, mcMessage)
+    }
 
+    if (!isTestPlayer(p2Uuid)) {
       const mcMessage2 = this.t(bridgeId, 'tournament.match.whisper', {
         round: match.round,
         p1: p2Name,
@@ -318,7 +323,8 @@ export class TournamentNotifications {
     match: TournamentMatch,
     winnerId: number,
     loserId: number | undefined,
-    playerNames: Map<number, string>
+    playerNames: Map<number, string>,
+    isChampionMatch?: boolean
   ): Promise<void> {
     if (tournament.liveChannelId === undefined) {
       this.application.logger.info(`Tournament ${tournament.id}: No live channel for live update`)
@@ -331,13 +337,21 @@ export class TournamentNotifications {
       `Tournament ${tournament.id}: Live update — ${winnerName} defeated ${loserName}${score ? ` ${score}` : ''}`
     )
 
+    let statusLine: string
+    if (tournament.bracketFormat === 'round-robin') {
+      statusLine = 'Updating tournament standings!'
+    } else {
+      const champion = isChampionMatch ?? (match.nextMatchId === undefined && match.loserNextMatchId === undefined)
+      statusLine = champion ? '🏆 Tournament champion crowned!' : 'Advancing to next round!'
+    }
+
     const embed = new EmbedBuilder()
       .setTitle('🏆 Match Result')
       .setColor('#00FF00')
       .setDescription(
         `**Round ${match.round} — Match ${match.matchIndex + 1}**\n` +
           `**${winnerName}** defeated **${loserName}**${score ? ` ${score}` : ''}\n\n` +
-          (match.nextMatchId === undefined ? '🏆 Tournament champion crowned!' : 'Advancing to next round!')
+          statusLine
       )
       .setTimestamp()
 
@@ -348,27 +362,49 @@ export class TournamentNotifications {
     }
   }
 
-  public async notifyCancelMinParticipants(
-    tournament: Tournament,
-    checkedInCount: number,
-    minRequired: number
-  ): Promise<void> {
-    this.application.logger.info(
-      `Tournament ${tournament.id}: Notifying cancellation — ${checkedInCount}/${minRequired} checked in`
-    )
+  public async announceTournamentStarted(tournament: Tournament, playerCount: number): Promise<void> {
+    this.application.logger.info(`Tournament ${tournament.id}: Announcing tournament start (${playerCount} players)`)
+
     const embed = new EmbedBuilder()
-      .setTitle('🏆 Tournament Cancelled — Insufficient Check-ins')
-      .setColor('#FF0000')
+      .setTitle('🚀 Tournament Started!')
+      .setColor('#00FF00')
       .setDescription(
-        `Tournament **${tournament.name}** has been cancelled because only ${checkedInCount} player(s) checked in, but ${minRequired} are required.\n\n` +
-          `Please try again with more participants next time!`
+        `**${tournament.name}** is now live!\n\n` +
+          `• **Players:** ${playerCount}\n` +
+          `• **Best of:** ${tournament.bestOf}\n` +
+          `• **Format:** ${tournament.bracketFormat ?? 'single-elim'}\n` +
+          (tournament.discordChannelId === undefined ? '' : `• **Bracket:** <#${tournament.discordChannelId}>`)
       )
       .setTimestamp()
 
     await this.announceToDiscord(tournament.bridgeId, embed)
     await this.announceToGuild(
       tournament.bridgeId,
-      `🏆 Tournament ${tournament.name} cancelled: only ${checkedInCount}/${minRequired} checked in.`
+      `🏆 Tournament "${tournament.name}" has started with ${playerCount} players! Good luck everyone!`
+    )
+  }
+
+  public async notifyInsufficientCheckins(
+    tournament: Tournament,
+    checkedInCount: number,
+    minRequired: number
+  ): Promise<void> {
+    this.application.logger.info(
+      `Tournament ${tournament.id}: Notifying start failure — ${checkedInCount}/${minRequired} checked in`
+    )
+    const embed = new EmbedBuilder()
+      .setTitle('⚠️ Tournament Start Failed — Insufficient Check-ins')
+      .setColor('#FF0000')
+      .setDescription(
+        `Tournament **${tournament.name}** could not be started because only ${checkedInCount} player(s) checked in, but ${minRequired} are required.\n\n` +
+          `You can retry once more players check in.`
+      )
+      .setTimestamp()
+
+    await this.announceToDiscord(tournament.bridgeId, embed)
+    await this.announceToGuild(
+      tournament.bridgeId,
+      `🏆 Tournament ${tournament.name} could not start: only ${checkedInCount}/${minRequired} checked in.`
     )
   }
 

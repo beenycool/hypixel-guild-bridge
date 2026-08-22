@@ -163,7 +163,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleConfirm(request, response)
+      await this.handleConfirm(request, response, tournamentId, auth)
       return true
     }
 
@@ -176,7 +176,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleSubstitute(request, response)
+      await this.handleSubstitute(request, response, tournamentId, auth)
       return true
     }
 
@@ -224,7 +224,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleForfeit(request, response)
+      await this.handleForfeit(request, response, tournamentId, auth)
       return true
     }
 
@@ -237,7 +237,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleExtend(request, response)
+      await this.handleExtend(request, response, tournamentId, auth)
       return true
     }
 
@@ -448,7 +448,12 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleConfirm(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleConfirm(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
     const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
@@ -466,12 +471,29 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
 
     try {
+      const match = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 AND "tournamentId" = $2',
+        [matchId, tournamentId]
+      )
+      if (match === undefined) {
+        sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
+        return
+      }
+
       await this.application.core.tournamentManager.matchManager.adminConfirm(
         matchId,
         winnerId,
         undefined,
         p1Wins,
         p2Wins
+      )
+      await this.application.core.tournamentManager.auditLogger.log(
+        tournamentId,
+        'match_confirmed',
+        auth.userId ?? 'web-ui',
+        matchId,
+        undefined,
+        { winnerId, p1Wins, p2Wins }
       )
       sendSuccess(response, { success: true })
     } catch (error: unknown) {
@@ -480,7 +502,12 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleSubstitute(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleSubstitute(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
     const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
@@ -495,12 +522,31 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
 
     try {
+      const match = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 AND "tournamentId" = $2',
+        [matchId, tournamentId]
+      )
+      if (match === undefined) {
+        sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
+        return
+      }
+
       const result = await this.application.core.tournamentManager.matchManager.substitute(
         matchId,
         oldPlayerId,
         newPlayerUuid,
         newDiscordId as string
       )
+      if (result.success) {
+        await this.application.core.tournamentManager.auditLogger.log(
+          tournamentId,
+          'player_substituted',
+          auth.userId ?? 'web-ui',
+          matchId,
+          newPlayerUuid,
+          { oldPlayerId }
+        )
+      }
       sendSuccess(response, result)
     } catch (error: unknown) {
       this.logger.error('Failed to substitute player:', error)
@@ -545,8 +591,8 @@ export class TournamentApiHandler extends BaseApiHandler {
     const config = this.application.core.bridgeConfigurations
 
     const bestOf = typeof body.bestOf === 'number' ? body.bestOf : config.getTournamentDefaultBestOf(bridgeId)
-    if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive odd integer (e.g. 1, 3, 5)', 400)
+    if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9) {
+      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive odd integer (e.g. 1, 3, 5) up to 9', 400)
       return
     }
 
@@ -581,11 +627,10 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
 
     const categoryId = typeof body.categoryId === 'string' ? body.categoryId.trim() : ''
-    config.setTournamentCategoryId(bridgeId, categoryId === '' ? undefined : categoryId)
 
     let startedAtUnix: number | undefined
     if (body.startedAtUnix !== undefined) {
-      if (typeof body.startedAtUnix !== 'number' || !Number.isFinite(body.startedAtUnix)) {
+      if (typeof body.startedAtUnix !== 'number' || !Number.isInteger(body.startedAtUnix)) {
         sendError(response, 'VALIDATION_ERROR', 'startedAtUnix must be a unix timestamp', 400)
         return
       }
@@ -610,6 +655,10 @@ export class TournamentApiHandler extends BaseApiHandler {
         checkinWindowMinutes,
         bracketFormat
       )
+
+      if (typeof body.categoryId === 'string' && categoryId.length > 0) {
+        config.setTournamentCategoryId(bridgeId, categoryId)
+      }
 
       try {
         const notificationChannelId = config.getTournamentNotificationChannelId(bridgeId)
@@ -639,7 +688,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         return
       }
       this.logger.error('Failed to create tournament:', error)
-      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+      this.sendCoreError(response, error)
     }
   }
 
@@ -685,7 +734,13 @@ export class TournamentApiHandler extends BaseApiHandler {
       queryBridgeId !== null && queryBridgeId.length > 0
         ? await this.application.core.tournamentManager.resolveGuildForBridge(queryBridgeId).catch(() => undefined)
         : undefined
-    const guild = bridgeGuild ?? discordInstance.getClient().guilds.cache.first()
+    let guild = bridgeGuild
+    if (guild === undefined) {
+      guild = discordInstance.getClient().guilds.cache.first()
+      if (guild !== undefined) {
+        this.logger.warn(`Resolved ${ids.length} profile(s) against arbitrary guild ${guild.id} (no bridgeId given)`)
+      }
+    }
     const now = Date.now()
     const resolved: Record<string, unknown> = {}
     const pending: string[] = []
@@ -695,15 +750,23 @@ export class TournamentApiHandler extends BaseApiHandler {
       if (cached !== undefined && cached.expiresAt > now) {
         resolved[id] = cached.profile
       } else {
+        if (cached !== undefined) this.userProfileCache.delete(id)
         pending.push(id)
       }
     }
 
-    for (const id of pending) {
-      const profile = await discordInstance.profileById(id, guild).catch(() => undefined)
-      if (profile === undefined) continue
-      this.userProfileCache.set(id, { expiresAt: now + 10 * 60 * 1000, profile })
-      resolved[id] = profile
+    if (guild !== undefined && pending.length > 0) {
+      const resolvedGuild = guild
+      const profiles = await Promise.all(
+        pending.map(
+          async (id) => [id, await discordInstance.profileById(id, resolvedGuild).catch(() => undefined)] as const
+        )
+      )
+      for (const [id, profile] of profiles) {
+        if (profile === undefined) continue
+        this.userProfileCache.set(id, { expiresAt: now + 10 * 60 * 1000, profile })
+        resolved[id] = profile
+      }
     }
 
     this.logger.info(`Resolved ${Object.keys(resolved).length}/${ids.length} Discord user profile(s)`)
@@ -762,7 +825,12 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleForfeit(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleForfeit(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
     const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
@@ -774,7 +842,24 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
 
     try {
+      const match = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 AND "tournamentId" = $2',
+        [matchId, tournamentId]
+      )
+      if (match === undefined) {
+        sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
+        return
+      }
+
       const result = await this.application.core.tournamentManager.matchManager.forfeit(matchId, playerId)
+      await this.application.core.tournamentManager.auditLogger.log(
+        tournamentId,
+        'match_forfeited',
+        auth.userId ?? 'web-ui',
+        matchId,
+        undefined,
+        { forfeitingPlayerId: playerId }
+      )
       sendSuccess(response, result)
     } catch (error: unknown) {
       this.logger.error('Failed to forfeit match:', error)
@@ -782,7 +867,12 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleExtend(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleExtend(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    tournamentId: number,
+    auth: { permission: Permission; userId?: string }
+  ): Promise<void> {
     const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
@@ -794,15 +884,31 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
 
     try {
-      const bridgeId = body.bridgeId
-      const maxExtensionHours =
-        typeof bridgeId === 'string'
-          ? this.application.core.bridgeConfigurations.getTournamentMaxExtensionHours(bridgeId)
-          : 48
+      const match = await this.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1 AND "tournamentId" = $2',
+        [matchId, tournamentId]
+      )
+      if (match === undefined) {
+        sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
+        return
+      }
+
+      const tournament = await this.application.core.tournamentManager.getTournament(tournamentId)
+      const maxExtensionHours = tournament
+        ? this.application.core.bridgeConfigurations.getTournamentMaxExtensionHours(tournament.bridgeId)
+        : 48
       const result = await this.application.core.tournamentManager.matchManager.extendDeadline(
         matchId,
         hours,
         maxExtensionHours
+      )
+      await this.application.core.tournamentManager.auditLogger.log(
+        tournamentId,
+        'deadline_extended',
+        auth.userId ?? 'web-ui',
+        matchId,
+        undefined,
+        { hours, newDeadlineAt: result.newDeadlineAt }
       )
       sendSuccess(response, result)
     } catch (error: unknown) {
@@ -1055,7 +1161,7 @@ export class TournamentApiHandler extends BaseApiHandler {
       sendSuccess(response, tournament)
     } catch (error: unknown) {
       this.logger.error('Failed to update tournament:', error)
-      sendError(response, 'INTERNAL_ERROR', String(error), 500)
+      this.sendCoreError(response, error)
     }
   }
 
@@ -1144,12 +1250,24 @@ export class TournamentApiHandler extends BaseApiHandler {
         sendError(response, 'NOT_FOUND', 'Match not found in this tournament', 404)
         return
       }
-      if (match.discordThreadId === undefined) {
-        sendSuccess(response, { matchId, proof: [] })
-        return
-      }
-      const proof = await this.application.core.tournamentManager.channelManager.getProofUrls(match.discordThreadId)
-      sendSuccess(response, { matchId, proof })
+
+      const [threadProof, submissions] = await Promise.all([
+        match.discordThreadId === undefined
+          ? Promise.resolve([])
+          : this.application.core.tournamentManager.channelManager.getProofUrls(match.discordThreadId),
+        this.application.core.databaseManager.queryRows<{
+          id: number
+          playerUuid: string
+          discordId: string | null
+          url: string
+          createdAt: number
+        }>(
+          'SELECT "id", "playerUuid", "discordId", "url", "createdAt" FROM "tournament_match_proofs" WHERE "matchId" = $1 ORDER BY "createdAt" ASC',
+          [matchId]
+        )
+      ])
+
+      sendSuccess(response, { matchId, proof: threadProof, submissions })
     } catch (error: unknown) {
       this.logger.error('Failed to fetch match proof:', error)
       sendError(response, 'INTERNAL_ERROR', String(error), 500)
@@ -1158,6 +1276,19 @@ export class TournamentApiHandler extends BaseApiHandler {
 
   private sendValidation(response: http.ServerResponse, message: string): void {
     sendError(response, 'VALIDATION_ERROR', message, 400)
+  }
+
+  private sendCoreError(response: http.ServerResponse, error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error)
+    if (
+      /must be|must not|Unsupported|No settings|can only be|cannot be edited|not found or not active|already exists/.test(
+        message
+      )
+    ) {
+      sendError(response, 'VALIDATION_ERROR', message, 400)
+      return
+    }
+    sendError(response, 'INTERNAL_ERROR', message, 500)
   }
 
   private async handleTestCreate(
@@ -1179,12 +1310,16 @@ export class TournamentApiHandler extends BaseApiHandler {
     const gameType =
       typeof body.gameType === 'string' && body.gameType.trim().length > 0 ? body.gameType.trim() : 'Bridge'
     const bestOf = typeof body.bestOf === 'number' ? body.bestOf : config.getTournamentDefaultBestOf(bridgeId)
-    if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0) {
-      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive odd integer (e.g. 1, 3, 5)', 400)
+    if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9) {
+      sendError(response, 'VALIDATION_ERROR', 'bestOf must be a positive odd integer (e.g. 1, 3, 5) up to 9', 400)
       return
     }
     const deadline =
       typeof body.deadline === 'number' ? body.deadline : config.getTournamentDefaultDeadlineHours(bridgeId)
+    if (!Number.isInteger(deadline) || deadline < 1 || deadline > 720) {
+      sendError(response, 'VALIDATION_ERROR', 'deadline must be an integer between 1 and 720', 400)
+      return
+    }
     const playerCount = typeof body.playerCount === 'number' ? body.playerCount : 8
     if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 32) {
       sendError(response, 'VALIDATION_ERROR', 'playerCount must be between 2 and 32', 400)
@@ -1289,7 +1424,7 @@ export class TournamentApiHandler extends BaseApiHandler {
   private async resolveTestMatches(
     tournamentId: number,
     limit: number
-  ): Promise<{ resolved: number; matches: { id: number; winner: string }[] }> {
+  ): Promise<{ resolved: number; matches: { id: number; winner: string }[]; failed: { id: number; error: string }[] }> {
     const tournament = await this.application.core.tournamentManager.getTournament(tournamentId)
     if (tournament === undefined) throw new Error('Tournament not found.')
     if (tournament.status !== TournamentStatus.Active) throw new Error('Tournament is not active.')
@@ -1316,6 +1451,7 @@ export class TournamentApiHandler extends BaseApiHandler {
     )
 
     const resolved: { id: number; winner: string }[] = []
+    const failed: { id: number; error: string }[] = []
 
     for (const match of activeMatches) {
       if (match.player1Id === undefined || match.player2Id === undefined) continue
@@ -1327,13 +1463,42 @@ export class TournamentApiHandler extends BaseApiHandler {
       const winnerId = player1.seed < player2.seed ? player1.id : player2.id
       const winner = player1.seed < player2.seed ? player1.playerUuid : player2.playerUuid
       const winScore = Math.ceil(tournament.bestOf / 2)
+      const winnerIsPlayer1 = match.player1Id === winnerId
 
-      await mm.submitReport(match.id, match.player1Id, winnerId, winScore, 0).catch(() => undefined)
-      await mm.submitReport(match.id, match.player2Id, winnerId, 0, winScore).catch(() => undefined)
+      try {
+        await mm.submitReport(
+          match.id,
+          match.player1Id,
+          winnerId,
+          winnerIsPlayer1 ? winScore : 0,
+          winnerIsPlayer1 ? 0 : winScore
+        )
+        await mm.submitReport(
+          match.id,
+          match.player2Id,
+          winnerId,
+          winnerIsPlayer1 ? winScore : 0,
+          winnerIsPlayer1 ? 0 : winScore
+        )
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        this.logger.error(`Test resolution failed for match ${match.id}: ${message}`)
+        failed.push({ id: match.id, error: message })
+        continue
+      }
 
-      resolved.push({ id: match.id, winner: winner.slice(0, 8) })
+      const finalMatch = await database.queryOne<TournamentMatch>(
+        'SELECT "status" FROM "tournament_matches" WHERE "id" = $1',
+        [match.id]
+      )
+      if (finalMatch?.status === MatchStatus.Completed) {
+        resolved.push({ id: match.id, winner: winner.slice(0, 8) })
+      } else {
+        this.logger.error(`Test resolution left match ${match.id} in status ${finalMatch?.status ?? 'unknown'}`)
+        failed.push({ id: match.id, error: `Match did not complete (status: ${finalMatch?.status ?? 'unknown'})` })
+      }
     }
 
-    return { resolved: resolved.length, matches: resolved }
+    return { resolved: resolved.length, matches: resolved, failed }
   }
 }

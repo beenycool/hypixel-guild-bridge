@@ -143,7 +143,7 @@ export default {
     }
 
     if (subcommand === 'join') {
-      await context.interaction.deferReply()
+      await context.interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
       if (tournament === undefined || tournament.status !== TournamentStatus.Signup) {
@@ -183,7 +183,7 @@ export default {
     }
 
     if (subcommand === 'leave') {
-      await context.interaction.deferReply()
+      await context.interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
       if (tournament === undefined || tournament.status !== TournamentStatus.Signup) {
@@ -210,7 +210,7 @@ export default {
     }
 
     if (subcommand === 'checkin') {
-      await context.interaction.deferReply()
+      await context.interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
       if (tournament === undefined || tournament.status !== TournamentStatus.Signup) {
@@ -248,7 +248,7 @@ export default {
     }
 
     if (subcommand === 'report') {
-      await context.interaction.deferReply()
+      await context.interaction.deferReply({ flags: MessageFlags.Ephemeral })
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
       if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
         await context.interaction.editReply('There is no active tournament currently.')
@@ -331,7 +331,7 @@ export default {
     }
 
     if (subcommand === 'forfeit') {
-      await context.interaction.deferReply()
+      await context.interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
       const tournament = context.application.core.tournamentManager.getActiveTournament(bridgeId)
       if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
@@ -358,8 +358,8 @@ export default {
         `SELECT * FROM "tournament_matches"
          WHERE "tournamentId" = $1
            AND ("player1Id" = $2 OR "player2Id" = $2)
-           AND "status" = $3`,
-        [tournament.id, player.id, MatchStatus.Active]
+           AND "status" IN ($3, $4, $5)`,
+        [tournament.id, player.id, MatchStatus.Active, MatchStatus.Reported, MatchStatus.Disputed]
       )
 
       if (match === undefined) {
@@ -417,45 +417,43 @@ export default {
         [tournament.id, player.id, MatchStatus.Active, MatchStatus.Reported]
       )
 
+      let parsed: ReturnType<typeof chrono.parse> = []
       try {
-        const parsed = chrono.parse(timeString)
-        if (parsed.length === 0) {
-          await context.interaction.reply({
-            content: 'Could not parse that time. Try: "Saturday 14:00-18:00 GMT"',
-            flags: MessageFlags.Ephemeral
-          })
-          return
-        }
-
-        const startDate = parsed[0].start.date()
-        const endDate = parsed[0].end?.date()
-
-        let response = `**Your availability has been recorded for:**\n`
-        response += `<t:${Math.floor(startDate.getTime() / 1000)}:F>\n`
-        if (endDate) response += `to <t:${Math.floor(endDate.getTime() / 1000)}:F>`
-
-        if (match?.discordThreadId !== undefined) {
-          try {
-            const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
-            if (thread !== null && 'send' in thread) {
-              const names = await context.application.core.tournamentManager.getPlayerNames(tournament.id)
-              const pName = names.get(player.id) ?? 'A player'
-              await thread.send({
-                content: `📅 **${pName}** is available:\n${response}`
-              })
-            }
-          } catch {
-            // Match thread notification failed
-          }
-        }
-
-        await context.interaction.reply({ content: response, flags: MessageFlags.Ephemeral })
+        parsed = chrono.parse(timeString)
       } catch {
+        parsed = []
+      }
+      if (parsed.length === 0) {
         await context.interaction.reply({
-          content: 'Could not parse that time. Try a simpler format.',
+          content: 'Could not parse that time. Try: "Saturday 14:00-18:00 GMT"',
           flags: MessageFlags.Ephemeral
         })
+        return
       }
+
+      const startDate = parsed[0].start.date()
+      const endDate = parsed[0].end?.date()
+
+      let response = `**Your availability has been recorded for:**\n`
+      response += `<t:${Math.floor(startDate.getTime() / 1000)}:F>\n`
+      if (endDate) response += `to <t:${Math.floor(endDate.getTime() / 1000)}:F>`
+
+      if (match?.discordThreadId !== undefined) {
+        try {
+          const thread = await context.application.discordInstance.getClient().channels.fetch(match.discordThreadId)
+          if (thread !== null && 'send' in thread) {
+            const names = await context.application.core.tournamentManager.getPlayerNames(tournament.id)
+            const pName = names.get(player.id) ?? 'A player'
+            await thread.send({
+              content: `📅 **${pName}** is available:\n${response}`
+            })
+          }
+        } catch {
+          // Match thread notification failed
+        }
+      }
+
+      await context.interaction.reply({ content: response, flags: MessageFlags.Ephemeral })
       return
     }
 
@@ -479,14 +477,77 @@ export default {
       }
 
       context.application.logger.info(`Discord /tournament proof: matchId=${matchId}, url="${url}"`)
+      let parsedUrl: URL
       try {
-        new URL(url)
+        parsedUrl = new URL(url)
       } catch {
         await context.interaction.reply({ content: 'Invalid URL format.', flags: MessageFlags.Ephemeral })
         return
       }
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        await context.interaction.reply({
+          content: 'Proof URLs must use http:// or https://.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+      if (url.length > 500) {
+        await context.interaction.reply({
+          content: 'Proof URL is too long (max 500 characters).',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+
+      const match = await context.application.core.databaseManager.queryOne<TournamentMatch>(
+        'SELECT * FROM "tournament_matches" WHERE "id" = $1',
+        [matchId]
+      )
+      if (match === undefined) {
+        await context.interaction.reply({
+          content: 'Match not found.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+      if (
+        match.status !== MatchStatus.Active &&
+        match.status !== MatchStatus.Reported &&
+        match.status !== MatchStatus.Disputed &&
+        match.status !== MatchStatus.BothConfirmed
+      ) {
+        await context.interaction.reply({
+          content: 'Proof can only be submitted for an in-progress or reported match.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      if (link === undefined) {
+        await context.interaction.reply({
+          content: 'You must be verified and registered to post proof.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
+      const player = await context.application.core.databaseManager.queryOne<TournamentPlayer>(
+        'SELECT "id" FROM "tournament_players" WHERE "tournamentId" = $1 AND "playerUuid" = $2',
+        [match.tournamentId, link.uuid]
+      )
+      if (player === undefined || (match.player1Id !== player.id && match.player2Id !== player.id)) {
+        await context.interaction.reply({
+          content: 'You are not a participant in this match.',
+          flags: MessageFlags.Ephemeral
+        })
+        return
+      }
 
       try {
+        await context.application.core.databaseManager.execute(
+          `INSERT INTO "tournament_match_proofs" ("matchId", "tournamentId", "playerUuid", "discordId", "url")
+           VALUES ($1, $2, $3, $4, $5)`,
+          [matchId, match.tournamentId, link.uuid, context.interaction.user.id, url]
+        )
         await context.application.core.databaseManager.execute(
           `UPDATE "tournament_matches" SET "hadProofAttachment" = TRUE WHERE "id" = $1`,
           [matchId]

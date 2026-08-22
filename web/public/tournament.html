@@ -2325,16 +2325,31 @@
               try {
                 const res = await Api.apiGet('/api/tournament/' + tournamentId + '/proof/' + matchId)
                 const proof = Array.isArray(res.proof) ? res.proof : []
-                if (proof.length === 0) {
-                  box.innerHTML = '<p class="text-muted text-sm">No proof attachments found in the match thread.</p>'
-                } else {
-                  box.innerHTML = proof
-                    .map(
-                      (p) =>
-                        `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${esc(p.url)}" alt="proof" style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid var(--border-subtle); margin: 4px 4px 0 0;" /></a>`
-                    )
-                    .join('')
+                const submissions = Array.isArray(res.submissions) ? res.submissions : []
+                let html = ''
+                if (proof.length > 0) {
+                  html +=
+                    '<p class="text-secondary text-sm" style="margin:4px 0;">Attachments found in the match thread:</p>' +
+                    proof
+                      .map(
+                        (p) =>
+                          `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${esc(p.url)}" alt="proof" style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid var(--border-subtle); margin: 4px 4px 0 0;" /></a>`
+                      )
+                      .join('')
                 }
+                if (submissions.length > 0) {
+                  html +=
+                    '<p class="text-secondary text-sm" style="margin:12px 0 4px;">Proof links submitted by players:</p><ul style="margin:0; padding-left:18px;">' +
+                    submissions
+                      .map(
+                        (s) =>
+                          `<li style="margin:2px 0;"><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a> <span class="text-muted text-sm">— by ${esc(s.discordId || s.playerUuid.slice(0, 8))}</span></li>`
+                      )
+                      .join('') +
+                    '</ul>'
+                }
+                box.innerHTML =
+                  html !== '' ? html : '<p class="text-muted text-sm">No proof attachments or submitted links found.</p>'
               } catch (err) {
                 box.innerHTML =
                   '<p class="text-danger text-sm">Failed to load proof: ' + esc(err.message || String(err)) + '</p>'

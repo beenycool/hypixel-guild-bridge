@@ -10,13 +10,17 @@ import { MatchStatus, PlayerStatus, TournamentStatus } from './types.js'
 export class DeadlineScheduler {
   private timer?: NodeJS.Timeout
   private isRunning = false
+  private readonly checkinRemindersSent = new Map<number, number>()
+  private readonly autoStartCooldown = new Map<number, number>()
+  private static readonly AutoStartCooldownSeconds = 30 * 60
 
   constructor(
     private readonly databaseManager: DatabaseManager,
     private readonly matchManager: MatchManager,
     private readonly notifications: TournamentNotifications,
     private readonly logger: Logger,
-    private readonly getPlayerNames: (tournamentId: number) => Promise<Map<number, string>>
+    private readonly getPlayerNames: (tournamentId: number) => Promise<Map<number, string>>,
+    private readonly startTournament: (tournamentId: number) => Promise<void>
   ) {}
 
   public start(): void {
@@ -124,7 +128,11 @@ export class DeadlineScheduler {
           continue
         }
 
-        if (tournament.checkinClosesAt !== undefined && now >= tournament.checkinClosesAt - 3600) {
+        if (
+          tournament.checkinClosesAt !== undefined &&
+          now >= tournament.checkinClosesAt - 3600 &&
+          this.checkinRemindersSent.get(tournament.id) !== tournament.checkinClosesAt
+        ) {
           this.logger.info(`Tournament ${tournament.id}: Check-in closing soon, sending reminders`)
           const uncheckinPlayers = await this.databaseManager.queryRows<TournamentPlayer>(
             'SELECT * FROM "tournament_players" WHERE "tournamentId" = $1 AND ("checkedInAt" IS NULL OR "status" = $2)',
@@ -141,10 +149,55 @@ export class DeadlineScheduler {
               )
               .catch(() => undefined)
           }
+          this.checkinRemindersSent.set(tournament.id, tournament.checkinClosesAt)
         }
       }
+
+      const dueTournaments = await this.databaseManager.queryRows<Tournament>(
+        'SELECT * FROM "tournaments" WHERE "status" = $1 AND "startedAtUnix" IS NOT NULL AND "startedAtUnix" <= $2',
+        [TournamentStatus.Signup, now]
+      )
+      for (const tournament of dueTournaments) {
+        const lastAttempt = this.autoStartCooldown.get(tournament.id)
+        if (lastAttempt !== undefined && now - lastAttempt < DeadlineScheduler.AutoStartCooldownSeconds) {
+          continue
+        }
+
+        this.autoStartCooldown.set(tournament.id, now)
+        this.logger.info(
+          `Tournament ${tournament.id}: Scheduled start time reached (${tournament.startedAtUnix}), auto-starting`
+        )
+        try {
+          await this.startTournament(tournament.id)
+        } catch (error: unknown) {
+          this.logger.error(`Tournament ${tournament.id}: Failed to auto-start tournament`, error)
+        }
+      }
+
+      this.pruneTrackingMaps(activeTournaments, signupTournaments, dueTournaments)
     } finally {
       this.isRunning = false
+    }
+  }
+
+  private pruneTrackingMaps(
+    activeTournaments: Tournament[],
+    signupTournaments: Tournament[],
+    dueTournaments: Tournament[]
+  ): void {
+    const stillSigningUp = new Set<number>()
+    for (const tournament of [...signupTournaments, ...dueTournaments]) {
+      stillSigningUp.add(tournament.id)
+    }
+    for (const tournament of activeTournaments) {
+      stillSigningUp.delete(tournament.id)
+    }
+
+    for (const id of this.checkinRemindersSent.keys()) {
+      if (!stillSigningUp.has(id)) this.checkinRemindersSent.delete(id)
+    }
+    for (const id of this.autoStartCooldown.keys()) {
+      if (!stillSigningUp.has(id)) this.autoStartCooldown.delete(id)
     }
   }
 }

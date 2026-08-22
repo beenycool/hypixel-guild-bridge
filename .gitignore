@@ -17,3 +17,7 @@ outputs/
 blockops-yesterday.txt
 .all-paths.txt
 digest.txt
+
+# Local env files with secrets
+heroku.env
+*.env
