@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "outDir": "build",
+    "resolveJsonModule": true,
+    "lib": ["esnext"],
+    "baseUrl": "./",
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "skipLibCheck": true,
+    "paths": {
+      "@common/*": ["src/common/*"],
+      "@core/*": ["src/core/*"],
+      "@instance/*": ["src/instance/*"],
+      "@utility/*": ["src/utility/*"]
+    }
+  },
+  "ts-node": {
+    "files": true,
+    "esm": true
+  },
+  "exclude": ["node_modules", "build", "config"]
+}

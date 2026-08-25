@@ -1,0 +1,503 @@
+import { type Canvas, createCanvas, type Image, loadImage, registerFont } from 'canvas'
+// eslint-disable-next-line import/no-extraneous-dependencies
+import LRUCache from 'lru-cache'
+
+import type Application from '../../../application'
+
+type Canvas2DContext = NonNullable<ReturnType<Canvas['getContext']>>
+
+export interface MessageImageOptions {
+  username?: string
+
+  renderer?: 'default' | 'js'
+
+  withBackground?: boolean
+
+  backgroundStyle?: 'gradient' | 'solid' | 'transparent'
+
+  backgroundColor?: string
+}
+
+export default class MessageToImage {
+  private static readonly RgbaColorDefault: Record<string, string> = {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    0: 'rgba(0,0,0,1)',
+    1: 'rgba(0,0,170,1)',
+    2: 'rgba(0,170,0,1)',
+    3: 'rgba(0,170,170,1)',
+    4: 'rgba(170,0,0,1)',
+    5: 'rgba(170,0,170,1)',
+    6: 'rgba(255,170,0,1)',
+    7: 'rgba(170,170,170,1)',
+    8: 'rgba(85,85,85,1)',
+    9: 'rgba(85,85,255,1)',
+    a: 'rgba(85,255,85,1)',
+    b: 'rgba(85,255,255,1)',
+    c: 'rgba(255,85,85,1)',
+    d: 'rgba(255,85,255,1)',
+    e: 'rgba(255,255,85,1)',
+    f: 'rgba(255,255,255,1)',
+
+    r: 'rgba(255,255,255,1)'
+    /* eslint-enable @typescript-eslint/naming-convention */
+  }
+
+  private static readonly RgbaColorJs: Record<string, string> = {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    0: 'rgba(0,0,0,1)',
+    1: 'rgba(0,0,170,1)',
+    2: 'rgba(0,170,0,1)',
+    3: 'rgba(0,170,170,1)',
+    4: 'rgba(170,0,0,1)',
+    5: 'rgba(170,0,170,1)',
+    6: 'rgba(255,170,0,1)',
+    7: 'rgba(170,170,170,1)',
+    8: 'rgba(85,85,85,1)',
+    9: 'rgba(85,85,255,1)',
+    a: 'rgba(85,255,85,1)',
+    b: 'rgba(85,255,255,1)',
+    c: 'rgba(255,85,85,1)',
+    d: 'rgba(255,85,255,1)',
+    e: 'rgba(255,255,85,1)',
+    f: 'rgba(255,255,255,1)',
+    r: 'rgba(255,255,255,1)'
+    /* eslint-enable @typescript-eslint/naming-convention */
+  }
+
+  private static readonly WidthMargin = 5
+  private static readonly SkinSize = 35
+  private static readonly CanvasWidth = 1000
+
+  private static readonly MaxLinePosition = MessageToImage.CanvasWidth - MessageToImage.WidthMargin
+  private static readonly LineAdvance = 40
+
+  private static FontsRegistered = false
+  private static SkinCache = new LRUCache<string, { image: Image; fetchedAt: number }>({ max: 100 })
+  private static readonly SkinCacheTtl = 10 * 60 * 1000
+
+  private static MeasureCanvas?: Canvas
+
+  private static ensureFontsRegistered(): void {
+    if (MessageToImage.FontsRegistered) return
+    registerFont('./resources/fonts/MinecraftRegular-Bmg3.ttf', { family: 'Minecraft' })
+    registerFont('./resources/fonts/unifont.ttf', { family: 'MinecraftUnicode' })
+    MessageToImage.FontsRegistered = true
+  }
+
+  private static splitFormattedSegments(message: string): string[] {
+    if (message.length === 0) {
+      return []
+    }
+    const withNewlines = message.replaceAll('\n', '§n')
+    const normalized = withNewlines.startsWith('§') ? withNewlines : `§f${withNewlines}`
+    const parts = normalized.split(/§/g)
+    if (parts[0] === '') {
+      parts.shift()
+    } else {
+      parts[0] = `f${parts[0]}`
+    }
+    return parts
+  }
+
+  private static splitFormattedSegmentsJs(message: string): string[] {
+    if (message.length === 0) return []
+
+    const normalizedMessage = message.replaceAll('\n', '§n')
+    const splitMessageSpace = normalizedMessage.split(' ')
+    for (let index = 0; index < splitMessageSpace.length; index++) {
+      const segment = splitMessageSpace[index]
+      if (!segment.startsWith('§')) {
+        splitMessageSpace[index] = `§r${segment}`
+      }
+    }
+
+    const splitMessage = splitMessageSpace.join(' ').split(/§|\n/g)
+
+    splitMessage.shift()
+    return splitMessage
+  }
+
+  private static measureWords(context: Canvas2DContext, text: string, x: number, y: number): { x: number; y: number } {
+    if (text.length === 0) {
+      return { x, y }
+    }
+    const tokens = text.split(/(\s+)/).filter((t) => t.length > 0)
+    let cx = x
+    let cy = y
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLinePosition
+    const line = MessageToImage.LineAdvance
+    for (const token of tokens) {
+      const tw = context.measureText(token).width
+      if (cx + tw > maxX && cx > margin) {
+        cy += line
+        cx = margin
+      }
+      cx += tw
+    }
+    return { x: cx, y: cy }
+  }
+
+  private static drawWords(context: Canvas2DContext, text: string, x: number, y: number): { x: number; y: number } {
+    if (text.length === 0) {
+      return { x, y }
+    }
+    const tokens = text.split(/(\s+)/).filter((t) => t.length > 0)
+    let cx = x
+    let cy = y
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLinePosition
+    const line = MessageToImage.LineAdvance
+    for (const token of tokens) {
+      const tw = context.measureText(token).width
+      if (cx + tw > maxX && cx > margin) {
+        cy += line
+        cx = margin
+      }
+      context.fillText(token, cx, cy)
+      cx += tw
+    }
+    return { x: cx, y: cy }
+  }
+
+  private static measureWrappedSegmentBody(
+    context: Canvas2DContext,
+    currentMessage: string,
+    reserveSkin: boolean,
+    x: number,
+    y: number
+  ): { x: number; y: number } {
+    if (!currentMessage.includes('{skin}')) {
+      return MessageToImage.measureWords(context, currentMessage, x, y)
+    }
+    const parts = currentMessage.split('{skin}')
+    let pos = { x, y }
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLinePosition
+    const line = MessageToImage.LineAdvance
+    for (let index = 0; index < parts.length; index++) {
+      pos = MessageToImage.measureWords(context, parts[index] ?? '', pos.x, pos.y)
+      if (index < parts.length - 1) {
+        const skinW = reserveSkin ? MessageToImage.SkinSize + 20 : context.measureText('{skin}').width
+        if (pos.x + skinW > maxX && pos.x > margin) {
+          pos.y += line
+          pos.x = margin
+        }
+        pos.x += skinW
+      }
+    }
+    return pos
+  }
+
+  constructor(private readonly application: Application) {}
+
+  private async loadSkinImage(username: string, skinSize: number): Promise<Image> {
+    const url = `https://mc-heads.net/avatar/${encodeURIComponent(username)}/${skinSize}`
+    const cacheKey = `${username}_${skinSize}`
+    const cached = MessageToImage.SkinCache.get(cacheKey)
+    if (cached && Date.now() - cached.fetchedAt < MessageToImage.SkinCacheTtl) {
+      return cached.image
+    }
+    const image = await loadImage(url)
+    MessageToImage.SkinCache.set(cacheKey, { image, fetchedAt: Date.now() })
+    return image
+  }
+
+  private async drawWrappedSegmentBody(
+    context: Canvas2DContext,
+    x: number,
+    y: number,
+    currentMessage: string,
+    username: string | undefined
+  ): Promise<{ x: number; y: number }> {
+    if (!currentMessage.includes('{skin}')) {
+      return MessageToImage.drawWords(context, currentMessage, x, y)
+    }
+    if (username === undefined || username.length === 0) {
+      return MessageToImage.drawWords(context, currentMessage, x, y)
+    }
+    const parts = currentMessage.split('{skin}')
+    let pos = { x, y }
+    const margin = MessageToImage.WidthMargin
+    const maxX = MessageToImage.MaxLinePosition
+    const line = MessageToImage.LineAdvance
+    for (let index = 0; index < parts.length; index++) {
+      pos = MessageToImage.drawWords(context, parts[index] ?? '', pos.x, pos.y)
+      if (index < parts.length - 1) {
+        const skinW = MessageToImage.SkinSize + 20
+        if (pos.x + skinW > maxX && pos.x > margin) {
+          pos.y += line
+          pos.x = margin
+        }
+        try {
+          const skinImage = await this.loadSkinImage(username, MessageToImage.SkinSize)
+          context.drawImage(skinImage, pos.x, pos.y - MessageToImage.SkinSize)
+          pos.x += skinW
+        } catch {
+          pos = MessageToImage.drawWords(context, '{skin}', pos.x, pos.y)
+        }
+      }
+    }
+    return pos
+  }
+
+  public async generateMessageImage(message: string, options?: MessageImageOptions): Promise<Buffer> {
+    MessageToImage.ensureFontsRegistered()
+    if (options?.renderer === 'js') {
+      return this.generateMessageImageJs(message, options)
+    }
+
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
+    const canvasHeight = this.getHeight(message, options?.username, splitMessage)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
+    const context = canvas.getContext('2d')
+
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+    context.fillStyle = MessageToImage.RgbaColorDefault.f
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of splitMessage) {
+      if (segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+      const colorCode = MessageToImage.RgbaColorDefault[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
+
+      if (colorCode) {
+        context.fillStyle = colorCode
+      }
+
+      const pos = await this.drawWrappedSegmentBody(context, width, height, currentMessage, options?.username)
+      width = pos.x
+      height = pos.y
+    }
+
+    return canvas.toBuffer()
+  }
+
+  public generateMessageImageSync(message: string, options?: MessageImageOptions): Buffer {
+    MessageToImage.ensureFontsRegistered()
+    if (options?.renderer === 'js') {
+      return this.generateMessageImageJsSync(message, options)
+    }
+
+    const splitMessage = MessageToImage.splitFormattedSegments(message)
+    const canvasHeight = this.getHeight(message, undefined, splitMessage)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
+    const context = canvas.getContext('2d')
+
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+    context.fillStyle = MessageToImage.RgbaColorDefault.f
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of splitMessage) {
+      if (segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+      const colorCode = MessageToImage.RgbaColorDefault[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
+
+      if (colorCode) {
+        context.fillStyle = colorCode
+      }
+
+      const pos = MessageToImage.drawWords(context, currentMessage, width, height)
+      width = pos.x
+      height = pos.y
+    }
+
+    return canvas.toBuffer()
+  }
+
+  private getHeightJs(message: string, username?: string, splitMessage?: string[]): number {
+    MessageToImage.MeasureCanvas ??= createCanvas(1, 1)
+    const context = MessageToImage.MeasureCanvas.getContext('2d')
+    const segments = splitMessage ?? MessageToImage.splitFormattedSegmentsJs(message)
+    context.font = `40px Minecraft, MinecraftUnicode`
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of segments) {
+      const currentMessage = segment.slice(1)
+      const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
+      const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
+
+      if (width + messageWidth > MessageToImage.CanvasWidth || segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+      width += messageWidth
+    }
+    if (width === MessageToImage.WidthMargin) height -= MessageToImage.LineAdvance
+
+    return height + 10
+  }
+
+  private async generateMessageImageJs(message: string, options?: MessageImageOptions): Promise<Buffer> {
+    MessageToImage.ensureFontsRegistered()
+    const username = options?.username
+    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+    const canvasHeight = this.getHeightJs(message, username, splitMessage)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
+    const context = canvas.getContext('2d')
+
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
+      const isSkin = currentMessage.trim() === '{skin}' && username !== undefined && username.length > 0
+      const messageWidth = isSkin ? 55 : context.measureText(currentMessage).width
+
+      if (width + messageWidth > MessageToImage.CanvasWidth || segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+
+      if (isSkin) {
+        try {
+          const skinImage = await this.loadSkinImage(username, MessageToImage.SkinSize)
+          context.drawImage(skinImage, width, height - MessageToImage.SkinSize)
+          width += messageWidth
+          continue
+        } catch {
+          // Fall back to text rendering if skin fails to load
+        }
+      }
+
+      if (colorCode) {
+        context.fillStyle = colorCode
+      }
+
+      context.fillText(currentMessage, width, height)
+      width += messageWidth
+    }
+
+    return canvas.toBuffer()
+  }
+
+  private generateMessageImageJsSync(message: string, options?: MessageImageOptions): Buffer {
+    MessageToImage.ensureFontsRegistered()
+
+    const splitMessage = MessageToImage.splitFormattedSegmentsJs(message)
+    const canvasHeight = this.getHeightJs(message, undefined, splitMessage)
+    const canvas = createCanvas(MessageToImage.CanvasWidth, canvasHeight)
+    const context = canvas.getContext('2d')
+
+    this.paintBackgroundIfNeeded(canvas, options)
+
+    context.shadowOffsetX = 4
+    context.shadowOffsetY = 4
+    context.shadowColor = '#131313'
+    context.font = `40px Minecraft, MinecraftUnicode`
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of splitMessage) {
+      const colorCode = MessageToImage.RgbaColorJs[segment.charAt(0)]
+      const currentMessage = segment.slice(1)
+
+      if (width + context.measureText(currentMessage).width > MessageToImage.CanvasWidth || segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+
+      if (colorCode) {
+        context.fillStyle = colorCode
+      }
+
+      context.fillText(currentMessage, width, height)
+      width += context.measureText(currentMessage).width
+    }
+
+    return canvas.toBuffer()
+  }
+
+  private paintBackgroundIfNeeded(canvas: Canvas, options?: MessageImageOptions): void {
+    if (options?.withBackground || options?.backgroundStyle) {
+      this.applyBackground(canvas, options.backgroundStyle ?? 'gradient', options.backgroundColor)
+    }
+  }
+
+  private applyBackground(canvas: Canvas, style: 'gradient' | 'solid' | 'transparent', color?: string): void {
+    const context = canvas.getContext('2d')
+
+    switch (style) {
+      case 'gradient': {
+        const gradient = context.createLinearGradient(0, 0, 0, canvas.height)
+        gradient.addColorStop(0, 'rgba(20, 20, 30, 0.95)')
+        gradient.addColorStop(0.5, 'rgba(30, 30, 45, 0.95)')
+        gradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)')
+        context.fillStyle = gradient
+        context.fillRect(0, 0, canvas.width, canvas.height)
+
+        context.strokeStyle = 'rgba(80, 80, 120, 0.5)'
+        context.lineWidth = 2
+        context.strokeRect(1, 1, canvas.width - 2, canvas.height - 2)
+        break
+      }
+      case 'solid': {
+        context.fillStyle = color ?? 'rgba(30, 30, 40, 0.95)'
+        context.fillRect(0, 0, canvas.width, canvas.height)
+        break
+      }
+      case 'transparent': {
+        break
+      }
+    }
+  }
+
+  private getHeight(message: string, skinUsername?: string, splitMessage?: string[]): number {
+    MessageToImage.MeasureCanvas ??= createCanvas(1, 1)
+    const context = MessageToImage.MeasureCanvas.getContext('2d')
+    const segments = splitMessage ?? MessageToImage.splitFormattedSegments(message)
+    context.font = `40px Minecraft, MinecraftUnicode`
+
+    const reserveSkin = skinUsername != undefined && skinUsername.length > 0
+
+    let width = MessageToImage.WidthMargin
+    let height = 35
+
+    for (const segment of segments) {
+      if (segment.startsWith('n')) {
+        width = MessageToImage.WidthMargin
+        height += MessageToImage.LineAdvance
+      }
+      const currentMessage = segment.slice(1)
+      const pos = MessageToImage.measureWrappedSegmentBody(context, currentMessage, reserveSkin, width, height)
+      width = pos.x
+      height = pos.y
+    }
+    if (width == MessageToImage.WidthMargin && height === 35) {
+      height -= MessageToImage.LineAdvance
+    }
+
+    return height + 10
+  }
+}

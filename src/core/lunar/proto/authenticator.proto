@@ -1,0 +1,46 @@
+syntax = "proto3";
+package lunarclient.authenticator.v1;
+import "common.proto";
+
+message UuidAndUsername {
+  lunarclient.common.v1.Uuid uuid     = 1;
+  string                     username = 2;
+}
+
+message HelloMessage {
+  UuidAndUsername identity  = 1;
+  string          initiator = 2;
+}
+
+message EncryptionRequestMessage {
+  bytes public_key    = 1;
+  bytes random_bytes  = 2;
+}
+
+message EncryptionResponseMessage {
+  bytes secret_key = 1;
+  bytes public_key = 2;
+}
+
+message AuthSuccessMessage {
+  string jwt = 1;
+}
+
+message EncryptionFailMessage {
+  string reason = 1;
+}
+
+message ServerboundAuthMessage {
+  oneof contents {
+    HelloMessage              hello               = 1;
+    EncryptionResponseMessage encryption_response = 2;
+    EncryptionFailMessage     encryption_fail     = 3;
+  }
+}
+
+message ClientboundAuthMessage {
+  oneof contents {
+    EncryptionRequestMessage encryption_request = 1;
+    AuthSuccessMessage       auth_success       = 2;
+  }
+}

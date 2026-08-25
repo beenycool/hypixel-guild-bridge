@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Overview — Dashboard</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container">
+      <div class="grid grid-cols-4 mb-md" id="summary-stats">
+        <div class="card stat-card">
+          <div class="stat-value" id="stat-bridges">—</div>
+          <div class="stat-label">Bridges</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-value" id="stat-pending">—</div>
+          <div class="stat-label">Pending Reviews</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-value" id="stat-last-check">—</div>
+          <div class="stat-label">Last Check</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-value" id="stat-status">—</div>
+          <div class="stat-label">System</div>
+        </div>
+      </div>
+
+      <div id="bridge-cards"></div>
+    </div>
+    <script type="module" src="js/overview.js"></script>
+  </body>
+</html>

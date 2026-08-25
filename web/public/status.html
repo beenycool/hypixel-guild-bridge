@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Status — Rankup</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container">
+      <div class="page-header">
+        <h1 class="page-title">System Status</h1>
+        <button class="btn btn-secondary btn-sm" id="refresh-status-btn">Refresh</button>
+      </div>
+      <div id="status-content">
+        <div class="loading"><div class="loading-spinner"></div></div>
+      </div>
+    </div>
+    <script type="module">
+      import { Auth } from './js/auth.js'
+      import { Api } from './js/api.js'
+      import { Ui } from './js/ui.js'
+      import { initNav } from './js/nav.js'
+      import { initStatusPolling } from './js/status.js'
+
+      initNav()
+      initStatusPolling()
+
+      const contentEl = document.querySelector('#status-content')
+      const refreshBtn = document.querySelector('#refresh-status-btn')
+
+      function fmtDuration(ms) {
+        if (ms == null) return '\u2014'
+        const s = Math.floor(ms / 1000)
+        const m = Math.floor(s / 60)
+        const h = Math.floor(m / 60)
+        const d = Math.floor(h / 24)
+        const parts = []
+        if (d > 0) parts.push(d + 'd')
+        if (h % 24 > 0) parts.push((h % 24) + 'h')
+        if (m % 60 > 0) parts.push((m % 60) + 'm')
+        if (s % 60 > 0 || parts.length === 0) parts.push((s % 60) + 's')
+        return parts.join(' ')
+      }
+
+      function fmtTimeAgo(ts) {
+        if (ts == null) return '\u2014'
+        const diff = Date.now() - ts
+        if (diff < 1000) return 'just now'
+        return fmtDuration(diff) + ' ago'
+      }
+
+      function fmtTime(ts) {
+        if (ts == null) return '\u2014'
+        return new Date(ts).toLocaleTimeString()
+      }
+
+      function statusBadge(status) {
+        const map = {
+          connected: '<span class="badge badge-success">Connected</span>',
+          disconnected: '<span class="badge badge-warning">Disconnected</span>',
+          connecting: '<span class="badge badge-info">Connecting</span>',
+          failed: '<span class="badge badge-danger">Failed</span>',
+          ended: '<span class="badge badge-muted">Ended</span>',
+          fresh: '<span class="badge badge-muted">Fresh</span>'
+        }
+        return map[status] || '<span class="badge badge-muted">' + Ui.escapeHtml(status) + '</span>'
+      }
+
+      function renderStatus(data) {
+        var status = data || {}
+
+        var uptimeStr = status.uptime != null ? fmtDuration(status.uptime) : '\u2014'
+        var discordLatency = status.discordLatency != null ? status.discordLatency + 'ms' : '\u2014'
+        var discordBadge = status.discordConnected
+          ? '<span class="badge badge-success">Connected</span>'
+          : '<span class="badge badge-danger">Disconnected</span>'
+        var mcBadge = status.minecraftConnected
+          ? '<span class="badge badge-success">Connected</span>'
+          : '<span class="badge badge-warning">Disconnected</span>'
+        var bridgeCount = Array.isArray(status.bridges) ? status.bridges.length : '\u2014'
+        var instances = Array.isArray(status.instances) ? status.instances : []
+
+        var html = ''
+
+        // Summary cards row
+        html +=
+          '<div class="grid grid-cols-5 mb-md">' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          uptimeStr +
+          '</div><div class="stat-label">Bot Uptime</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          discordLatency +
+          '</div><div class="stat-label">Discord Latency</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          discordBadge +
+          '</div><div class="stat-label">Discord</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          mcBadge +
+          '</div><div class="stat-label">Minecraft</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' +
+          bridgeCount +
+          '</div><div class="stat-label">Bridges</div></div>' +
+          '</div>'
+
+        // Instance cards
+        html += '<div class="card mb-md"><div class="card-header"><h2>Instances</h2></div><div class="card-body">'
+        if (instances.length === 0) {
+          html += '<div class="text-sm text-muted">No instances connected.</div>'
+        } else {
+          html += '<div class="flex-column gap-sm">'
+          for (var i = 0; i < instances.length; i++) {
+            var inst = instances[i]
+            var hasDisconnect = inst.disconnectTime && inst.status !== 'connected'
+            var detailRows = ''
+
+            detailRows +=
+              '<div class="flex-between"><span class="stat-label">Status</span>' + statusBadge(inst.status) + '</div>'
+
+            if (inst.status === 'connected') {
+              detailRows +=
+                '<div class="flex-between"><span class="stat-label">Ping</span><span class="text-sm text-mono">N/A</span></div>'
+            }
+
+            if (hasDisconnect) {
+              detailRows +=
+                '<div class="flex-between"><span class="stat-label">Disconnected</span><span class="text-sm text-mono">' +
+                fmtTimeAgo(inst.disconnectTime) +
+                ' (' +
+                fmtTime(inst.disconnectTime) +
+                ')</span></div>'
+              detailRows +=
+                '<div class="flex-between"><span class="stat-label">Reconnect #</span><span class="text-sm text-mono">' +
+                (inst.reconnectAttempts || 0) +
+                '</span></div>'
+            }
+
+            html +=
+              '<div class="card"><div class="card-body">' +
+              '<div class="flex-between mb-xs">' +
+              '<div class="flex gap-sm" style="align-items: center">' +
+              '<span class="text-mono text-sm fw-600">' +
+              Ui.escapeHtml(inst.name) +
+              '</span>' +
+              '<span class="badge badge-info">' +
+              Ui.escapeHtml(inst.type || 'minecraft') +
+              '</span>' +
+              '</div>' +
+              '<div class="flex gap-sm">' +
+              (inst.status === 'connected'
+                ? '<span class="badge badge-success">Connected</span>'
+                : '<span class="badge badge-warning">' + Ui.escapeHtml(inst.status) + '</span>') +
+              '</div>' +
+              '</div>' +
+              '<div class="flex-column gap-xs" style="padding-left: 0">' +
+              detailRows +
+              '</div>' +
+              '</div></div>'
+          }
+          html += '</div>'
+        }
+        html += '</div></div>'
+
+        // Guild info
+        if (status.guild) {
+          var g = status.guild
+          html +=
+            '<div class="card mb-md"><div class="card-header"><h2>Guild</h2></div><div class="card-body">' +
+            '<div class="flex-between"><span class="stat-label">Name</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(g.name || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">Members</span><span class="text-sm text-mono">' +
+            (g.memberCount || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">Weekly GEXP</span><span class="text-sm text-mono">' +
+            (g.weeklyGexp != null ? Number(g.weeklyGexp).toLocaleString() : '\u2014') +
+            '</span></div>' +
+            '</div></div>'
+        }
+
+        // Version info
+        html +=
+          '<div class="card mb-md"><div class="card-header"><h2>Version</h2></div><div class="card-body">' +
+          '<div class="flex-column gap-xs">' +
+          '<div class="flex-between"><span class="stat-label">Version</span><span class="text-sm text-mono">' +
+          Ui.escapeHtml(status.version || '\u2014') +
+          '</span></div>' +
+          '<div class="flex-between"><span class="stat-label">Node</span><span class="text-sm text-mono">' +
+          Ui.escapeHtml(status.nodeVersion || '\u2014') +
+          '</span></div>' +
+          '<div class="flex-between"><span class="stat-label">Platform</span><span class="text-sm text-mono">' +
+          Ui.escapeHtml(status.platform || '\u2014') +
+          '</span></div>' +
+          '</div></div></div>'
+
+        // Memory
+        if (status.memory) {
+          var mem = status.memory
+          html +=
+            '<div class="card"><div class="card-header"><h2>Memory</h2></div><div class="card-body">' +
+            '<div class="flex-between"><span class="stat-label">Heap Used</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(mem.heapUsed || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">Heap Total</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(mem.heapTotal || '\u2014') +
+            '</span></div>' +
+            '<div class="flex-between"><span class="stat-label">RSS</span><span class="text-sm text-mono">' +
+            Ui.escapeHtml(mem.rss || '\u2014') +
+            '</span></div>' +
+            '</div></div>'
+        }
+
+        contentEl.innerHTML = html
+      }
+
+      async function loadStatus() {
+        contentEl.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>'
+        try {
+          var data = await Api.apiGet('/api/status')
+          renderStatus(data)
+        } catch (error) {
+          try {
+            var healthRes = await Api.apiGet('/health')
+            var uptimeRes = await Api.apiGet('/uptime')
+            renderStatus({
+              uptime: uptimeRes && uptimeRes.uptime ? uptimeRes.uptime : null,
+              version: healthRes && healthRes.version ? healthRes.version : '\u2014',
+              discordConnected: null,
+              minecraftConnected: null,
+              discordLatency: null,
+              instances: []
+            })
+          } catch (fallbackError) {
+            contentEl.innerHTML =
+              '<div class="empty-state"><div class="empty-state-icon">\u26A0</div><div class="empty-state-text text-danger">Failed to load system status: ' +
+              Ui.escapeHtml(error.message) +
+              '</div></div>'
+          }
+        }
+      }
+
+      function init() {
+        refreshBtn.addEventListener('click', loadStatus)
+        loadStatus()
+      }
+
+      const token = Auth.requireAuth()
+      if (token) init()
+      else globalThis.addEventListener('authsuccess', init, { once: true })
+    </script>
+  </body>
+</html>

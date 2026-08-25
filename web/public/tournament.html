@@ -1,0 +1,3167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tournaments — Hypixel Bridge Hub</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <style>
+      /* ===== Tournament Hub Custom Styles ===== */
+      .hub-hero {
+        background:
+          linear-gradient(135deg, rgba(17, 23, 32, 0.9) 0%, rgba(26, 36, 48, 0.95) 100%),
+          radial-gradient(circle at 80% 20%, rgba(251, 191, 36, 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 20% 80%, rgba(34, 211, 238, 0.08) 0%, transparent 50%);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+      }
+
+      .hub-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan), var(--color-info));
+      }
+
+      .hero-top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .hero-title-group h1 {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .hero-title-group p {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-top: 4px;
+      }
+
+      /* Quick Stats Grid */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+      }
+
+      .stat-card {
+        background: rgba(10, 14, 20, 0.6);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: all var(--transition);
+      }
+
+      .stat-card:hover {
+        border-color: var(--border-strong);
+        transform: translateY(-2px);
+      }
+
+      .stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .stat-icon.gold {
+        background: var(--accent-gold-dim);
+        color: var(--accent-gold);
+      }
+
+      .stat-icon.cyan {
+        background: var(--accent-cyan-dim);
+        color: var(--accent-cyan);
+      }
+
+      .stat-icon.green {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--status-success);
+      }
+
+      .stat-icon.purple {
+        background: rgba(139, 92, 246, 0.15);
+        color: #a78bfa;
+      }
+
+      .stat-info .stat-value {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.1;
+      }
+
+      .stat-info .stat-label {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Control & Filter Toolbar */
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .search-box {
+        position: relative;
+        flex: 1;
+        min-width: 240px;
+        max-width: 380px;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding-left: 36px;
+      }
+
+      .search-box .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+        font-size: 14px;
+      }
+
+      .filter-pills {
+        display: flex;
+        gap: 6px;
+        background: var(--bg-surface);
+        padding: 4px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        overflow-x: auto;
+      }
+
+      .filter-pill {
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        color: var(--text-secondary);
+        background: transparent;
+        border: none;
+        transition: all var(--transition);
+        white-space: nowrap;
+      }
+
+      .filter-pill:hover {
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .filter-pill.active {
+        background: var(--accent-gold);
+        color: #1a1305;
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* Tournament Grid */
+      .tournament-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+      }
+
+      .tournament-card-v2 {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .tournament-card-v2::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--border-default);
+        transition: background 200ms ease;
+      }
+
+      .tournament-card-v2[data-status='ACTIVE']::after {
+        background: var(--accent-gold);
+      }
+
+      .tournament-card-v2[data-status='SIGNUP']::after {
+        background: var(--status-success);
+      }
+
+      .tournament-card-v2[data-status='COMPLETED']::after {
+        background: var(--accent-cyan);
+      }
+
+      .tournament-card-v2[data-status='CANCELLED']::after {
+        background: var(--status-danger);
+      }
+
+      .tournament-card-v2:hover {
+        border-color: var(--border-strong);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      .card-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .card-header-top h3 {
+        font-family: var(--font-display);
+        font-size: 18px;
+        color: var(--text-primary);
+        margin: 0;
+        line-height: 1.3;
+      }
+
+      .game-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 3px 8px;
+        border-radius: var(--radius-sm);
+        background: rgba(34, 211, 238, 0.1);
+        color: var(--accent-cyan);
+        border: 1px solid rgba(34, 211, 238, 0.2);
+        white-space: nowrap;
+      }
+
+      .t-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 4px 10px;
+        border-radius: 20px;
+      }
+
+      .t-status-badge.SIGNUP {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--status-success);
+        border: 1px solid rgba(52, 211, 153, 0.3);
+      }
+
+      .t-status-badge.ACTIVE {
+        background: rgba(251, 191, 36, 0.15);
+        color: var(--accent-gold);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+      }
+
+      .t-status-badge.COMPLETED {
+        background: rgba(96, 165, 250, 0.15);
+        color: var(--status-info);
+        border: 1px solid rgba(96, 165, 250, 0.3);
+      }
+
+      .t-status-badge.CANCELLED {
+        background: rgba(244, 63, 94, 0.15);
+        color: var(--status-danger);
+        border: 1px solid rgba(244, 63, 94, 0.3);
+      }
+
+      .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 1.5s infinite;
+      }
+
+      .card-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin: 14px 0 18px;
+        background: rgba(10, 14, 20, 0.4);
+        padding: 10px 12px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .info-item .info-label {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .info-item .info-val {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .progress-bar-container {
+        margin-bottom: 16px;
+      }
+
+      .progress-label-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+      }
+
+      .progress-track {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-gold));
+        border-radius: 3px;
+        transition: width 300ms ease;
+      }
+
+      .card-footer-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+
+      /* Detail View Banner */
+      .detail-hero-banner {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-md);
+      }
+
+      .detail-top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .detail-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .detail-title-wrap h2 {
+        font-family: var(--font-display);
+        font-size: 26px;
+        margin: 0;
+        color: var(--text-primary);
+      }
+
+      /* Admin Toolbar Box in Detail Header */
+      .admin-toolbar-box {
+        background: rgba(251, 191, 36, 0.05);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .admin-toolbar-title {
+        font-family: var(--font-display);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent-gold);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .winner-spotlight {
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+        border: 1px solid rgba(251, 191, 36, 0.4);
+        border-radius: var(--radius-md);
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .winner-trophy {
+        font-size: 28px;
+        filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+      }
+
+      .winner-name {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--accent-gold);
+      }
+
+      .winner-sub {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      /* Detail Tabs */
+      .detail-tabs {
+        display: flex;
+        gap: 4px;
+        border-bottom: 1px solid var(--border-default);
+        margin-bottom: 20px;
+      }
+
+      .tab-btn {
+        padding: 10px 20px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-secondary);
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition: all var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .tab-btn:hover {
+        color: var(--text-primary);
+      }
+
+      .tab-btn.active {
+        color: var(--accent-gold);
+        border-bottom-color: var(--accent-gold);
+      }
+
+      /* Sideways Esports Bracket Tree Layout */
+      .bracket-container {
+        overflow-x: auto;
+        padding: 24px 12px;
+        min-height: 480px;
+      }
+
+      .bracket-tree {
+        display: flex;
+        gap: 36px;
+        align-items: stretch;
+        min-width: max-content;
+      }
+
+      .bracket-round {
+        display: flex;
+        flex-direction: column;
+        width: 280px;
+        flex-shrink: 0;
+      }
+
+      .bracket-round-title {
+        font-family: var(--font-display);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent-gold);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 16px;
+        padding: 8px 12px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .bracket-round-title .round-match-count {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+      }
+
+      .bracket-round-matches {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        flex-grow: 1;
+        gap: 24px;
+        position: relative;
+      }
+
+      .bracket-match-pair {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        gap: 20px;
+        flex-grow: 1;
+      }
+
+      /* Vertical connector line joining paired matches in the bracket tree */
+      .bracket-round:not(:last-child) .bracket-match-pair::after {
+        content: '';
+        position: absolute;
+        right: -18px;
+        top: 25%;
+        bottom: 25%;
+        width: 2px;
+        background: var(--border-strong);
+        z-index: 1;
+      }
+
+      .bracket-round:not(:last-child) .bracket-match-pair.single-match::after {
+        display: none;
+      }
+
+      .match-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+      }
+
+      /* Outgoing horizontal connector line from match card to vertical trunk */
+      .bracket-round:not(:last-child) .match-card-v2::after {
+        content: '';
+        position: absolute;
+        right: -18px;
+        top: 50%;
+        width: 18px;
+        height: 2px;
+        background: var(--border-strong);
+        z-index: 1;
+      }
+
+      .bracket-round:not(:last-child) .match-card-v2.is-completed::after {
+        background: var(--status-success);
+        box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+      }
+
+      /* Incoming horizontal connector line from previous round */
+      .bracket-round:not(:first-child) .match-card-v2::before {
+        content: '';
+        position: absolute;
+        left: -18px;
+        top: 50%;
+        width: 18px;
+        height: 2px;
+        background: var(--border-strong);
+        z-index: 1;
+      }
+
+      .bracket-round:not(:first-child) .match-card-v2.is-completed::before {
+        background: var(--status-success);
+      }
+
+      .match-card-v2 {
+        width: 100%;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        white-space: normal;
+        box-shadow: var(--shadow-sm);
+        transition: all 150ms ease;
+        position: relative;
+        z-index: 2;
+      }
+
+      .match-card-v2:hover {
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow-md);
+      }
+
+      .match-card-v2.is-completed {
+        border-color: rgba(52, 211, 153, 0.4);
+      }
+
+      .match-card-v2.is-disputed {
+        border-color: rgba(244, 63, 94, 0.6);
+        background: rgba(244, 63, 94, 0.05);
+      }
+
+      .match-card-v2.is-active {
+        border-color: rgba(251, 191, 36, 0.6);
+        box-shadow: var(--shadow-glow-gold);
+      }
+
+      .match-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+
+      .match-player-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-radius: var(--radius-sm);
+        background: rgba(10, 14, 20, 0.5);
+        margin-bottom: 6px;
+        gap: 8px;
+        border: 1px solid transparent;
+        transition: all 150ms ease;
+      }
+
+      .match-player-row.is-winner {
+        background: rgba(52, 211, 153, 0.12);
+        border-color: rgba(52, 211, 153, 0.3);
+        border-left: 4px solid var(--status-success);
+      }
+
+      .match-player-row.is-loser {
+        opacity: 0.5;
+        background: rgba(10, 14, 20, 0.2);
+      }
+
+      .match-player-row.is-loser .player-name {
+        color: var(--text-muted);
+        text-decoration: line-through;
+        text-decoration-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .player-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        overflow: hidden;
+      }
+
+      .player-head-img {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        background: var(--bg-elevated);
+        flex-shrink: 0;
+        image-rendering: pixelated;
+      }
+
+      .player-name {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .match-player-row.is-winner .player-name {
+        color: var(--status-success);
+        font-weight: 700;
+      }
+
+      .winner-crown-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--status-success);
+        background: rgba(52, 211, 153, 0.2);
+        padding: 1px 5px;
+        border-radius: 3px;
+        margin-left: 4px;
+        letter-spacing: 0.5px;
+      }
+
+      .score-pill {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+      }
+
+      .match-player-row.is-winner .score-pill {
+        background: var(--status-success);
+        color: #041a10;
+        font-weight: 800;
+      }
+
+      .match-player-row.is-loser .score-pill {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-muted);
+      }
+
+      .match-meta-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid var(--border-subtle);
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .match-badge-status {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-secondary);
+      }
+
+      .match-badge-status.ACTIVE {
+        background: rgba(251, 191, 36, 0.2);
+        color: var(--accent-gold);
+      }
+
+      .match-badge-status.DISPUTED {
+        background: rgba(244, 63, 94, 0.2);
+        color: var(--status-danger);
+      }
+
+      .match-badge-status.COMPLETED {
+        background: rgba(52, 211, 153, 0.2);
+        color: var(--status-success);
+      }
+
+      /* Participant Table */
+      .participants-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .participants-table th,
+      .participants-table td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .participants-table th {
+        font-family: var(--font-display);
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .participants-table tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      /* Audit Log Item */
+      .audit-list-v2 {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .audit-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .audit-action-tag {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent-cyan);
+        background: rgba(34, 211, 238, 0.1);
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(34, 211, 238, 0.2);
+      }
+
+      /* Custom Interactive Modals */
+      .custom-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1100;
+        padding: 20px;
+        animation: fadeIn 200ms ease;
+      }
+
+      .custom-modal-dialog {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+        animation: slideUp 200ms ease;
+      }
+
+      .ui-icon {
+        display: inline-block;
+        width: 1.1em;
+        height: 1.1em;
+        stroke: currentColor;
+        fill: none;
+        vertical-align: -0.15em;
+        flex-shrink: 0;
+      }
+
+      .modal-header-v2 {
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(10, 14, 20, 0.5);
+      }
+
+      .modal-header-v2 h3 {
+        font-family: var(--font-display);
+        font-size: 18px;
+        color: var(--text-primary);
+        margin: 0;
+      }
+
+      .modal-body-v2 {
+        padding: 24px;
+      }
+
+      .modal-footer-v2 {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border-subtle);
+        background: rgba(10, 14, 20, 0.5);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      /* Create Tournament modal */
+      #create-modal .custom-modal-dialog {
+        max-width: 560px;
+        max-height: calc(100vh - 40px);
+        display: flex;
+        flex-direction: column;
+      }
+
+      #create-modal .modal-body-v2 {
+        overflow-y: auto;
+      }
+
+      .create-form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .create-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .create-field-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        letter-spacing: 0.01em;
+      }
+
+      .create-field-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+
+      .create-field-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+
+      @media (max-width: 640px) {
+        .create-field-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .cf-defaults-panel {
+        background: rgba(10, 14, 20, 0.5);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 12px 14px;
+      }
+
+      .cf-defaults-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--accent-cyan);
+        margin-bottom: 6px;
+      }
+
+      #cf-defaults-summary {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      .cf-warning {
+        background: rgba(244, 63, 94, 0.1);
+        border: 1px solid rgba(244, 63, 94, 0.35);
+        color: var(--status-danger);
+        border-radius: var(--radius-md);
+        padding: 10px 14px;
+        font-size: 13px;
+        line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .cf-warning .ui-icon {
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .cf-warning strong {
+        color: var(--status-danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app-nav"></div>
+
+    <div class="app-container">
+      <div class="hub-hero">
+        <div class="hero-top-row">
+          <div class="hero-title-group">
+            <h1 class="flex align-center gap-sm">
+              <svg class="ui-icon" style="color: var(--gold-light); width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+              </svg>
+              Esports Tournaments
+            </h1>
+            <p>Organize, seed, track bracket progress, and manage live match results seamlessly.</p>
+          </div>
+          <div class="flex gap-sm">
+            <button class="btn btn-secondary btn-sm" id="refresh-btn">
+              <svg class="ui-icon" viewBox="0 0 24 24">
+                <path d="M21 12a9 9 0 0 0-9-9c-2.39 0-4.68.94-6.4 2.6L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9c2.39 0 4.68-.94 6.4-2.6L21 16" />
+                <path d="M16 16h5v5" />
+              </svg>
+              Refresh
+            </button>
+            <button class="btn btn-primary btn-sm" id="create-btn" style="display: none">
+              <svg class="ui-icon" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create Tournament
+            </button>
+            <button
+              class="btn btn-secondary btn-sm"
+              id="test-btn"
+              style="display: none"
+              title="Create a test tournament with fake players"
+            >
+              <svg class="ui-icon" viewBox="0 0 24 24">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+              Test Tournament
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon gold">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-active">0</div>
+              <div class="stat-label">Active Tournaments</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <path d="M9 12h6" />
+                <path d="M9 16h6" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-signups">0</div>
+              <div class="stat-label">Registration Open</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon cyan">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                <line x1="4" x2="4" y1="22" y2="15" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-completed">0</div>
+              <div class="stat-label">Completed</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple">
+              <svg class="ui-icon" style="width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                <polygon points="14.5 17.5 3 6 3 3 6 3 17.5 14.5 14.5 17.5" />
+                <line x1="13" y1="19" x2="19" y2="13" />
+                <line x1="16" y1="16" x2="20" y2="20" />
+                <polygon points="9.5 6.5 21 18 21 21 18 21 6.5 9.5 9.5 6.5" />
+                <line x1="11" y1="5" x2="5" y2="11" />
+                <line x1="8" y1="8" x2="4" y2="4" />
+              </svg>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-total">0</div>
+              <div class="stat-label">Total Events</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar" id="list-toolbar">
+        <div class="search-box">
+          <span class="search-icon"
+            ><svg class="ui-icon" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" /></svg
+          ></span>
+          <input type="text" class="input" id="search-input" placeholder="Search by name or game..." />
+        </div>
+        <div class="filter-pills" id="status-filters">
+          <button class="filter-pill active" data-filter="ALL">All</button>
+          <button class="filter-pill" data-filter="ACTIVE">
+            <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+            Active
+          </button>
+          <button class="filter-pill" data-filter="SIGNUP">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              <path d="M9 12h6" />
+              <path d="M9 16h6" />
+            </svg>
+            Signups
+          </button>
+          <button class="filter-pill" data-filter="COMPLETED">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            Completed
+          </button>
+          <button class="filter-pill" data-filter="CANCELLED">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+            Cancelled
+          </button>
+        </div>
+      </div>
+
+      <div id="loading" class="loading"><div class="loading-spinner"></div></div>
+      <div id="error" class="empty-state" style="display: none"></div>
+
+      <div id="list-view">
+        <div id="tournament-list" class="tournament-grid"></div>
+      </div>
+
+      <div id="detail-view" style="display: none">
+        <a href="#" id="back-to-list" class="btn btn-secondary btn-sm" style="margin-bottom: 20px">
+          &larr; Back to list
+        </a>
+
+        <div id="detail-hero" class="detail-hero-banner"></div>
+
+        <div class="detail-tabs">
+          <button class="tab-btn active" data-tab="bracket">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+              <path d="M4 22h16" />
+              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+              <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+            </svg>
+            Bracket
+          </button>
+          <button class="tab-btn" data-tab="participants">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Participants
+          </button>
+          <button class="tab-btn" data-tab="audit" id="tab-audit-btn" style="display: none">
+            <svg class="ui-icon" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            Audit Log
+          </button>
+        </div>
+
+        <div id="tab-bracket" class="tab-content">
+          <div id="bracket-content" class="bracket-container"></div>
+        </div>
+
+        <div id="tab-participants" class="tab-content" style="display: none">
+          <div id="participants-content"></div>
+          <div id="results-content"></div>
+        </div>
+
+        <div id="tab-audit" class="tab-content" style="display: none">
+          <div id="audit-content" class="audit-list-v2"></div>
+        </div>
+      </div>
+
+      <div id="create-modal" class="custom-modal-backdrop" style="display: none">
+        <div class="custom-modal-dialog">
+          <div class="modal-header-v2">
+            <div>
+              <h3>
+                <svg class="ui-icon" style="color: var(--accent-gold); width: 1.2em; height: 1.2em" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Create Tournament
+              </h3>
+              <p class="text-muted" style="font-size: 13px; margin: 4px 0 0">
+                Spin up a new bracket. Defaults are pulled from bridge settings.
+              </p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="cf-close">✕</button>
+          </div>
+          <div class="modal-body-v2">
+            <form id="create-form" class="create-form">
+              <div class="create-field">
+                <label class="create-field-label" for="cf-bridge">Bridge</label>
+                <select class="select" id="cf-bridge" required></select>
+                <span class="create-field-hint">Which bridge this tournament belongs to.</span>
+              </div>
+              <div id="cf-active-row" style="display: none">
+                <div class="cf-warning" id="cf-active-warning">
+                  <svg class="ui-icon" viewBox="0 0 24 24">
+                    <path
+                      d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  <span id="cf-active-warning-text"></span>
+                </div>
+              </div>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-name">Name</label>
+                <input
+                  type="text"
+                  class="input"
+                  id="cf-name"
+                  maxlength="80"
+                  placeholder="Weekly Bedwars Cup #4"
+                  required
+                />
+              </div>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-gametype">Game Type</label>
+                <input type="text" class="input" id="cf-gametype" list="cf-gametypes" placeholder="Bedwars" required />
+                <datalist id="cf-gametypes"></datalist>
+                <span class="create-field-hint">Free text, or pick from configured whitelist.</span>
+              </div>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-format">Bracket Format</label>
+                <select class="select" id="cf-format">
+                  <option value="single-elim" selected>Single Elimination</option>
+                  <option value="double-elim">Double Elimination</option>
+                  <option value="round-robin">Round Robin</option>
+                </select>
+              </div>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-category">Discord Category</label>
+                <select class="select" id="cf-category">
+                  <option value="">(Auto — create a new category)</option>
+                </select>
+                <span class="create-field-hint"
+                  >Where tournament channels are created. Auto creates a fresh category on start.</span
+                >
+              </div>
+              <div class="create-field-grid">
+                <div class="create-field">
+                  <label class="create-field-label" for="cf-bestof">Best-of</label>
+                  <input
+                    type="number"
+                    class="input"
+                    id="cf-bestof"
+                    min="1"
+                    max="9"
+                    step="2"
+                    value="1"
+                    inputmode="numeric"
+                    required
+                  />
+                  <span class="create-field-hint">Odd numbers only (1, 3, 5, 7, 9).</span>
+                </div>
+                <div class="create-field">
+                  <label class="create-field-label" for="cf-deadline">Round Deadline (hours)</label>
+                  <input
+                    type="number"
+                    class="input"
+                    id="cf-deadline"
+                    min="1"
+                    max="720"
+                    value="48"
+                    inputmode="numeric"
+                    required
+                  />
+                </div>
+                <div class="create-field">
+                  <label class="create-field-label" for="cf-checkin">Check-in Window (min)</label>
+                  <input
+                    type="number"
+                    class="input"
+                    id="cf-checkin"
+                    min="0"
+                    max="1440"
+                    value="60"
+                    inputmode="numeric"
+                  />
+                  <span class="create-field-hint">0 disables check-in.</span>
+                </div>
+              </div>
+              <div class="create-field">
+                <label class="create-field-label" for="cf-start">Scheduled Start (optional)</label>
+                <input type="datetime-local" class="input" id="cf-start" />
+                <span class="create-field-hint"
+                  >Leave blank for manual start. Sets check-in windows relative to start.</span
+                >
+              </div>
+              <div class="cf-defaults-panel">
+                <div class="cf-defaults-title">
+                  <svg class="ui-icon" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                  Bridge Defaults
+                </div>
+                <p id="cf-defaults-summary">Loading bridge defaults…</p>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer-v2">
+            <button type="button" class="btn btn-secondary" id="cf-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="cf-create-submit" form="create-form">Create</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="action-modal" class="custom-modal-backdrop" style="display: none">
+        <div class="custom-modal-dialog">
+          <div class="modal-header-v2">
+            <h3 id="action-modal-title">Match Action</h3>
+            <button type="button" class="btn btn-secondary btn-sm" id="action-modal-close">✕</button>
+          </div>
+          <div class="modal-body-v2" id="action-modal-body"></div>
+          <div class="modal-footer-v2">
+            <button type="button" class="btn btn-secondary" id="action-modal-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="action-modal-submit">Confirm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { Auth } from './js/auth.js'
+      import { Api } from './js/api.js'
+      import { Ui } from './js/ui.js'
+      import { Ws } from './js/ws.js'
+      import { initNav } from './js/nav.js'
+      import { initStatusPolling } from './js/status.js'
+
+      initNav()
+      initStatusPolling()
+
+      const esc = Ui.escapeHtml
+      const fmtRel = Ui.formatRelativeTime
+      const fmtDate = Ui.formatDate
+
+      const listEl = document.querySelector('#tournament-list')
+      const loadingEl = document.querySelector('#loading')
+      const errorEl = document.querySelector('#error')
+      const refreshBtn = document.querySelector('#refresh-btn')
+      const createBtn = document.querySelector('#create-btn')
+      const listView = document.querySelector('#list-view')
+      const listToolbar = document.querySelector('#list-toolbar')
+      const detailView = document.querySelector('#detail-view')
+      const detailHero = document.querySelector('#detail-hero')
+      const backBtn = document.querySelector('#back-to-list')
+      const createModal = document.querySelector('#create-modal')
+      const createForm = document.querySelector('#create-form')
+      const searchInput = document.querySelector('#search-input')
+      const filterPills = document.querySelectorAll('.filter-pill')
+      const tabBtns = document.querySelectorAll('.tab-btn')
+      const tabAuditBtn = document.querySelector('#tab-audit-btn')
+
+      // Modal elements
+      const actionModal = document.querySelector('#action-modal')
+      const actionModalTitle = document.querySelector('#action-modal-title')
+      const actionModalBody = document.querySelector('#action-modal-body')
+      const actionModalClose = document.querySelector('#action-modal-close')
+      const actionModalCancel = document.querySelector('#action-modal-cancel')
+      const actionModalSubmit = document.querySelector('#action-modal-submit')
+
+      let allTournaments = []
+      let currentFilter = 'ALL'
+      let searchQuery = ''
+      let currentId = null
+      let cachedDetail = null
+      let createBridges = []
+      let createCategories = []
+      let activeTab = 'bracket'
+      let createDefaultsLoading = false
+      let createBlockedByActive = false
+      let bridgeLoadToken = 0
+      const LAST_BRIDGE_KEY = 'tournament_create_bridge'
+
+      function perm() {
+        return Auth.getPermission()
+      }
+      function canManage() {
+        const p = perm()
+        return p === 'owner' || p === 'admin'
+      }
+      function isAdmin() {
+        const p = perm()
+        return p === 'owner' || p === 'admin'
+      }
+
+      function showLoading(msg) {
+        loadingEl.style.display = 'block'
+        loadingEl.textContent = msg || 'Loading...'
+        errorEl.style.display = 'none'
+      }
+      function hideLoading() {
+        loadingEl.style.display = 'none'
+      }
+      function showError(msg) {
+        hideLoading()
+        errorEl.style.display = 'block'
+        errorEl.textContent = msg || 'An error occurred.'
+      }
+
+      function playerAvatarUrl(uuid) {
+        if (!uuid || uuid === 'TBD') return null
+        return `https://mc-heads.net/avatar/${encodeURIComponent(uuid)}/20`
+      }
+
+      function resolveDiscordIds(scope) {
+        const hosts = scope ? scope.querySelectorAll('[data-discord]') : document.querySelectorAll('[data-discord]')
+        const ids = [...new Set([...hosts].map((el) => el.dataset.discord).filter(Boolean))]
+        if (ids.length === 0) return
+        Api.apiGet('/api/tournament/users?ids=' + encodeURIComponent(ids.join(',')))
+          .then((res) => {
+            for (const host of hosts) {
+              const profile = res ? res[host.dataset.discord] : undefined
+              if (!profile) continue
+              const name = profile.displayName || profile.username || host.dataset.discord
+              const avatar = profile.avatar || null
+              host.title = host.dataset.discord
+              host.innerHTML = avatar
+                ? `<img src="${esc(avatar)}" class="player-head-img" style="width:18px;height:18px;border-radius:50%;vertical-align:-4px;margin-right:5px" alt="">${esc(name)}`
+                : esc(name)
+            }
+          })
+          .catch(() => {})
+      }
+
+      function statusBadgeHtml(status) {
+        const hasPulse = status === 'ACTIVE' || status === 'SIGNUP'
+        return `
+          <span class="t-status-badge ${esc(status || '')}">
+            ${hasPulse ? '<span class="pulse-dot"></span>' : ''}
+            ${esc(status || 'UNKNOWN')}
+          </span>`
+      }
+
+      function updateStats(data) {
+        const active = data.filter((t) => t.status === 'ACTIVE').length
+        const signups = data.filter((t) => t.status === 'SIGNUP').length
+        const completed = data.filter((t) => t.status === 'COMPLETED').length
+        const total = data.length
+
+        document.querySelector('#stat-active').textContent = active
+        document.querySelector('#stat-signups').textContent = signups
+        document.querySelector('#stat-completed').textContent = completed
+        document.querySelector('#stat-total').textContent = total
+      }
+
+      function filterAndRenderList() {
+        const filtered = allTournaments.filter((t) => {
+          const matchesStatus = currentFilter === 'ALL' || t.status === currentFilter
+          const matchesSearch =
+            !searchQuery ||
+            (t.name && t.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (t.gameType && t.gameType.toLowerCase().includes(searchQuery.toLowerCase()))
+          return matchesStatus && matchesSearch
+        })
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+              <div class="empty-state-icon"><svg class="ui-icon" style="width:2.5em;height:2.5em" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+              <div class="empty-state-text">
+                ${allTournaments.length === 0 ? 'No tournaments created yet.' : 'No tournaments match your filter.'}
+                ${isAdmin() && allTournaments.length === 0 ? ' Click "+ Create Tournament" to launch your first event.' : ''}
+              </div>
+            </div>`
+          return
+        }
+
+        let html = ''
+        for (const t of filtered) {
+          const currentR = t.currentRound || 0
+          const totalR = t.totalRounds || 0
+          const pct = totalR > 0 ? Math.min(100, Math.round((currentR / totalR) * 100)) : 0
+
+          html += `
+            <div class="tournament-card-v2" data-status="${esc(t.status || '')}" data-id="${t.id}">
+              <div>
+                <div class="card-header-top">
+                  <h3>${esc(t.name || 'Unnamed')}</h3>
+                  ${statusBadgeHtml(t.status)}
+                </div>
+                <div class="game-badge"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="13" r="1"/><circle cx="18" cy="11" r="1"/><rect width="20" height="12" x="2" y="6" rx="6"/></svg> ${esc(t.gameType || 'Game')}</div>
+
+                <div class="card-info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Format</span>
+                    <span class="info-val">Bo${esc(String(t.bestOf ?? 3))}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Round Progress</span>
+                    <span class="info-val">${totalR > 0 ? `${currentR} / ${totalR}` : 'Seeding'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Created</span>
+                    <span class="info-val">${fmtRel(t.createdAt)}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Deadline</span>
+                    <span class="info-val">${esc(String(t.roundDeadlineHours || 48))}h</span>
+                  </div>
+                </div>
+
+                ${
+                  totalR > 0
+                    ? `
+                  <div class="progress-bar-container">
+                    <div class="progress-label-row">
+                      <span>Tournament Progress</span>
+                      <span>${pct}%</span>
+                    </div>
+                    <div class="progress-track">
+                      <div class="progress-fill" style="width: ${pct}%"></div>
+                    </div>
+                  </div>`
+                    : ''
+                }
+              </div>
+
+              <div class="card-footer-actions">
+                <button class="btn btn-secondary btn-sm view-btn" data-id="${t.id}">
+                  <svg class="ui-icon" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> View Bracket
+                </button>
+                ${
+                  isAdmin() && t.status === 'SIGNUP'
+                    ? `
+                  <button class="btn btn-primary btn-sm start-btn" data-id="${t.id}">Start</button>
+                  <button class="btn btn-danger btn-sm cancel-btn" data-id="${t.id}">Cancel</button>`
+                    : ''
+                }
+                ${
+                  isAdmin() && t.status === 'ACTIVE'
+                    ? `
+                  <button class="btn btn-danger btn-sm cancel-btn" data-id="${t.id}">Cancel</button>`
+                    : ''
+                }
+              </div>
+            </div>`
+        }
+
+        listEl.innerHTML = html
+
+        for (const btn of listEl.querySelectorAll('.view-btn'))
+          btn.addEventListener('click', () => showTournament(Number(btn.dataset.id)))
+        for (const btn of listEl.querySelectorAll('.start-btn'))
+          btn.addEventListener('click', () => startTournament(Number(btn.dataset.id)))
+        for (const btn of listEl.querySelectorAll('.cancel-btn'))
+          btn.addEventListener('click', () => cancelTournament(Number(btn.dataset.id)))
+      }
+
+      async function loadTournaments() {
+        showLoading('Loading tournaments list...')
+        try {
+          const data = await Api.apiGet('/api/tournament/list')
+          hideLoading()
+          allTournaments = Array.isArray(data) ? data : []
+          listView.style.display = ''
+          listToolbar.style.display = 'flex'
+          detailView.style.display = 'none'
+
+          updateStats(allTournaments)
+          filterAndRenderList()
+        } catch (err) {
+          showError('Failed to load tournaments: ' + esc(err.message || String(err)))
+        }
+      }
+
+      async function showTournament(id) {
+        currentId = id
+        listView.style.display = 'none'
+        listToolbar.style.display = 'none'
+        detailView.style.display = ''
+        showLoading('Loading tournament bracket & details...')
+
+        if (canManage()) {
+          tabAuditBtn.style.display = ''
+        } else {
+          tabAuditBtn.style.display = 'none'
+        }
+
+        try {
+          await renderDetail(id)
+        } catch (err) {
+          hideLoading()
+          showError('Failed to load detail: ' + esc(err.message || String(err)))
+        }
+      }
+
+      async function renderDetail(id) {
+        const data = await Api.apiGet('/api/tournament/' + id)
+        cachedDetail = data
+        hideLoading()
+
+        const t = data.tournament
+        const matches = Array.isArray(data.matches) ? data.matches : []
+        const players = Array.isArray(data.players) ? data.players : []
+        const playerMap = {}
+        for (const p of players) {
+          playerMap[p.id] = p
+        }
+
+        // 1. Build Hero Detail Header & Admin Control Toolbar
+        let winnerHtml = ''
+        if (t.winnerId && playerMap[t.winnerId]) {
+          const w = playerMap[t.winnerId]
+          const avatar = playerAvatarUrl(w.playerUuid)
+          winnerHtml = `
+            <div class="winner-spotlight">
+              <div class="winner-trophy"><svg class="ui-icon" style="width:1.4em;height:1.4em;color:var(--gold-light)" viewBox="0 0 24 24"><path d="m2 4 3 12h14l3-12-6 7-4-8-4 8-6-7zm3 16h14"/></svg></div>
+              ${avatar ? `<img src="${esc(avatar)}" class="player-head-img" style="width:32px;height:32px" alt="Winner">` : ''}
+              <div>
+                <div class="winner-name">${esc(w.playerUuid)}</div>
+                <div class="winner-sub">Tournament Champion</div>
+              </div>
+            </div>`
+        }
+
+        let adminToolbarHtml = ''
+        if (canManage()) {
+          adminToolbarHtml = `
+            <div class="admin-toolbar-box">
+              <div class="admin-toolbar-title">
+                <span class="flex align-center gap-xs"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin Controls</span>
+              </div>
+              <div class="flex gap-sm align-center flex-wrap">
+                ${
+                  t.status === 'SIGNUP' && matches.length === 0
+                    ? `
+                  <button class="btn btn-primary btn-sm" id="d-start"><svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Start Tournament</button>
+                  <button class="btn btn-secondary btn-sm" id="d-checkin"><svg class="ui-icon" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg> Open Check-in</button>
+                  <button class="btn btn-secondary btn-sm" id="d-add-player"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Player</button>
+                  <button class="btn btn-secondary btn-sm" id="d-edit" title="Edit tournament settings"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Edit Settings</button>`
+                    : ''
+                }
+                ${
+                  t.status === 'ACTIVE'
+                    ? `
+                  <button class="btn btn-secondary btn-sm" id="d-test-match" title="Auto-resolve 1 match for test"><svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Auto-Resolve Match</button>
+                  <button class="btn btn-secondary btn-sm" id="d-test-round" title="Auto-resolve round for test"><svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 19 22 12 13 5 13 19"/><polygon points="2 19 11 12 2 5 2 19"/></svg> Auto-Advance Round</button>`
+                    : ''
+                }
+                ${
+                  t.status === 'CANCELLED'
+                    ? `
+                  <button class="btn btn-primary btn-sm" id="d-reopen" title="Reopen into signup phase"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg> Reopen Tournament</button>`
+                    : ''
+                }
+                <button class="btn btn-secondary btn-sm" id="d-export-json" title="Export tournament data"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export JSON</button>
+                ${
+                  t.status === 'SIGNUP' || t.status === 'ACTIVE'
+                    ? `
+                  <button class="btn btn-danger btn-sm" id="d-cancel"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Cancel Tournament</button>`
+                    : ''
+                }
+              </div>
+            </div>`
+        }
+
+        detailHero.innerHTML = `
+          <div class="detail-top-bar">
+            <div class="detail-title-wrap">
+              <h2>${esc(t.name || 'Tournament')}</h2>
+              ${statusBadgeHtml(t.status)}
+              <span class="game-badge"><svg class="ui-icon" viewBox="0 0 24 24"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="13" r="1"/><circle cx="18" cy="11" r="1"/><rect width="20" height="12" x="2" y="6" rx="6"/></svg> ${esc(t.gameType || '?')}</span>
+            </div>
+          </div>
+
+          <div class="card-info-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 0;">
+            <div class="info-item">
+              <span class="info-label">Format</span>
+              <span class="info-val">Bo${esc(String(t.bestOf ?? 3))}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Round Deadline</span>
+              <span class="info-val">${esc(String(t.roundDeadlineHours || 0))}h</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Check-in Window</span>
+              <span class="info-val">${esc(String(t.checkinWindowMinutes || 0))} min</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Current Round</span>
+              <span class="info-val">${t.totalRounds > 0 ? `${t.currentRound || 0} / ${t.totalRounds}` : 'N/A'}</span>
+            </div>
+            ${
+              t.startedAt
+                ? `<div class="info-item">
+                    <span class="info-label">Started</span>
+                    <span class="info-val">${fmtDate(t.startedAt)}</span>
+                  </div>`
+                : ''
+            }
+          </div>
+          ${winnerHtml}
+          ${adminToolbarHtml}`
+
+        // Bind Admin Control Buttons
+        const startBtn = document.querySelector('#d-start')
+        if (startBtn) startBtn.addEventListener('click', () => startTournament(id))
+        const cancelBtn = document.querySelector('#d-cancel')
+        if (cancelBtn) cancelBtn.addEventListener('click', () => cancelTournament(id))
+        const checkinBtn = document.querySelector('#d-checkin')
+        if (checkinBtn) checkinBtn.addEventListener('click', () => openCheckin(id))
+
+        const addPlayerBtn = document.querySelector('#d-add-player')
+        if (addPlayerBtn) addPlayerBtn.addEventListener('click', () => openAddPlayerModal(id))
+
+        const editBtn = document.querySelector('#d-edit')
+        if (editBtn) editBtn.addEventListener('click', () => openEditModal(id))
+
+        const reopenBtn = document.querySelector('#d-reopen')
+        if (reopenBtn) reopenBtn.addEventListener('click', () => reopenTournament(id))
+
+        const testMatchBtn = document.querySelector('#d-test-match')
+        if (testMatchBtn) testMatchBtn.addEventListener('click', () => testResolveMatch(id))
+
+        const testRoundBtn = document.querySelector('#d-test-round')
+        if (testRoundBtn) testRoundBtn.addEventListener('click', () => testResolveRound(id))
+
+        const exportJsonBtn = document.querySelector('#d-export-json')
+        if (exportJsonBtn) exportJsonBtn.addEventListener('click', () => exportTournamentJson(data))
+
+        // 2. Render Bracket Tab
+        renderBracket(matches, playerMap, id)
+
+        // 3. Render Participants Tab
+        renderParticipants(players, t.status, id)
+
+        // 3b. Render Final Standings if tournament completed
+        if (t.status === 'COMPLETED') {
+          void loadResults(id)
+        } else {
+          const resultsHost = document.querySelector('#results-content')
+          if (resultsHost) resultsHost.innerHTML = ''
+        }
+
+        // 4. Render Audit Log if admin
+        if (canManage()) {
+          loadAudit(id)
+        }
+      }
+
+      function getRoundTitle(round, totalRounds) {
+        const fromFinals = totalRounds - round
+        if (fromFinals === 0) return '🏆 Grand Finals'
+        if (fromFinals === 1) return '⚔️ Semifinals'
+        if (fromFinals === 2) return '🎯 Quarterfinals'
+        if (fromFinals === 3) return 'Round of 16'
+        return `Round ${round}`
+      }
+
+      function renderBracket(matches, playerMap, tournamentId) {
+        const host = document.querySelector('#bracket-content')
+        const rounds = {}
+        for (const m of matches) {
+          if (!rounds[m.round]) rounds[m.round] = []
+          rounds[m.round].push(m)
+        }
+        const roundKeys = Object.keys(rounds)
+          .map(Number)
+          .sort((a, b) => a - b)
+        const totalRounds = roundKeys.length
+
+        if (totalRounds === 0) {
+          host.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon"><svg class="ui-icon" style="width:2.5em;height:2.5em" viewBox="0 0 24 24"><polygon points="14.5 17.5 3 6 3 3 6 3 17.5 14.5 14.5 17.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><polygon points="9.5 6.5 21 18 21 21 18 21 6.5 9.5 9.5 6.5"/><line x1="11" y1="5" x2="5" y2="11"/><line x1="8" y1="8" x2="4" y2="4"/></svg></div>
+              <div class="empty-state-text">Bracket not generated yet. Start the tournament to seed matches.</div>
+            </div>`
+          return
+        }
+
+        let html = '<div class="bracket-tree">'
+        for (const round of roundKeys) {
+          const roundMatches = rounds[round]
+          const roundTitle = getRoundTitle(round, totalRounds)
+
+          html += `
+            <div class="bracket-round">
+              <div class="bracket-round-title">
+                <span>${esc(roundTitle)}</span>
+                <span class="round-match-count">${roundMatches.length} ${roundMatches.length === 1 ? 'Match' : 'Matches'}</span>
+              </div>
+              <div class="bracket-round-matches">`
+
+          for (let i = 0; i < roundMatches.length; i += 2) {
+            const isSingle = i + 1 >= roundMatches.length
+            const pairMatches = isSingle ? [roundMatches[i]] : [roundMatches[i], roundMatches[i + 1]]
+
+            html += `<div class="bracket-match-pair ${isSingle ? 'single-match' : ''}">`
+
+            for (let idxInPair = 0; idxInPair < pairMatches.length; idxInPair++) {
+              const m = pairMatches[idxInPair]
+              const globalIdx = i + idxInPair
+              const p1 = playerMap[m.player1Id]
+              const p2 = playerMap[m.player2Id]
+              const p1Name = p1 ? p1.playerUuid : m.status === 'BYE' ? '—' : 'TBD'
+              const p2Name = p2 ? p2.playerUuid : m.status === 'BYE' ? 'BYE' : 'TBD'
+
+              const p1Win = m.winnerId && m.winnerId === m.player1Id
+              const p2Win = m.winnerId && m.winnerId === m.player2Id
+              const isDone = m.status === 'COMPLETED' || m.status === 'BYE' || m.status === 'BOTH_CONFIRMED'
+
+              const p1RowCls = p1Win ? 'is-winner' : p2Win ? 'is-loser' : ''
+              const p2RowCls = p2Win ? 'is-winner' : p1Win ? 'is-loser' : ''
+
+              const p1Avatar = playerAvatarUrl(p1 ? p1.playerUuid : null)
+              const p2Avatar = playerAvatarUrl(p2 ? p2.playerUuid : null)
+
+              const statusCls = isDone
+                ? 'is-completed'
+                : m.status === 'DISPUTED'
+                  ? 'is-disputed'
+                  : m.status === 'ACTIVE' || m.status === 'REPORTED'
+                    ? 'is-active'
+                    : ''
+
+              html += `
+                <div class="match-wrapper">
+                  <div class="match-card-v2 ${statusCls}">
+                    <div class="match-card-header">
+                      <span>Match #${m.matchIndex != null ? m.matchIndex + 1 : globalIdx + 1}</span>
+                      <span class="match-badge-status ${esc(m.status || '')}">${esc(m.status === 'BOTH_CONFIRMED' ? 'COMPLETED' : m.status || 'PENDING')}</span>
+                    </div>
+
+                    <div class="match-player-row ${p1RowCls}">
+                      <div class="player-info">
+                        ${p1Avatar ? `<img src="${esc(p1Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
+                        <span class="player-name">${esc(p1Name)}</span>
+                        ${p1Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+                      </div>
+                      <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player1Wins ?? 0))}</span>
+                    </div>
+
+                    <div class="match-player-row ${p2RowCls}">
+                      <div class="player-info">
+                        ${p2Avatar ? `<img src="${esc(p2Avatar)}" class="player-head-img" alt="">` : '<svg class="ui-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'}
+                        <span class="player-name">${esc(p2Name)}</span>
+                        ${p2Win ? '<span class="winner-crown-tag"><svg class="ui-icon" style="width:10px;height:10px" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> WIN</span>' : ''}
+                      </div>
+                      <span class="score-pill">${m.status === 'BYE' ? 'BYE' : esc(String(m.player2Wins ?? 0))}</span>
+                    </div>
+
+                    <div class="match-meta-bar">
+                      ${m.deadlineAt && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED') ? `<span class="text-sm text-muted">due ${fmtRel(m.deadlineAt)}</span>` : ''}
+
+                      <div class="flex gap-xs" style="margin-left: auto;">
+                        ${canManage() && m.status === 'DISPUTED' ? `<button class="btn btn-secondary btn-sm" data-act="dispute" data-mid="${m.id}">Resolve Dispute</button>` : ''}
+                        ${
+                          canManage() && (m.status === 'ACTIVE' || m.status === 'REPORTED' || m.status === 'DISPUTED')
+                            ? `
+                          <button class="btn btn-secondary btn-sm" data-act="forfeit" data-mid="${m.id}" title="Record Forfeit">Forfeit</button>
+                          <button class="btn btn-secondary btn-sm" data-act="extend" data-mid="${m.id}" title="Extend Deadline">Extend</button>
+                          <button class="btn btn-secondary btn-sm" data-act="sub" data-mid="${m.id}" title="Substitute Player">Sub</button>`
+                            : ''
+                        }
+                        ${canManage() && m.status === 'BYE' ? `<button class="btn btn-secondary btn-sm" data-act="bye" data-mid="${m.id}" title="Advance BYE winner">Advance</button>` : ''}
+                        ${canManage() && m.status === 'COMPLETED' ? `<button class="btn btn-secondary btn-sm" data-act="undo" data-mid="${m.id}" title="Undo Result">Undo</button>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                </div>`
+            }
+            html += `</div>`
+          }
+          html += `</div></div>`
+        }
+        html += '</div>'
+
+        host.innerHTML = html
+
+        for (const btn of host.querySelectorAll('[data-act]')) {
+          btn.addEventListener('click', () => handleMatchAction(btn.dataset.act, Number(btn.dataset.mid), tournamentId))
+        }
+      }
+
+      function renderParticipants(players, tournamentStatus, tournamentId) {
+        const host = document.querySelector('#participants-content')
+        if (players.length === 0) {
+          host.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon"><svg class="ui-icon" style="width:2.5em;height:2.5em" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+              <div class="empty-state-text">No registered participants yet.</div>
+            </div>`
+          return
+        }
+
+        const seedEditing = canManage() && tournamentStatus === 'SIGNUP'
+        const canRemove = canManage() && (tournamentStatus === 'SIGNUP' || tournamentStatus === 'ACTIVE')
+
+        let html = seedEditing
+          ? `
+            <div class="admin-toolbar-box" style="margin-bottom: 16px;">
+              <div class="admin-toolbar-title">
+                <span class="flex align-center gap-xs"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Seeds</span>
+              </div>
+              <div class="flex gap-sm align-center flex-wrap">
+                <span class="text-sm text-secondary">Edit seeds to control the bracket draw. Leave blank to auto-seed.</span>
+                <button class="btn btn-primary btn-sm" id="save-seeds-btn"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Seeds</button>
+              </div>
+            </div>`
+          : ''
+
+        html += `
+          <table class="participants-table">
+            <thead>
+              <tr>
+                <th>Seed</th>
+                <th>Player</th>
+                <th>Discord ID</th>
+                <th>Check-in Status</th>
+                ${canRemove ? '<th style="text-align:right">Admin Actions</th>' : ''}
+              </tr>
+            </thead>
+            <tbody>`
+
+        players.forEach((p, idx) => {
+          const avatar = playerAvatarUrl(p.playerUuid)
+          const seedCell = seedEditing
+            ? `<input type="number" class="input seed-input" style="width: 70px; padding: 4px 8px;" data-pid="${p.id}" data-uuid="${esc(p.playerUuid)}" value="${p.seed > 0 ? p.seed : ''}" min="1" max="${players.length}" placeholder="auto" />`
+            : `<strong>#${p.seed != null && p.seed > 0 ? p.seed : idx + 1}</strong>`
+          html += `
+            <tr>
+              <td>${seedCell}</td>
+              <td>
+                <div class="flex align-center gap-sm">
+                  ${avatar ? `<img src="${esc(avatar)}" class="player-head-img" style="width:24px;height:24px" alt="">` : ''}
+                  <span class="font-mono">${esc(p.playerUuid || 'Unknown')}</span>
+                </div>
+              </td>
+              <td class="font-mono text-muted" data-discord="${esc(p.discordId || '')}">${esc(p.discordId || '—')}</td>
+              <td>
+                <span class="badge ${p.checkedIn ? 'badge-success' : 'badge-muted'}">
+                  ${p.checkedIn ? 'Checked In' : 'Pending'}
+                </span>
+              </td>
+              ${
+                canRemove
+                  ? `<td style="text-align:right">
+                      <button class="btn btn-danger btn-sm kick-btn" data-uuid="${esc(p.playerUuid)}">Remove</button>
+                    </td>`
+                  : ''
+              }
+            </tr>`
+        })
+
+        html += `</tbody></table>`
+        host.innerHTML = html
+
+        for (const btn of host.querySelectorAll('.kick-btn')) {
+          btn.addEventListener('click', () => removePlayer(tournamentId, btn.dataset.uuid))
+        }
+        const saveSeedsBtn = host.querySelector('#save-seeds-btn')
+        if (saveSeedsBtn) saveSeedsBtn.addEventListener('click', () => saveSeeds(tournamentId, host))
+        resolveDiscordIds(host)
+      }
+
+      async function loadResults(id) {
+        const host = document.querySelector('#results-content')
+        if (!host) return
+        try {
+          const results = await Api.apiGet('/api/tournament/' + id + '/results')
+          if (!Array.isArray(results) || results.length === 0) {
+            host.innerHTML = ''
+            return
+          }
+          let html = `
+            <div class="admin-toolbar-box" style="margin-top: 24px;">
+              <div class="admin-toolbar-title">
+                <span class="flex align-center gap-xs"><svg class="ui-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Final Standings</span>
+              </div>
+              <table class="participants-table">
+                <thead>
+                  <tr>
+                    <th>Placement</th>
+                    <th>Player</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Rounds Reached</th>
+                  </tr>
+                </thead>
+                <tbody>`
+          for (const r of results) {
+            const avatar = playerAvatarUrl(r.playerUuid)
+            const isChampion = Number(r.champion) === 1
+            html += `
+              <tr>
+                <td><strong>#${esc(String(r.placement))}</strong></td>
+                <td>
+                  <div class="flex align-center gap-sm">
+                    ${avatar ? `<img src="${esc(avatar)}" class="player-head-img" style="width:24px;height:24px" alt="">` : ''}
+                    <span class="font-mono">${esc(r.playerUuid || 'Unknown')}</span>
+                    ${isChampion ? '<span class="badge badge-success">Champion</span>' : ''}
+                  </div>
+                </td>
+                <td>${esc(String(r.wins ?? 0))}</td>
+                <td>${esc(String(r.losses ?? 0))}</td>
+                <td>${esc(String(r.roundsReached ?? 0))}</td>
+              </tr>`
+          }
+          html += `</tbody></table></div>`
+          host.innerHTML = html
+        } catch {
+          host.innerHTML = ''
+        }
+      }
+
+      async function loadAudit(id) {
+        const host = document.querySelector('#audit-content')
+        if (!host) return
+        try {
+          const logs = await Api.apiGet('/api/tournament/' + id + '/audit')
+          if (!Array.isArray(logs) || logs.length === 0) {
+            host.innerHTML =
+              '<div class="empty-state"><div class="empty-state-text">No audit entries logged yet.</div></div>'
+            return
+          }
+          let html = ''
+          for (const e of logs) {
+            let metaStr = ''
+            if (e.metadata) {
+              try {
+                const md = typeof e.metadata === 'string' ? JSON.parse(e.metadata) : e.metadata
+                metaStr = Object.entries(md || {})
+                  .map(([k, v]) => `${esc(k)}: ${esc(String(v))}`)
+                  .join(' · ')
+              } catch {}
+            }
+
+            html += `
+              <div class="audit-card">
+                <div class="flex align-center gap-md">
+                  <span class="audit-action-tag">${esc(e.action || 'ACTION')}</span>
+                  <div>
+                    <strong class="font-mono" data-discord="${esc(e.actorDiscordId || '')}">${esc(e.actorDiscordId || 'System')}</strong>
+                    ${metaStr ? `<span class="text-secondary text-sm ml-2">${metaStr}</span>` : ''}
+                  </div>
+                </div>
+                <span class="text-muted text-sm">${fmtRel(e.createdAt)}</span>
+              </div>`
+          }
+          host.innerHTML = html
+          resolveDiscordIds(host)
+        } catch (err) {
+          host.innerHTML = `<div class="text-danger">Failed to load audit log: ${esc(err.message || String(err))}</div>`
+        }
+      }
+
+      // ===== Custom Action Modal Dialog Helper =====
+      function openActionModal({ title, bodyHtml, onConfirm }) {
+        actionModalTitle.textContent = title
+        actionModalBody.innerHTML = bodyHtml
+        actionModal.style.display = 'flex'
+
+        const cleanup = () => {
+          actionModal.style.display = 'none'
+          actionModalSubmit.onclick = null
+          actionModalCancel.onclick = null
+          actionModalClose.onclick = null
+        }
+
+        actionModalCancel.onclick = cleanup
+        actionModalClose.onclick = cleanup
+
+        actionModalSubmit.onclick = async () => {
+          const success = await onConfirm()
+          if (success !== false) {
+            cleanup()
+          }
+        }
+      }
+
+      function openAddPlayerModal(tournamentId) {
+        openActionModal({
+          title: 'Register Player Manually',
+          bodyHtml: `
+            <div class="form-row">
+              <label class="form-label">Minecraft UUID / Username</label>
+              <input type="text" class="input" id="act-add-uuid" placeholder="e.g. Technoblade" required />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Discord User ID (Optional)</label>
+              <input type="text" class="input" id="act-add-discord" placeholder="e.g. 123456789012345678" />
+            </div>`,
+          onConfirm: async () => {
+            const uuidInput = document.querySelector('#act-add-uuid')
+            const discordInput = document.querySelector('#act-add-discord')
+
+            const playerUuid = uuidInput ? uuidInput.value.trim() : ''
+            const discordId = discordInput ? discordInput.value.trim() : ''
+
+            if (!playerUuid) {
+              Ui.showToast('Minecraft UUID/Username is required', 'error')
+              return false
+            }
+
+            try {
+              await Api.apiPost('/api/tournament/' + tournamentId + '/add-player', { playerUuid, discordId })
+              Ui.showToast(`Registered player ${playerUuid}`, 'success')
+              await renderDetail(tournamentId)
+            } catch (err) {
+              Ui.showToast('Failed to add player: ' + (err.message || String(err)), 'error')
+              return false
+            }
+          }
+        })
+      }
+
+      async function removePlayer(tournamentId, playerUuid) {
+        if (!Ui.confirmAction(`Remove player ${playerUuid} from tournament registration?`)) return
+        try {
+          await Api.apiPost('/api/tournament/' + tournamentId + '/remove-player', { playerUuid })
+          Ui.showToast(`Removed player ${playerUuid}`, 'info')
+          await renderDetail(tournamentId)
+        } catch (err) {
+          Ui.showToast('Failed to remove player: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function testResolveMatch(tournamentId) {
+        try {
+          const res = await Api.apiPost('/api/tournament/' + tournamentId + '/test/resolve-match', {})
+          Ui.showToast(`Auto-resolved ${res.resolved || 1} match`, 'success')
+          await renderDetail(tournamentId)
+        } catch (err) {
+          Ui.showToast('Failed to auto-resolve match: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function testResolveRound(tournamentId) {
+        try {
+          const res = await Api.apiPost('/api/tournament/' + tournamentId + '/test/resolve-round', {})
+          Ui.showToast(`Auto-resolved round (${res.resolved || 0} matches)`, 'success')
+          await renderDetail(tournamentId)
+        } catch (err) {
+          Ui.showToast('Failed to auto-resolve round: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      function exportTournamentJson(data) {
+        const jsonStr = JSON.stringify(data, null, 2)
+        const blob = new Blob([jsonStr], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `tournament-${data.tournament?.id || 'export'}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        Ui.showToast('Exported tournament JSON', 'success')
+      }
+
+      async function handleMatchAction(act, matchId, tournamentId) {
+        const matches = cachedDetail?.matches || []
+        const players = cachedDetail?.players || []
+        const match = matches.find((m) => m.id === matchId)
+        const playerMap = {}
+        players.forEach((p) => (playerMap[p.id] = p))
+
+        const p1 = match ? playerMap[match.player1Id] : null
+        const p2 = match ? playerMap[match.player2Id] : null
+
+        if (act === 'confirm' || act === 'dispute') {
+          const isDispute = act === 'dispute'
+          const reports = isDispute ? (cachedDetail?.reports || []).filter((r) => r.matchId === matchId) : []
+          const playerById = {}
+          players.forEach((p) => (playerById[p.id] = p))
+          const reportRows = reports
+            .map((r) => {
+              const reporter = playerById[r.reporterId]
+              const claimed = playerById[r.claimedWinnerId]
+              return `
+                <div class="audit-card" style="margin-bottom: 8px;">
+                  <div class="flex align-center gap-sm">
+                    <span class="audit-action-tag">REPORT</span>
+                    <div>
+                      <strong class="font-mono">${esc(reporter ? reporter.playerUuid : 'Unknown')}</strong>
+                      <span class="text-secondary text-sm ml-2">claimed <strong>${esc(claimed ? claimed.playerUuid : 'Unknown')}</strong> won (${esc(String(r.player1Wins))}-${esc(String(r.player2Wins))})</span>
+                    </div>
+                  </div>
+                  <span class="text-muted text-sm">${fmtRel(r.createdAt)}</span>
+                </div>`
+            })
+            .join('')
+
+          const target = Math.ceil((cachedDetail?.tournament?.bestOf ?? 1) / 2)
+
+          openActionModal({
+            title: isDispute ? 'Resolve Dispute' : 'Confirm Match Winner',
+            bodyHtml: `
+              ${isDispute ? `<div style="margin-bottom: 16px;">${reportRows || '<p class="text-muted text-sm">No player reports on file.</p>'}</div>` : ''}
+              ${isDispute ? '<div id="act-proof-box" style="margin-bottom: 16px;"></div>' : ''}
+              ${isDispute ? '<div class="form-row"><button type="button" class="btn btn-secondary btn-sm" id="act-load-proof">Load Proof Attachments</button></div>' : ''}
+              <div class="form-row">
+                <label class="form-label">Select Winner</label>
+                <select class="select" id="act-winner-sel">
+                  ${p1 ? `<option value="${p1.id}">${esc(p1.playerUuid)} (Player 1)</option>` : ''}
+                  ${p2 ? `<option value="${p2.id}">${esc(p2.playerUuid)} (Player 2)</option>` : ''}
+                </select>
+              </div>
+              <div class="create-field-grid" style="grid-template-columns: 1fr 1fr; margin-top: 12px;">
+                <div class="form-row">
+                  <label class="form-label">Player 1 Wins</label>
+                  <input type="number" class="input" id="act-win-p1" min="0" max="${target}" value="${target}" />
+                </div>
+                <div class="form-row">
+                  <label class="form-label">Player 2 Wins</label>
+                  <input type="number" class="input" id="act-win-p2" min="0" max="${target}" value="0" />
+                </div>
+              </div>
+              <p class="text-muted text-sm" style="margin: 8px 0 0;">Best-of ${cachedDetail?.tournament?.bestOf ?? 1} — winner needs ${target} wins.</p>`,
+            onConfirm: async () => {
+              const sel = document.querySelector('#act-winner-sel')
+              const winnerId = Number(sel.value)
+              if (!Number.isInteger(winnerId)) {
+                Ui.showToast('Invalid winner selected', 'error')
+                return false
+              }
+              const p1Wins = Number(document.querySelector('#act-win-p1')?.value)
+              const p2Wins = Number(document.querySelector('#act-win-p2')?.value)
+              if (!Number.isInteger(p1Wins) || !Number.isInteger(p2Wins) || p1Wins < 0 || p2Wins < 0) {
+                Ui.showToast('Enter valid scores', 'error')
+                return false
+              }
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/confirm', { matchId, winnerId, p1Wins, p2Wins })
+                Ui.showToast(isDispute ? 'Dispute resolved' : 'Match confirmed', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+
+          const winnerSel = document.querySelector('#act-winner-sel')
+          const winP1 = document.querySelector('#act-win-p1')
+          const winP2 = document.querySelector('#act-win-p2')
+          const syncScores = () => {
+            if (!winP1 || !winP2 || !winnerSel) return
+            const selectedIsP1 = Number(winnerSel.value) === (p1 ? p1.id : -1)
+            winP1.value = String(selectedIsP1 ? target : 0)
+            winP2.value = String(selectedIsP1 ? 0 : target)
+          }
+          if (winnerSel) winnerSel.addEventListener('change', syncScores)
+
+          const loadProofBtn = document.querySelector('#act-load-proof')
+          if (loadProofBtn) {
+            loadProofBtn.addEventListener('click', async () => {
+              const box = document.querySelector('#act-proof-box')
+              if (!box) return
+              loadProofBtn.disabled = true
+              loadProofBtn.textContent = 'Loading…'
+              try {
+                const res = await Api.apiGet('/api/tournament/' + tournamentId + '/proof/' + matchId)
+                const proof = Array.isArray(res.proof) ? res.proof : []
+                const submissions = Array.isArray(res.submissions) ? res.submissions : []
+                let html = ''
+                if (proof.length > 0) {
+                  html +=
+                    '<p class="text-secondary text-sm" style="margin:4px 0;">Attachments found in the match thread:</p>' +
+                    proof
+                      .map(
+                        (p) =>
+                          `<a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer"><img src="${esc(p.url)}" alt="proof" style="max-width:100%; max-height:220px; border-radius:8px; border:1px solid var(--border-subtle); margin: 4px 4px 0 0;" /></a>`
+                      )
+                      .join('')
+                }
+                if (submissions.length > 0) {
+                  html +=
+                    '<p class="text-secondary text-sm" style="margin:12px 0 4px;">Proof links submitted by players:</p><ul style="margin:0; padding-left:18px;">' +
+                    submissions
+                      .map(
+                        (s) =>
+                          `<li style="margin:2px 0;"><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.url)}</a> <span class="text-muted text-sm">— by ${esc(s.discordId || s.playerUuid.slice(0, 8))}</span></li>`
+                      )
+                      .join('') +
+                    '</ul>'
+                }
+                box.innerHTML =
+                  html !== '' ? html : '<p class="text-muted text-sm">No proof attachments or submitted links found.</p>'
+              } catch (err) {
+                box.innerHTML =
+                  '<p class="text-danger text-sm">Failed to load proof: ' + esc(err.message || String(err)) + '</p>'
+              } finally {
+                loadProofBtn.disabled = false
+                loadProofBtn.textContent = 'Load Proof Attachments'
+              }
+            })
+          }
+          return
+        }
+
+        if (act === 'bye') {
+          openActionModal({
+            title: 'Advance BYE Match',
+            bodyHtml: `
+              <p class="text-secondary" style="margin: 0 0 12px;">Advance this BYE match and move the walkover winner into the next round? This cannot be undone.</p>`,
+            onConfirm: async () => {
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/bye', { matchId })
+                Ui.showToast('BYE match advanced', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+          return
+        }
+
+        if (act === 'forfeit') {
+          openActionModal({
+            title: 'Record Player Forfeit',
+            bodyHtml: `
+              <div class="form-row">
+                <label class="form-label">Forfeiting Player</label>
+                <select class="select" id="act-forfeit-sel">
+                  ${p1 ? `<option value="${p1.id}">${esc(p1.playerUuid)} (Player 1)</option>` : ''}
+                  ${p2 ? `<option value="${p2.id}">${esc(p2.playerUuid)} (Player 2)</option>` : ''}
+                </select>
+              </div>`,
+            onConfirm: async () => {
+              const sel = document.querySelector('#act-forfeit-sel')
+              const playerId = Number(sel.value)
+              if (!Number.isInteger(playerId)) {
+                Ui.showToast('Invalid player selected', 'error')
+                return false
+              }
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/forfeit', { matchId, playerId })
+                Ui.showToast('Forfeit recorded', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+          return
+        }
+
+        if (act === 'extend') {
+          openActionModal({
+            title: 'Extend Match Deadline',
+            bodyHtml: `
+              <div class="form-row">
+                <label class="form-label">Extension Hours</label>
+                <input type="number" class="input" id="act-extend-hrs" min="1" max="168" value="24" />
+              </div>`,
+            onConfirm: async () => {
+              const hrsInput = document.querySelector('#act-extend-hrs')
+              const n = Number(hrsInput.value)
+              if (!Number.isFinite(n) || n <= 0) {
+                Ui.showToast('Enter a valid number of hours', 'error')
+                return false
+              }
+              const bridgeId = cachedDetail?.tournament?.bridgeId
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/extend', { matchId, hours: n, bridgeId })
+                Ui.showToast('Deadline extended', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+          return
+        }
+
+        if (act === 'sub') {
+          openActionModal({
+            title: 'Substitute Player',
+            bodyHtml: `
+              <div class="form-row">
+                <label class="form-label">Player to Replace</label>
+                <select class="select" id="act-sub-old">
+                  ${p1 ? `<option value="${p1.id}">${esc(p1.playerUuid)} (Player 1)</option>` : ''}
+                  ${p2 ? `<option value="${p2.id}">${esc(p2.playerUuid)} (Player 2)</option>` : ''}
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="form-label">New Player Minecraft UUID / Name</label>
+                <input type="text" class="input" id="act-sub-newuuid" placeholder="e.g. Technoblade" required />
+              </div>
+              <div class="form-row">
+                <label class="form-label">New Discord ID (Optional)</label>
+                <input type="text" class="input" id="act-sub-newdiscord" placeholder="e.g. 123456789012345678" />
+              </div>`,
+            onConfirm: async () => {
+              const oldPlayerId = Number(document.querySelector('#act-sub-old').value)
+              const newUuid = document.querySelector('#act-sub-newuuid').value.trim()
+              const newDiscordId = document.querySelector('#act-sub-newdiscord').value.trim()
+
+              if (!oldPlayerId || !newUuid) {
+                Ui.showToast('Please fill out required fields', 'error')
+                return false
+              }
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/substitute', {
+                  matchId,
+                  oldPlayerId,
+                  newPlayerUuid: newUuid,
+                  newDiscordId
+                })
+                Ui.showToast('Player substituted', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+          return
+        }
+
+        if (act === 'undo') {
+          openActionModal({
+            title: 'Undo Match',
+            bodyHtml: `
+              <p class="text-secondary" style="margin: 0 0 12px;">Revert this match result? The winner will be un-crowned, the loser restored, and the next round slot will be cleared. Any reports for this match will be deleted.</p>`,
+            onConfirm: async () => {
+              try {
+                await Api.apiPost('/api/tournament/' + tournamentId + '/undo', { matchId })
+                Ui.showToast('Match result undone', 'success')
+                await renderDetail(tournamentId)
+              } catch (err) {
+                Ui.showToast('Failed: ' + (err.message || String(err)), 'error')
+                return false
+              }
+            }
+          })
+          return
+        }
+      }
+
+      async function startTournament(id) {
+        if (!Ui.confirmAction('Start this tournament and seed the bracket? This cannot be undone.')) return
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/start', {})
+          Ui.showToast('Tournament started', 'success')
+          if (currentId === id) await renderDetail(id)
+          else await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to start: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function cancelTournament(id) {
+        if (!Ui.confirmAction('Cancel this tournament? Players will be removed from active queue.')) return
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/cancel', {})
+          Ui.showToast('Tournament cancelled', 'info')
+          currentId = null
+          await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to cancel: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function openCheckin(id) {
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/open-checkin', {})
+          Ui.showToast('Check-in opened', 'success')
+          await renderDetail(id)
+        } catch (err) {
+          Ui.showToast('Failed to open check-in: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function saveSeeds(tournamentId, host) {
+        const inputs = host ? host.querySelectorAll('.seed-input') : document.querySelectorAll('.seed-input')
+        const seeds = []
+        for (const input of inputs) {
+          const raw = input.value.trim()
+          if (raw === '') continue
+          const seed = Number(raw)
+          if (!Number.isInteger(seed) || seed < 1) {
+            Ui.showToast('Seed values must be positive integers (or leave blank for auto-seed)', 'error')
+            return
+          }
+          seeds.push({ playerId: Number(input.dataset.pid), seed })
+        }
+        if (seeds.length === 0) {
+          Ui.showToast('No seeds to save', 'info')
+          return
+        }
+        try {
+          await Api.apiPost('/api/tournament/' + tournamentId + '/seeds', { seeds })
+          Ui.showToast(`Saved ${seeds.length} seed(s)`, 'success')
+          await renderDetail(tournamentId)
+        } catch (err) {
+          Ui.showToast('Failed to save seeds: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function openEditModal(tournamentId) {
+        const t = cachedDetail?.tournament
+        if (!t) return
+        const SUPPORTED = ['single-elim', 'double-elim', 'round-robin']
+        const fmtName = (f) =>
+          f === 'double-elim' ? 'Double Elimination' : f === 'round-robin' ? 'Round Robin' : 'Single Elimination'
+
+        openActionModal({
+          title: 'Edit Tournament Settings',
+          bodyHtml: `
+            <div class="form-row">
+              <label class="form-label">Name</label>
+              <input type="text" class="input" id="act-edit-name" maxlength="80" value="${esc(t.name || '')}" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Game Type</label>
+              <input type="text" class="input" id="act-edit-gametype" value="${esc(t.gameType || '')}" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Bracket Format</label>
+              <select class="select" id="act-edit-format">
+                ${SUPPORTED.map((f) => `<option value="${f}" ${t.bracketFormat === f ? 'selected' : ''}>${fmtName(f)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="create-field-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="form-row">
+                <label class="form-label">Best-of</label>
+                <input type="number" class="input" id="act-edit-bestof" min="1" max="9" step="2" value="${esc(String(t.bestOf ?? 1))}" />
+              </div>
+              <div class="form-row">
+                <label class="form-label">Round Deadline (hours)</label>
+                <input type="number" class="input" id="act-edit-deadline" min="1" max="720" value="${esc(String(t.roundDeadlineHours ?? 48))}" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Check-in Window (min)</label>
+              <input type="number" class="input" id="act-edit-checkin" min="0" max="1440" value="${esc(String(t.checkinWindowMinutes ?? 60))}" />
+              <span class="create-field-hint">0 disables check-in.</span>
+            </div>
+            <p class="text-muted text-sm" style="margin-top: 10px;">Changes apply immediately. Bracket format only matters when the tournament starts.</p>`,
+          onConfirm: async () => {
+            const name = document.querySelector('#act-edit-name')?.value.trim()
+            const gameType = document.querySelector('#act-edit-gametype')?.value.trim()
+            const bracketFormat = document.querySelector('#act-edit-format')?.value
+            const bestOf = Number(document.querySelector('#act-edit-bestof')?.value)
+            const deadline = Number(document.querySelector('#act-edit-deadline')?.value)
+            const checkin = Number(document.querySelector('#act-edit-checkin')?.value)
+
+            if (!name) {
+              Ui.showToast('Name is required', 'error')
+              return false
+            }
+            if (!gameType) {
+              Ui.showToast('Game type is required', 'error')
+              return false
+            }
+            if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9) {
+              Ui.showToast('Best-of must be an odd number between 1 and 9', 'error')
+              return false
+            }
+            if (!Number.isInteger(deadline) || deadline < 1 || deadline > 720) {
+              Ui.showToast('Round deadline must be between 1 and 720 hours', 'error')
+              return false
+            }
+            if (!Number.isInteger(checkin) || checkin < 0 || checkin > 1440) {
+              Ui.showToast('Check-in window must be between 0 and 1440 minutes', 'error')
+              return false
+            }
+            if (!SUPPORTED_FORMATS.includes(bracketFormat)) {
+              Ui.showToast('Pick a valid bracket format', 'error')
+              return false
+            }
+
+            try {
+              await Api.apiPost('/api/tournament/' + tournamentId + '/edit', {
+                name,
+                gameType,
+                bracketFormat,
+                bestOf,
+                roundDeadlineHours: deadline,
+                checkinWindowMinutes: checkin
+              })
+              Ui.showToast('Tournament updated', 'success')
+              await renderDetail(tournamentId)
+            } catch (err) {
+              Ui.showToast('Failed to update: ' + (err.message || String(err)), 'error')
+              return false
+            }
+          }
+        })
+      }
+
+      async function reopenTournament(id) {
+        if (
+          !Ui.confirmAction(
+            'Reopen this cancelled tournament into the signup phase? The bracket will be cleared, registered players will be kept.'
+          )
+        )
+          return
+        try {
+          await Api.apiPost('/api/tournament/' + id + '/reopen', {})
+          Ui.showToast('Tournament reopened', 'success')
+          currentId = null
+          await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to reopen: ' + (err.message || String(err)), 'error')
+        }
+      }
+
+      async function loadBridges() {
+        try {
+          const data = await Api.apiGet('/api/bridges')
+          createBridges = Array.isArray(data) ? data.map((b) => b.id || b.bridgeId) : []
+          const select = document.querySelector('#cf-bridge')
+          select.innerHTML = createBridges.length
+            ? createBridges.map((id) => '<option value="' + esc(id) + '">' + esc(id) + '</option>').join('')
+            : '<option value="">(no bridges)</option>'
+          return createBridges
+        } catch {
+          document.querySelector('#cf-bridge').innerHTML = '<option value="">(failed to load)</option>'
+          return []
+        }
+      }
+
+      const SUPPORTED_FORMATS = ['single-elim', 'double-elim', 'round-robin']
+
+      async function loadCategories(bridgeId) {
+        const sel = document.querySelector('#cf-category')
+        if (!sel) return
+        const current = sel.value
+        createCategories = []
+        if (bridgeId) {
+          try {
+            const data = await Api.apiGet('/api/tournament/categories?bridgeId=' + encodeURIComponent(bridgeId))
+            createCategories = Array.isArray(data) ? data : []
+          } catch {
+            createCategories = []
+          }
+        }
+        sel.innerHTML =
+          '<option value="">(Auto — create a new category)</option>' +
+          createCategories.map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('')
+        if (current) {
+          const exists = createCategories.some((c) => c.id === current)
+          if (!exists) {
+            const opt = document.createElement('option')
+            opt.value = current
+            opt.textContent = 'Configured category (' + current + ')'
+            sel.appendChild(opt)
+          }
+          sel.value = current
+        }
+      }
+
+      function setCreateLoading(loading) {
+        createDefaultsLoading = loading
+        updateCreateSubmit()
+      }
+
+      function updateCreateSubmit() {
+        const submitBtn = document.querySelector('#cf-create-submit')
+        if (!submitBtn) return
+        submitBtn.disabled = createDefaultsLoading || createBlockedByActive
+        submitBtn.textContent = createDefaultsLoading ? 'Loading…' : 'Create'
+      }
+
+      function applyCreateDefaults({ bestOf, deadline, checkin, format }) {
+        document.querySelector('#cf-bestof').value = String(bestOf)
+        document.querySelector('#cf-deadline').value = String(deadline)
+        document.querySelector('#cf-checkin').value = String(checkin)
+        const formatSel = document.querySelector('#cf-format')
+        if (formatSel && SUPPORTED_FORMATS.includes(format)) formatSel.value = format
+      }
+
+      function formatLabel(format) {
+        if (format === 'double-elim') return 'Double Elimination'
+        if (format === 'round-robin') return 'Round Robin'
+        return 'Single Elimination'
+      }
+
+      async function loadSettingsForBridge(bridgeId) {
+        const summaryEl = document.querySelector('#cf-defaults-summary')
+        const gametypesEl = document.querySelector('#cf-gametypes')
+        const myToken = bridgeLoadToken
+        if (!bridgeId) {
+          gametypesEl.innerHTML = ''
+          applyCreateDefaults({ bestOf: 1, deadline: 48, checkin: 60, format: 'single-elim' })
+          summaryEl.textContent = 'No bridge selected — using built-in defaults.'
+          return null
+        }
+        try {
+          const res = await Api.apiGet('/api/bridges/' + encodeURIComponent(bridgeId) + '/settings')
+          if (myToken !== bridgeLoadToken) return null
+          const t = (res && res.categories && res.categories.tournament) || {}
+          const defaults = {
+            bestOf: Number(t.defaultBestOf) > 0 ? Number(t.defaultBestOf) : 1,
+            deadline: Number(t.defaultDeadlineHours) > 0 ? Number(t.defaultDeadlineHours) : 48,
+            checkin:
+              t.checkinWindowMinutes != null && t.checkinWindowMinutes !== '' ? Number(t.checkinWindowMinutes) : 60,
+            format: SUPPORTED_FORMATS.includes(t.bracketFormat) ? t.bracketFormat : 'single-elim'
+          }
+          applyCreateDefaults(defaults)
+
+          const validGames = Array.isArray(t.validGameTypes) ? t.validGameTypes : []
+          gametypesEl.innerHTML = validGames.map((g) => '<option value="' + esc(g) + '">').join('')
+
+          let summary =
+            'Best of ' +
+            defaults.bestOf +
+            ' · ' +
+            defaults.deadline +
+            'h per round · ' +
+            defaults.checkin +
+            ' min check-in · ' +
+            formatLabel(defaults.format)
+          if (t.minParticipants != null) summary += ' · Min ' + t.minParticipants + ' players'
+          if (t.autoCheckin === false) summary += ' · Auto check-in Off'
+          if (t.categoryId) {
+            const catName = createCategories.find((c) => c.id === t.categoryId)?.name
+            summary += catName ? ' · Category: ' + catName : ' · Category set'
+          }
+          summary += ' — override any value below.'
+          summaryEl.textContent = summary
+
+          const catSel = document.querySelector('#cf-category')
+          if (catSel) catSel.value = t.categoryId || ''
+          return t
+        } catch {
+          if (myToken !== bridgeLoadToken) return null
+          gametypesEl.innerHTML = ''
+          applyCreateDefaults({ bestOf: 1, deadline: 48, checkin: 60, format: 'single-elim' })
+          summaryEl.textContent = 'Could not load bridge defaults — using built-in defaults. Override any value below.'
+          return null
+        }
+      }
+
+      async function checkActiveTournament(bridgeId) {
+        const warnEl = document.querySelector('#cf-active-warning')
+        const warnTextEl = document.querySelector('#cf-active-warning-text')
+        const rowEl = document.querySelector('#cf-active-row')
+        const myToken = bridgeLoadToken
+        if (!bridgeId) {
+          createBlockedByActive = false
+          if (rowEl) rowEl.style.display = 'none'
+          updateCreateSubmit()
+          return
+        }
+        try {
+          const res = await Api.apiGet('/api/tournament/active?bridgeId=' + encodeURIComponent(bridgeId))
+          if (myToken !== bridgeLoadToken) return
+          const active = res && res.tournament
+          if (active) {
+            const phase = active.status === 'ACTIVE' ? 'active' : 'in the signup phase'
+            if (warnTextEl) {
+              warnTextEl.innerHTML =
+                '<strong>' +
+                esc(active.name || 'A tournament') +
+                '</strong> is already ' +
+                phase +
+                ' on this bridge. Only one tournament can run at a time — complete or cancel it first.'
+            }
+            createBlockedByActive = true
+            if (rowEl) rowEl.style.display = ''
+          } else {
+            createBlockedByActive = false
+            if (rowEl) rowEl.style.display = 'none'
+          }
+        } catch {
+          if (myToken !== bridgeLoadToken) return
+          createBlockedByActive = false
+          if (rowEl) rowEl.style.display = 'none'
+        }
+        updateCreateSubmit()
+      }
+
+      async function applyBridgeDefaults(bridgeId) {
+        const myToken = ++bridgeLoadToken
+        const select = document.querySelector('#cf-bridge')
+        if (select) select.value = bridgeId
+        if (bridgeId) {
+          try {
+            localStorage.setItem(LAST_BRIDGE_KEY, bridgeId)
+          } catch {}
+        }
+        setCreateLoading(true)
+        await loadSettingsForBridge(bridgeId)
+        await checkActiveTournament(bridgeId)
+        if (myToken === bridgeLoadToken) setCreateLoading(false)
+      }
+
+      async function openCreateModal() {
+        createModal.style.display = ''
+        createForm.reset()
+        const startInput = document.querySelector('#cf-start')
+        startInput.value = ''
+        startInput.min = new Date(Date.now() + 60000).toISOString().slice(0, 16)
+        document.querySelector('#cf-gametypes').innerHTML = ''
+        document.querySelector('#cf-defaults-summary').textContent = 'Loading bridge defaults…'
+        document.querySelector('#cf-active-warning-text').textContent = ''
+        setCreateLoading(true)
+
+        const bridges = await loadBridges()
+        if (bridges.length === 0) {
+          document.querySelector('#cf-defaults-summary').textContent =
+            'No bridges configured — create a bridge in Settings first.'
+          createBlockedByActive = false
+          setCreateLoading(false)
+          return
+        }
+
+        let preferred = null
+        try {
+          preferred = localStorage.getItem(LAST_BRIDGE_KEY)
+        } catch {}
+        const target = bridges.includes(preferred) ? preferred : bridges[0]
+        await applyBridgeDefaults(target)
+        void loadCategories(target)
+        setTimeout(() => document.querySelector('#cf-name').focus(), 50)
+      }
+
+      function closeCreateModal() {
+        createModal.style.display = 'none'
+      }
+
+      async function openTestCreateModal() {
+        let bridgesHtml = '<option value="">(no bridges)</option>'
+        let bridges = []
+        try {
+          const data = await Api.apiGet('/api/bridges')
+          bridges = Array.isArray(data) ? data.map((b) => b.id || b.bridgeId) : []
+          if (bridges.length) {
+            bridgesHtml = bridges.map((id) => '<option value="' + esc(id) + '">' + esc(id) + '</option>').join('')
+          }
+        } catch {}
+        openActionModal({
+          title: 'Create Test Tournament',
+          bodyHtml: `
+            <p class="text-muted" style="font-size: 13px; margin: 0 0 12px">
+              Spins up a tournament with fake players to test the bracket flow.
+            </p>
+            <div class="form-row">
+              <label class="form-label">Bridge</label>
+              <select class="select" id="tt-bridge">${bridgesHtml}</select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Name</label>
+              <input type="text" class="input" id="tt-name" value="Test Tournament" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Game Type</label>
+              <input type="text" class="input" id="tt-gametype" value="Bridge" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Best-of</label>
+              <input type="number" class="input" id="tt-bestof" min="1" max="9" step="2" value="1" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Round Deadline (hours)</label>
+              <input type="number" class="input" id="tt-deadline" min="1" max="720" value="48" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Fake Players</label>
+              <input type="number" class="input" id="tt-players" min="2" max="32" value="8" />
+              <span class="create-field-hint">2–32 fake players seeded into the bracket.</span>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Discord Category</label>
+              <select class="select" id="tt-category"><option value="">(Auto — create a new category)</option></select>
+            </div>
+            <div class="form-row">
+              <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+                <input type="checkbox" id="tt-autostart" style="width: auto" checked />
+                Auto check-in &amp; start immediately
+              </label>
+            </div>`,
+          onConfirm: async () => {
+            const bridgeId = document.querySelector('#tt-bridge')?.value ?? ''
+            const name = document.querySelector('#tt-name')?.value.trim() || 'Test Tournament'
+            const gameType = document.querySelector('#tt-gametype')?.value.trim() || 'Bridge'
+            const bestOf = Number(document.querySelector('#tt-bestof')?.value) || 0
+            const deadline = Number(document.querySelector('#tt-deadline')?.value) || 0
+            const playerCount = Number(document.querySelector('#tt-players')?.value) || 0
+            const categoryId = document.querySelector('#tt-category')?.value ?? ''
+            const autoStart = document.querySelector('#tt-autostart')?.checked ?? true
+
+            if (!bridgeId) {
+              Ui.showToast('Select a bridge first', 'error')
+              return false
+            }
+            if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9) {
+              Ui.showToast('Best-of must be an odd number between 1 and 9 (e.g. 1, 3, 5).', 'error')
+              return false
+            }
+            if (!Number.isInteger(playerCount) || playerCount < 2 || playerCount > 32) {
+              Ui.showToast('Player count must be between 2 and 32.', 'error')
+              return false
+            }
+            try {
+              const tournament = await Api.apiPost('/api/tournament/test/create', {
+                bridgeId,
+                name,
+                gameType,
+                bestOf,
+                deadline: Number.isInteger(deadline) && deadline > 0 ? deadline : undefined,
+                playerCount,
+                categoryId: categoryId || undefined,
+                autoStart
+              })
+              Ui.showToast(`Test tournament created (${playerCount} fake players)`, 'success')
+              await loadTournaments()
+              if (tournament && tournament.id != null) await showTournament(tournament.id)
+            } catch (err) {
+              Ui.showToast('Failed to create test tournament: ' + (err.message || String(err)), 'error')
+              return false
+            }
+          }
+        })
+
+        const ttBridge = document.querySelector('#tt-bridge')
+        if (ttBridge && bridges.length > 0) {
+          ttBridge.value = bridges[0]
+          void loadTestCategories(ttBridge.value)
+          ttBridge.addEventListener('change', (e) => void loadTestCategories(e.target.value))
+        }
+      }
+
+      async function loadTestCategories(bridgeId) {
+        const sel = document.querySelector('#tt-category')
+        if (!sel) return
+        if (!bridgeId) {
+          sel.innerHTML = '<option value="">(Auto — create a new category)</option>'
+          return
+        }
+        let cats = []
+        try {
+          const data = await Api.apiGet('/api/tournament/categories?bridgeId=' + encodeURIComponent(bridgeId))
+          cats = Array.isArray(data) ? data : []
+        } catch {}
+        sel.innerHTML =
+          '<option value="">(Auto — create a new category)</option>' +
+          cats.map((c) => '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>').join('')
+      }
+
+      async function submitCreate(e) {
+        e.preventDefault()
+        const bridgeId = document.querySelector('#cf-bridge').value
+        const name = document.querySelector('#cf-name').value.trim()
+        const gameType = document.querySelector('#cf-gametype').value.trim()
+        const bracketFormat = document.querySelector('#cf-format').value
+        const bestOf = Number(document.querySelector('#cf-bestof').value) || 0
+        const deadline = Number(document.querySelector('#cf-deadline').value) || 0
+        const checkinRaw = document.querySelector('#cf-checkin').value
+        const checkin = checkinRaw === '' ? 0 : Number(checkinRaw) || 0
+        const startRaw = document.querySelector('#cf-start').value
+        const categoryId = document.querySelector('#cf-category').value
+
+        if (!bridgeId) return Ui.showToast('Select a bridge first', 'error')
+        if (!name) return Ui.showToast('Name is required', 'error')
+        if (!gameType) return Ui.showToast('Game type is required', 'error')
+        if (!SUPPORTED_FORMATS.includes(bracketFormat)) return Ui.showToast('Pick a valid bracket format', 'error')
+        if (!Number.isInteger(bestOf) || bestOf < 1 || bestOf % 2 === 0 || bestOf > 9)
+          return Ui.showToast('Best-of must be an odd number between 1 and 9 (e.g. 1, 3, 5).', 'error')
+        if (!Number.isInteger(deadline) || deadline < 1 || deadline > 720)
+          return Ui.showToast('Round deadline must be between 1 and 720 hours.', 'error')
+        if (!Number.isInteger(checkin) || checkin < 0 || checkin > 1440)
+          return Ui.showToast('Check-in window must be between 0 and 1440 minutes.', 'error')
+
+        let startedAtUnix
+        if (startRaw) {
+          const startTime = new Date(startRaw).getTime()
+          if (!Number.isFinite(startTime) || startTime <= Date.now())
+            return Ui.showToast('Scheduled start must be in the future.', 'error')
+          startedAtUnix = Math.floor(startTime / 1000)
+        }
+
+        const submitBtn = document.querySelector('#cf-create-submit') || e.submitter
+        if (submitBtn) {
+          submitBtn.disabled = true
+          submitBtn.textContent = 'Creating…'
+        }
+        try {
+          await Api.apiPost('/api/tournament', {
+            bridgeId,
+            name,
+            gameType,
+            bracketFormat,
+            bestOf,
+            roundDeadlineHours: deadline,
+            checkinWindowMinutes: checkin,
+            startedAtUnix,
+            categoryId
+          })
+          Ui.showToast('Tournament created', 'success')
+          closeCreateModal()
+          await loadTournaments()
+        } catch (err) {
+          Ui.showToast('Failed to create: ' + (err.message || String(err)), 'error')
+        } finally {
+          if (submitBtn) updateCreateSubmit()
+        }
+      }
+
+      async function init() {
+        await Auth.fetchPermission()
+        if (isAdmin()) {
+          createBtn.style.display = ''
+          createBtn.addEventListener('click', openCreateModal)
+          const testBtn = document.querySelector('#test-btn')
+          if (testBtn) {
+            testBtn.style.display = ''
+            testBtn.addEventListener('click', openTestCreateModal)
+          }
+        }
+
+        createModal.addEventListener('click', (e) => {
+          if (e.target === createModal) closeCreateModal()
+        })
+        document.querySelector('#cf-cancel').addEventListener('click', closeCreateModal)
+        document.querySelector('#cf-close').addEventListener('click', closeCreateModal)
+        createForm.addEventListener('submit', submitCreate)
+
+        globalThis.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return
+          if (createModal.style.display !== 'none') closeCreateModal()
+          else if (actionModal.style.display !== 'none') actionModal.style.display = 'none'
+        })
+
+        document.querySelector('#cf-bridge').addEventListener('change', (e) => {
+          void applyBridgeDefaults(e.target.value)
+          void loadCategories(e.target.value)
+        })
+
+        refreshBtn.addEventListener('click', () => {
+          if (currentId != null) void renderDetail(currentId)
+          else void loadTournaments()
+        })
+
+        backBtn.addEventListener('click', (e) => {
+          e.preventDefault()
+          currentId = null
+          void loadTournaments()
+        })
+
+        // Event listeners for Filters
+        searchInput.addEventListener('input', (e) => {
+          searchQuery = e.target.value
+          filterAndRenderList()
+        })
+
+        filterPills.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            filterPills.forEach((p) => p.classList.remove('active'))
+            btn.classList.add('active')
+            currentFilter = btn.dataset.filter
+            filterAndRenderList()
+          })
+        })
+
+        // Event listeners for Tabs
+        tabBtns.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            tabBtns.forEach((t) => t.classList.remove('active'))
+            btn.classList.add('active')
+            activeTab = btn.dataset.tab
+
+            document.querySelectorAll('.tab-content').forEach((tc) => (tc.style.display = 'none'))
+            const target = document.querySelector('#tab-' + activeTab)
+            if (target) target.style.display = 'block'
+          })
+        })
+
+        // Live updates via WebSocket
+        const wsRefreshTypes = new Set([
+          'tournament.created',
+          'tournament.started',
+          'tournament.match_resolved',
+          'tournament.undo',
+          'tournament.cancelled',
+          'tournament.completed',
+          'tournament.edited',
+          'tournament.seeds_updated',
+          'tournament.reopened'
+        ])
+        Ws.connectWS('subscribeTournament', 'tournament.', (type) => {
+          if (!wsRefreshTypes.has(type)) return
+          if (currentId != null) void renderDetail(currentId)
+          else void loadTournaments()
+        })
+
+        void loadTournaments()
+      }
+
+      const token = Auth.requireAuth()
+      if (token) init()
+      else globalThis.addEventListener('authsuccess', init, { once: true })
+    </script>
+  </body>
+</html>

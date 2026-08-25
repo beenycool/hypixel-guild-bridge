@@ -1,0 +1,23 @@
+artifacts/
+node_modules
+logs
+config.yaml
+.idea
+build
+config
+.vscode
+hypixel-guild-dscord-chat-bridge.publishsettings
+.iasms_v2
+.iasp
+IasTokenExtractor*.class
+IasTokenExtractor*.java
+InGameAccountSwitcher-Forge-1.8.9-7.1.2.jar
+outputs/
+*.log
+blockops-yesterday.txt
+.all-paths.txt
+digest.txt
+
+# Local env files with secrets
+heroku.env
+*.env

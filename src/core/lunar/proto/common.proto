@@ -1,0 +1,11 @@
+syntax = "proto3";
+package lunarclient.common.v1;
+
+message Uuid {
+  fixed64 high = 1;
+  fixed64 low  = 2;
+}
+
+message Color {
+  int32 color = 1;
+}

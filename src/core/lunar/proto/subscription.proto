@@ -1,0 +1,41 @@
+syntax = "proto3";
+package lunarclient.websocket.subscription.v1;
+import "common.proto";
+
+message SubscribeV2Request {
+  repeated lunarclient.common.v1.Uuid target_uuids = 1;
+}
+
+message EquippedCosmetic {
+  int64 id = 1;
+}
+
+message ConditionalCosmetics {
+  repeated EquippedCosmetic cosmetics = 1;
+}
+
+message PlayerCosmeticsPushV2 {
+  lunarclient.common.v1.Uuid   player_uuid           = 1;
+  lunarclient.common.v1.Color  logo_color            = 2;
+  bool                         logo_always_show      = 3;
+  lunarclient.common.v1.Color  plus_color            = 4;
+  repeated ConditionalCosmetics conditional_cosmetics = 5;
+  repeated EquippedCosmetic     default_cosmetics     = 6;
+  int32                         badge_id             = 7;
+  lunarclient.common.v1.Uuid   outfit_uuid           = 8;
+}
+
+message PlayerRadioPush {
+  lunarclient.common.v1.Uuid player_uuid = 1;
+}
+
+message SubscribeV2Response {
+  repeated PlayerCosmeticsPushV2 cosmetic_pushes = 1;
+  repeated PlayerRadioPush       radio_pushes    = 2;
+}
+
+message UnsubscribeRequest {
+  repeated lunarclient.common.v1.Uuid target_uuids = 1;
+}
+
+message UnsubscribeResponse {}

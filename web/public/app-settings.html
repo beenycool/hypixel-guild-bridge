@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — App Settings</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container wide">
+      <div class="page-header">
+        <h1 class="page-title">App Settings</h1>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="settings-subsection-title">API Keys</div>
+          <p class="text-sm text-muted mb-md">
+            These settings are stored in the database and take effect immediately. Leave a field empty to fall back to
+            the value in config.yaml.
+          </p>
+          <div class="flex-column gap-md" id="app-settings-fields">
+            <div class="settings-row">
+              <div class="settings-row-label">
+                <span class="settings-row-name">Urchin API Key</span>
+                <span class="settings-row-hint">Used by !urchin, !sessions and stats channels.</span>
+              </div>
+              <div class="settings-row-control">
+                <div class="flex-column gap-xs">
+                  <input
+                    type="password"
+                    class="input"
+                    id="urchinApiKey"
+                    placeholder="Key is set in config.yaml"
+                    autocomplete="new-password"
+                  />
+                  <span class="badge badge-muted badge-source hidden" id="urchinApiKey-source"></span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-label">
+                <span class="settings-row-name">Seraph API Key</span>
+                <span class="settings-row-hint">Used by !urchin and !tags.</span>
+              </div>
+              <div class="settings-row-control">
+                <div class="flex-column gap-xs">
+                  <input
+                    type="password"
+                    class="input"
+                    id="seraphApiKey"
+                    placeholder="Key is set in config.yaml"
+                    autocomplete="new-password"
+                  />
+                  <span class="badge badge-muted badge-source hidden" id="seraphApiKey-source"></span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-label">
+                <span class="settings-row-name">OpenRouter API Key</span>
+                <span class="settings-row-hint">Used by !iq, !rhyme, !translate and link resolution.</span>
+              </div>
+              <div class="settings-row-control">
+                <div class="flex-column gap-xs">
+                  <input
+                    type="password"
+                    class="input"
+                    id="openrouterApiKey"
+                    placeholder="Key is set in config.yaml"
+                    autocomplete="new-password"
+                  />
+                  <span class="badge badge-muted badge-source hidden" id="openrouterApiKey-source"></span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-label">
+                <span class="settings-row-name">OpenRouter Model</span>
+                <span class="settings-row-hint">Model identifier used by AI commands.</span>
+              </div>
+              <div class="settings-row-control">
+                <div class="flex-column gap-xs">
+                  <input type="text" class="input" id="openrouterModel" placeholder="Model is set in config.yaml" />
+                  <span class="badge badge-muted badge-source hidden" id="openrouterModel-source"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="settings-action-bar">
+        <div class="flex gap-sm" style="align-items: center">
+          <span id="save-status" class="text-sm text-muted"></span>
+          <button class="btn btn-primary" id="save-btn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="js/app-settings.js"></script>
+  </body>
+</html>

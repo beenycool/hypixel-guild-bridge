@@ -1,0 +1,76 @@
+import assert from 'node:assert'
+
+import type { Player } from 'hypixel-api-reborn'
+
+import type { ChatCommandContext } from '../../../common/commands.js'
+import { HypixelPlayerCommand } from '../common/hypixel-player-command.js'
+
+export default class Buildbattle extends HypixelPlayerCommand {
+  private static readonly Titles = [
+    { value: 0, score: 'Rookie' },
+    { value: 100, score: 'Untrained' },
+    { value: 250, score: 'Amateur' },
+    { value: 550, score: 'Prospect' },
+    { value: 1000, score: 'Apprentice' },
+    { value: 2000, score: 'Experienced' },
+    { value: 3500, score: 'Seasoned' },
+    { value: 5000, score: 'Trained' },
+    { value: 7500, score: 'Skilled' },
+    { value: 10_000, score: 'Talented' },
+    { value: 15_000, score: 'Professional' },
+    { value: 20_000, score: 'Artisan' },
+    { value: 30_000, score: 'Expert' },
+    { value: 50_000, score: 'Master' },
+    { value: 100_000, score: 'Legend' },
+    { value: 200_000, score: 'Grandmaster' },
+    { value: 300_000, score: 'Celestial' },
+    { value: 400_000, score: 'Divine' },
+    { value: 500_000, score: 'Ascended' },
+    { value: 400_000, score: 'Divine' }
+  ]
+
+  constructor() {
+    super({
+      category: 'Minigames',
+      triggers: ['buildbattle', 'build', 'bb'],
+      description: "Returns a player's Build Battle common stats",
+      example: `bb %s`
+    })
+  }
+
+  async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
+    const stat = player.stats?.buildbattle
+    if (stat === undefined) return `${givenUsername} has never played Build Battle before?` + this.formatPingSuffix()
+
+    const score = stat.score
+    const wins = stat.wins.gtb + stat.wins.pro + stat.wins.solo + stat.wins.teams
+    const title = await this.getTitle(context, player.uuid, score)
+
+    return (
+      `${title} ${givenUsername}'s Build Battle score is ${score.toLocaleString('en-US')} with ${wins.toLocaleString('en-US')} wins.` +
+      this.formatPingSuffix()
+    )
+  }
+
+  private async getTitle(context: ChatCommandContext, uuid: string, score: number): Promise<string> {
+    const leaderboards = await context.app.hypixelApi.getLeaderboards()
+
+    const buildBattleLeaderboard = leaderboards.BUILD_BATTLE.find(
+      (leaderboard) => leaderboard.name === 'Lifetime' && leaderboard.title === 'Score'
+    )
+    assert.ok(buildBattleLeaderboard !== undefined)
+
+    const top10Leaderboard = buildBattleLeaderboard.leaders.map((entry) => entry.replaceAll('-', '')).slice(0, 10)
+
+    for (const [index, topLeaderboard] of top10Leaderboard.entries()) {
+      if (topLeaderboard === uuid) return `#${index + 1} Builder`
+    }
+
+    let lastValidTitle = Buildbattle.Titles[0].score
+    for (const entry of Buildbattle.Titles) {
+      if (score >= entry.value) lastValidTitle = entry.score
+    }
+
+    return lastValidTitle
+  }
+}

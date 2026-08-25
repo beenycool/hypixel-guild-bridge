@@ -1,0 +1,577 @@
+import {
+  type AnyThreadChannel,
+  ChannelType,
+  DiscordAPIError,
+  EmbedBuilder,
+  type TextChannel,
+  type ThreadChannel
+} from 'discord.js'
+
+import type Application from '../../application.js'
+// eslint-disable-next-line import/no-restricted-paths
+import { buildThreadComponents } from '../../instance/discord/features/tournament-buttons.js'
+import RateLimiter from '../../utility/rate-limiter.js'
+
+import { BracketVisualizer } from './bracket-visualizer.js'
+import type { Tournament, TournamentMatch, TournamentPlayer } from './types.js'
+import { MatchStatus, TournamentStatus } from './types.js'
+
+export class TournamentChannelManager {
+  private readonly threadCreationLimiter = new RateLimiter(5, 10_000)
+  private readonly visualizer = new BracketVisualizer()
+
+  constructor(private readonly application: Application) {}
+
+  public async createBracketChannel(
+    guildId: string,
+    tournamentName: string,
+    parentCategoryId?: string
+  ): Promise<TextChannel | undefined> {
+    const client = this.application.discordInstance.getClient()
+    const guild = await client.guilds.fetch(guildId).catch(() => {
+      this.application.logger.info(`createBracketChannel: Failed to fetch guild ${guildId}`)
+      return
+    })
+    if (guild === undefined) return undefined
+
+    const channelName = `🏆-${tournamentName.toLowerCase().replaceAll(/\s+/g, '-')}`
+    this.application.logger.debug(
+      `createBracketChannel: Creating channel "${channelName}" in guild ${guildId} (${guild.name}), category=${parentCategoryId ?? 'none'}`
+    )
+    const channel = await guild.channels
+      .create({
+        name: channelName,
+        type: ChannelType.GuildText,
+        parent: parentCategoryId,
+        permissionOverwrites: [
+          {
+            id: guild.roles.everyone.id,
+            deny: ['ViewChannel', 'SendMessages']
+          }
+        ],
+        reason: `Tournament ${tournamentName} bracket channel`
+      })
+      .catch((error: unknown): TextChannel | undefined => {
+        this.application.logger.warn(`createBracketChannel: Failed to create channel: ${String(error)}`)
+        return undefined
+      })
+
+    if (channel !== undefined) {
+      this.application.logger.debug(`createBracketChannel: Channel created — ${channel.name} (${channel.id})`)
+    }
+    return channel
+  }
+
+  public async createTournamentCategory(guildId: string, tournamentName: string): Promise<string | undefined> {
+    const client = this.application.discordInstance.getClient()
+    const guild = await client.guilds.fetch(guildId).catch(() => {
+      this.application.logger.warn(`createTournamentCategory: Failed to fetch guild ${guildId}`)
+      return
+    })
+    if (guild === undefined) return undefined
+    this.application.logger.debug(
+      `createTournamentCategory: Creating category for "${tournamentName}" in guild ${guildId} (${guild.name})`
+    )
+    const category = await guild.channels
+      .create({
+        name: `🏆 ${tournamentName}`,
+        type: ChannelType.GuildCategory,
+        reason: `Tournament ${tournamentName} category`
+      })
+      .catch((error: unknown) => {
+        this.application.logger.warn(`createTournamentCategory: Failed to create category: ${String(error)}`)
+        return
+      })
+    if (category !== undefined) {
+      this.application.logger.debug(`createTournamentCategory: Category created — ${category.name} (${category.id})`)
+    }
+    return category?.id
+  }
+
+  public async createLiveChannel(
+    guildId: string,
+    tournamentName: string,
+    categoryId: string
+  ): Promise<string | undefined> {
+    const client = this.application.discordInstance.getClient()
+    const guild = await client.guilds.fetch(guildId).catch(() => {
+      this.application.logger.warn(`createLiveChannel: Failed to fetch guild ${guildId}`)
+      return
+    })
+    if (guild === undefined) return undefined
+    const slug = tournamentName.toLowerCase().replaceAll(/\s+/g, '-')
+    this.application.logger.debug(
+      `createLiveChannel: Creating live channel "🏆-${slug}-live" in guild ${guildId} (${guild.name})`
+    )
+    const channel = await guild.channels
+      .create({
+        name: `🏆-${slug}-live`,
+        type: ChannelType.GuildText,
+        parent: categoryId,
+        permissionOverwrites: [
+          {
+            id: guild.roles.everyone.id,
+            deny: ['ViewChannel', 'SendMessages']
+          }
+        ],
+        reason: `Tournament ${tournamentName} live updates`
+      })
+      .catch((error: unknown) => {
+        this.application.logger.warn(`createLiveChannel: Failed to create channel: ${String(error)}`)
+        return
+      })
+    if (channel !== undefined) {
+      this.application.logger.debug(`createLiveChannel: Live channel created — ${channel.name} (${channel.id})`)
+    }
+    return channel?.id
+  }
+
+  public async archiveTournamentCategory(tournament: Tournament): Promise<void> {
+    if (tournament.categoryChannelId === undefined) return
+    this.application.logger.info(
+      `Tournament ${tournament.id}: Archiving tournament category ${tournament.categoryChannelId}`
+    )
+    const client = this.application.discordInstance.getClient()
+    if (tournament.discordChannelId) {
+      this.application.logger.info(
+        `Tournament ${tournament.id}: Renaming bracket channel ${tournament.discordChannelId}`
+      )
+      const bracketChannel = await client.channels.fetch(tournament.discordChannelId).catch(() => undefined)
+      if (bracketChannel?.type === ChannelType.GuildText) {
+        await bracketChannel.setName(`✅-archived-${bracketChannel.name}`).catch(() => undefined)
+      }
+    }
+    if (tournament.liveChannelId) {
+      this.application.logger.info(`Tournament ${tournament.id}: Deleting live channel ${tournament.liveChannelId}`)
+      const liveChannel = await client.channels.fetch(tournament.liveChannelId).catch(() => undefined)
+      if (liveChannel?.type === ChannelType.GuildText) {
+        await liveChannel.delete().catch(() => undefined)
+      }
+    }
+    const category = await client.channels.fetch(tournament.categoryChannelId).catch(() => undefined)
+    if (category?.type === ChannelType.GuildCategory) {
+      this.application.logger.info(`Tournament ${tournament.id}: Deleting category ${tournament.categoryChannelId}`)
+      await category.delete().catch(() => undefined)
+    }
+  }
+
+  private async addMemberWithRetry(thread: AnyThreadChannel, userId: string): Promise<void> {
+    await this.threadCreationLimiter.wait()
+    try {
+      await thread.members.add(userId)
+    } catch (error) {
+      if (error instanceof DiscordAPIError && this.isIgnorableMemberAddError(error.code)) {
+        this.application.logger.warn(
+          `addMemberWithRetry: Could not add user ${userId} to thread ${thread.id} in guild ${thread.guildId} (${thread.guild.name}) (${error.message}) — skipping`
+        )
+        return
+      }
+      throw error
+    }
+  }
+
+  private isIgnorableMemberAddError(code: number | string | undefined): boolean {
+    return code === 50_001 || code === 10_011 || code === 10_013
+  }
+
+  private async isGuildMember(guildId: string, userId: string): Promise<boolean> {
+    const client = this.application.discordInstance.getClient()
+    const guild = await client.guilds.fetch(guildId).catch(() => undefined)
+    if (guild === undefined) return false
+    const member = await guild.members.fetch(userId).catch(() => undefined)
+    return member !== undefined
+  }
+
+  public async createMatchThread(
+    parentChannelId: string,
+    match: TournamentMatch,
+    player1: TournamentPlayer,
+    player2: TournamentPlayer,
+    p1Name: string,
+    p2Name: string
+  ): Promise<string | undefined> {
+    const client = this.application.discordInstance.getClient()
+    const channel = await client.channels.fetch(parentChannelId).catch(() => undefined)
+    if (!channel || channel.type !== ChannelType.GuildText) return undefined
+
+    const textChannel = channel
+    const threadName = `Round ${match.round} - Match ${match.matchIndex + 1}: ${p1Name} vs ${p2Name}`
+
+    this.application.logger.debug(`createMatchThread: Creating thread "${threadName}" in channel ${parentChannelId}`)
+
+    const thread = await textChannel.threads
+      .create({
+        name: threadName,
+        autoArchiveDuration: 1440,
+        type: ChannelType.PrivateThread,
+        reason: `Match thread for ${p1Name} vs ${p2Name}`
+      })
+      .catch((error: unknown) => {
+        this.application.logger.warn(`createMatchThread: Failed to create thread: ${String(error)}`)
+        return
+      })
+
+    if (thread === undefined) return undefined
+
+    this.application.logger.debug(`createMatchThread: Thread created — ${thread.id}`)
+
+    const guild = textChannel.guild
+    if (player1.discordId != undefined) {
+      if (await this.isGuildMember(guild.id, player1.discordId)) {
+        await this.addMemberWithRetry(thread, player1.discordId)
+      } else {
+        this.application.logger.warn(
+          `createMatchThread: Player1 discord ${player1.discordId} is not in guild ${guild.id} (${guild.name}), skipping`
+        )
+      }
+    }
+    if (player2.discordId != undefined) {
+      if (await this.isGuildMember(guild.id, player2.discordId)) {
+        await this.addMemberWithRetry(thread, player2.discordId)
+      } else {
+        this.application.logger.warn(
+          `createMatchThread: Player2 discord ${player2.discordId} is not in guild ${guild.id} (${guild.name}), skipping`
+        )
+      }
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(`⚔️ Match Thread: ${p1Name} vs ${p2Name}`)
+      .setColor('#FFA500')
+      .setDescription(
+        `Welcome to your tournament match! Please schedule and play your Best-of-X series.\n\n` +
+          `**Match Details:**\n` +
+          `• **Round:** ${match.round}\n` +
+          `• **Opponents:** ${p1Name} vs ${p2Name}\n` +
+          `• **Deadline:** ${match.deadlineAt === undefined ? 'No deadline' : `<t:${match.deadlineAt}:F> (<t:${match.deadlineAt}:R>)`}\n\n` +
+          `**How to Report Results:**\n` +
+          `Once the match is complete, either player should run:\n` +
+          `\`/tournament report winner:[me/opponent] my_wins:[wins] their_wins:[losses]\`\n\n` +
+          `*Note: Both players must report the match. If the reports do not match, the match will enter a DISPUTED state, and a moderator will resolve it.*`
+      )
+      .setTimestamp()
+
+    await thread
+      .send({
+        content: `${player1.discordId === undefined ? p1Name : `<@${player1.discordId}>`} vs ${player2.discordId === undefined ? p2Name : `<@${player2.discordId}>`}`,
+        embeds: [embed],
+        components: buildThreadComponents(match.id)
+      })
+      .catch(() => undefined)
+
+    return thread.id
+  }
+
+  private buildMatchEmbed(
+    p1: string,
+    p2: string,
+    round: number,
+    bestOf: number,
+    gameMode: string,
+    deadline: string,
+    mcAccount1?: string,
+    mcAccount2?: string
+  ): EmbedBuilder {
+    const embed = new EmbedBuilder()
+      .setTitle(`⚔️ Round ${round} — ${p1} vs ${p2}`)
+      .setColor('#FFA500')
+      .setDescription(
+        `Welcome to your tournament match! Please schedule and play your Best-of-${bestOf} series.\n\n` +
+          `**Match Details:**\n` +
+          `• **Round:** ${round}\n` +
+          `• **Opponents:** ${p1} vs ${p2}\n` +
+          `• **Game Mode:** ${gameMode}\n` +
+          `• **Deadline:** ${deadline}\n`
+      )
+      .setTimestamp()
+
+    if (mcAccount1 !== undefined) {
+      embed.addFields({ name: `${p1}'s MC Account`, value: mcAccount1, inline: true })
+    }
+    if (mcAccount2 !== undefined) {
+      embed.addFields({ name: `${p2}'s MC Account`, value: mcAccount2, inline: true })
+    }
+
+    return embed
+  }
+
+  async createMatchForumPost(
+    forumChannelId: string,
+    match: TournamentMatch,
+    p1: string,
+    p2: string,
+    round: number,
+    bestOf: number,
+    gameMode: string,
+    deadline: string,
+    discordId1?: string,
+    discordId2?: string,
+    mcAccount1?: string,
+    mcAccount2?: string
+  ): Promise<string | undefined> {
+    try {
+      const client = this.application.discordInstance.getClient()
+
+      const forum = await client.channels.fetch(forumChannelId).catch(() => undefined)
+      if (forum?.isThreadOnly() !== true) return undefined
+
+      const title = `Round ${round} — ${p1} vs ${p2}`
+      const embed = this.buildMatchEmbed(p1, p2, round, bestOf, gameMode, deadline, mcAccount1, mcAccount2)
+
+      const thread = await forum.threads.create({
+        name: title,
+        message: { embeds: [embed] },
+        reason: `Tournament match thread for ${p1} vs ${p2}`
+      })
+
+      if (discordId1 !== undefined) {
+        if (await this.isGuildMember(forum.guildId, discordId1)) {
+          await this.addMemberWithRetry(thread, discordId1)
+        } else {
+          this.application.logger.warn(
+            `createMatchForumPost: discord ${discordId1} is not in guild ${forum.guildId} (${forum.guild.name}), skipping`
+          )
+        }
+      }
+      if (discordId2 !== undefined) {
+        if (await this.isGuildMember(forum.guildId, discordId2)) {
+          await this.addMemberWithRetry(thread, discordId2)
+        } else {
+          this.application.logger.warn(
+            `createMatchForumPost: discord ${discordId2} is not in guild ${forum.guildId} (${forum.guild.name}), skipping`
+          )
+        }
+      }
+
+      return thread.id
+    } catch (error) {
+      this.application.logger.error('Failed to create forum post', error)
+      return undefined
+    }
+  }
+
+  private async archiveThreadWithRetry(threadId: string, resultMessage?: string): Promise<void> {
+    const client = this.application.discordInstance.getClient()
+    const thread = await client.channels.fetch(threadId).catch(() => undefined)
+    if (!thread || (thread.type !== ChannelType.PrivateThread && thread.type !== ChannelType.PublicThread)) return
+
+    const threadChannel = thread as ThreadChannel
+    const embed = new EmbedBuilder()
+      .setTitle('🏁 Match Completed')
+      .setColor('#00FF00')
+      .setDescription(resultMessage ?? '')
+      .setTimestamp()
+
+    await threadChannel.send({ embeds: [embed] }).catch(() => undefined)
+    await threadChannel.setLocked(true).catch(() => undefined)
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await threadChannel.setArchived(true).catch(() => undefined)
+  }
+
+  public async archiveMatchThread(threadId: string, resultMessage: string): Promise<void> {
+    this.application.logger.info(`archiveMatchThread: Archiving thread ${threadId}`)
+    await this.archiveThreadWithRetry(threadId, resultMessage)
+  }
+
+  public async checkProofAttachment(threadId: string): Promise<boolean> {
+    const client = this.application.discordInstance.getClient()
+    const thread = await client.channels.fetch(threadId).catch(() => undefined)
+    if (!thread?.isTextBased()) {
+      return false
+    }
+    const messages = await thread.messages.fetch({ limit: 50 }).catch(() => undefined)
+    if (messages === undefined) return false
+    const hasProof = messages.some(
+      (m) => m.attachments.size > 0 || m.embeds.some((embed) => embed.image !== null || embed.url !== null)
+    )
+    return hasProof
+  }
+
+  public async getProofUrls(
+    threadId: string
+  ): Promise<{ url: string; width?: number | null; height?: number | null }[]> {
+    const client = this.application.discordInstance.getClient()
+    const thread = await client.channels.fetch(threadId).catch(() => undefined)
+    if (!thread?.isTextBased()) return []
+
+    const messages = await thread.messages.fetch({ limit: 50 }).catch(() => undefined)
+    if (messages === undefined) return []
+
+    const urls: { url: string; width?: number | null; height?: number | null }[] = []
+    for (const message of messages.values()) {
+      for (const attachment of message.attachments.values()) {
+        urls.push({ url: attachment.url, width: attachment.width, height: attachment.height })
+      }
+      for (const embed of message.embeds) {
+        if (embed.image !== null) {
+          urls.push({ url: embed.image.url, width: embed.image.width, height: embed.image.height })
+        } else if (embed.url !== null) {
+          urls.push({ url: embed.url })
+        }
+      }
+    }
+    return urls
+  }
+
+  public async updateBracketEmbed(
+    parentChannelId: string,
+    messageId: string,
+    tournament: Tournament,
+    matches: TournamentMatch[],
+    players: TournamentPlayer[],
+    playerNamesMap: Map<number, string>
+  ): Promise<string | undefined> {
+    this.application.logger.debug(
+      `updateBracketEmbed: Tournament ${tournament.id} — updating bracket embed (messageId=${messageId})`
+    )
+    const client = this.application.discordInstance.getClient()
+    const channel = await client.channels.fetch(parentChannelId).catch(() => undefined)
+    if (!channel || channel.type !== ChannelType.GuildText) {
+      return
+    }
+
+    const textChannel = channel
+
+    let description =
+      `🏆 **Game:** ${tournament.gameType}\n` +
+      `• **Best Of:** ${tournament.bestOf}\n` +
+      `• **Status:** \`${tournament.status}\`\n` +
+      `• **Total Rounds:** ${tournament.totalRounds}\n` +
+      `• **Players:** ${players.length}\n` +
+      `• **Created:** <t:${tournament.createdAt}:F>\n`
+
+    if (tournament.startedAt !== undefined) {
+      description += `• **Started:** <t:${tournament.startedAt}:R>\n`
+    }
+    if (tournament.completedAt !== undefined) {
+      description += `• **Completed:** <t:${tournament.completedAt}:R>\n`
+    }
+    description += '\n'
+
+    const matchesByRound = new Map<number, TournamentMatch[]>()
+    for (const match of matches) {
+      const roundMatches = matchesByRound.get(match.round) ?? []
+      roundMatches.push(match)
+      matchesByRound.set(match.round, roundMatches)
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🏆 Tournament: ${tournament.name}`)
+      .setColor('#FFA500')
+      .setDescription(description)
+
+    for (let r = 1; r <= tournament.totalRounds; r++) {
+      const roundMatches = matchesByRound.get(r) ?? []
+      roundMatches.sort((a, b) => a.matchIndex - b.matchIndex)
+
+      let roundContent = ''
+      for (const match of roundMatches) {
+        const p1Name =
+          match.player1Id === undefined
+            ? '⏳ Pending'
+            : (playerNamesMap.get(match.player1Id) ?? `Player #${match.player1Id}`)
+        const p2Name =
+          match.player2Id === undefined
+            ? '⏳ Pending'
+            : (playerNamesMap.get(match.player2Id) ?? `Player #${match.player2Id}`)
+
+        let statusEmoji = '⏳'
+        let details = ''
+
+        switch (match.status) {
+          case MatchStatus.Completed: {
+            statusEmoji = '✅'
+            const winnerName =
+              match.winnerId === undefined ? 'Unknown' : (playerNamesMap.get(match.winnerId) ?? 'Unknown')
+            details = ` (Winner: **${winnerName}**)`
+            break
+          }
+          case MatchStatus.Active: {
+            statusEmoji = '🟢'
+            if (match.discordThreadId !== undefined) {
+              details = ` [<#${match.discordThreadId}>]`
+            }
+            break
+          }
+          case MatchStatus.Disputed: {
+            statusEmoji = '🔴'
+            details = ` **[DISPUTED]**`
+            break
+          }
+          case MatchStatus.Reported: {
+            statusEmoji = '🟡'
+            details = ` *(Reported)*`
+            break
+          }
+          case MatchStatus.Bye: {
+            statusEmoji = '💤'
+            const winnerName =
+              match.winnerId === undefined ? 'Unknown' : (playerNamesMap.get(match.winnerId) ?? 'Unknown')
+            details = ` (**BYE** → **${winnerName}**)`
+            break
+          }
+        }
+
+        roundContent += `${statusEmoji} Match ${match.matchIndex + 1}: ${p1Name} vs ${p2Name}${details}\n`
+      }
+
+      if (roundContent) {
+        const maxLength = 1024
+        if (roundContent.length <= maxLength) {
+          embed.addFields({ name: `Round ${r}`, value: roundContent, inline: false })
+        } else {
+          const chunks: string[] = []
+          for (const line of roundContent.trim().split('\n')) {
+            const last = chunks.at(-1)
+            if (last !== undefined && last.length + line.length + 1 <= maxLength) {
+              chunks[chunks.length - 1] = last + '\n' + line
+            } else {
+              chunks.push(line)
+            }
+          }
+          for (let index = 0; index < chunks.length; index++) {
+            const label = chunks.length > 1 ? `Round ${r} (${index + 1}/${chunks.length})` : `Round ${r}`
+            embed.addFields({ name: label, value: chunks[index], inline: false })
+          }
+        }
+      }
+    }
+
+    if (tournament.status === TournamentStatus.Completed && tournament.winnerId !== undefined) {
+      const winnerName = playerNamesMap.get(tournament.winnerId) ?? 'Unknown'
+      embed.addFields({
+        name: '🏆 Winner',
+        value: `Congratulations to **${winnerName}**! 🎉`,
+        inline: false
+      })
+    }
+
+    const bracketImage = this.visualizer.buildBracketImage({
+      tournament,
+      matches,
+      players,
+      playerNames: playerNamesMap
+    })
+
+    if (bracketImage !== null) {
+      embed.setImage('attachment://bracket.png')
+    }
+
+    const files = bracketImage === null ? [] : [{ attachment: bracketImage, name: 'bracket.png' }]
+    try {
+      const message = await textChannel.messages.fetch(messageId).catch(() => undefined)
+      if (message !== undefined) {
+        await message.edit({ embeds: [embed], files })
+        return messageId
+      }
+      const sent = await textChannel.send({ embeds: [embed], files })
+      this.application.logger.warn(
+        `updateBracketEmbed: Bracket message ${messageId} not found, re-sent as ${sent.id} (callers persist the new id)`
+      )
+      return sent.id
+    } catch (error: unknown) {
+      this.application.logger.warn(`updateBracketEmbed: Failed to update bracket embed: ${String(error)}`)
+      return undefined
+    }
+  }
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — Settings</title>
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/nav.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/settings-sidebar.css" />
+  </head>
+  <body>
+    <div id="app-nav"></div>
+    <div class="app-container wide">
+      <div class="page-header">
+        <h1 class="page-title">Settings</h1>
+        <div class="flex gap-sm" style="align-items: center">
+          <select class="select" id="bridge-select"></select>
+          <button class="btn btn-secondary btn-sm" id="create-bridge-btn" title="New Bridge">+</button>
+          <span class="ws-status connecting" id="ws-status" title="WebSocket connection">
+            <span class="ws-status-dot"></span>
+          </span>
+        </div>
+      </div>
+
+      <div class="settings-layout">
+        <aside class="settings-sidebar" id="settings-sidebar">
+          <ul class="settings-nav-list" id="settings-nav"></ul>
+        </aside>
+        <section class="settings-panel" id="settings-panel">
+          <div class="loading"><div class="loading-spinner"></div></div>
+        </section>
+      </div>
+    </div>
+    <script type="module" src="js/settings.js"></script>
+  </body>
+</html>

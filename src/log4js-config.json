@@ -1,0 +1,20 @@
+{
+  "appenders": {
+    "logs": {
+      "type": "dateFile",
+      "filename": "./logs/logs.log",
+      "pattern": "yyyy-MM-dd",
+      "compress": true,
+      "numBackups": 365
+    },
+    "out": {
+      "type": "stdout"
+    }
+  },
+  "categories": {
+    "default": {
+      "appenders": ["logs", "out"],
+      "level": "info"
+    }
+  }
+}
