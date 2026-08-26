@@ -422,10 +422,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       const cooldownDays = bridgeConfigurations.getDemoteCooldownDays(effectiveBridgeId)
       if (cooldownDays > 0) {
         if (bridgeConfigurations.getDemoteCooldownUntil(effectiveBridgeId) > Date.now()) return
-        bridgeConfigurations.setDemoteCooldownUntil(
-          effectiveBridgeId,
-          Date.now() + cooldownDays * 24 * 60 * 60 * 1000
-        )
+        bridgeConfigurations.setDemoteCooldownUntil(effectiveBridgeId, Date.now() + cooldownDays * 24 * 60 * 60 * 1000)
       }
     }
 

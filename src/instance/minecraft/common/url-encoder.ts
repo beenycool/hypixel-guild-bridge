@@ -1,18 +1,3 @@
-export function stufEncode(message: string): string {
-  if (!message.includes('http')) return message
-  return message
-    .split(' ')
-    .map((part) => {
-      try {
-        if (part.startsWith('https:') || part.startsWith('http')) return encode(part)
-      } catch {
-        // Ignore encoding errors
-      }
-      return part
-    })
-    .join(' ')
-}
-
 export function stufDecode(message: string): string {
   if (!message.includes('l$')) return message
   return message
@@ -79,51 +64,6 @@ function decode(string: string): string {
   }
 
   return url
-}
-
-function encode(url: string): string {
-  let encoded = 'l$'
-  if (url.startsWith('http://')) {
-    encoded += 'h'
-    url = url.slice(7)
-  } else if (url.startsWith('https://')) {
-    encoded += 'H'
-    url = url.slice(8)
-  }
-
-  if (url.endsWith('.png')) {
-    encoded += '1'
-    url = url.slice(0, -4)
-  } else if (url.endsWith('.jpg')) {
-    encoded += '2'
-    url = url.slice(0, -4)
-  } else if (url.endsWith('.jpeg')) {
-    encoded += '3'
-    url = url.slice(0, -5)
-  } else if (url.endsWith('.gif')) {
-    encoded += '4'
-    url = url.slice(0, -4)
-  } else {
-    encoded += '0'
-  }
-
-  const dotIndices = []
-  for (let index = 0; index < url.length && index <= 8; index++) {
-    if (url[index] === '.') {
-      dotIndices.push(index)
-      if (dotIndices.length === 9) break
-    }
-  }
-
-  let first9 = url.slice(0, 9)
-  const then = url.slice(9).replaceAll('.', '^')
-  first9 = first9.replaceAll('.', '')
-  const shifted = charInc(first9 + then, 1)
-
-  encoded += dotIndices.map((index) => index.toString()).join('') + '|'
-  encoded += shifted
-
-  return encoded
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention

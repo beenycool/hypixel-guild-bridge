@@ -8,7 +8,7 @@ import { rsaEncryptPkcs1 } from './lunar-crypto.js'
 
 let root: protobuf.Root | undefined
 
-export async function loadProto(): Promise<protobuf.Root> {
+async function loadProto(): Promise<protobuf.Root> {
   if (root) return root
   const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
   const protoDirectory = path.join(currentDirectory, 'proto')
@@ -21,7 +21,7 @@ export async function loadProto(): Promise<protobuf.Root> {
   return root
 }
 
-export function uuidToHighLow(uuid: string): { high: Long; low: Long } {
+function uuidToHighLow(uuid: string): { high: Long; low: Long } {
   const hex = uuid.replaceAll('-', '')
   return {
     high: Long.fromString(hex.slice(0, 16), true, 16),
@@ -29,7 +29,7 @@ export function uuidToHighLow(uuid: string): { high: Long; low: Long } {
   }
 }
 
-export function highLowToUuid(high: unknown, low: unknown): string {
+function highLowToUuid(high: unknown, low: unknown): string {
   const h = Long.fromValue(high as Long | number | string)
     .toUnsigned()
     .toString(16)
@@ -42,7 +42,7 @@ export function highLowToUuid(high: unknown, low: unknown): string {
   return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20, 32)].join('-')
 }
 
-export function encodeUuid(uuid: string): { high: Long; low: Long } {
+function encodeUuid(uuid: string): { high: Long; low: Long } {
   return uuidToHighLow(uuid)
 }
 

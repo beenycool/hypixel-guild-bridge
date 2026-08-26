@@ -18,7 +18,7 @@ import { MatchStatus, TournamentStatus } from '../../../core/tournament/types.js
 import type { Tournament, TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
 import type DiscordInstance from '../discord-instance.js'
 
-export const Prefix = 'tournament-btn'
+const Prefix = 'tournament-btn'
 
 const JoinAction = 'join'
 const LeaveAction = 'leave'

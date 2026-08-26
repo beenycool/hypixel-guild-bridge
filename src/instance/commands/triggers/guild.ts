@@ -24,11 +24,11 @@ export default class Guild extends ChatCommandHandler {
     // no guild by that name? it was probably a player all along. classic.
     if (guild == undefined) return this.onGuildMember(context, givenName)
 
-    let result = `${guild.name}`
-    result += ` | Level: ${guild.level ?? '?'}`
+    let result = guild.name
+    result += ` | Level: ${guild.level}`
     result += ` | Members: ${guild.members.length}/125`
 
-    const weeklyGexp = guild.members.reduce((sum, member) => sum + (member.weeklyExperience ?? 0), 0)
+    const weeklyGexp = guild.members.reduce((sum, member) => sum + member.weeklyExperience, 0)
     result += ` | Total GEXP this week: ${weeklyGexp.toLocaleString('en-US')}`
 
     if (guild.createdAtTimestamp) {

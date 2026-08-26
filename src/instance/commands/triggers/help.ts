@@ -9,7 +9,7 @@ import {
 const MaxLineLength = 120
 const MaxPageLength = 170
 
-export function listCategories(commands: ChatCommandHandler[], disabledCommands: string[]): string[] {
+function listCategories(commands: ChatCommandHandler[], disabledCommands: string[]): string[] {
   const categories = new Set<string>()
   for (const command of commands) {
     if (isDisabled(command, disabledCommands)) continue
@@ -18,11 +18,7 @@ export function listCategories(commands: ChatCommandHandler[], disabledCommands:
   return [...categories].toSorted()
 }
 
-export function searchCommandsByKeyword(
-  commands: ChatCommandHandler[],
-  query: string,
-  limit = 10
-): ChatCommandHandler[] {
+function searchCommandsByKeyword(commands: ChatCommandHandler[], query: string, limit = 10): ChatCommandHandler[] {
   const lowerQuery = query.toLowerCase()
   const matches = commands.filter(
     (command) =>
@@ -33,7 +29,7 @@ export function searchCommandsByKeyword(
   return matches.toSorted((a, b) => a.triggers[0].localeCompare(b.triggers[0])).slice(0, limit)
 }
 
-export function buildCommandLines(commands: ChatCommandHandler[], disabledCommands: string[]): string[] {
+function buildCommandLines(commands: ChatCommandHandler[], disabledCommands: string[]): string[] {
   const grouped = new Map<string, string[]>()
   for (const command of commands) {
     if (isDisabled(command, disabledCommands)) continue
@@ -58,7 +54,7 @@ export function buildCommandLines(commands: ChatCommandHandler[], disabledComman
   return lines
 }
 
-export function paginateLines(lines: string[], maxPageLength = MaxPageLength): string[][] {
+function paginateLines(lines: string[], maxPageLength = MaxPageLength): string[][] {
   const pages: string[][] = []
   let currentPage: string[] = []
   let pageLength = 0

@@ -8,10 +8,6 @@ import type Application from '../application.js'
 
 type QueryValues = readonly unknown[]
 
-export interface QueryInterface {
-  execute(text: string, values?: readonly unknown[]): Promise<number>
-}
-
 export interface Queryable {
   query<T extends QueryResultRow = QueryResultRow>(text: string, values?: QueryValues): Promise<QueryResult<T>>
 }

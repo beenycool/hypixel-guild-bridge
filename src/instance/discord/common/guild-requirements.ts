@@ -18,7 +18,7 @@ async function getSelectedSkyblockProfileRaw(
   return profile?.members[uuid]
 }
 
-export interface GuildRequirementsStats {
+interface GuildRequirementsStats {
   bedwarsStars: number
   bedwarsFKDR: number
   skywarsStars: number

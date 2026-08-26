@@ -19,7 +19,6 @@
     "lint:fix": "npx eslint . --fix && npx prettier . \"!**/*.ts\" --write",
     "lint:coverage": "npx type-coverage --detail true --update true",
     "test:compile": "npx tsc --noEmit",
-    "test:unit": "node --import tsx/esm test/configuration-parser.test.ts",
     "test:run": "node --import tsx/esm index.ts test-run",
     "validate": "npm install && npm run generate-code && npm run generate-docs && npm run lint:fix && npm run test:compile && npm run lint:coverage && npm run test:run"
   },

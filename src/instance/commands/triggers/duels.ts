@@ -92,17 +92,14 @@ function divideLikeHypixel(wins: number, losses: number): number {
   return Number((wins / losses).toFixed(2))
 }
 
-export function formatBridgeWins(value: number): string {
+function formatBridgeWins(value: number): string {
   if (value < 1000) return value.toString(10)
 
   const shortened = Math.floor(value / 100) / 10
   return Number.isInteger(shortened) ? `${shortened.toFixed(0)}k` : `${shortened.toFixed(1)}k`
 }
 
-export function getBridgeStatsFromRawDuels(
-  rawDuels: Record<string, unknown>,
-  bridgeSubMode?: BridgeSubMode
-): GamemodeStats {
+function getBridgeStatsFromRawDuels(rawDuels: Record<string, unknown>, bridgeSubMode?: BridgeSubMode): GamemodeStats {
   if (bridgeSubMode !== undefined) {
     const prefix = BridgeRawPrefixes[bridgeSubMode]
     const wins = readRawNumber(rawDuels, `${prefix}_wins`)

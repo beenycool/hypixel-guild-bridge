@@ -28,7 +28,7 @@ export enum OptionType {
   User = 'user'
 }
 
-export type OptionItem =
+type OptionItem =
   | CategoryOption
   | EmbedCategoryOption
   | LabelOption
@@ -49,29 +49,29 @@ interface BaseOption {
   stableId?: string
 }
 
-export interface CategoryOption extends BaseOption {
+interface CategoryOption extends BaseOption {
   type: OptionType.Category
   header?: string
   options: OptionItem[]
 }
 
-export interface EmbedCategoryOption extends BaseOption {
+interface EmbedCategoryOption extends BaseOption {
   type: OptionType.EmbedCategory
   options: Exclude<OptionItem, EmbedCategoryOption>[]
 }
 
-export interface LabelOption extends BaseOption {
+interface LabelOption extends BaseOption {
   type: OptionType.Label
   getOption: undefined | (() => string)
 }
 
-export interface BooleanOption extends BaseOption {
+interface BooleanOption extends BaseOption {
   type: OptionType.Boolean
   getOption: () => boolean
   toggleOption: () => void
 }
 
-export interface DiscordSelectOption extends BaseOption {
+interface DiscordSelectOption extends BaseOption {
   type: OptionType.Channel | OptionType.Role | OptionType.User
   getOption: () => string[]
   setOption: (value: string[]) => void
@@ -79,7 +79,7 @@ export interface DiscordSelectOption extends BaseOption {
   min: number
 }
 
-export interface ListOption extends BaseOption {
+interface ListOption extends BaseOption {
   type: OptionType.List
   getOption: () => string[]
   setOption: (value: string[]) => void
@@ -90,7 +90,7 @@ export interface ListOption extends BaseOption {
   showDelete?: boolean
 }
 
-export interface PresetListOption extends BaseOption {
+interface PresetListOption extends BaseOption {
   type: OptionType.PresetList
   getOption: () => string[]
   setOption: (value: string[]) => void
@@ -99,13 +99,13 @@ export interface PresetListOption extends BaseOption {
   options: { label: string; value: string; description?: string }[]
 }
 
-export enum InputStyle {
+enum InputStyle {
   Short = 'short',
   Long = 'long',
   Tiny = 'tiny'
 }
 
-export interface TextOption extends BaseOption {
+interface TextOption extends BaseOption {
   type: OptionType.Text
   style: InputStyle
   getOption: () => string
@@ -122,7 +122,7 @@ export interface NumberOption extends BaseOption {
   min: number
 }
 
-export interface ActionOption extends BaseOption {
+interface ActionOption extends BaseOption {
   type: OptionType.Action
   label: string
   style: ButtonStyle.Primary | ButtonStyle.Secondary | ButtonStyle.Success | ButtonStyle.Danger
@@ -133,7 +133,7 @@ export interface ActionOption extends BaseOption {
   ) => Promise<boolean>
 }
 
-export interface ActionInteractionHelpers {
+interface ActionInteractionHelpers {
   updateView: (interaction?: ModalMessageModalSubmitInteraction) => Promise<void>
 }
 

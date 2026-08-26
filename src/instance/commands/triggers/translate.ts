@@ -35,7 +35,7 @@ const languages = new Set([
   'tagalog'
 ])
 
-export function parseTargetLanguage(argumentsList: string[]): { language: string | undefined; message: string } {
+function parseTargetLanguage(argumentsList: string[]): { language: string | undefined; message: string } {
   if (argumentsList.length === 0) return { language: undefined, message: '' }
 
   if (argumentsList[0].toLowerCase() === 'to' && argumentsList.length > 1) {

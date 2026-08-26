@@ -226,7 +226,7 @@ export function calculateSimilarityScore(query: string, target: string): number 
   return (1 - distance / maxLength) * lengthRatio
 }
 
-export function calculateDamerauLevenshteinDistance(string1: string, string2: string): number {
+function calculateDamerauLevenshteinDistance(string1: string, string2: string): number {
   const length1 = string1.length
   const length2 = string2.length
 

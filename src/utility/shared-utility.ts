@@ -6,31 +6,6 @@ import { InternalInstancePrefix } from '../common/instance.js'
 
 import Duration from './duration'
 
-export function sufficeToTime(suffice: string): number {
-  suffice = suffice.toLowerCase().trim()
-
-  if (suffice === 's' || suffice.length === 0) return 1
-  if (suffice === 'm') return 60
-  if (suffice === 'h') return 60 * 60
-  if (suffice === 'd') return 60 * 60 * 24
-  if (suffice === 'y') return 60 * 60 * 24 * 30 * 12
-
-  throw new Error(`Unexpected suffice: ${suffice}. Need a new update to handle the new one`)
-}
-
-export function getDuration(short: string): Duration {
-  const regex = /^(\d*)([ydhms]*)$/g
-  const match = regex.exec(short)
-
-  if (match != undefined) {
-    const time = match[1] as unknown as number
-    const suffice = match[2]
-    return Duration.seconds(time * sufficeToTime(suffice))
-  }
-
-  throw new Error('Invalid short time')
-}
-
 export function antiSpamString(): string {
   let randomString = ''
   const charSet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -101,16 +76,6 @@ export async function gracefullyExitProcess(exitCode: number): Promise<void> {
   })
 
   await timeout
-}
-
-export function durationToMinecraftDuration(duration: number): string {
-  const MaxDuration = 2_592_000
-
-  const MinDuration = 60
-  const Prefix = 's'
-
-  const maxTime = Math.min(MaxDuration, Math.floor(duration / 1000))
-  return `${Math.max(maxTime, MinDuration)}${Prefix}`
 }
 
 export function beautifyInstanceName(instanceName: string): string {

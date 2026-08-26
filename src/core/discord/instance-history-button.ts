@@ -152,7 +152,7 @@ export interface DiscordPersistentInstance extends InstanceIdentifier {
   endTime: number
 }
 
-export enum DiscordInstanceHistoryButtonType {
+enum DiscordInstanceHistoryButtonType {
   Failed = 'failed',
   Success = 'success',
   Notice = 'notice'

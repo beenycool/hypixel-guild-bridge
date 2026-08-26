@@ -40,7 +40,7 @@ export interface SkillLevel {
 
 export type Skills = Record<SkillName, SkillLevel>
 
-export function getSkillLevelCaps(profile: SkyblockV2Member): Partial<Record<SkillName, number>> {
+function getSkillLevelCaps(profile: SkyblockV2Member): Partial<Record<SkillName, number>> {
   return {
     farming: 50 + (profile.jacobs_contest?.perks?.farming_level_cap ?? 0),
     taming: 50 + (profile.pets_data?.pet_care?.pet_types_sacrificed?.length ?? 0),

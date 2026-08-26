@@ -9,5 +9,3 @@ export const httpClient = create({
   httpsAgent: new https.Agent({ keepAlive: true }),
   maxRedirects: 5
 })
-
-export default httpClient

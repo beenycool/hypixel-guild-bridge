@@ -82,12 +82,12 @@ export class StatusHistory {
 
 export type StatusHistoryEntry = StatusHistoryChange
 
-export type StatusHistoryChange = { fromStatus: Status; toStatus: Status } & {
+type StatusHistoryChange = { fromStatus: Status; toStatus: Status } & {
   entryType: StatusHistoryEntryType.Status
   id: number
 } & InstanceIdentifier & { createdAt: number }
 
-export enum StatusHistoryEntryType {
+enum StatusHistoryEntryType {
   Status = 'status'
 }
 

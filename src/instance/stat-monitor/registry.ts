@@ -2,13 +2,13 @@
 
 import type { Player } from 'hypixel-api-reborn'
 
-export interface StatDefinition {
+interface StatDefinition {
   label: string
   decimals: number
   extract: (player: Player) => number | undefined
 }
 
-export type GameRegistry = Record<string, StatDefinition>
+type GameRegistry = Record<string, StatDefinition>
 
 function fixedStat(path: string[], label: string, decimals = 2): StatDefinition {
   return {

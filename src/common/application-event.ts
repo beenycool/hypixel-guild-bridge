@@ -83,13 +83,13 @@ export interface InstanceIdentifier {
   readonly bridgeId?: string
 }
 
-export type InformEvent = BaseEvent
+type InformEvent = BaseEvent
 
-export interface ReplyEvent extends BaseEvent {
+interface ReplyEvent extends BaseEvent {
   readonly originEventId: string
 }
 
-export interface MinecraftRawMessage {
+interface MinecraftRawMessage {
   readonly rawMessage: string
 }
 
@@ -103,7 +103,7 @@ export enum Permission {
 
 export type ChatEvent = ChatLike
 
-export type ChatLike =
+type ChatLike =
   | MinecraftGuildChat
   | MinecraftPrivateChat
   | DiscordChat
@@ -112,7 +112,7 @@ export type ChatLike =
       readonly rawMessage?: string
     })
 
-export interface BaseChat extends InformEvent {
+interface BaseChat extends InformEvent {
   readonly channelType: ChannelType
 
   readonly user: User
@@ -120,23 +120,23 @@ export interface BaseChat extends InformEvent {
   readonly message: string
 }
 
-export interface MinecraftChat extends BaseChat, MinecraftRawMessage {
+interface MinecraftChat extends BaseChat, MinecraftRawMessage {
   readonly instanceType: InstanceType.Minecraft
   readonly hypixelRank: string
 
   readonly user: MinecraftUser
 }
 
-export interface MinecraftPrivateChat extends MinecraftChat {
+interface MinecraftPrivateChat extends MinecraftChat {
   readonly channelType: ChannelType.Private
 }
 
-export interface MinecraftGuildChat extends MinecraftChat {
+interface MinecraftGuildChat extends MinecraftChat {
   readonly channelType: ChannelType.Public | ChannelType.Officer
   readonly guildRank: string
 }
 
-export interface DiscordChat extends BaseChat {
+interface DiscordChat extends BaseChat {
   readonly instanceType: InstanceType.Discord
 
   readonly user: DiscordUser
@@ -188,24 +188,24 @@ export interface BaseInGameEvent<K extends string> extends InformEvent, Minecraf
   readonly channels: (ChannelType.Public | ChannelType.Officer)[]
 }
 
-export interface BaseGuildPlayerEvent extends MinecraftRawMessage {
+interface BaseGuildPlayerEvent extends MinecraftRawMessage {
   readonly user: MinecraftUser
 }
 
 export type GuildPlayerEvent = GuildPlayerResponsible | GuildPlayerSolo
 
-export type GuildPlayerResponsibleTypes =
+type GuildPlayerResponsibleTypes =
   | GuildPlayerEventType.Muted
   | GuildPlayerEventType.Kick
   | GuildPlayerEventType.Mute
   | GuildPlayerEventType.Unmute
   | GuildPlayerEventType.Gifted
 
-export type GuildPlayerSoloTypes = Exclude<GuildPlayerEventType, GuildPlayerResponsibleTypes>
+type GuildPlayerSoloTypes = Exclude<GuildPlayerEventType, GuildPlayerResponsibleTypes>
 
-export type GuildPlayerSolo = BaseGuildPlayerEvent & BaseInGameEvent<GuildPlayerSoloTypes>
+type GuildPlayerSolo = BaseGuildPlayerEvent & BaseInGameEvent<GuildPlayerSoloTypes>
 
-export interface GuildPlayerResponsible extends BaseGuildPlayerEvent, BaseInGameEvent<GuildPlayerResponsibleTypes> {
+interface GuildPlayerResponsible extends BaseGuildPlayerEvent, BaseInGameEvent<GuildPlayerResponsibleTypes> {
   readonly responsible: MinecraftUser
 }
 
@@ -218,8 +218,6 @@ export enum GuildGeneralEventType {
 export type GuildGeneralEvent = BaseInGameEvent<GuildGeneralEventType> & MinecraftRawMessage
 
 export enum MinecraftReactiveEventType {
-  Repeat = 'repeat',
-
   Block = 'block',
 
   Advertise = 'advertise',
@@ -230,9 +228,7 @@ export enum MinecraftReactiveEventType {
 
   NoOfficer = 'no_officer',
 
-  GuildMuted = 'guild_muted',
-
-  MessageTruncated = 'truncated'
+  GuildMuted = 'guild_muted'
 }
 
 export interface MinecraftReactiveEvent extends ReplyEvent, MinecraftRawMessage {
@@ -243,7 +239,7 @@ export interface MinecraftReactiveEvent extends ReplyEvent, MinecraftRawMessage 
   readonly color: Color
 }
 
-export interface BroadcastGuildChatImageStyle {
+interface BroadcastGuildChatImageStyle {
   readonly channelType: ChannelType.Public | ChannelType.Officer
   readonly skinUsername: string
 
@@ -262,7 +258,7 @@ export interface BroadcastEvent extends InformEvent {
   readonly guildChatImageStyle?: BroadcastGuildChatImageStyle
 }
 
-export interface BaseCommandEvent extends InformEvent, ReplyEvent {
+interface BaseCommandEvent extends InformEvent, ReplyEvent {
   readonly channelType: ChannelType
 
   readonly user: User
@@ -272,13 +268,13 @@ export interface BaseCommandEvent extends InformEvent, ReplyEvent {
   readonly commandResponse: string
 }
 
-export interface DiscordCommandEvent extends BaseCommandEvent {
+interface DiscordCommandEvent extends BaseCommandEvent {
   instanceType: InstanceType.Discord
 
   user: DiscordUser
 }
 
-export interface MinecraftCommandEvent extends BaseCommandEvent {
+interface MinecraftCommandEvent extends BaseCommandEvent {
   instanceType: InstanceType.Minecraft
 
   user: MinecraftUser

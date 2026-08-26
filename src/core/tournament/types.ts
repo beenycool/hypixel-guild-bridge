@@ -8,7 +8,6 @@ export enum TournamentStatus {
 export enum PlayerStatus {
   Registered = 'REGISTERED',
   CheckedIn = 'CHECKED_IN',
-  Waitlisted = 'WAITLISTED',
   Active = 'ACTIVE',
   Eliminated = 'ELIMINATED',
   Winner = 'WINNER'
