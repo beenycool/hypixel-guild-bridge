@@ -48,6 +48,7 @@ import MessageToImage from './common/message-to-image.js'
 import { resolveDiscordMentionsInMessage } from './common/minecraft-discord-mentions.js'
 import type { ResolvedDiscordMentions } from './common/minecraft-discord-mentions.js'
 import { parseRankChange, RankCompactTracker } from './common/rank-compact-tracker.js'
+import { formatRankPrefix, stripRealRankPrefix } from './common/rank-format.js'
 import type DiscordInstance from './discord-instance.js'
 
 const DASH_SEPARATOR = '-'.repeat(53) + '\n'
@@ -277,6 +278,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       event.instanceType !== InstanceType.Minecraft || event.bridgeId === undefined
         ? undefined
         : this.application.core.bridgeConfigurations.getPlayerUsernameOverride(event.bridgeId, username)
+    const rankOverride =
+      event.instanceType !== InstanceType.Minecraft || event.bridgeId === undefined
+        ? undefined
+        : this.application.core.bridgeConfigurations.getPlayerRankOverride(event.bridgeId, username)
+    const rankPrefix = formatRankPrefix(rankOverride ?? '')
 
     for (const channelId of channels) {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
@@ -284,10 +290,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (event.instanceType === InstanceType.Minecraft) {
         const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
         let withoutPrefix = this.removeGuildPrefix(event.rawMessage)
+        if (rankPrefix.length > 0) withoutPrefix = stripRealRankPrefix(withoutPrefix)
         if (playerOverride !== undefined) {
           withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
         }
-        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${withoutPrefix}`
+        const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${rankPrefix.length > 0 ? `${rankPrefix} ${withoutPrefix.trimStart()}` : withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
         })
@@ -440,6 +447,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       event.type !== GuildPlayerEventType.Join && event.type !== GuildPlayerEventType.Leave
         ? undefined
         : bridgeConfigurations.getPlayerUsernameOverride(effectiveBridgeId, username)
+    const rankOverride =
+      event.type !== GuildPlayerEventType.Join && event.type !== GuildPlayerEventType.Leave
+        ? undefined
+        : bridgeConfigurations.getPlayerRankOverride(effectiveBridgeId, username)
+    const rankPrefix = formatRankPrefix(rankOverride ?? '')
 
     if (isRankChange) {
       const parsed = parseRankChange(event.message)
@@ -526,10 +538,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       /^-+/g,
       ''
     )
+    if (rankPrefix.length > 0) withoutPrefix = stripRealRankPrefix(withoutPrefix)
     if (playerOverride !== undefined) {
       withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
     }
-    const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${withoutPrefix}`
+    const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${rankPrefix.length > 0 ? `${rankPrefix} ${withoutPrefix.trimStart()}` : withoutPrefix}`
 
     const messages = await this.sendImageToChannels(
       activeEvent.eventId,
@@ -1016,12 +1029,32 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         : this.application.core.bridgeConfigurations.getBotUsernameOverride(event.bridgeId)
     const effectiveBotName = botUsernameOverride ?? botName
 
-    const botRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
-    const namePart = botRank
-      ? botUsernameOverride === undefined
-        ? `${botRank}§f`
-        : `${botRank.replace(new RegExp(botName, 'i'), botUsernameOverride)}§f`
-      : `§7${effectiveBotName}§f`
+    const botRankOverride =
+      event.bridgeId === undefined
+        ? undefined
+        : this.application.core.bridgeConfigurations.getBotRankOverride(event.bridgeId)
+    const botRankOverridePrefix = botRankOverride === undefined ? undefined : formatRankPrefix(botRankOverride)
+    const cachedBotRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
+    let namePart: string
+    if (botRankOverridePrefix !== undefined) {
+      const nameColor = botRankOverride === 'YouTube' ? '§c' : ''
+      let suffix = '§f'
+      if (cachedBotRank?.includes(botName)) {
+        suffix = cachedBotRank.slice(cachedBotRank.indexOf(botName) + botName.length)
+        if (suffix === '') suffix = '§f'
+      }
+      namePart =
+        nameColor === ''
+          ? `${botRankOverridePrefix} ${effectiveBotName}${suffix}`
+          : `${botRankOverridePrefix} ${nameColor}${effectiveBotName}${suffix}`
+    } else if (cachedBotRank === undefined) {
+      namePart = `§7${effectiveBotName}§f`
+    } else if (botUsernameOverride === undefined) {
+      namePart = cachedBotRank.endsWith('§f') ? cachedBotRank : `${cachedBotRank}§f`
+    } else {
+      const replaced = cachedBotRank.replace(new RegExp(botName, 'i'), botUsernameOverride)
+      namePart = replaced.endsWith('§f') ? replaced : `${replaced}§f`
+    }
 
     const publicChannelIds = this.resolveChannelsForEvent([ChannelType.Public], event.bridgeId, {
       kind: 'command',

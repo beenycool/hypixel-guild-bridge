@@ -99,9 +99,16 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_announceMutedPlayer`)
 
     this.configuration.delete(`${bridgeId}_botUsernameOverride`)
+    this.configuration.delete(`${bridgeId}_botRankOverride`)
 
     for (const key of this.configuration.keysWithPrefix(
       `${bridgeId}_${BridgeConfigurations.PlayerUsernameOverridePrefix}`
+    )) {
+      this.configuration.delete(key)
+    }
+
+    for (const key of this.configuration.keysWithPrefix(
+      `${bridgeId}_${BridgeConfigurations.PlayerRankOverridePrefix}`
     )) {
       this.configuration.delete(key)
     }
@@ -256,6 +263,40 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
       const playerName = fullKey.slice(prefix.length)
       const value = this.configuration.getString(fullKey, '')
       if (value !== '') overrides[playerName] = value
+    }
+    return overrides
+  }
+
+  public getBotRankOverride(bridgeId: string): string | undefined {
+    const v = this.getBridgeString('botRankOverride', bridgeId)
+    return v == '' ? undefined : v
+  }
+
+  public setBotRankOverride(bridgeId: string, rank: string | undefined): void {
+    this.setBridgeString('botRankOverride', bridgeId, rank)
+  }
+
+  private static readonly PlayerRankOverridePrefix = 'playerRankOverride_'
+
+  public getPlayerRankOverride(bridgeId: string, playerName: string): string | undefined {
+    const v = this.getBridgeString(
+      `${BridgeConfigurations.PlayerRankOverridePrefix}${playerName.toLowerCase()}`,
+      bridgeId
+    )
+    return v == '' ? undefined : v
+  }
+
+  public setPlayerRankOverride(bridgeId: string, playerName: string, rank: string | undefined): void {
+    this.setBridgeString(`${BridgeConfigurations.PlayerRankOverridePrefix}${playerName.toLowerCase()}`, bridgeId, rank)
+  }
+
+  public getPlayerRankOverrides(bridgeId: string): Record<string, string> {
+    const overrides: Record<string, string> = {}
+    const prefix = `${bridgeId}_${BridgeConfigurations.PlayerRankOverridePrefix}`
+    for (const fullKey of this.configuration.keysWithPrefix(prefix)) {
+      const playerName = fullKey.slice(prefix.length)
+      const value = this.configuration.getString(fullKey, '')
+      if (value != '') overrides[playerName] = value
     }
     return overrides
   }
@@ -945,7 +986,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         enforceVerification: this.getEnforceVerification(bridgeId),
         language: this.getLanguage(bridgeId) ?? '',
         botUsernameOverride: this.getBotUsernameOverride(bridgeId) ?? '',
-        playerUsernameOverrides: this.getPlayerUsernameOverrides(bridgeId)
+        botRankOverride: this.getBotRankOverride(bridgeId) ?? '',
+        playerUsernameOverrides: this.getPlayerUsernameOverrides(bridgeId),
+        playerRankOverrides: this.getPlayerRankOverrides(bridgeId)
       },
       minecraftEvents: {
         memberOnline: this.getGuildOnline(bridgeId),
