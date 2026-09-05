@@ -294,6 +294,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         if (playerOverride !== undefined) {
           withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
         }
+        if (rankOverride === 'LESBIAN') {
+          const effectiveName = playerOverride ?? username
+          withoutPrefix = withoutPrefix.replace(effectiveName, `§c${effectiveName}`)
+        }
         const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}{skin} ${rankPrefix.length > 0 ? `${rankPrefix} ${withoutPrefix.trimStart()}` : withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
@@ -541,6 +545,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     if (rankPrefix.length > 0) withoutPrefix = stripRealRankPrefix(withoutPrefix)
     if (playerOverride !== undefined) {
       withoutPrefix = withoutPrefix.replaceAll(username, playerOverride)
+    }
+    if (rankOverride === 'LESBIAN') {
+      const effectiveName = playerOverride ?? username
+      withoutPrefix = withoutPrefix.replace(effectiveName, `§c${effectiveName}`)
     }
     const formattedMessage = `${this.getRenderedChannelPrefix(ChannelType.Public)}{skin} ${rankPrefix.length > 0 ? `${rankPrefix} ${withoutPrefix.trimStart()}` : withoutPrefix}`
 
@@ -1037,7 +1045,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     const cachedBotRank = botInstanceName ? this.application.minecraftManager.getBotRank(botInstanceName) : undefined
     let namePart: string
     if (botRankOverridePrefix !== undefined) {
-      const nameColor = botRankOverride === 'YouTube' ? '§c' : ''
+      const nameColor = botRankOverride === 'YouTube' || botRankOverride === 'LESBIAN' ? '§c' : ''
       let suffix = '§f'
       if (cachedBotRank?.includes(botName)) {
         suffix = cachedBotRank.slice(cachedBotRank.indexOf(botName) + botName.length)

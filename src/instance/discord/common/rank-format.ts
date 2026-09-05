@@ -22,7 +22,8 @@ export const PLAYER_RANKS = [
   'IRISH WANKER',
   'FRENCHIE',
   'LESBIAN',
-  'GAY'
+  'GAY',
+  'MCDONALDS WORKER'
 ] as const
 
 export type PlayerRank = (typeof PLAYER_RANKS)[number]
@@ -62,6 +63,7 @@ export function formatRankPrefix(rank: string): string {
   if (rank == 'FRENCHIE') return '§9[§fFREN§cCHIE§9]'
   if (rank == 'LESBIAN') return '§6[§fLES§dBIAN§6]'
   if (rank == 'GAY') return '§c[§6G§eA§aY§c]'
+  if (rank == 'MCDONALDS WORKER') return '§c[§eMCDONALDS WORKER§c]'
   return ''
 }
 
