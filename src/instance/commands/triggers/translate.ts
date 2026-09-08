@@ -36,8 +36,7 @@ const languages = new Set([
 ])
 
 const hackclubEndpoint = 'https://ai.hackclub.com/proxy/v1/chat/completions'
-const translateModel = 'openai/gpt-oss-120b'
-const translateProvider = 'Groq'
+const translateModel = 'inception/mercury-2.5'
 
 function parseTargetLanguage(argumentsList: string[]): { language: string | undefined; message: string } {
   if (argumentsList.length === 0) return { language: undefined, message: '' }
@@ -97,8 +96,7 @@ export default class Translate extends ChatCommandHandler {
         systemPrompt: 'Translate text directly. Respond with ONLY the translated text.',
         userPrompt: userContent,
         temperature: 0.3,
-        reasoningEffort: 'low',
-        provider: translateProvider
+        reasoningEffort: 'low'
       })
 
       const translated = result.content
