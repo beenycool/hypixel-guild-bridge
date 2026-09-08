@@ -35,6 +35,10 @@ const languages = new Set([
   'tagalog'
 ])
 
+const hackclubEndpoint = 'https://ai.hackclub.com/proxy/v1/chat/completions'
+const translateModel = 'openai/gpt-oss-120b'
+const translateProvider = 'Groq'
+
 function parseTargetLanguage(argumentsList: string[]): { language: string | undefined; message: string } {
   if (argumentsList.length === 0) return { language: undefined, message: '' }
 
@@ -70,12 +74,11 @@ export default class Translate extends ChatCommandHandler {
       return `Usage: ${commandPrefix}translate [language] <message>`
     }
 
-    const apiKey = context.app.openrouterApiKey
+    const apiKey = process.env.HACKCLUB_API_KEY ?? context.app.openrouterApiKey
     if (!apiKey) {
-      return 'OpenRouter API key is not configured. Set `openrouterApiKey` in config.yaml.'
+      return 'HackClub API key is not configured. Set `HACKCLUB_API_KEY` env var or `openrouterApiKey` in config.yaml.'
     }
 
-    const model = context.app.openrouterModel ?? 'nvidia/nemotron-3.5-lightning:free'
     const { language: targetLanguage, message } = parseTargetLanguage(args)
 
     if (message.length === 0) {
@@ -87,14 +90,15 @@ export default class Translate extends ChatCommandHandler {
         ? `Translate the following text to English (auto-detect the source language): ${message}`
         : `Translate the following text to ${targetLanguage}: ${message}`
 
-    const client = new OpenRouterClient(apiKey, { defaultModel: model })
+    const client = new OpenRouterClient(apiKey, { defaultModel: translateModel, baseUrl: hackclubEndpoint })
 
     try {
       const result = await client.chatCompletion({
         systemPrompt: 'Translate text directly. Respond with ONLY the translated text.',
         userPrompt: userContent,
         temperature: 0.3,
-        reasoningEffort: 'low'
+        reasoningEffort: 'low',
+        provider: translateProvider
       })
 
       const translated = result.content

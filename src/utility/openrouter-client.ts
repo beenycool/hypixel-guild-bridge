@@ -7,6 +7,8 @@ interface ChatCompletionOptions {
   userPrompt: string
   temperature?: number
   reasoningEffort?: string
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  provider?: string | string[] | { order?: string[]; allow_fallbacks?: boolean }
 }
 
 interface ChatCompletionResult {
@@ -52,6 +54,17 @@ export class OpenRouterClient {
 
     if (options.reasoningEffort) {
       payload.reasoning = { effort: options.reasoningEffort }
+    }
+
+    if (options.provider !== undefined) {
+      payload.provider =
+        typeof options.provider === 'string'
+          ? // eslint-disable-next-line @typescript-eslint/naming-convention
+            { order: [options.provider], allow_fallbacks: false }
+          : Array.isArray(options.provider)
+            ? // eslint-disable-next-line @typescript-eslint/naming-convention
+              { order: options.provider, allow_fallbacks: false }
+            : options.provider
     }
 
     const response = await axios.post<OpenRouterResponse>(this.endpoint, payload, {
