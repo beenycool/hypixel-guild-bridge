@@ -11,6 +11,13 @@ import { POLL_INTERVAL_MS, type RankupDecision } from './types.js'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+const ScheduleFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/London',
+  weekday: 'short',
+  hour: 'numeric',
+  hourCycle: 'h23'
+})
+
 export class RankupManager {
   private readonly bridgeEvaluator: BridgeEvaluator
   private readonly actionDispatcher: ActionDispatcher
@@ -35,10 +42,6 @@ export class RankupManager {
       this.actionDispatcher,
       logger
     )
-
-    for (const bridgeId of bridgeConfig.getAllBridgeIds()) {
-      this.lastRunByBridge.set(bridgeId, bridgeConfig.getRankupLastRunAt(bridgeId))
-    }
 
     setInterval(() => {
       this.runTask().catch((error: unknown) => {
@@ -79,29 +82,22 @@ export class RankupManager {
     const hour = this.bridgeConfig.getRankupScheduleHour(bridgeId)
     if (day < 0 || hour < 0) return true
 
-    const scheduledTs = this.lastScheduledOccurrence(WEEKDAYS[day], hour, new Date())
-    if (scheduledTs === undefined) return true
+    const now = new Date()
+    const parts = ScheduleFormatter.formatToParts(now)
+    const weekday = parts.find((part) => part.type === 'weekday')?.value
+    const currentHour = Number(parts.find((part) => part.type === 'hour')?.value)
+    if (weekday !== WEEKDAYS[day] || currentHour !== hour) return false
 
-    return Date.now() >= scheduledTs && (this.lastRunByBridge.get(bridgeId) ?? 0) < scheduledTs
+    const windowStart = Math.floor(now.getTime() / 3_600_000) * 3_600_000
+    return this.getLastRunAt(bridgeId) < windowStart
   }
 
-  private lastScheduledOccurrence(weekdayShort: string, hour: number, now: Date): number | undefined {
-    const formatter = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/London',
-      weekday: 'short',
-      hour: 'numeric',
-      minute: 'numeric',
-      hourCycle: 'h23'
-    })
-    const start = Math.floor(now.getTime() / 3_600_000) * 3_600_000
-    for (let ts = start; ts > start - 8 * 86_400_000; ts -= 15 * 60_000) {
-      const parts = formatter.formatToParts(new Date(ts))
-      const weekday = parts.find((part) => part.type === 'weekday')?.value
-      const partHour = Number(parts.find((part) => part.type === 'hour')?.value)
-      const minute = Number(parts.find((part) => part.type === 'minute')?.value)
-      if (weekday === weekdayShort && partHour === hour && minute === 0) return ts
-    }
-    return undefined
+  private getLastRunAt(bridgeId: string): number {
+    const inMemory = this.lastRunByBridge.get(bridgeId)
+    if (inMemory !== undefined) return inMemory
+
+    const persisted = this.bridgeConfig.getRankupLastRunAt(bridgeId)
+    return persisted > 0 ? persisted * 1000 : 0
   }
 
   public async runTaskForBridge(bridgeId: string): Promise<void> {
