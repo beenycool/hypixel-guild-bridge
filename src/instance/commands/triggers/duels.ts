@@ -160,33 +160,23 @@ function getBedwarsCombinedWins(rawDuels: Record<string, unknown>): number {
   )
 }
 
-const SPLEEF_RAW_PREFIX = 'spleef_duel'
-
-function getSpleefStatsFromRawDuels(rawDuels: Record<string, unknown>): GamemodeStats {
-  const wins = readRawNumber(rawDuels, `${SPLEEF_RAW_PREFIX}_wins`)
-  const losses = readRawNumber(rawDuels, `${SPLEEF_RAW_PREFIX}_losses`)
-
-  return {
-    wins,
-    losses,
-    winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${SPLEEF_RAW_PREFIX}`),
-    bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${SPLEEF_RAW_PREFIX}`),
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    WLRatio: divideLikeHypixel(wins, losses)
-  }
+const RawSingleModePrefixes: Partial<Record<DuelType, string>> = {
+  boxing: 'boxing_duel',
+  bowspleef: 'bowspleef_duel',
+  nodebuff: 'potion_duel',
+  spleef: 'spleef_duel',
+  quake: 'quake_duel'
 }
 
-const QUAKE_RAW_PREFIX = 'quake_duel'
-
-function getQuakeStatsFromRawDuels(rawDuels: Record<string, unknown>): GamemodeStats {
-  const wins = readRawNumber(rawDuels, `${QUAKE_RAW_PREFIX}_wins`)
-  const losses = readRawNumber(rawDuels, `${QUAKE_RAW_PREFIX}_losses`)
+function getSingleModeStatsFromRawDuels(rawDuels: Record<string, unknown>, prefix: string): GamemodeStats {
+  const wins = readRawNumber(rawDuels, `${prefix}_wins`)
+  const losses = readRawNumber(rawDuels, `${prefix}_losses`)
 
   return {
     wins,
     losses,
-    winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${QUAKE_RAW_PREFIX}`),
-    bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${QUAKE_RAW_PREFIX}`),
+    winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${prefix}`),
+    bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${prefix}`),
     // eslint-disable-next-line @typescript-eslint/naming-convention
     WLRatio: divideLikeHypixel(wins, losses)
   }
@@ -340,41 +330,23 @@ export default class Duels extends HypixelPlayerCommand {
       )
     }
 
-    if (duelType === 'spleef') {
+    const rawSingleModePrefix = RawSingleModePrefixes[duelType]
+    if (rawSingleModePrefix !== undefined) {
       const rawResponse = (await context.app.hypixelApi
         .getPlayer(player.uuid, { raw: true })
         .catch(() => undefined)) as RawPlayerResponse | undefined
       const rawDuels = rawResponse?.player?.stats?.Duels
 
       if (rawDuels === undefined) {
-        return `${givenUsername} has no Spleef Duels stats.` + this.formatPingSuffix()
+        return `${givenUsername} has no ${Duels.DuelDisplayNames[duelType]} Duels stats.` + this.formatPingSuffix()
       }
 
-      const data = getSpleefStatsFromRawDuels(rawDuels)
-      const division = calculateDuelsDivision(data.wins, 'short')
+      const data = getSingleModeStatsFromRawDuels(rawDuels, rawSingleModePrefix)
+      const divisionMode: DuelsDivisionMode = LongModeDuelTypes.has(duelType) ? 'long' : 'short'
+      const division = calculateDuelsDivision(data.wins, divisionMode)
 
       return (
-        `[Spleef] [${this.formatDivision(division)}] ${givenUsername} ` +
-        `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}` +
-        this.formatPingSuffix()
-      )
-    }
-
-    if (duelType === 'quake') {
-      const rawResponse = (await context.app.hypixelApi
-        .getPlayer(player.uuid, { raw: true })
-        .catch(() => undefined)) as RawPlayerResponse | undefined
-      const rawDuels = rawResponse?.player?.stats?.Duels
-
-      if (rawDuels === undefined) {
-        return `${givenUsername} has no Quake Duels stats.` + this.formatPingSuffix()
-      }
-
-      const data = getQuakeStatsFromRawDuels(rawDuels)
-      const division = calculateDuelsDivision(data.wins, 'short')
-
-      return (
-        `[Quake] [${this.formatDivision(division)}] ${givenUsername} ` +
+        `[${Duels.DuelDisplayNames[duelType]}] [${this.formatDivision(division)}] ${givenUsername} ` +
         `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}` +
         this.formatPingSuffix()
       )
