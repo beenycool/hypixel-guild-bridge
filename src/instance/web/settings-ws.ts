@@ -27,10 +27,6 @@ export class SettingsWsEvents {
     this.subscribers.delete(socket)
   }
 
-  public start(): void {
-    void 0
-  }
-
   public stop(): void {
     this.subscribers.clear()
   }

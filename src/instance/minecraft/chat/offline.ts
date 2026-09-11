@@ -1,11 +1,11 @@
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const GUILD_OFFLINE_REGEX = /^Guild > (\w{3,32}) left./
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^Guild > (\w{3,32}) left./g
-
-    const match = regex.exec(context.message)
+    const match = GUILD_OFFLINE_REGEX.exec(context.message)
     if (match != undefined) {
       const username = match[1]
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)

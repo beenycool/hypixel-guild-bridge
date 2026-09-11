@@ -1,11 +1,11 @@
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const GUILD_JOIN_REGEX = /^(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) joined the guild!/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) joined the guild!/g
-
-    const match = regex.exec(context.message)
+    const match = GUILD_JOIN_REGEX.exec(context.message)
     if (match != undefined) {
       const username = match[1]
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)

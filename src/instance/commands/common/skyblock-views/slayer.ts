@@ -8,10 +8,10 @@ import { playerNeverPlayedSlayers } from '../utility.js'
 
 import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
 
-const SlayerTypes = ['zombie', 'spider', 'wolf', 'enderman', 'blaze', 'vampire'] as const
-type SlayerType = (typeof SlayerTypes)[number]
+export const SlayerTypes = ['zombie', 'spider', 'wolf', 'enderman', 'blaze', 'vampire'] as const
+export type SlayerType = (typeof SlayerTypes)[number]
 
-const SlayerXpTable: Record<SlayerType, number[]> = {
+export const SlayerXpTable: Record<SlayerType, number[]> = {
   zombie: [5, 15, 200, 1000, 5000, 20_000, 100_000, 400_000, 1_000_000],
   spider: [5, 25, 200, 1000, 5000, 20_000, 100_000, 400_000, 1_000_000],
   wolf: [5, 30, 250, 1500, 5000, 20_000, 100_000, 400_000, 1_000_000],
@@ -75,16 +75,27 @@ function getSlayerSummary(profile: SkyblockV2Member): SlayerSummary | undefined 
   if (!bosses) return undefined
 
   return {
-    zombie: getSlayerLevel(bosses, 'zombie'),
-    spider: getSlayerLevel(bosses, 'spider'),
-    wolf: getSlayerLevel(bosses, 'wolf'),
-    enderman: getSlayerLevel(bosses, 'enderman'),
-    blaze: getSlayerLevel(bosses, 'blaze'),
-    vampire: getSlayerLevel(bosses, 'vampire')
+    zombie: getSlayerLevelDetails(bosses, 'zombie'),
+    spider: getSlayerLevelDetails(bosses, 'spider'),
+    wolf: getSlayerLevelDetails(bosses, 'wolf'),
+    enderman: getSlayerLevelDetails(bosses, 'enderman'),
+    blaze: getSlayerLevelDetails(bosses, 'blaze'),
+    vampire: getSlayerLevelDetails(bosses, 'vampire')
   }
 }
 
-function getSlayerLevel(bosses: Record<string, Slayer>, slayer: SlayerType): SlayerLevel {
+export function getSlayerLevel(type: SlayerType, xp: number): number {
+  const table = SlayerXpTable[type]
+  let level = 0
+
+  for (const [index, element] of table.entries()) {
+    if (xp >= element) level = index + 1
+  }
+
+  return level
+}
+
+function getSlayerLevelDetails(bosses: Record<string, Slayer>, slayer: SlayerType): SlayerLevel {
   const slayerData = bosses[slayer]
   const experience = slayerData.xp
   const xpTable = SlayerXpTable[slayer]
@@ -100,10 +111,7 @@ function getSlayerLevel(bosses: Record<string, Slayer>, slayer: SlayerType): Sla
     }
   }
 
-  let level = 0
-  for (const [index, element] of xpTable.entries()) {
-    if (element <= experience) level = index + 1
-  }
+  const level = getSlayerLevel(slayer, experience)
 
   const maxLevel = xpTable.length
   const xpForNext = level < maxLevel ? Math.ceil(xpTable[level]) : 0

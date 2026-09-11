@@ -1013,9 +1013,50 @@ export class TournamentManager {
       ])
       tournament.bracketMessageId = initialMessage.id
 
+      const activeRound1 = createdMatches.filter((m) => m.round === 1 && m.status === MatchStatus.Active)
+      this.logger.info(`Tournament ${tournamentId}: Spawning ${activeRound1.length} match threads for round 1`)
+      for (const m of activeRound1) {
+        try {
+          const p1 = shuffled.find((p) => p.id === m.player1Id)
+          const p2 = shuffled.find((p) => p.id === m.player2Id)
+
+          if (p1 !== undefined && p2 !== undefined) {
+            const p1Name = names.get(p1.id) ?? 'Player 1'
+            const p2Name = names.get(p2.id) ?? 'Player 2'
+
+            this.logger.info(`Match ${m.id}: Creating thread for ${p1Name} vs ${p2Name}`)
+            const threadId = await this.channelManager.createMatchThread(channel.id, m, p1, p2, p1Name, p2Name)
+
+            if (threadId === undefined) {
+              this.logger.info(`Match ${m.id}: Failed to create thread`)
+            } else {
+              this.logger.info(`Match ${m.id}: Thread created (threadId=${threadId})`)
+              await this.databaseManager.execute(
+                'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
+                [threadId, m.id]
+              )
+              m.discordThreadId = threadId
+              await this.notifications.notifyMatchReady(threadId, p1, p2, p1Name, p2Name)
+            }
+
+            await this.notifications.notifyMatchStart(
+              tournament.bridgeId,
+              m,
+              p1.playerUuid,
+              p2.playerUuid,
+              p1Name,
+              p2Name
+            )
+          }
+        } catch (error) {
+          this.logger.warn(`Match ${m.id}: Failed to create thread/notify, continuing with bracket render`, error)
+        }
+      }
+
+      this.logger.info(`Tournament ${tournamentId}: Updating bracket embed with thread links`)
       const usedMessageId = await this.channelManager.updateBracketEmbed(
         channel.id,
-        initialMessage.id,
+        tournament.bracketMessageId,
         tournament,
         createdMatches,
         shuffled,
@@ -1027,59 +1068,6 @@ export class TournamentManager {
           tournamentId
         ])
         tournament.bracketMessageId = usedMessageId
-      }
-
-      const activeRound1 = createdMatches.filter((m) => m.round === 1 && m.status === MatchStatus.Active)
-      this.logger.info(`Tournament ${tournamentId}: Spawning ${activeRound1.length} match threads for round 1`)
-      for (const m of activeRound1) {
-        const p1 = shuffled.find((p) => p.id === m.player1Id)
-        const p2 = shuffled.find((p) => p.id === m.player2Id)
-
-        if (p1 !== undefined && p2 !== undefined) {
-          const p1Name = names.get(p1.id) ?? 'Player 1'
-          const p2Name = names.get(p2.id) ?? 'Player 2'
-
-          this.logger.info(`Match ${m.id}: Creating thread for ${p1Name} vs ${p2Name}`)
-          const threadId = await this.channelManager.createMatchThread(channel.id, m, p1, p2, p1Name, p2Name)
-
-          if (threadId === undefined) {
-            this.logger.info(`Match ${m.id}: Failed to create thread`)
-          } else {
-            this.logger.info(`Match ${m.id}: Thread created (threadId=${threadId})`)
-            await this.databaseManager.execute(
-              'UPDATE "tournament_matches" SET "discordThreadId" = $1 WHERE "id" = $2',
-              [threadId, m.id]
-            )
-            m.discordThreadId = threadId
-            await this.notifications.notifyMatchReady(threadId, p1, p2, p1Name, p2Name)
-          }
-
-          await this.notifications.notifyMatchStart(
-            tournament.bridgeId,
-            m,
-            p1.playerUuid,
-            p2.playerUuid,
-            p1Name,
-            p2Name
-          )
-        }
-      }
-
-      this.logger.info(`Tournament ${tournamentId}: Updating bracket embed with thread links`)
-      const secondUsedMessageId = await this.channelManager.updateBracketEmbed(
-        channel.id,
-        tournament.bracketMessageId,
-        tournament,
-        createdMatches,
-        shuffled,
-        names
-      )
-      if (secondUsedMessageId !== undefined && secondUsedMessageId !== tournament.bracketMessageId) {
-        await this.databaseManager.execute('UPDATE "tournaments" SET "bracketMessageId" = $1 WHERE "id" = $2', [
-          secondUsedMessageId,
-          tournamentId
-        ])
-        tournament.bracketMessageId = secondUsedMessageId
       }
     }
 

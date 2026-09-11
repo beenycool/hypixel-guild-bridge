@@ -1,11 +1,11 @@
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const GUILD_LEAVE_REGEX = /^(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) left the guild!/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) left the guild!/g
-
-    const match = regex.exec(context.message)
+    const match = GUILD_LEAVE_REGEX.exec(context.message)
     if (match != undefined) {
       const username = match[1]
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)

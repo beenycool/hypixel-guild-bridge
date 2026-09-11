@@ -13,7 +13,7 @@ import type { ChatEvent } from '../common/application-event.js'
 import { InstanceType, MinecraftSendChatPriority, Permission } from '../common/application-event.js'
 import { Instance } from '../common/instance.js'
 
-import { sendError, sendSuccess } from './web/api-utils.js'
+import { readBody, sendError, sendSuccess } from './web/api-utils.js'
 import { AppSettingsApiHandler } from './web/app-settings-api.js'
 import { type AuthResult, buildTokenSet, verifyToken } from './web/auth.js'
 import { GuildApiHandler } from './web/guild-api.js'
@@ -178,7 +178,6 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     this.staticRoot = path.resolve(process.cwd(), 'web/public')
 
     this.rankupWs.start()
-    this.settingsWs.start()
     this.tournamentWs.start()
 
     this.application.addShutdownListener(() => {
@@ -447,7 +446,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     let payload: WebMessagePayload | undefined
 
     try {
-      const body = await this.readBody(request)
+      const body = await readBody(request)
       if (!body) {
         sendError(response, 'VALIDATION_ERROR', 'Missing request body', 400)
         return
@@ -712,20 +711,6 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private sendWebSocket(socket: WebSocket, message: WebSocketAckMessage): void {
     if (socket.readyState !== WebSocket.OPEN) return
     socket.send(JSON.stringify(message))
-  }
-
-  private async readBody(request: http.IncomingMessage): Promise<string> {
-    request.setEncoding('utf8')
-    return await new Promise((resolve, reject) => {
-      let body = ''
-      request.on('data', (chunk: string) => {
-        body += chunk
-      })
-      request.on('end', () => {
-        resolve(body)
-      })
-      request.on('error', reject)
-    })
   }
 
   private shutdown(): void {

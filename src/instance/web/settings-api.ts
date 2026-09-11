@@ -5,7 +5,7 @@ import { Permission } from '../../common/application-event.js'
 import { ApplicationLanguages } from '../../core/language-configurations.js'
 import Duration from '../../utility/duration.js'
 
-import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
+import { array, readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { BaseApiHandler } from './base-api.js'
 
 type Primitive = boolean | number | string
@@ -38,19 +38,6 @@ function numberValue(s: unknown, d = 0): number {
     return Number.isFinite(n) ? n : d
   }
   return d
-}
-
-function array(s: unknown): string[] {
-  if (Array.isArray(s)) return s.map(String)
-  if (typeof s === 'string') {
-    try {
-      const p = JSON.parse(s) as unknown
-      return Array.isArray(p) ? p.map(String) : []
-    } catch {
-      return [s]
-    }
-  }
-  return []
 }
 
 export class SettingsApiHandler extends BaseApiHandler {

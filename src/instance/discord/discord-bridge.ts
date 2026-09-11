@@ -24,7 +24,6 @@ import type {
   GuildPlayerEvent,
   InstanceReactive,
   InstanceReactiveType,
-  InstanceStatus,
   MinecraftReactiveEvent
 } from '../../common/application-event.js'
 import {
@@ -252,20 +251,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     return [...results]
   }
 
-  async onInstance(event: InstanceStatus): Promise<void> {
-    if (event.instanceName === this.clientInstance.instanceName) return
-    switch (event.instanceType) {
-      case InstanceType.Main:
-      case InstanceType.Commands:
-      case InstanceType.Prometheus:
-      case InstanceType.Metrics:
-      case InstanceType.Utility:
-      case InstanceType.Core: {
-        return
-      }
-    }
-
-    await this.instanceStatusManager.send()
+  async onInstance(): Promise<void> {
+    // No-op: instance status messages are not broadcast to Discord chat
   }
 
   async onChat(event: ChatEvent): Promise<void> {

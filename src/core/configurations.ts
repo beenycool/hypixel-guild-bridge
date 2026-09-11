@@ -65,21 +65,25 @@ export class Configuration {
 
   public getStringArray(name: string, defaultValue: string[]): string[] {
     const cached = this.arrayCache.get(name)
-    if (cached !== undefined) return cached
+    if (cached !== undefined) return [...cached]
 
     const result = this.get(name, defaultValue, (raw) => JSON.parse(raw) as string[])
-    this.arrayCache.set(name, result)
-    return result
+    // `result` aliases `defaultValue` on cache miss; copy before caching
+    // so later mutations of the returned array (or the caller's default)
+    // cannot corrupt the cache, and vice versa.
+    const copy = [...result]
+    this.arrayCache.set(name, copy)
+    return [...copy]
   }
 
   public getStringArraySet(name: string, defaultValue: string[]): Set<string> {
     const cached = this.setCache.get(name)
-    if (cached !== undefined) return cached
+    if (cached !== undefined) return new Set(cached)
 
     const array = this.getStringArray(name, defaultValue)
     const result = new Set(array)
     this.setCache.set(name, result)
-    return result
+    return new Set(result)
   }
 
   public setStringArray(name: string, value: string[]) {

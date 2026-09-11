@@ -4,6 +4,8 @@ import { findPartyInvite, updatePartyState } from '../common/party-state.js'
 
 export { findPartyInvite, PartyInviteRegex, PartyJoinRegex, PartyLeaveRegex } from '../common/party-state.js'
 
+const PARTY_RELATED_REGEX = /party|invit/i
+
 interface PartyInviteModule extends MinecraftChatMessage {
   inParty: boolean
   cooldowns: Map<string, number>
@@ -15,7 +17,7 @@ export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
     const message = context.message
 
-    const partyRelated = /party|invit/i.test(message)
+    const partyRelated = PARTY_RELATED_REGEX.test(message)
     if (partyRelated) {
       context.logger.info(
         `[party-invite] party-related message: "${message}" | raw: "${context.rawMessage}" | inParty=${this.inParty}`

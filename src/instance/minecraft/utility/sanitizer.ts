@@ -1,24 +1,28 @@
 import type Application from '../../../application.js'
 
-import DotsSanitizer from './dot-sanitizer.js'
 import EmojiSanitizer from './emoji-sanitizer.js'
-import EzSanitizer from './ez-sanitizer.js'
-import LineSanitizer from './line-sanitizer.js'
 import { LinksSanitizer } from './links-sanitizer.js'
 
+export function lineSanitize(message: string): string {
+  return message.replaceAll(/\s*\n\s*/g, ' ').trim()
+}
+
+export function ezSanitize(message: string): string {
+  const regex = /(?<!\w)ez(?!\w)/g
+  return message.replaceAll(regex, '_ez')
+}
+
+export function dotSanitize(message: string): string {
+  return message.replaceAll(/(?<!\d)\.(?!\d)/g, '')
+}
+
 export class Sanitizer {
-  private readonly line: LineSanitizer
   private readonly link: LinksSanitizer
   private readonly emoji: EmojiSanitizer
-  private readonly ez: EzSanitizer
-  private readonly dots: DotsSanitizer
 
   constructor(application: Application) {
-    this.line = new LineSanitizer()
     this.link = new LinksSanitizer(application.openrouterApiKey)
     this.emoji = new EmojiSanitizer()
-    this.ez = new EzSanitizer()
-    this.dots = new DotsSanitizer()
   }
 
   public async sanitizeChatMessage(
@@ -26,22 +30,22 @@ export class Sanitizer {
     message: string,
     options?: { maxDescriptionLength?: number }
   ): Promise<string> {
-    message = this.line.process(message)
+    message = lineSanitize(message)
     message = await this.link.process(message, options)
     message = this.emoji.process(message)
-    message = this.ez.process(message)
-    message = this.dots.process(message)
+    message = ezSanitize(message)
+    message = dotSanitize(message)
 
     return message
   }
 
   public sanitizeGenericCommand(message: string): string {
-    message = this.line.process(message)
-    message = this.dots.process(message)
+    message = lineSanitize(message)
+    message = dotSanitize(message)
     return message
   }
 
   public sanitizeDots(message: string): string {
-    return this.dots.process(message)
+    return dotSanitize(message)
   }
 }

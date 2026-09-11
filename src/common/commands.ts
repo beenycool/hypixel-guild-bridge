@@ -226,7 +226,7 @@ export function calculateSimilarityScore(query: string, target: string): number 
   return (1 - distance / maxLength) * lengthRatio
 }
 
-function calculateDamerauLevenshteinDistance(string1: string, string2: string): number {
+export function calculateDamerauLevenshteinDistance(string1: string, string2: string): number {
   const length1 = string1.length
   const length2 = string2.length
 
@@ -258,26 +258,4 @@ function calculateDamerauLevenshteinDistance(string1: string, string2: string): 
   }
 
   return matrix[length1][length2]
-}
-
-export function calculateLevenshteinDistance(string1: string, string2: string): number {
-  const matrix: number[][] = Array.from({ length: string2.length + 1 }, () =>
-    Array.from({ length: string1.length + 1 }, () => 0)
-  )
-
-  for (let index = 0; index <= string1.length; index++) matrix[0][index] = index
-  for (let index = 0; index <= string2.length; index++) matrix[index][0] = index
-
-  for (let index = 1; index <= string2.length; index++) {
-    for (let colIndex = 1; colIndex <= string1.length; colIndex++) {
-      const indicator = string1[colIndex - 1] === string2[index - 1] ? 0 : 1
-      matrix[index][colIndex] = Math.min(
-        matrix[index][colIndex - 1] + 1,
-        matrix[index - 1][colIndex] + 1,
-        matrix[index - 1][colIndex - 1] + indicator
-      )
-    }
-  }
-
-  return matrix[string2.length][string1.length]
 }

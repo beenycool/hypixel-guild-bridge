@@ -6,11 +6,11 @@ import {
 } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const JOIN_REQUEST_REGEX = /(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) has requested to join the Guild/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /(?:\[[+A-Za-z]{3,10}] ){0,3}(\w{3,32}) has requested to join the Guild/g
-
-    const match = regex.exec(context.message)
+    const match = JOIN_REQUEST_REGEX.exec(context.message)
     if (match != undefined) {
       context.logger.info(`[join-request] detected request from ${match[1]} | message: "${context.message}"`)
       const username = match[1]

@@ -154,6 +154,17 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       return
     }
 
+    if (focusedOption.name === 'username') {
+      const completedUsernames = await this.application.core.completeUsername(focusedOption.value, 25)
+      const response = completedUsernames.map((choice) => ({
+        name: choice,
+        value: choice
+      }))
+
+      await interaction.respond(response)
+      return
+    }
+
     if (command.autoComplete) {
       const context: DiscordAutoCompleteContext = {
         application: this.application,

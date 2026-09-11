@@ -161,18 +161,6 @@ export default {
       : context.interaction.editReply(
           `Inactivity notice for ${escapeMarkdown(profileName)} has been sent to the guild staff.`
         ))
-  },
-
-  autoComplete: async function (context) {
-    const option = context.interaction.options.getFocused(true)
-    if (option.name === 'username') {
-      const completedUsernames = await context.application.core.completeUsername(option.value, 25)
-      const response = completedUsernames.map((choice) => ({
-        name: choice,
-        value: choice
-      }))
-      await context.interaction.respond(response)
-    }
   }
 } satisfies DiscordCommandHandler
 

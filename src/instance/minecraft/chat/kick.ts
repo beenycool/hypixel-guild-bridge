@@ -1,12 +1,12 @@
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const GUILD_KICK_REGEX =
+  /^(?:\[[+A-Z]{1,10}] ){0,3}(\w{3,32}) was kicked from the guild by (?:\[[+A-Z]{1,10}] ){0,3}(\w{3,32})!$/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex =
-      /^(?:\[[+A-Z]{1,10}] ){0,3}(\w{3,32}) was kicked from the guild by (?:\[[+A-Z]{1,10}] ){0,3}(\w{3,32})!$/g
-
-    const match = regex.exec(context.message)
+    const match = GUILD_KICK_REGEX.exec(context.message)
     if (match != undefined) {
       const username = match[1]
       const responsibleUsername = match[2]

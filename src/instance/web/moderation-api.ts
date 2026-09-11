@@ -2,23 +2,10 @@ import type http from 'node:http'
 
 import { Permission } from '../../common/application-event.js'
 
-import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
+import { array, readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { BaseApiHandler } from './base-api.js'
 
 const ModerationPrefix = '/api/moderation'
-
-function array(s: unknown): string[] {
-  if (Array.isArray(s)) return s.map(String)
-  if (typeof s === 'string') {
-    try {
-      const p = JSON.parse(s) as unknown
-      return Array.isArray(p) ? p.map(String) : []
-    } catch {
-      return [s]
-    }
-  }
-  return []
-}
 
 export class ModerationApiHandler extends BaseApiHandler {
   public async handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean> {

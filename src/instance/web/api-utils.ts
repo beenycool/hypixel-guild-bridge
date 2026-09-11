@@ -19,6 +19,19 @@ export function sendMethodNotAllowed(response: http.ServerResponse): void {
   sendError(response, 'METHOD_NOT_ALLOWED', 'Method not allowed', 405)
 }
 
+export function array(s: unknown): string[] {
+  if (Array.isArray(s)) return s.map(String)
+  if (typeof s === 'string') {
+    try {
+      const p = JSON.parse(s) as unknown
+      return Array.isArray(p) ? p.map(String) : []
+    } catch {
+      return [s]
+    }
+  }
+  return []
+}
+
 export async function readBody(request: http.IncomingMessage): Promise<string> {
   request.setEncoding('utf8')
   return new Promise((resolve, reject) => {

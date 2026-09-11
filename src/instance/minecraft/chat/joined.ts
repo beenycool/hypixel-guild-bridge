@@ -3,11 +3,11 @@ import assert from 'node:assert'
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const JOINED_GUILD_REGEX = /^§aYou joined §6[\w\W]+§a!$/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^§aYou joined §6[\w\W]+§a!$/g
-
-    const match = regex.exec(context.rawMessage)
+    const match = JOINED_GUILD_REGEX.exec(context.rawMessage)
     if (match != undefined) {
       const name = context.clientInstance.username()
       const uuid = context.clientInstance.uuid()

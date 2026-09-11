@@ -88,6 +88,11 @@ export interface LunarClientConfig {
   cacheSeconds?: number
 }
 
+export interface AutoRestartConfig {
+  enabled: boolean
+  maxUptimeHours?: number
+}
+
 export interface ApplicationConfig {
   version: 2
   general: GeneralConfig
@@ -98,4 +103,5 @@ export interface ApplicationConfig {
   verification?: VerificationConfig
   guildRequirements?: GuildRequirementsConfig
   lunarClient?: LunarClientConfig
+  autoRestart?: AutoRestartConfig
 }

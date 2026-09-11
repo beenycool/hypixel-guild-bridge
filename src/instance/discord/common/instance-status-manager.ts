@@ -1,5 +1,5 @@
-import type { ButtonInteraction, MessageActionRowComponentData } from 'discord.js'
-import { ButtonStyle, ComponentType, escapeMarkdown, MessageFlags } from 'discord.js'
+import type { ButtonInteraction } from 'discord.js'
+import { escapeMarkdown, MessageFlags } from 'discord.js'
 
 import type Application from '../../../application'
 import { Permission } from '../../../common/application-event'
@@ -93,21 +93,5 @@ export class InstanceStatusManager {
         totalPages: Math.ceil(entries.length / InstanceStatusManager.EntriesPerPage)
       }
     })
-  }
-
-  public async send(): Promise<void> {
-    // Stub implementation for backwards compatibility
-  }
-
-  private generateButtons(): MessageActionRowComponentData[] {
-    return [
-      {
-        type: ComponentType.Button,
-        style: ButtonStyle.Primary,
-        customId: InstanceStatusManager.DetailsButtonId,
-        label: 'Show Details',
-        emoji: { name: '📑' }
-      }
-    ]
   }
 }

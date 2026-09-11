@@ -1,11 +1,11 @@
 import { Color, MinecraftReactiveEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const GUILD_MUTED_STATUS_REGEX = /^You're currently guild muted for ([dhms0-9\s]+)!/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^You're currently guild muted for ([dhms0-9\s]+)!/g
-
-    const match = regex.exec(context.message)
+    const match = GUILD_MUTED_STATUS_REGEX.exec(context.message)
     if (match != undefined) {
       const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const formattedDuration = match[1]

@@ -2,11 +2,11 @@ import { ChannelType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 import { getUuidFromGuildChat } from '../common/common'
 
+const PUBLIC_CHAT_REGEX = /^Guild > (?:\[([+A-Z]{1,10})] ){0,3}(\w{3,32})(?: \[(\w{1,10})]){0,3}:(.{1,256})/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^Guild > (?:\[([+A-Z]{1,10})] ){0,3}(\w{3,32})(?: \[(\w{1,10})]){0,3}:(.{1,256})/g
-
-    const match = regex.exec(context.message)
+    const match = PUBLIC_CHAT_REGEX.exec(context.message)
     if (match != undefined) {
       const hypixelRank = match[1]
       const username = match[2]

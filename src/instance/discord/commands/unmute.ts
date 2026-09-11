@@ -39,16 +39,5 @@ export default {
     )
     const formatted = formatChatTriggerResponse(result, `Unmute ${escapeMarkdown(username)}`)
     await context.interaction.editReply({ embeds: [formatted] })
-  },
-  autoComplete: async function (context) {
-    const option = context.interaction.options.getFocused(true)
-    if (option.name === 'username') {
-      const completedUsernames = await context.application.core.completeUsername(option.value, 25)
-      const response = completedUsernames.map((choice) => ({
-        name: choice,
-        value: choice
-      }))
-      await context.interaction.respond(response)
-    }
   }
 } satisfies DiscordCommandHandler

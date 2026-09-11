@@ -3,11 +3,11 @@ import assert from 'node:assert'
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const GUILD_UNMUTE_REGEX = /^You have been unmuted!/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^You have been unmuted!/g
-
-    const match = regex.exec(context.message)
+    const match = GUILD_UNMUTE_REGEX.exec(context.message)
     if (match != undefined) {
       const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const username = context.clientInstance.username()

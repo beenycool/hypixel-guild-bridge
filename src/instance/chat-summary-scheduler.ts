@@ -1,22 +1,11 @@
-import axios from 'axios'
 import type { TextChannel } from 'discord.js'
 
 import type Application from '../application.js'
 import { InstanceType } from '../common/application-event.js'
 import { Instance } from '../common/instance.js'
 import Duration from '../utility/duration.js'
+import { OpenRouterClient } from '../utility/openrouter-client.js'
 import { setIntervalAsync } from '../utility/scheduling.js'
-
-/* eslint-disable @typescript-eslint/naming-convention */
-interface ChatCompletionResponse {
-  choices?: { message?: { content?: string } }[]
-  usage?: {
-    prompt_tokens?: number
-    completion_tokens?: number
-    cost?: number
-  }
-}
-/* eslint-enable @typescript-eslint/naming-convention */
 
 export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
   private started = false
@@ -180,33 +169,18 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
 
         const userContent = `Here are the chat logs from today:\n\n${logsText}`
 
-        this.logger.info(`Sending request to OpenRouter using model: ${model}`)
-        const response = await axios.post<ChatCompletionResponse>(
-          'https://ai.hackclub.com/proxy/v1/chat/completions',
-          {
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userContent }
-            ],
-            temperature: 0.7,
-            reasoning: { effort: 'high' }
-          },
-          {
-            /* eslint-disable @typescript-eslint/naming-convention */
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            /* eslint-enable @typescript-eslint/naming-convention */
-            timeout: 60_000
-          }
-        )
-
-        const summaryText = response.data.choices?.[0]?.message?.content
-        if (typeof summaryText !== 'string' || summaryText.length === 0) {
-          throw new Error('Invalid OpenRouter response: empty summary')
-        }
+        this.logger.info(`Sending request to AI proxy (HackClub) using model: ${model}`)
+        const openRouterClient = new OpenRouterClient(apiKey, {
+          baseUrl: 'https://ai.hackclub.com/proxy/v1/chat/completions',
+          timeoutMs: 60_000
+        })
+        const { content: summaryText } = await openRouterClient.chatCompletion({
+          model,
+          systemPrompt,
+          userPrompt: userContent,
+          temperature: 0.7,
+          reasoningEffort: 'high'
+        })
 
         const client = this.application.discordInstance.getClient()
         const chunks = this.splitMessage(summaryText)
@@ -218,11 +192,6 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
               await (channel as TextChannel).send({ content: chunk })
             }
             this.logger.info(`Successfully posted chat summary to channel ${channelId}`)
-            const usage = response.data.usage
-            if (usage) {
-              const footer = `-# Input: ${usage.prompt_tokens ?? '?'} · Output: ${usage.completion_tokens ?? '?'} · Cost: $${(usage.cost ?? 0).toFixed(6)} · Model: ${model}`
-              await (channel as TextChannel).send({ content: footer })
-            }
           } else {
             this.logger.warn(`Channel ${channelId} not found or is not a valid text channel.`)
           }

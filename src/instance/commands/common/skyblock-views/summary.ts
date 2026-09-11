@@ -7,18 +7,7 @@ import { formatNumber } from '../../../../common/helper-functions.js'
 import { getLevelByXp, getSkillAverage } from '../skills.js'
 
 import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
-
-const SlayerTypes = ['zombie', 'spider', 'wolf', 'enderman', 'blaze', 'vampire'] as const
-type SlayerType = (typeof SlayerTypes)[number]
-
-const SlayerXpTable: Record<SlayerType, number[]> = {
-  zombie: [5, 15, 200, 1000, 5000, 20_000, 100_000, 400_000, 1_000_000],
-  spider: [5, 25, 200, 1000, 5000, 20_000, 100_000, 400_000, 1_000_000],
-  wolf: [5, 30, 250, 1500, 5000, 20_000, 100_000, 400_000, 1_000_000],
-  enderman: [10, 30, 250, 1500, 5000, 20_000, 100_000, 400_000, 1_000_000],
-  blaze: [10, 30, 250, 1500, 5000, 20_000, 100_000, 400_000, 1_000_000],
-  vampire: [20, 75, 240, 840, 2400]
-}
+import { getSlayerLevel, SlayerTypes } from './slayer.js'
 
 const HotmXpTable = [0, 0, 3000, 9000, 25_000, 60_000, 100_000, 150_000, 210_000, 290_000, 400_000]
 
@@ -96,17 +85,6 @@ function formatSlayerSummary(slayerBosses: Record<string, { xp?: number }>): str
   })
 
   return entries.join(', ')
-}
-
-function getSlayerLevel(type: SlayerType, xp: number): number {
-  const table = SlayerXpTable[type]
-  let level = 0
-
-  for (const [index, element] of table.entries()) {
-    if (xp >= element) level = index + 1
-  }
-
-  return level
 }
 
 function formatClassAverage(classes: Record<string, { experience?: number }>): number {

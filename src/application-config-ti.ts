@@ -90,6 +90,11 @@ export const LunarClientConfig = t.iface([], {
   "cacheSeconds": t.opt("number"),
 });
 
+export const AutoRestartConfig = t.iface([], {
+  "enabled": "boolean",
+  "maxUptimeHours": t.opt("number"),
+});
+
 export const ApplicationConfig = t.iface([], {
   "version": t.lit(2),
   "general": "GeneralConfig",
@@ -100,6 +105,7 @@ export const ApplicationConfig = t.iface([], {
   "verification": t.opt("VerificationConfig"),
   "guildRequirements": t.opt("GuildRequirementsConfig"),
   "lunarClient": t.opt("LunarClientConfig"),
+  "autoRestart": t.opt("AutoRestartConfig"),
 });
 
 const exportedTypeSuite: t.ITypeSuite = {
@@ -115,6 +121,7 @@ const exportedTypeSuite: t.ITypeSuite = {
   GuildRequirementsConfig,
   InterviewConfig,
   LunarClientConfig,
+  AutoRestartConfig,
   ApplicationConfig,
 };
 export default exportedTypeSuite;

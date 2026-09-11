@@ -1,11 +1,11 @@
 import { Color, MinecraftReactiveEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const BLOCKED_COMMENT_REGEX = /^We blocked your comment "[\W\w]+" because/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^We blocked your comment "[\W\w]+" because/g
-
-    const match = regex.exec(context.message)
+    const match = BLOCKED_COMMENT_REGEX.exec(context.message)
     if (match != undefined) {
       const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const originEventId = context.clientInstance.getLastEventIdForSentChatMessage()

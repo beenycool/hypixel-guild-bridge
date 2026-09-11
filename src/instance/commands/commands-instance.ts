@@ -75,6 +75,7 @@ import Woolwars from './triggers/woolwars.js'
 
 export class CommandsInstance extends ConnectableInstance<InstanceType.Commands> {
   public readonly commands: ChatCommandHandler[]
+  private readonly apiCache = new CommandApiCache()
   private readonly typoSuggestionCooldowns = new Map<string, number>()
   private readonly cooldownCleanupInterval: NodeJS.Timeout
   private readonly commandDeduplicationCache = new Map<string, number>()
@@ -278,7 +279,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
       const commandResponse = await command.handler({
         app: this.application,
 
-        apiCache: new CommandApiCache(),
+        apiCache: this.apiCache,
 
         eventHelper: this.eventHelper,
         logger: this.logger,

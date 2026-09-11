@@ -114,19 +114,55 @@ const HealthServer = http.createServer((request, response) => {
     }
     const proxyPort = pathname === '/metrics' || pathname === '/ping' ? PrometheusPort : InternalPort
 
+    let proxyResponse: http.IncomingMessage | undefined
+
     const proxy = http.request(
       { hostname: '127.0.0.1', port: proxyPort, path: url, method: request.method, headers: request.headers },
-      (proxyResponse) => {
-        response.writeHead(proxyResponse.statusCode ?? 200, proxyResponse.headers)
+      (res) => {
+        proxyResponse = res
+        if (!response.headersSent) {
+          response.writeHead(proxyResponse.statusCode ?? 200, proxyResponse.headers)
+        }
         proxyResponse.pipe(response, { end: true })
+        proxyResponse.on('error', () => {
+          if (!proxy.destroyed) proxy.destroy()
+          if (!response.writableEnded) response.end()
+        })
       }
     )
+
+    const abortProxy = (): void => {
+      // ClientRequest.destroy() is idempotent, so double-destroy is a safe no-op.
+      if (!proxy.destroyed) proxy.destroy()
+    }
+
+    // If the incoming client aborts (or errors), tear down the outgoing
+    // socket instead of leaving it orphaned.
+    request.on('error', abortProxy)
+    request.on('close', () => {
+      // `request.complete` is false when the client aborted before sending
+      // the full body. `response.writableEnded` is false when the downstream
+      // never finished. Either case means the upstream is no longer needed.
+      if (!request.complete || !response.writableEnded) abortProxy()
+    })
+    response.on('error', abortProxy)
+    response.on('close', () => {
+      // Fires on both normal completion and client abort. Only destroy when
+      // the upstream response never completed and the downstream never finished.
+      if (!response.writableEnded && (proxyResponse === undefined || !proxyResponse.complete)) {
+        abortProxy()
+      }
+    })
 
     proxy.on('error', (error) => {
       // eslint-disable-next-line no-restricted-syntax
       console.error('Proxy error:', error)
-      response.writeHead(502)
-      response.end('Bad gateway')
+      if (!response.headersSent) {
+        response.writeHead(502)
+      }
+      if (!response.writableEnded) {
+        response.end('Bad gateway')
+      }
     })
 
     request.pipe(proxy, { end: true })
@@ -154,12 +190,32 @@ HealthServer.on('upgrade', (request, socket, head) => {
     headers: request.headers
   })
 
+  let upgradeSocket: import('node:net').Socket | undefined
+  const abortUpgradeProxy = (): void => {
+    // destroy() is idempotent, so double-destroy from close+error is a safe no-op.
+    if (!proxy.destroyed) proxy.destroy()
+    if (upgradeSocket !== undefined && !upgradeSocket.destroyed) upgradeSocket.destroy()
+  }
+  // If the incoming client goes away before/during upgrade, don't leave the
+  // outgoing request (or its socket) orphaned.
+  socket.on('error', abortUpgradeProxy)
+  socket.on('close', abortUpgradeProxy)
+
   proxy.on('upgrade', (proxyResponse, proxySocket) => {
+    upgradeSocket = proxySocket
     proxySocket.write(head)
     proxySocket.pipe(socket).pipe(proxySocket)
+    proxySocket.on('error', () => {
+      if (!socket.destroyed) socket.destroy()
+    })
+    proxySocket.on('close', () => {
+      if (!socket.destroyed) socket.destroy()
+    })
   })
 
-  proxy.on('error', () => socket.destroy())
+  proxy.on('error', () => {
+    if (!socket.destroyed) socket.destroy()
+  })
   proxy.end()
 })
 

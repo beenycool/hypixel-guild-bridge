@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 
 import type { ChatCommandContext } from '../../../../common/commands.js'
-import { calculateLevenshteinDistance } from '../../../../common/commands.js'
+import { calculateDamerauLevenshteinDistance } from '../../../../common/commands.js'
 import { search } from '../../../../utility/shared-utility.js'
 
 import { type SelectedSkyblockProfile, type SkyblockView } from './types.js'
@@ -37,7 +37,7 @@ export const collectionView: SkyblockView = {
         .toArray()
         .map((key) => ({
           key,
-          distance: calculateLevenshteinDistance(query.toLowerCase(), key.toLowerCase())
+          distance: calculateDamerauLevenshteinDistance(query.toLowerCase(), key.toLowerCase())
         }))
         .filter((s) => s.distance <= 2)
         .toSorted((a, b) => a.distance - b.distance)

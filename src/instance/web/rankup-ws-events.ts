@@ -54,10 +54,6 @@ export class RankupWsEvents {
     this.subscribers.delete(socket)
   }
 
-  public tick(): number {
-    return 0
-  }
-
   public start(): void {
     this.subscribers.clear()
   }

@@ -1,11 +1,11 @@
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const RANK_GIFT_REGEX = /^Guild > (?:|\[[\w+]+\] )(\w{2,16}) gifted the [\w+]+ rank to (\w{2,16})/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^Guild > (?:|\[[\w+]+\] )(\w{2,16}) gifted the [\w+]+ rank to (\w{2,16})/g
-
-    const match = regex.exec(context.message)
+    const match = RANK_GIFT_REGEX.exec(context.message)
     if (match != undefined) {
       const responsible = match[1]
       const target = match[2]

@@ -16,7 +16,6 @@ async function syncSequences(databaseManager: DatabaseManager): Promise<void> {
   const tables = [
     'guildMemberStates',
     'instanceStatusHistory',
-    'instanceMessageHistory',
     'rankupPendingReviews',
     'rankupHistory',
     'statMonitors',

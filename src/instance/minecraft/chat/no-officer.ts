@@ -1,11 +1,11 @@
 import { Color, MinecraftReactiveEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const NO_OFFICER_REGEX = /^You don't have access to the officer chat!/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^You don't have access to the officer chat!/g
-
-    const match = regex.exec(context.message)
+    const match = NO_OFFICER_REGEX.exec(context.message)
     if (match != undefined) {
       const originEventId = context.clientInstance.getLastEventIdForSentChatMessage()
       if (originEventId === undefined) {

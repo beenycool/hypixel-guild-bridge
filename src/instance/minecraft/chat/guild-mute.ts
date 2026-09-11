@@ -3,12 +3,12 @@ import assert from 'node:assert'
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const GUILD_MUTE_REGEX =
+  /^You have been guild muted for (?<duration>[dhms0-9\s]+) by (?<rank>\[[+A-Z]{1,10}] )?(?<responsible>\w{3,32})/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex =
-      /^You have been guild muted for (?<duration>[dhms0-9\s]+) by (?<rank>\[[+A-Z]{1,10}] )?(?<responsible>\w{3,32})/g
-
-    const match = regex.exec(context.message)
+    const match = GUILD_MUTE_REGEX.exec(context.message)
     if (match != undefined) {
       assert.ok(match.groups)
       const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)

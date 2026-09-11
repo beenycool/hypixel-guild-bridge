@@ -283,7 +283,24 @@ export default class GuildOnlineMetrics {
       )
       const existingByUuid = new Map(existingRows.map((row) => [row.memberUuid, row]))
 
-      const writes: Promise<unknown>[] = []
+      if (guild.members.length === 0) continue
+
+      const columns =
+        '"instanceName", "memberUuid", "memberName", "rank", "joinedAt", "lastSeenAt", "weeklyGexp", "dailyGexp", "online", "updatedAt"'
+      const conflictUpdate = `ON CONFLICT ("instanceName", "memberUuid") DO UPDATE SET
+              "memberName" = EXCLUDED."memberName",
+              "rank" = EXCLUDED."rank",
+              "joinedAt" = EXCLUDED."joinedAt",
+              "lastSeenAt" = EXCLUDED."lastSeenAt",
+              "weeklyGexp" = EXCLUDED."weeklyGexp",
+              "dailyGexp" = EXCLUDED."dailyGexp",
+              "online" = EXCLUDED."online",
+              "updatedAt" = EXCLUDED."updatedAt"`
+      // 9 params per row; 50 rows => 450 params, well below Postgres 65535 limit
+      const batchSize = 50
+      const paramsPerRow = 9
+
+      const batchValues: unknown[][] = []
       for (const member of guild.members) {
         const sortedHistory = member.expHistory.toSorted((a, b) => b.date.getTime() - a.date.getTime())
         const online = onlineUuids.has(member.uuid)
@@ -292,31 +309,39 @@ export default class GuildOnlineMetrics {
         const profile = await this.app.mojangApi.profileByUuid(member.uuid).catch(() => undefined)
         const memberName = profile?.name ?? member.uuid
 
+        batchValues.push([
+          instanceName,
+          member.uuid,
+          memberName,
+          member.rank,
+          member.joinedAtTimestamp,
+          lastSeenAt,
+          member.weeklyExperience,
+          sortedHistory[0]?.exp ?? 0,
+          online ? 1 : 0
+        ])
+      }
+
+      if (batchValues.length === 0) continue
+
+      const writes: Promise<unknown>[] = []
+      for (let offset = 0; offset < batchValues.length; offset += batchSize) {
+        const chunk = batchValues.slice(offset, offset + batchSize)
+        const placeholders = chunk
+          .map(
+            (_, rowIndex) => {
+              const base = rowIndex * paramsPerRow + 1
+              const rowParams = Array.from({ length: paramsPerRow }, (_, i) => `$${base + i}`).join(', ')
+              return `(${rowParams}, CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER))`
+            }
+          )
+          .join(', ')
+        const values = chunk.flat()
+
         writes.push(
           this.app.core.databaseManager.execute(
-            `INSERT INTO "guildMemberStates" (
-              "instanceName", "memberUuid", "memberName", "rank", "joinedAt", "lastSeenAt", "weeklyGexp", "dailyGexp", "online", "updatedAt"
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CAST(EXTRACT(EPOCH FROM NOW()) AS INTEGER))
-            ON CONFLICT ("instanceName", "memberUuid") DO UPDATE SET
-              "memberName" = EXCLUDED."memberName",
-              "rank" = EXCLUDED."rank",
-              "joinedAt" = EXCLUDED."joinedAt",
-              "lastSeenAt" = EXCLUDED."lastSeenAt",
-              "weeklyGexp" = EXCLUDED."weeklyGexp",
-              "dailyGexp" = EXCLUDED."dailyGexp",
-              "online" = EXCLUDED."online",
-              "updatedAt" = EXCLUDED."updatedAt"`,
-            [
-              instanceName,
-              member.uuid,
-              memberName,
-              member.rank,
-              member.joinedAtTimestamp,
-              lastSeenAt,
-              member.weeklyExperience,
-              sortedHistory[0]?.exp ?? 0,
-              online ? 1 : 0
-            ]
+            `INSERT INTO "guildMemberStates" (${columns}) VALUES ${placeholders} ${conflictUpdate}`,
+            values
           )
         )
       }

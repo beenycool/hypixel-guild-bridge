@@ -1,11 +1,11 @@
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const DEMOTE_REGEX = /^(?:\[[+A-Z]{1,10}] )*(\w{3,32}) was demoted from /
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^(?:\[[+A-Z]{1,10}] )*(\w{3,32}) was demoted from /g
-
-    const match = regex.exec(context.message)
+    const match = DEMOTE_REGEX.exec(context.message)
     if (match != undefined) {
       const username = match[1]
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)

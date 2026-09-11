@@ -1,5 +1,6 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { evaluate } from 'mathjs'
 
 function formatResult(value: number): string {
   if (Number.isNaN(value)) return 'NaN'
@@ -34,8 +35,7 @@ export default class Calculate extends ChatCommandHandler {
       .replaceAll('%', '*0.01')
 
     try {
-      const mathjs = await import('mathjs')
-      const result = mathjs.evaluate(expression) as unknown
+      const result = evaluate(expression) as unknown
       if (typeof result !== 'number') {
         return `${context.username}, invalid math expression`
       }

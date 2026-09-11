@@ -1,13 +1,13 @@
 import { Color, MinecraftReactiveEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const MUTE_EXPIRE_REGEX = /^Your mute will expire in/
+
 let lastWarning = 0
 
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex = /^Your mute will expire in/g
-
-    const match = regex.exec(context.message)
+    const match = MUTE_EXPIRE_REGEX.exec(context.message)
     if (match != undefined && lastWarning + 300_000 < Date.now()) {
       const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const originEventId = context.clientInstance.getLastEventIdForSentChatMessage()

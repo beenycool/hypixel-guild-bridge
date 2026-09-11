@@ -1,12 +1,12 @@
 import { ChannelType, Color, GuildPlayerEventType } from '../../../common/application-event.js'
 import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-interface.js'
 
+const UNMUTE_REGEX =
+  /^(?:\[[+A-Z]{1,10}] ){0,3}(\w{3,32}) has unmuted (?:\[[+A-Z]{1,10}] ){0,3}(the guild chat!|\w{3,32})/
+
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
-    const regex =
-      /^(?:\[[+A-Z]{1,10}] ){0,3}(\w{3,32}) has unmuted (?:\[[+A-Z]{1,10}] ){0,3}(the guild chat!|\w{3,32})/g
-
-    const match = regex.exec(context.message)
+    const match = UNMUTE_REGEX.exec(context.message)
     if (match != undefined) {
       const responsible = match[1]
       const target = match[2]

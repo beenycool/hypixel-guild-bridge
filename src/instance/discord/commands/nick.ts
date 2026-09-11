@@ -1,186 +1,216 @@
-/* eslint-disable prefer-const, unicorn/no-null, prettier/prettier, unicorn/explicit-length-check, unicorn/prevent-abbreviations, unicorn/prefer-includes, @typescript-eslint/prefer-includes */
-
 import { SlashCommandBuilder } from 'discord.js'
 
 import { Permission } from '../../../common/application-event.js'
 import type { DiscordCommandHandler } from '../../../common/commands.js'
 import { formatRankPrefix, normalizePlayerRank, PLAYER_RANKS } from '../common/rank-format.js'
 
-const NREG = /^[a-zA-Z0-9_]{1,16}$/
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]{1,16}$/
 
 export default {
   getCommandBuilder: () =>
     new SlashCommandBuilder()
       .setName('nick')
       .setDescription('Set a custom name for rendered chat images / Discord messages')
-      .addStringOption((o) =>
-        o.setName('name').setDescription('Custom Minecraft username. Leave empty to clear.').setRequired(false).setMaxLength(16)
+      .addStringOption((option) =>
+        option
+          .setName('name')
+          .setDescription('Custom Minecraft username. Leave empty to clear.')
+          .setRequired(false)
+          .setMaxLength(16)
       )
-      .addStringOption((o) =>
-        o
+      .addStringOption((option) =>
+        option
           .setName('player')
           .setDescription('Minecraft player whose name to override. Leave empty for the bot itself.')
           .setRequired(false)
           .setAutocomplete(true)
       )
-      .addStringOption((o) =>
-        o.setName('rank').setDescription('Hypixel rank to spoof. Use "none" to clear.').setRequired(false).setAutocomplete(true)
+      .addStringOption((option) =>
+        option
+          .setName('rank')
+          .setDescription('Hypixel rank to spoof. Use "none" to clear.')
+          .setRequired(false)
+          .setAutocomplete(true)
       ),
 
   permission: Permission.Helper,
 
-  handler: async function (ctx) {
-    const ix = ctx.interaction
-    if (ctx.bridgeId == undefined) {
-      await ix.reply({ content: 'This command must be used in a configured bridge channel.', ephemeral: true })
+  handler: async function (context) {
+    const interaction = context.interaction
+    if (context.bridgeId === undefined) {
+      await interaction.reply({ content: 'This command must be used in a configured bridge channel.', ephemeral: true })
       return
     }
+    const bridgeId = context.bridgeId
 
-    let name = ix.options.getString('name')
-    let player = ix.options.getString('player')
-    let rank = ix.options.getString('rank')
-    const cfg = ctx.application.core.bridgeConfigurations
+    const customName = interaction.options.getString('name')
+    const targetPlayer = interaction.options.getString('player')
+    const rankOption = interaction.options.getString('rank')
+    const bridgeConfigurations = context.application.core.bridgeConfigurations
 
-    if (player != null && player.trim().length > 0) {
-      const pname = player.trim()
-      if (!NREG.test(pname)) {
-        await ix.reply({
+    if (targetPlayer !== null && targetPlayer.trim().length > 0) {
+      const targetPlayerName = targetPlayer.trim()
+      if (!USERNAME_PATTERN.test(targetPlayerName)) {
+        await interaction.reply({
           content: 'Invalid player name. Must be 1-16 characters: letters, numbers, or underscores.',
           ephemeral: true
         })
         return
       }
 
-      const out: string[] = []
+      const responseMessages: string[] = []
 
-      if (name != null) {
-        if (name.trim() == '') {
-          const ex = cfg.getPlayerUsernameOverride(ctx.bridgeId, pname)
-          if (ex == undefined) out.push('No custom name is set for `' + pname + '`. They use their real Minecraft username.')
-          else {
-            cfg.setPlayerUsernameOverride(ctx.bridgeId, pname, undefined)
-            out.push('Cleared custom name for `' + pname + '`. They now use their real Minecraft username.')
+      if (customName !== null) {
+        if (customName.trim().length === 0) {
+          const existingUsernameOverride = bridgeConfigurations.getPlayerUsernameOverride(bridgeId, targetPlayerName)
+          if (existingUsernameOverride === undefined) {
+            responseMessages.push(
+              `No custom name is set for \`${targetPlayerName}\`. They use their real Minecraft username.`
+            )
+          } else {
+            bridgeConfigurations.setPlayerUsernameOverride(bridgeId, targetPlayerName, undefined)
+            responseMessages.push(
+              `Cleared custom name for \`${targetPlayerName}\`. They now use their real Minecraft username.`
+            )
           }
         } else {
-          const t = name.trim()
-          if (!NREG.test(t)) {
-            await ix.reply({ content: 'Invalid name. Must be 1-16 characters.', ephemeral: true })
+          const trimmedCustomName = customName.trim()
+          if (!USERNAME_PATTERN.test(trimmedCustomName)) {
+            await interaction.reply({ content: 'Invalid name. Must be 1-16 characters.', ephemeral: true })
             return
           }
-          cfg.setPlayerUsernameOverride(ctx.bridgeId, pname, t)
-          out.push('Set custom name for `' + pname + '` to `' + t + '`. Their messages will show as `' + t + '` in Discord.')
+          bridgeConfigurations.setPlayerUsernameOverride(bridgeId, targetPlayerName, trimmedCustomName)
+          responseMessages.push(
+            `Set custom name for \`${targetPlayerName}\` to \`${trimmedCustomName}\`. Their messages will show as \`${trimmedCustomName}\` in Discord.`
+          )
         }
       }
 
-      if (rank != null) {
-        const norm = normalizePlayerRank(rank)
-        if (rank.trim().length > 0 && norm == undefined) {
-          await ix.reply({
-            content: 'Invalid rank. Must be one of: ' + PLAYER_RANKS.join(', ') + ', or "none" to clear.',
+      if (rankOption !== null) {
+        const normalizedRank = normalizePlayerRank(rankOption)
+        if (rankOption.trim().length > 0 && normalizedRank === undefined) {
+          await interaction.reply({
+            content: `Invalid rank. Must be one of: ${PLAYER_RANKS.join(', ')}, or "none" to clear.`,
             ephemeral: true
           })
           return
         }
-        if (norm == undefined || norm == 'Default') {
-          const ex = cfg.getPlayerRankOverride(ctx.bridgeId, pname)
-          if (ex == undefined) out.push('No custom rank is set for `' + pname + '`. They use their real Hypixel rank.')
-          else {
-            cfg.setPlayerRankOverride(ctx.bridgeId, pname, undefined)
-            out.push('Cleared custom rank for `' + pname + '`. They now use their real Hypixel rank.')
+        if (normalizedRank === undefined || normalizedRank === 'Default') {
+          const existingRankOverride = bridgeConfigurations.getPlayerRankOverride(bridgeId, targetPlayerName)
+          if (existingRankOverride === undefined) {
+            responseMessages.push(
+              `No custom rank is set for \`${targetPlayerName}\`. They use their real Hypixel rank.`
+            )
+          } else {
+            bridgeConfigurations.setPlayerRankOverride(bridgeId, targetPlayerName, undefined)
+            responseMessages.push(
+              `Cleared custom rank for \`${targetPlayerName}\`. They now use their real Hypixel rank.`
+            )
           }
         } else {
-          cfg.setPlayerRankOverride(ctx.bridgeId, pname, norm)
-          const disp = formatRankPrefix(norm) || norm
-          out.push('Set custom rank for `' + pname + '` to `' + disp + '`.')
+          bridgeConfigurations.setPlayerRankOverride(bridgeId, targetPlayerName, normalizedRank)
+          const displayRank = formatRankPrefix(normalizedRank) || normalizedRank
+          responseMessages.push(`Set custom rank for \`${targetPlayerName}\` to \`${displayRank}\`.`)
         }
       }
 
-      if (out.length == 0) {
-        const cn = cfg.getPlayerUsernameOverride(ctx.bridgeId, pname)
-        const cr = cfg.getPlayerRankOverride(ctx.bridgeId, pname)
-        const np: string = cn == undefined ? 'real username' : '`' + cn + '`'
-        const rp: string = cr == undefined ? 'real rank' : '`' + (formatRankPrefix(cr) || cr) + '`'
-        await ix.reply({
-          content: 'Current nicks for `' + pname + '`: name = ' + np + ', rank = ' + rp + '. Provide `name` and/or `rank` to change.',
+      if (responseMessages.length === 0) {
+        const currentUsername = bridgeConfigurations.getPlayerUsernameOverride(bridgeId, targetPlayerName)
+        const currentRank = bridgeConfigurations.getPlayerRankOverride(bridgeId, targetPlayerName)
+        const usernameDisplay: string = currentUsername === undefined ? 'real username' : `\`${currentUsername}\``
+        const rankDisplay: string =
+          currentRank === undefined ? 'real rank' : `\`${formatRankPrefix(currentRank) || currentRank}\``
+        await interaction.reply({
+          content: `Current nicks for \`${targetPlayerName}\`: name = ${usernameDisplay}, rank = ${rankDisplay}. Provide \`name\` and/or \`rank\` to change.`,
           ephemeral: true
         })
         return
       }
-      await ix.reply({ content: out.join('\n'), ephemeral: true })
+      await interaction.reply({ content: responseMessages.join('\n'), ephemeral: true })
       return
     }
 
-    const out: string[] = []
+    const responseMessages: string[] = []
 
-    if (name != null) {
-      if (name.trim() == '') {
-        const cur = cfg.getBotUsernameOverride(ctx.bridgeId)
-        if (cur == undefined) out.push('No custom nick is set. The bot uses its real Minecraft username.')
-        else {
-          cfg.setBotUsernameOverride(ctx.bridgeId, undefined)
-          out.push('Cleared custom nick. The bot now uses its real Minecraft username.')
+    if (customName !== null) {
+      if (customName.trim().length === 0) {
+        const currentBotUsername = bridgeConfigurations.getBotUsernameOverride(bridgeId)
+        if (currentBotUsername === undefined) {
+          responseMessages.push('No custom nick is set. The bot uses its real Minecraft username.')
+        } else {
+          bridgeConfigurations.setBotUsernameOverride(bridgeId, undefined)
+          responseMessages.push('Cleared custom nick. The bot now uses its real Minecraft username.')
         }
       } else {
-        const t = name.trim()
-        if (!NREG.test(t)) {
-          await ix.reply({ content: 'Invalid name. Must be 1-16 characters.', ephemeral: true })
+        const trimmedCustomName = customName.trim()
+        if (!USERNAME_PATTERN.test(trimmedCustomName)) {
+          await interaction.reply({ content: 'Invalid name. Must be 1-16 characters.', ephemeral: true })
           return
         }
-        const bots = ctx.application.minecraftManager.getMinecraftBots()
-        const bb = bots.filter((b) => ctx.application.bridgeResolver.shouldProcessEvent(ctx.bridgeId, b.instanceName))
-        const real: string = bb.length > 0 ? bb[0]?.username ?? 'unknown' : 'unknown'
-        cfg.setBotUsernameOverride(ctx.bridgeId, t)
-        out.push('Set custom nick to `' + t + '`. Rendered chat images will show `' + t + '` instead of `' + real + '`.')
+        const minecraftBots = context.application.minecraftManager.getMinecraftBots()
+        const bridgeBot = minecraftBots.find((bot) =>
+          context.application.bridgeResolver.shouldProcessEvent(bridgeId, bot.instanceName)
+        )
+        const realUsername: string = bridgeBot?.username ?? 'unknown'
+        bridgeConfigurations.setBotUsernameOverride(bridgeId, trimmedCustomName)
+        responseMessages.push(
+          `Set custom nick to \`${trimmedCustomName}\`. Rendered chat images will show \`${trimmedCustomName}\` instead of \`${realUsername}\`.`
+        )
       }
     }
 
-    if (rank != null) {
-      const norm = normalizePlayerRank(rank)
-      if (rank.trim().length > 0 && norm == undefined) {
-        await ix.reply({
-          content: 'Invalid rank. Must be one of: ' + PLAYER_RANKS.join(', ') + ', or "none" to clear.',
+    if (rankOption !== null) {
+      const normalizedRank = normalizePlayerRank(rankOption)
+      if (rankOption.trim().length > 0 && normalizedRank === undefined) {
+        await interaction.reply({
+          content: `Invalid rank. Must be one of: ${PLAYER_RANKS.join(', ')}, or "none" to clear.`,
           ephemeral: true
         })
         return
       }
-      if (norm == undefined || norm == 'Default') {
-        const ex = cfg.getBotRankOverride(ctx.bridgeId)
-        if (ex == undefined) out.push('No custom rank is set. The bot uses its real Hypixel rank.')
-        else {
-          cfg.setBotRankOverride(ctx.bridgeId, undefined)
-          out.push('Cleared custom rank. The bot now uses its real Hypixel rank.')
+      if (normalizedRank === undefined || normalizedRank === 'Default') {
+        const existingBotRank = bridgeConfigurations.getBotRankOverride(bridgeId)
+        if (existingBotRank === undefined) {
+          responseMessages.push('No custom rank is set. The bot uses its real Hypixel rank.')
+        } else {
+          bridgeConfigurations.setBotRankOverride(bridgeId, undefined)
+          responseMessages.push('Cleared custom rank. The bot now uses its real Hypixel rank.')
         }
       } else {
-        cfg.setBotRankOverride(ctx.bridgeId, norm)
-        const disp = formatRankPrefix(norm) || norm
-        out.push('Set custom rank to `' + disp + '`.')
+        bridgeConfigurations.setBotRankOverride(bridgeId, normalizedRank)
+        const displayRank = formatRankPrefix(normalizedRank) || normalizedRank
+        responseMessages.push(`Set custom rank to \`${displayRank}\`.`)
       }
     }
 
-    if (out.length == 0) {
-      const cn = cfg.getBotUsernameOverride(ctx.bridgeId)
-      const cr = cfg.getBotRankOverride(ctx.bridgeId)
-      const np: string = cn == undefined ? 'real username' : '`' + cn + '`'
-      const rp: string = cr == undefined ? 'real rank' : '`' + (formatRankPrefix(cr) || cr) + '`'
-      await ix.reply({
-        content: 'Current bot nicks: name = ' + np + ', rank = ' + rp + '. Provide `name` and/or `rank` to change.',
+    if (responseMessages.length === 0) {
+      const currentBotUsername = bridgeConfigurations.getBotUsernameOverride(bridgeId)
+      const currentBotRank = bridgeConfigurations.getBotRankOverride(bridgeId)
+      const usernameDisplay: string = currentBotUsername === undefined ? 'real username' : `\`${currentBotUsername}\``
+      const rankDisplay: string =
+        currentBotRank === undefined ? 'real rank' : `\`${formatRankPrefix(currentBotRank) || currentBotRank}\``
+      await interaction.reply({
+        content: `Current bot nicks: name = ${usernameDisplay}, rank = ${rankDisplay}. Provide \`name\` and/or \`rank\` to change.`,
         ephemeral: true
       })
       return
     }
-    await ix.reply({ content: out.join('\n'), ephemeral: true })
+    await interaction.reply({ content: responseMessages.join('\n'), ephemeral: true })
   },
 
-  autoComplete: async function (ctx) {
-    const opt = ctx.interaction.options.getFocused(true)
-    if (opt.name == 'player') {
-      const u: string[] = await ctx.application.core.completeUsername(opt.value, 25)
-      await ctx.interaction.respond(u.map((c) => ({ name: c, value: c })))
-    } else if (opt.name == 'rank') {
-      const q = opt.value.toLowerCase()
-      const base: string[] = [...PLAYER_RANKS as readonly string[], 'none']
-      const m: string[] = q.length == 0 ? base : base.filter((r) => r.toLowerCase().indexOf(q) >= 0)
-      await ctx.interaction.respond(m.slice(0, 25).map((c) => ({ name: c, value: c })))
+  autoComplete: async function (context) {
+    const focusedOption = context.interaction.options.getFocused(true)
+    if (focusedOption.name === 'player') {
+      const usernameChoices: string[] = await context.application.core.completeUsername(focusedOption.value, 25)
+      await context.interaction.respond(usernameChoices.map((username) => ({ name: username, value: username })))
+    } else if (focusedOption.name === 'rank') {
+      const query = focusedOption.value.toLowerCase()
+      const availableRanks: string[] = [...(PLAYER_RANKS as readonly string[]), 'none']
+      const matchingRanks: string[] =
+        query.length === 0
+          ? availableRanks
+          : availableRanks.filter((rankName) => rankName.toLowerCase().includes(query))
+      await context.interaction.respond(matchingRanks.slice(0, 25).map((choice) => ({ name: choice, value: choice })))
     }
   }
 } satisfies DiscordCommandHandler
