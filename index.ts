@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import http from 'node:http'
+import type { Socket } from 'node:net'
 import path from 'node:path'
 import process from 'node:process'
 
@@ -118,8 +119,8 @@ const HealthServer = http.createServer((request, response) => {
 
     const proxy = http.request(
       { hostname: '127.0.0.1', port: proxyPort, path: url, method: request.method, headers: request.headers },
-      (res) => {
-        proxyResponse = res
+      (upstreamResponse) => {
+        proxyResponse = upstreamResponse
         if (!response.headersSent) {
           response.writeHead(proxyResponse.statusCode ?? 200, proxyResponse.headers)
         }
@@ -140,16 +141,18 @@ const HealthServer = http.createServer((request, response) => {
     // socket instead of leaving it orphaned.
     request.on('error', abortProxy)
     request.on('close', () => {
-      // `request.complete` is false when the client aborted before sending
-      // the full body. `response.writableEnded` is false when the downstream
-      // never finished. Either case means the upstream is no longer needed.
-      if (!request.complete || !response.writableEnded) abortProxy()
+      // Since Node 16 the request 'close' event fires as soon as the request
+      // body is fully received, which for GET/HEAD is long before the upstream
+      // response arrives. Only an incomplete request (client aborted mid-body)
+      // means the upstream is no longer needed; mid-response aborts are handled
+      // by the response 'close' handler below.
+      if (!request.complete) abortProxy()
     })
     response.on('error', abortProxy)
     response.on('close', () => {
       // Fires on both normal completion and client abort. Only destroy when
       // the upstream response never completed and the downstream never finished.
-      if (!response.writableEnded && (proxyResponse === undefined || !proxyResponse.complete)) {
+      if (!response.writableEnded && !proxyResponse?.complete) {
         abortProxy()
       }
     })
@@ -190,7 +193,7 @@ HealthServer.on('upgrade', (request, socket, head) => {
     headers: request.headers
   })
 
-  let upgradeSocket: import('node:net').Socket | undefined
+  let upgradeSocket: Socket | undefined
   const abortUpgradeProxy = (): void => {
     // destroy() is idempotent, so double-destroy from close+error is a safe no-op.
     if (!proxy.destroyed) proxy.destroy()

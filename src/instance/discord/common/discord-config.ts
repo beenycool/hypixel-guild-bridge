@@ -1,7 +1,7 @@
-const RepeatReaction: Emoji = { name: 'can_not_repeat_message', path: './resources/x.webp' }
-export const BlockReaction: Emoji = { name: 'message_blocked_by_hypixel', path: './resources/x.webp' }
-export const GuildMutedReaction: Emoji = { name: 'account_guild_muted', path: './resources/x.webp' }
-const UnverifiedReaction: Emoji = { name: 'unverified', path: './resources/x.webp' }
+const RepeatReaction: Emoji = { name: 'can_not_repeat_message', path: './resources/x.png' }
+export const BlockReaction: Emoji = { name: 'message_blocked_by_hypixel', path: './resources/x.png' }
+export const GuildMutedReaction: Emoji = { name: 'account_guild_muted', path: './resources/x.png' }
+const UnverifiedReaction: Emoji = { name: 'unverified', path: './resources/x.png' }
 export const FilteredReaction: Emoji = { name: 'profanity_filtered', path: './resources/alert.png' }
 
 export const AllEmojis = [RepeatReaction, BlockReaction, GuildMutedReaction, UnverifiedReaction, FilteredReaction]

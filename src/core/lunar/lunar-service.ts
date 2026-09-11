@@ -34,6 +34,7 @@ export class LunarService {
   private pendingRpcRequests = new Map<string, (output: Buffer) => void>()
   private lastAuthFailedAt = 0
   private authCooldownMs = 5000
+  private connectingPromise: Promise<void> | undefined
 
   constructor(
     private readonly app: Application,
@@ -81,6 +82,21 @@ export class LunarService {
   }
 
   public async ensureConnected(): Promise<void> {
+    // Multiple events can request a connection at the same time. Sharing the
+    // in-flight attempt prevents each caller from authenticating separately,
+    // which otherwise bursts Mojang's joinServer endpoint and triggers 429s.
+    if (this.connectingPromise !== undefined) {
+      await this.connectingPromise
+      return
+    }
+
+    this.connectingPromise = this.connectOnce().finally(() => {
+      this.connectingPromise = undefined
+    })
+    await this.connectingPromise
+  }
+
+  private async connectOnce(): Promise<void> {
     const creds = this.getCredentials()
     if (!creds) {
       this.logger.info(
@@ -109,7 +125,18 @@ export class LunarService {
       }
     } catch (error: unknown) {
       this.lastAuthFailedAt = Date.now()
-      this.authCooldownMs = Math.min(this.authCooldownMs * 2, 60_000)
+
+      if (error instanceof Error && error.message.includes('HTTP 429')) {
+        // Mojang rate limits session joins; back off much longer than for
+        // transient failures so we don't keep hammering the endpoint.
+        this.authCooldownMs = Math.min(this.authCooldownMs * 2, 5 * 60_000)
+        this.logger.warn(
+          `[LunarService] Mojang rate limited the session join (HTTP 429); retrying in ${Math.round(this.authCooldownMs / 1000)}s.`
+        )
+      } else {
+        this.authCooldownMs = Math.min(this.authCooldownMs * 2, 60_000)
+      }
+
       this.logger.warn('[LunarService] Failed to establish Lunar Client WebSocket session:', error)
     }
   }
@@ -332,7 +359,9 @@ export class LunarService {
       } else {
         this.stopHeartbeat()
       }
-    }, 50_000)
+      // The gateway closes the session (code 4013) when no heartbeat arrives
+      // in time, so keep the interval well below its ~60s window.
+    }, 30_000)
   }
 
   private stopHeartbeat(): void {

@@ -26,38 +26,42 @@ export default class EmojiHandler extends SubInstance<DiscordInstance, InstanceT
     const toSaveEmojis: EmojiConfig[] = []
 
     for (const emoji of AllEmojis) {
-      this.logger.trace(`Checking emoji ${emoji.name}`)
-      const imageData = await fs.readFile(emoji.path)
-      const imageHash = hash('sha256', imageData, 'hex')
-      const registeredEmoji = registeredEmojis.find((existingEmoji) => existingEmoji.name === emoji.name)
-      const savedEmoji = savedEmojis.find((savedEmoji) => savedEmoji.name === emoji.name)
+      try {
+        this.logger.trace(`Checking emoji ${emoji.name}`)
+        const imageData = await fs.readFile(emoji.path)
+        const imageHash = hash('sha256', imageData, 'hex')
+        const registeredEmoji = registeredEmojis.find((existingEmoji) => existingEmoji.name === emoji.name)
+        const savedEmoji = savedEmojis.find((savedEmoji) => savedEmoji.name === emoji.name)
 
-      if (registeredEmoji !== undefined) {
-        if (savedEmoji?.hash === imageHash) {
-          this.logger.trace(`Emoji ${emoji.name} is registered already and matches the resource file. skipping...`)
-          toSaveEmojis.push({ name: emoji.name, hash: imageHash })
-          continue
+        if (registeredEmoji !== undefined) {
+          if (savedEmoji?.hash === imageHash) {
+            this.logger.trace(`Emoji ${emoji.name} is registered already and matches the resource file. skipping...`)
+            toSaveEmojis.push({ name: emoji.name, hash: imageHash })
+            continue
+          }
+
+          if (savedEmoji === undefined) {
+            this.logger.warn(
+              `The emoji ${emoji.name} is registered but is somehow not saved in the configuration file. ` +
+                'There is no way to prove the emoji validity. ' +
+                'The registered emoji will be deleted and replaced with the emoji from the resource file ' +
+                'before properly saving it in the configuration for future checking.'
+            )
+          } else {
+            this.logger.warn('Registered emoji does not match the emoji in the resource file')
+            this.logger.warn('Deleting the registered emoji before trying to register the new the new one')
+          }
+
+          await manager.delete(registeredEmoji)
         }
 
-        if (savedEmoji === undefined) {
-          this.logger.warn(
-            `The emoji ${emoji.name} is registered but is somehow not saved in the configuration file. ` +
-              'There is no way to prove the emoji validity. ' +
-              'The registered emoji will be deleted and replaced with the emoji from the resource file ' +
-              'before properly saving it in the configuration for future checking.'
-          )
-        } else {
-          this.logger.warn('Registered emoji does not match the emoji in the resource file')
-          this.logger.warn('Deleting the registered emoji before trying to register the new the new one')
-        }
+        this.logger.info(`Registering emoji=${emoji.path} under the name ${emoji.name}`)
+        await manager.create({ name: emoji.name, attachment: imageData })
 
-        await manager.delete(registeredEmoji)
+        toSaveEmojis.push({ name: emoji.name, hash: imageHash })
+      } catch (error: unknown) {
+        this.logger.error(`Failed to register emoji ${emoji.name} from ${emoji.path}; skipping it.`, error)
       }
-
-      this.logger.info(`Registering emoji=${emoji.path} under the name ${emoji.name}`)
-      await manager.create({ name: emoji.name, attachment: imageData })
-
-      toSaveEmojis.push({ name: emoji.name, hash: imageHash })
     }
 
     this.application.core.discordEmojis.replaceAll(toSaveEmojis)
