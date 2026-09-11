@@ -170,6 +170,7 @@ export class SettingsApiHandler extends BaseApiHandler {
       channelIds.add(id)
     for (const id of array((categories.rankup as SettingObject | undefined)?.notificationChannelIds)) channelIds.add(id)
     for (const id of array((categories.statsChannels as SettingObject | undefined)?.channelIds)) channelIds.add(id)
+    for (const id of array((categories.inactivity as SettingObject | undefined)?.channelIds)) channelIds.add(id)
 
     const roleIds = new Set<string>()
     for (const id of array((categories.staffRoles as SettingObject | undefined)?.helperRoleIds)) roleIds.add(id)
@@ -384,6 +385,12 @@ export class SettingsApiHandler extends BaseApiHandler {
           cfg.setInterviewEnabled(bridgeId, bool(body.enabled))
           cfg.setInterviewQuestion(bridgeId, stringValue(body.question) || undefined)
           cfg.setInterviewTimeoutMs(bridgeId, numberValue(body.timeoutMs, 600_000))
+          break
+        }
+        case 'inactivity': {
+          cfg.setInactivityEnabled(bridgeId, bool(body.enabled))
+          cfg.setInactivityChannelIds(bridgeId, array(body.channelIds))
+          cfg.setInactivityMaxDays(bridgeId, numberValue(body.maxDays, 30))
           break
         }
         default: {

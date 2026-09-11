@@ -144,6 +144,10 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.delete(`${bridgeId}_interviewQuestion`)
     this.configuration.delete(`${bridgeId}_interviewTimeoutMs`)
 
+    this.configuration.delete(`${bridgeId}_inactivityEnabled`)
+    this.configuration.delete(`${bridgeId}_inactivityChannelIds`)
+    this.configuration.delete(`${bridgeId}_inactivityMaxDays`)
+
     if (this.onChange) {
       try {
         this.onChange({ bridgeId, key: 'remove_bridge', value: true })
@@ -958,6 +962,33 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     this.configuration.setNumber(`${bridgeId}_interviewTimeoutMs`, normalized)
   }
 
+  public getInactivityEnabled(bridgeId: string): boolean {
+    return this.configuration.getBoolean(`${bridgeId}_inactivityEnabled`, false)
+  }
+
+  public setInactivityEnabled(bridgeId: string, enabled: boolean): void {
+    this.setConfig(bridgeId, `${bridgeId}_inactivityEnabled`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_inactivityEnabled`, enabled)
+    })
+  }
+
+  public getInactivityChannelIds(bridgeId: string): string[] {
+    return this.configuration.getStringArray(`${bridgeId}_inactivityChannelIds`, [])
+  }
+
+  public setInactivityChannelIds(bridgeId: string, channelIds: string[]): void {
+    this.configuration.setStringArray(`${bridgeId}_inactivityChannelIds`, channelIds)
+  }
+
+  public getInactivityMaxDays(bridgeId: string): number {
+    return this.configuration.getNumber(`${bridgeId}_inactivityMaxDays`, 30)
+  }
+
+  public setInactivityMaxDays(bridgeId: string, days: number): void {
+    const normalized = Math.max(0, Math.floor(days))
+    this.configuration.setNumber(`${bridgeId}_inactivityMaxDays`, normalized)
+  }
+
   public getAllSettings(bridgeId: string): Record<string, unknown> {
     const channels = this.getPublicChannelIds(bridgeId)
     const officerChannels = this.getOfficerChannelIds(bridgeId)
@@ -1055,6 +1086,11 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
         enabled: this.getInterviewEnabled(bridgeId),
         question: this.getInterviewQuestion(bridgeId),
         timeoutMs: this.getInterviewTimeoutMs(bridgeId)
+      },
+      inactivity: {
+        enabled: this.getInactivityEnabled(bridgeId),
+        channelIds: this.getInactivityChannelIds(bridgeId),
+        maxDays: this.getInactivityMaxDays(bridgeId)
       }
     }
   }

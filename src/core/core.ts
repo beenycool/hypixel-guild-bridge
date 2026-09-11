@@ -37,6 +37,7 @@ import { TournamentManager } from './tournament/tournament-manager.js'
 import { TournamentTestPanels } from './tournament/tournament-test-panels.js'
 import Autocomplete from './users/autocomplete'
 import { GuildManager } from './users/guild-manager'
+import { Inactivity } from './users/inactivity'
 import { MojangApi } from './users/mojang'
 import { Verification } from './users/verification'
 
@@ -47,6 +48,7 @@ export class Core extends Instance<InstanceType.Core> {
   public readonly guildManager: GuildManager
   public readonly mojangApi: MojangApi
   public readonly verification: Verification
+  public readonly inactivity: Inactivity
 
   public readonly bridgeConfigurations: BridgeConfigurations
   public readonly discordTemporarilyInteractions: DiscordTemporarilyInteractions
@@ -152,6 +154,7 @@ export class Core extends Instance<InstanceType.Core> {
     this.chatMessages.init()
 
     this.verification = new Verification(this.databaseManager)
+    this.inactivity = new Inactivity(this.databaseManager)
 
     this.tournamentManager = new TournamentManager(this.databaseManager, application)
     this.tournamentTestPanels = new TournamentTestPanels(this.databaseManager, this.logger)
@@ -217,6 +220,7 @@ export class Core extends Instance<InstanceType.Core> {
     await this.configurationsManager.load()
     await this.appSettings.load()
     await this.verification.load()
+    await this.inactivity.load()
     await this.mojangApi.load()
     await this.minecraftAccounts.load()
     await this.minecraftSessions.load()

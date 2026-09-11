@@ -874,6 +874,37 @@ const CATEGORIES = [
     ]
   },
   {
+    key: 'inactivity',
+    name: 'Inactivity',
+    icon: '💤',
+    description:
+      'Let linked members file inactivity notices. Staff can file notices on behalf of other players. Notices are announced in the configured channels and expire automatically.',
+    fields: [
+      {
+        id: 'enabled',
+        t: 'boolean',
+        label: 'Enable /inactivity',
+        hint: 'Master toggle for the inactivity command on this bridge.'
+      },
+      {
+        id: 'channelIds',
+        t: 'tag',
+        label: 'Notification Channels',
+        hint: 'Dedicated channel(s) where inactivity notices are posted.',
+        placeholder: 'Channel ID\u2026',
+        channelLabel: true
+      },
+      {
+        id: 'maxDays',
+        t: 'number',
+        label: 'Max Days',
+        hint: 'Maximum notice length in days (0 = unlimited).',
+        min: 0,
+        max: 365
+      }
+    ]
+  },
+  {
     key: 'dangerZone',
     name: 'Danger Zone',
     icon: '\u2620',

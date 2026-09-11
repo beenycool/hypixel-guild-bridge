@@ -21,6 +21,7 @@ import BlacklistCommand from './commands/blacklist.js'
 import DashboardCommand from './commands/dashboard.js'
 import DisconnectCommand from './commands/disconnect.js'
 import ExecuteCommand from './commands/execute.js'
+import InactivityCommand from './commands/inactivity.js'
 import InviteCommand from './commands/invite.js'
 import JoinCommand from './commands/join.js'
 import KickCommand from './commands/kick.js'
@@ -93,6 +94,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       DashboardCommand,
       DisconnectCommand,
       ExecuteCommand,
+      InactivityCommand,
       InviteCommand,
       JoinCommand,
       KickCommand,
