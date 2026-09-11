@@ -24,6 +24,7 @@ type DuelType =
   | 'nodebuff'
   | 'bow'
   | 'skywars'
+  | 'quake'
   | 'bedwars_two_one'
   | 'bedwars_rush'
 
@@ -175,6 +176,22 @@ function getSpleefStatsFromRawDuels(rawDuels: Record<string, unknown>): Gamemode
   }
 }
 
+const QUAKE_RAW_PREFIX = 'quake_duel'
+
+function getQuakeStatsFromRawDuels(rawDuels: Record<string, unknown>): GamemodeStats {
+  const wins = readRawNumber(rawDuels, `${QUAKE_RAW_PREFIX}_wins`)
+  const losses = readRawNumber(rawDuels, `${QUAKE_RAW_PREFIX}_losses`)
+
+  return {
+    wins,
+    losses,
+    winstreak: readRawNumber(rawDuels, `current_winstreak_mode_${QUAKE_RAW_PREFIX}`),
+    bestWinstreak: readRawNumber(rawDuels, `best_winstreak_mode_${QUAKE_RAW_PREFIX}`),
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    WLRatio: divideLikeHypixel(wins, losses)
+  }
+}
+
 export default class Duels extends HypixelPlayerCommand {
   private static readonly ValidDuelTypes: ReadonlySet<DuelType> = new Set([
     'blitz',
@@ -193,6 +210,7 @@ export default class Duels extends HypixelPlayerCommand {
     'nodebuff',
     'bow',
     'skywars',
+    'quake',
 
     'bedwars_two_one',
     'bedwars_rush'
@@ -215,6 +233,7 @@ export default class Duels extends HypixelPlayerCommand {
     nodebuff: 'NoDebuff',
     bow: 'Bow',
     skywars: 'SkyWars',
+    quake: 'Quake',
     // eslint-disable-next-line @typescript-eslint/naming-convention
     bedwars_two_one: 'BW 1v1',
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -275,7 +294,7 @@ export default class Duels extends HypixelPlayerCommand {
   async onPlayer(context: ChatCommandContext, givenUsername: string, player: Player): Promise<string> {
     const { duelType, bridgeSubMode } = this.parseArgs(context)
     const stats = player.stats?.duels
-    if (stats === undefined) return `${givenUsername} has never played Duels.` + this.formatPingSuffix()
+    if (stats == undefined) return `${givenUsername} has never played Duels.` + this.formatPingSuffix()
 
     let rawBridgeStats: Record<string, unknown> | undefined
     if (duelType === 'bridge') {
@@ -336,6 +355,26 @@ export default class Duels extends HypixelPlayerCommand {
 
       return (
         `[Spleef] [${this.formatDivision(division)}] ${givenUsername} ` +
+        `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}` +
+        this.formatPingSuffix()
+      )
+    }
+
+    if (duelType === 'quake') {
+      const rawResponse = (await context.app.hypixelApi
+        .getPlayer(player.uuid, { raw: true })
+        .catch(() => undefined)) as RawPlayerResponse | undefined
+      const rawDuels = rawResponse?.player?.stats?.Duels
+
+      if (rawDuels === undefined) {
+        return `${givenUsername} has no Quake Duels stats.` + this.formatPingSuffix()
+      }
+
+      const data = getQuakeStatsFromRawDuels(rawDuels)
+      const division = calculateDuelsDivision(data.wins, 'short')
+
+      return (
+        `[Quake] [${this.formatDivision(division)}] ${givenUsername} ` +
         `W: ${shortenNumber(data.wins)} | L: ${shortenNumber(data.losses)} | CWS: ${data.winstreak} | BWS: ${data.bestWinstreak} | WLR: ${data.WLRatio.toFixed(2)}` +
         this.formatPingSuffix()
       )
