@@ -40,7 +40,6 @@ import {
   getBridgeMinecraftInstanceNames,
   getConnectedBridgeMinecraftInstanceNames
 } from './common/bridge-minecraft-instances.js'
-import { DefaultCommandFooter } from './common/discord-config.js'
 import { translateNoPermission } from './common/discord-language'
 import type DiscordInstance from './discord-instance.js'
 
@@ -265,10 +264,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
                 `No Minecraft instance exist.\n` +
                 'This is a Minecraft command that requires a working Minecraft account connected to the bridge.\n' +
                 `Check the tutorial on how to add a Minecraft account before using this command.`,
-              color: Color.Info,
-              footer: {
-                text: DefaultCommandFooter
-              }
+              color: Color.Info
             }
           ],
           flags: MessageFlags.Ephemeral

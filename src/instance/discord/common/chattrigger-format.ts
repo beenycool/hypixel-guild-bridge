@@ -4,8 +4,6 @@ import { escapeMarkdown } from 'discord.js'
 import { Color } from '../../../common/application-event.js'
 import type { ChatTriggerResult } from '../../../utility/chat-triggers.js'
 
-import { DefaultCommandFooter } from './discord-config.js'
-
 export function formatChatTriggerResponse(results: ChatTriggerResult, title: string): APIEmbed {
   let color: Color
   switch (results.status) {
@@ -25,10 +23,7 @@ export function formatChatTriggerResponse(results: ChatTriggerResult, title: str
   return {
     title: title,
     color: color,
-    description: formatBody(results),
-    footer: {
-      text: DefaultCommandFooter
-    }
+    description: formatBody(results)
   }
 }
 

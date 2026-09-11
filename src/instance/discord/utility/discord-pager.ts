@@ -10,7 +10,6 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 
 import { Color } from '../../../common/application-event.js'
 import type UnexpectedErrorHandler from '../../../common/unexpected-error-handler.js'
-import { DefaultCommandFooter } from '../common/discord-config.js'
 
 import type { NumberOption } from './options-handler'
 import { getNumber, OptionType } from './options-handler'
@@ -30,11 +29,7 @@ const NoEmbed: APIEmbed = {
     'There is nothing to display.\n' +
     "This shouldn't happen.\n" +
     'The application returned an empty body.\n' +
-    'This message is only displayed to inform you about the bug.',
-
-  footer: {
-    text: DefaultCommandFooter
-  }
+    'This message is only displayed to inform you about the bug.'
 }
 
 export async function interactivePaging(

@@ -6,8 +6,6 @@ import type { GuildRequirementsThresholds } from '../../../application-config.js
 import type Application from '../../../application.js'
 import { Color } from '../../../common/application-event.js'
 
-import { DefaultCommandFooter } from './discord-config.js'
-
 async function getSelectedSkyblockProfileRaw(
   application: Application,
   uuid: string
@@ -139,9 +137,6 @@ export function createGuildRequirementsEmbed(
     ],
     thumbnail: {
       url: `https://www.mc-heads.net/avatar/${data.avatarId}`
-    },
-    footer: {
-      text: DefaultCommandFooter
     }
   }
 }

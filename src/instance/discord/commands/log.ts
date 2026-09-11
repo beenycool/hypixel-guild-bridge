@@ -10,7 +10,6 @@ import {
   getBridgeMinecraftInstanceError,
   getFirstConnectedBridgeMinecraftInstanceName
 } from '../common/bridge-minecraft-instances.js'
-import { DefaultCommandFooter } from '../common/discord-config.js'
 import { DefaultTimeout, interactivePaging } from '../utility/discord-pager.js'
 
 const Title = 'Guild Log Audit'
@@ -35,10 +34,7 @@ function formatEmbed(chatResult: ChatResult, targetInstance: string): APIEmbed {
   return {
     color: chatResult.guildLog ? Color.Default : Color.Info,
     title: `${Title}${pageTitle}`,
-    description: result,
-    footer: {
-      text: DefaultCommandFooter
-    }
+    description: result
   } as APIEmbed
 }
 

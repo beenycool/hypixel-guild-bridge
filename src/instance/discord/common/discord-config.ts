@@ -1,5 +1,3 @@
-export const DefaultCommandFooter = 'Made by aidn5 with <3'
-
 const RepeatReaction: Emoji = { name: 'can_not_repeat_message', path: './resources/x.webp' }
 export const BlockReaction: Emoji = { name: 'message_blocked_by_hypixel', path: './resources/x.webp' }
 export const GuildMutedReaction: Emoji = { name: 'account_guild_muted', path: './resources/x.webp' }

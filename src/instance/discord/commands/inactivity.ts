@@ -6,7 +6,6 @@ import type { DiscordCommandHandler } from '../../../common/commands.js'
 import type { MojangProfile } from '../../../common/user.js'
 import type Duration from '../../../utility/duration.js'
 import { getDuration } from '../../../utility/shared-utility.js'
-import { DefaultCommandFooter } from '../common/discord-config.js'
 
 export default {
   getCommandBuilder: () =>
@@ -183,10 +182,7 @@ function createExistingEmbed(profileName: string, expiresAt: number, reason: str
     title: 'Inactivity Notice',
     description:
       `${escapeMarkdown(profileName)} is already inactive until <t:${expiresAt}:F> (<t:${expiresAt}:R>).\n` +
-      `Reason: ${escapeMarkdown(reason)}`,
-    footer: {
-      text: DefaultCommandFooter
-    }
+      `Reason: ${escapeMarkdown(reason)}`
   }
 }
 
@@ -218,9 +214,6 @@ function createNoticeEmbed(data: {
     description: lines.join('\n'),
     thumbnail: {
       url: `https://www.mc-heads.net/avatar/${data.uuid}`
-    },
-    footer: {
-      text: DefaultCommandFooter
     }
   }
 }

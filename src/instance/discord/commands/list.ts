@@ -15,7 +15,6 @@ import type UnexpectedErrorHandler from '../../../common/unexpected-error-handle
 import type { GuildFetch } from '../../../core/users/guild-manager'
 import type { MojangApi } from '../../../core/users/mojang'
 import type { Verification } from '../../../core/users/verification'
-import { DefaultCommandFooter } from '../common/discord-config.js'
 import { pageMessage } from '../utility/discord-pager.js'
 
 function createEmbed(instances: Map<string, string[]>, onlyOnline: boolean): APIEmbed[] {
@@ -55,10 +54,7 @@ function createEmbed(instances: Map<string, string[]>, onlyOnline: boolean): API
       pages.push({
         color: Color.Default,
         title: onlyOnline ? `Guild Online Players (${total}):` : `Guild Players (${total}):`,
-        description: '',
-        footer: {
-          text: DefaultCommandFooter
-        }
+        description: ''
       })
     }
 
@@ -117,10 +113,7 @@ export default {
               description:
                 'This command must be used in a configured bridge channel.\n' +
                 'Please run this command in a channel that is linked to a bridge.',
-              color: Color.Info,
-              footer: {
-                text: DefaultCommandFooter
-              }
+              color: Color.Info
             }
           ],
           flags: MessageFlags.Ephemeral
@@ -153,10 +146,7 @@ export default {
               `No Minecraft instance exist.\n` +
               'This is a Minecraft command that requires a working Minecraft account connected to the bridge.\n' +
               `Check the tutorial on how to add a Minecraft account before using this command.`,
-            color: Color.Info,
-            footer: {
-              text: DefaultCommandFooter
-            }
+            color: Color.Info
           }
         ]
       })
