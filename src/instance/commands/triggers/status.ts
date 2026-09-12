@@ -45,7 +45,7 @@ export default class Status extends ChatCommandHandler {
       withTimeout(context.app.essentialService.checkEssentialStatus(uuid)),
       context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => undefined),
       context.app.hypixelApi.getPlayer(uuid).catch(() => undefined) as Promise<
-        { lastLogoutTimestamp: number } | undefined
+        { lastLogoutTimestamp?: number | null } | undefined
       >
     ])
 
@@ -70,11 +70,22 @@ export default class Status extends ChatCommandHandler {
     }
 
     if (player !== undefined) {
-      let lastSeen = formatTime(Date.now() - player.lastLogoutTimestamp)
-      if (client != '') {
-        return givenUsername + ' is currently online with ' + client + ' on another server (last seen on Hypixel ' + lastSeen + ' ago).'
+      // hypixel-api-reborn sets lastLogoutTimestamp to null when Hypixel omits
+      // lastLogout (hidden/offline). Date.now() - null coerces to Date.now(),
+      // which formatTime renders as ~57y. Never show a time in that case.
+      const logoutTimestamp = player.lastLogoutTimestamp
+      const hasValidLogout =
+        typeof logoutTimestamp === 'number' &&
+        Number.isFinite(logoutTimestamp) &&
+        logoutTimestamp > 1_000_000_000_000 &&
+        logoutTimestamp <= Date.now()
+      if (hasValidLogout) {
+        let lastSeen = formatTime(Date.now() - (logoutTimestamp as number))
+        if (client != '') {
+          return givenUsername + ' is currently online with ' + client + ' on another server (last seen on Hypixel ' + lastSeen + ' ago).'
+        }
+        return givenUsername + ' was last online ' + lastSeen + ' ago.'
       }
-      return givenUsername + ' was last online ' + lastSeen + ' ago.'
     }
 
     if (client != '') {
