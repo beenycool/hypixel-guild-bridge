@@ -1,12 +1,6 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
 import { formatOpenRouterError, OpenRouterClient } from '../../../utility/openrouter-client.js'
-import { SlidingWindowRateLimiter } from '../../../utility/sliding-window-rate-limiter.js'
-
-const rateLimiter = new SlidingWindowRateLimiter([
-  { windowMs: 60_000, maxRequests: 2 },
-  { windowMs: 300_000, maxRequests: 5 }
-])
 
 const defaultModel = 'nvidia/nemotron-3-super-120b-a12b:free'
 const minMessages = 10
@@ -34,12 +28,6 @@ export default class Iq extends ChatCommandHandler {
       context.message.user.discordProfile()?.id ??
       context.message.user.mojangProfile()?.id ??
       context.message.user.displayName()
-
-    const rateCheck = rateLimiter.check(senderId)
-    if (!rateCheck.allowed) {
-      const seconds = Math.ceil(rateCheck.retryAfterMs / 1000)
-      return `${context.username}, you are using this command too fast. Please wait ${seconds} second(s).`
-    }
 
     const chatMessages = context.app.core.chatMessages
     const targetKey = givenUsername.toLowerCase()
