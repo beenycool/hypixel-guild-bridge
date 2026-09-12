@@ -14,6 +14,12 @@ export default {
     await context.interaction.deferReply()
 
     const target = context.interaction.options.getString('instance', true)
+    const bridgeId = context.bridgeId
+    if (bridgeId === undefined || !context.application.bridgeResolver.shouldProcessEvent(bridgeId, target)) {
+      await context.interaction.editReply('This instance does not belong to this bridge.')
+      return
+    }
+
     await context.application.sendSignal([target], InstanceSignalType.Shutdown)
     await context.interaction.editReply('disconnect signal has been sent!')
   }

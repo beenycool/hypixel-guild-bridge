@@ -17,25 +17,29 @@ export default class ApplicationMetrics {
   private readonly tournamentMatches
   private readonly tournamentDisputesTotal
 
-  constructor(register: Registry, prefix: string) {
+  constructor(
+    register: Registry,
+    prefix: string,
+    private readonly resolveBridgeId?: (instanceName: string) => string | undefined
+  ) {
     this.chatMetrics = new Counter({
       name: prefix + 'chat',
       help: 'Chat messages sent in guild-bridge.',
-      labelNames: ['location', 'scope', 'instance']
+      labelNames: ['location', 'scope', 'instance', 'bridge']
     })
     register.registerMetric(this.chatMetrics)
 
     this.commandMetrics = new Counter({
       name: prefix + 'command',
       help: 'Commands executed in guild-bridge.',
-      labelNames: ['location', 'instance', 'command']
+      labelNames: ['location', 'instance', 'command', 'bridge']
     })
     register.registerMetric(this.commandMetrics)
 
     this.eventMetrics = new Counter({
       name: prefix + 'event',
       help: 'Events happened in guild-bridge.',
-      labelNames: ['location', 'instance', 'event']
+      labelNames: ['location', 'instance', 'event', 'bridge']
     })
     register.registerMetric(this.eventMetrics)
 
@@ -66,11 +70,16 @@ export default class ApplicationMetrics {
     register.registerMetric(this.tournamentDisputesTotal)
   }
 
+  private bridgeLabel(event: { instanceName: string; bridgeId?: string }): string {
+    return event.bridgeId ?? this.resolveBridgeId?.(event.instanceName) ?? 'unknown'
+  }
+
   onChatEvent(event: ChatEvent): void {
     this.chatMetrics.inc({
       location: event.instanceType,
       scope: event.channelType,
-      instance: event.instanceName
+      instance: event.instanceName,
+      bridge: this.bridgeLabel(event)
     })
   }
 
@@ -78,7 +87,8 @@ export default class ApplicationMetrics {
     this.commandMetrics.inc({
       location: event.instanceType,
       instance: event.instanceName,
-      command: event.commandName
+      command: event.commandName,
+      bridge: this.bridgeLabel(event)
     })
   }
 
@@ -86,7 +96,8 @@ export default class ApplicationMetrics {
     this.eventMetrics.inc({
       location: event.instanceType,
       instance: event.instanceName,
-      event: event.type
+      event: event.type,
+      bridge: this.bridgeLabel(event)
     })
   }
 

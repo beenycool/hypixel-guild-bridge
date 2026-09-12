@@ -49,7 +49,9 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
   private readonly staticConfig: Readonly<StaticDiscordConfig>
   private connected = false
   private static readonly PermissionCacheMaxSize = 1000
+  private static readonly BridgeGuildIdsCacheTtl = 5 * 60 * 1000
   private permissionCache = new Map<string, { permission: Permission; expiresAt: number }>()
+  private bridgeGuildIdsCache = new Map<string, { guildIds: Set<string>; expiresAt: number }>()
 
   constructor(app: Application, config: StaticDiscordConfig) {
     super(app, InstanceType.Discord, InstanceType.Discord)
@@ -178,19 +180,23 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     if (this.staticConfig.adminIds.includes(userId)) return Permission.Admin
 
     let highestPermission = Permission.Anyone
-    const guildResults = await Promise.allSettled(
-      this.client.guilds.cache.map(async (guild) => {
-        const guildMember = await guild.members.fetch(userId)
-        const permissionLevel = this.resolvePrivilegeLevel(guildMember.roles.cache.keys().toArray(), bridgeId)
-        if (guild.ownerId === userId && permissionLevel < Permission.Owner) {
-          return Permission.Owner
+
+    if (bridgeId !== undefined) {
+      const bridgeGuildIds = await this.getBridgeGuildIds(bridgeId)
+      const guildResults = await Promise.allSettled(
+        this.client.guilds.cache.map(async (guild) => {
+          const guildMember = await guild.members.fetch(userId)
+          const permissionLevel = this.resolvePrivilegeLevel(guildMember.roles.cache.keys().toArray(), bridgeId)
+          if (guild.ownerId === userId && bridgeGuildIds.has(guild.id) && permissionLevel < Permission.Owner) {
+            return Permission.Owner
+          }
+          return permissionLevel
+        })
+      )
+      for (const result of guildResults) {
+        if (result.status === 'fulfilled' && result.value > highestPermission) {
+          highestPermission = result.value
         }
-        return permissionLevel
-      })
-    )
-    for (const result of guildResults) {
-      if (result.status === 'fulfilled' && result.value > highestPermission) {
-        highestPermission = result.value
       }
     }
 
@@ -207,9 +213,55 @@ export default class DiscordInstance extends ConnectableInstance<InstanceType.Di
     return highestPermission
   }
 
-  private resolvePrivilegeLevel(roles: string[], bridgeId?: string): Permission {
-    if (bridgeId === undefined) return Permission.Anyone
+  public async getBridgeGuildIds(bridgeId: string): Promise<Set<string>> {
+    const cached = this.bridgeGuildIdsCache.get(bridgeId)
+    if (cached !== undefined && Date.now() < cached.expiresAt) {
+      return cached.guildIds
+    }
 
+    const bridge = this.application.bridgeResolver.getBridgeById(bridgeId)
+    const bridgeConfigurations = this.application.core.bridgeConfigurations
+    const channelIds = new Set<string>([
+      ...(bridge?.publicChannelIds ?? []),
+      ...(bridge?.officerChannelIds ?? []),
+      ...(bridge?.loggerChannelIds ?? []),
+      ...(bridge?.promoteChannelIds ?? []),
+      ...bridgeConfigurations.getChatSummaryChannelIds(bridgeId),
+      ...bridgeConfigurations.getRankupNotificationChannelIds(bridgeId),
+      ...bridgeConfigurations.getStatsTopicChannelIds(bridgeId),
+      ...bridgeConfigurations.getInactivityChannelIds(bridgeId)
+    ])
+
+    const guildIds = new Set<string>()
+    await Promise.all(
+      [...channelIds].map(async (channelId) => {
+        try {
+          const channel =
+            this.client.channels.cache.get(channelId) ??
+            (await this.client.channels.fetch(channelId).catch(() => undefined))
+          if (channel && 'guildId' in channel) {
+            guildIds.add(channel.guildId)
+          }
+        } catch {
+          return
+        }
+      })
+    )
+
+    this.bridgeGuildIdsCache.set(bridgeId, {
+      guildIds,
+      expiresAt: Date.now() + DiscordInstance.BridgeGuildIdsCacheTtl
+    })
+
+    if (this.bridgeGuildIdsCache.size > DiscordInstance.PermissionCacheMaxSize) {
+      const oldestKey = this.bridgeGuildIdsCache.keys().next().value
+      if (oldestKey !== undefined) this.bridgeGuildIdsCache.delete(oldestKey)
+    }
+
+    return guildIds
+  }
+
+  private resolvePrivilegeLevel(roles: string[], bridgeId: string): Permission {
     const bridgeConfig = this.application.core.bridgeConfigurations
     if (roles.some((role) => bridgeConfig.getOwnerRoleIds(bridgeId).includes(role))) {
       return Permission.Owner

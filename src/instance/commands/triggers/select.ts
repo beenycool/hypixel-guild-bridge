@@ -33,7 +33,12 @@ export default class Select extends ChatCommandHandler {
   }
 
   private async getUsernames(context: ChatCommandContext): Promise<string[]> {
-    const instances = context.app.minecraftManager.getAllInstances()
+    const bridgeId = context.message.bridgeId
+    if (bridgeId === undefined) return []
+
+    const instances = context.app.minecraftManager
+      .getAllInstances()
+      .filter((instance) => context.app.bridgeResolver.getBridgeIdForInstance(instance.instanceName) === bridgeId)
 
     const usernames: Promise<string[]>[] = []
     for (const instance of instances) {

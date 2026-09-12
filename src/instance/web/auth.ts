@@ -3,7 +3,7 @@ import type { Permission } from '../../common/application-event.js'
 import { verifySignedToken } from './signed-token.js'
 
 export type AuthResult =
-  | { ok: true; permission: Permission; userId?: string }
+  | { ok: true; permission: Permission; userId?: string; bridgeId?: string }
   | { ok: false; reason: 'missing' | 'mismatch' }
 
 interface TokenSet {
@@ -35,7 +35,31 @@ export function verifyToken(
     return { ok: false, reason: 'mismatch' }
   }
 
-  return { ok: true, permission: payload.perm as Permission, userId: payload.sub }
+  return { ok: true, permission: payload.perm as Permission, userId: payload.sub, bridgeId: payload.bridge }
+}
+
+export function authorizeBridge(
+  auth: AuthResult,
+  requestedBridgeId: string | undefined,
+  minimumPermission: Permission
+): { ok: true } | { ok: false; status: number; message: string } {
+  if (!auth.ok) {
+    return { ok: false, status: 401, message: 'Invalid token' }
+  }
+  if (auth.permission < minimumPermission) {
+    return { ok: false, status: 403, message: 'Insufficient permissions' }
+  }
+  if (requestedBridgeId === undefined || requestedBridgeId.length === 0) {
+    return { ok: false, status: 400, message: 'bridgeId is required' }
+  }
+  if (auth.bridgeId === undefined) {
+    return { ok: false, status: 403, message: 'Token is not bound to a bridge' }
+  }
+  if (auth.bridgeId !== requestedBridgeId) {
+    return { ok: false, status: 403, message: 'Token is not authorized for this bridge' }
+  }
+
+  return { ok: true }
 }
 
 function extractCandidate(authorizationHeader: string | undefined, queryToken?: string | string[]): string | undefined {

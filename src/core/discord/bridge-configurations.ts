@@ -2,7 +2,19 @@ import type { DynamicBridgeConfig } from '../../common/dynamic-bridge-config.js'
 import Duration from '../../utility/duration'
 import type { Configuration, ConfigurationsManager } from '../configurations'
 
+export interface BridgeAssignments {
+  minecraftInstances: string[]
+  publicChannelIds: string[]
+  officerChannelIds: string[]
+  loggerChannelIds: string[]
+  promoteChannelIds: string[]
+}
+
 export class BridgeConfigurations implements DynamicBridgeConfig {
+  public static readonly MaxBridgeIdLength = 32
+  private static readonly ValidBridgeIdPattern = /^[a-z0-9_-]+$/
+  private static readonly ReservedBridgeIdFragments = ['_playerusernameoverride_', '_playerrankoverride_']
+
   private readonly configuration: Configuration
   private readonly onChange?: (event: { bridgeId: string; key: string; value: unknown }) => void
 
@@ -12,11 +24,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
 
   private setBridgeString(key: string, bridgeId: string, value: string | undefined): void {
     const fullKey = `${bridgeId}_${key}`
-    if (value === undefined || value === '') {
-      this.configuration.delete(fullKey)
-    } else {
-      this.configuration.setString(fullKey, value)
-    }
+    this.setConfig(bridgeId, fullKey, value, () => {
+      if (value === undefined || value === '') {
+        this.configuration.delete(fullKey)
+      } else {
+        this.configuration.setString(fullKey, value)
+      }
+    })
   }
 
   constructor(
@@ -28,15 +42,34 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public getAllBridgeIds(): string[] {
-    return this.configuration.getStringArray('bridgeIds', [])
+    const raw = this.configuration.getStringArray('bridgeIds', [])
+    const seen = new Set<string>()
+    const result: string[] = []
+    for (const id of raw) {
+      const trimmed = id.trim()
+      if (trimmed.length === 0) continue
+      const normalized = trimmed.toLowerCase()
+      if (seen.has(normalized)) continue
+      seen.add(normalized)
+      result.push(trimmed)
+    }
+    return result
   }
 
-  public addBridgeId(bridgeId: string): void {
+  public addBridgeId(bridgeId: string): boolean {
+    const normalized = bridgeId.trim().toLowerCase()
+    if (normalized.length === 0) return false
+    if (normalized.length > BridgeConfigurations.MaxBridgeIdLength) return false
+    if (!BridgeConfigurations.ValidBridgeIdPattern.test(normalized)) return false
+    if (BridgeConfigurations.ReservedBridgeIdFragments.some((fragment) => normalized.includes(fragment))) return false
+
     const existing = this.getAllBridgeIds()
-    if (!existing.includes(bridgeId)) {
-      existing.push(bridgeId)
-      this.configuration.setStringArray('bridgeIds', existing)
-    }
+    if (existing.some((id) => id.toLowerCase() === normalized)) return false
+
+    this.setConfig(normalized, 'bridgeIds', [...existing, normalized], () => {
+      this.configuration.setStringArray('bridgeIds', [...existing, normalized])
+    })
+    return true
   }
 
   private setConfig(bridgeId: string, key: string, value: unknown, apply: () => void): void {
@@ -51,11 +84,19 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public removeBridgeId(bridgeId: string): void {
+    const normalized = bridgeId.trim().toLowerCase()
     const existing = this.getAllBridgeIds()
-    const filtered = existing.filter((id) => id !== bridgeId)
+    const matched = existing.find((id) => id.toLowerCase() === normalized)
+    const targetId = matched ?? bridgeId
+
+    const filtered = existing.filter((id) => id.toLowerCase() !== normalized)
     this.configuration.setStringArray('bridgeIds', filtered)
 
-    this.configuration.delete(`${bridgeId}_publicChannelIds`)
+    for (const key of this.configuration.keysWithPrefix(`${targetId}_`)) {
+      this.configuration.delete(key)
+    }
+
+    this.configuration.delete(`${targetId}_publicChannelIds`)
     this.configuration.delete(`${bridgeId}_officerChannelIds`)
     this.configuration.delete(`${bridgeId}_loggerChannelIds`)
     this.configuration.delete(`${bridgeId}_promoteChannelIds`)
@@ -157,12 +198,133 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
     }
   }
 
+  private getAllChannelIds(bridgeId: string): string[] {
+    const tournamentChannelId = this.getTournamentNotificationChannelId(bridgeId)
+
+    return [
+      ...this.getPublicChannelIds(bridgeId),
+      ...this.getOfficerChannelIds(bridgeId),
+      ...this.getLoggerChannelIds(bridgeId),
+      ...this.getPromoteChannelIds(bridgeId),
+      ...this.getChatSummaryChannelIds(bridgeId),
+      ...this.getRankupNotificationChannelIds(bridgeId),
+      ...this.getStatsTopicChannelIds(bridgeId),
+      ...this.getInactivityChannelIds(bridgeId),
+      ...(tournamentChannelId === '' ? [] : [tournamentChannelId])
+    ]
+  }
+
+  public validateChannelOwnership(bridgeId: string, channelIds: string[], label: string): string[] {
+    const conflicts: string[] = []
+    const normalizedBridgeId = bridgeId.trim().toLowerCase()
+    const proposed = new Set<string>()
+
+    for (const rawChannelId of channelIds) {
+      const channelId = rawChannelId.trim()
+      if (channelId.length === 0) continue
+      if (proposed.has(channelId)) {
+        conflicts.push(`Duplicate Discord channel "${channelId}" in the ${label} list`)
+      }
+      proposed.add(channelId)
+    }
+
+    for (const otherBridgeId of this.getAllBridgeIds()) {
+      if (otherBridgeId.toLowerCase() === normalizedBridgeId) continue
+
+      const otherChannels = new Set(this.getAllChannelIds(otherBridgeId))
+      for (const channelId of proposed) {
+        if (otherChannels.has(channelId)) {
+          conflicts.push(`Discord channel "${channelId}" is already used by bridge "${otherBridgeId}"`)
+        }
+      }
+    }
+
+    return conflicts
+  }
+
+  public validateBridgeAssignments(bridgeId: string, assignments: BridgeAssignments): string[] {
+    const conflicts: string[] = []
+    const normalizedBridgeId = bridgeId.trim().toLowerCase()
+
+    const channelCategoryLists: { label: string; values: string[] }[] = [
+      { label: 'public', values: assignments.publicChannelIds },
+      { label: 'officer', values: assignments.officerChannelIds },
+      { label: 'logger', values: assignments.loggerChannelIds },
+      { label: 'promote', values: assignments.promoteChannelIds }
+    ]
+
+    const seenInstances = new Set<string>()
+    for (const instance of assignments.minecraftInstances) {
+      const trimmed = instance.trim()
+      if (trimmed.length === 0) continue
+      const key = trimmed.toLowerCase()
+      if (seenInstances.has(key)) {
+        conflicts.push(`Duplicate Minecraft instance "${trimmed}" in the proposed assignment`)
+      }
+      seenInstances.add(key)
+    }
+
+    const seenChannels = new Set<string>()
+    for (const { label, values } of channelCategoryLists) {
+      for (const channelId of values) {
+        const trimmed = channelId.trim()
+        if (trimmed.length === 0) continue
+        if (seenChannels.has(trimmed)) {
+          conflicts.push(`Duplicate Discord channel "${trimmed}" in the ${label} list`)
+        }
+        seenChannels.add(trimmed)
+      }
+    }
+
+    for (const otherBridgeId of this.getAllBridgeIds()) {
+      if (otherBridgeId.toLowerCase() === normalizedBridgeId) continue
+
+      const otherInstances = new Set(this.getMinecraftInstances(otherBridgeId).map((name) => name.toLowerCase()))
+      for (const instance of assignments.minecraftInstances) {
+        const trimmed = instance.trim()
+        if (trimmed.length === 0) continue
+        if (otherInstances.has(trimmed.toLowerCase())) {
+          conflicts.push(`Minecraft instance "${trimmed}" is already assigned to bridge "${otherBridgeId}"`)
+        }
+      }
+
+      const otherChannels = new Set(this.getAllChannelIds(otherBridgeId))
+      for (const { values } of channelCategoryLists) {
+        for (const channelId of values) {
+          const trimmed = channelId.trim()
+          if (trimmed.length === 0) continue
+          if (otherChannels.has(trimmed)) {
+            conflicts.push(`Discord channel "${trimmed}" is already used by bridge "${otherBridgeId}"`)
+          }
+        }
+      }
+    }
+
+    const categoryByChannel = new Map<string, string>()
+    for (const { label, values } of channelCategoryLists) {
+      for (const channelId of values) {
+        const trimmed = channelId.trim()
+        if (trimmed.length === 0) continue
+        const existing = categoryByChannel.get(trimmed)
+        if (existing !== undefined && existing !== label) {
+          conflicts.push(`Discord channel "${trimmed}" cannot be used for both ${existing} and ${label}`)
+        } else {
+          categoryByChannel.set(trimmed, label)
+        }
+      }
+    }
+
+    return [...new Set(conflicts)]
+  }
+
   public getPublicChannelIds(bridgeId: string): string[] {
     return this.configuration.getStringArray(`${bridgeId}_publicChannelIds`, [])
   }
 
   public setPublicChannelIds(bridgeId: string, channelIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_publicChannelIds`, channelIds)
+    this.setConfig(bridgeId, `${bridgeId}_publicChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_publicChannelIds`, channelIds)
+    })
   }
 
   public getOfficerChannelIds(bridgeId: string): string[] {
@@ -170,7 +332,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setOfficerChannelIds(bridgeId: string, channelIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_officerChannelIds`, channelIds)
+    this.setConfig(bridgeId, `${bridgeId}_officerChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_officerChannelIds`, channelIds)
+    })
   }
 
   public getLoggerChannelIds(bridgeId: string): string[] {
@@ -178,7 +342,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setLoggerChannelIds(bridgeId: string, channelIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_loggerChannelIds`, channelIds)
+    this.setConfig(bridgeId, `${bridgeId}_loggerChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_loggerChannelIds`, channelIds)
+    })
   }
 
   public getPromoteChannelIds(bridgeId: string): string[] {
@@ -186,7 +352,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setPromoteChannelIds(bridgeId: string, channelIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_promoteChannelIds`, channelIds)
+    this.setConfig(bridgeId, `${bridgeId}_promoteChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_promoteChannelIds`, channelIds)
+    })
   }
 
   public getDemoteCooldownDays(bridgeId: string): number {
@@ -194,7 +362,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setDemoteCooldownDays(bridgeId: string, days: number): void {
-    this.configuration.setNumber(`${bridgeId}_demoteCooldownDays`, days)
+    this.setConfig(bridgeId, `${bridgeId}_demoteCooldownDays`, days, () => {
+      this.configuration.setNumber(`${bridgeId}_demoteCooldownDays`, days)
+    })
   }
 
   public getDemoteCooldownUntil(bridgeId: string): number {
@@ -202,7 +372,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setDemoteCooldownUntil(bridgeId: string, timestamp: number): void {
-    this.configuration.setNumber(`${bridgeId}_demoteCooldownUntil`, timestamp)
+    this.setConfig(bridgeId, `${bridgeId}_demoteCooldownUntil`, timestamp, () => {
+      this.configuration.setNumber(`${bridgeId}_demoteCooldownUntil`, timestamp)
+    })
   }
 
   public getChatSummaryChannelIds(bridgeId: string): string[] {
@@ -230,7 +402,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setMinecraftInstances(bridgeId: string, instanceNames: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_minecraftInstances`, instanceNames)
+    this.setConfig(bridgeId, `${bridgeId}_minecraftInstances`, instanceNames, () => {
+      this.configuration.setStringArray(`${bridgeId}_minecraftInstances`, instanceNames)
+    })
   }
 
   public getBotUsernameOverride(bridgeId: string): string | undefined {
@@ -328,7 +502,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setHelperRoleIds(bridgeId: string, roleIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_helperRoleIds`, roleIds)
+    this.setConfig(bridgeId, `${bridgeId}_helperRoleIds`, roleIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_helperRoleIds`, roleIds)
+    })
   }
 
   public getOfficerRoleIds(bridgeId: string): string[] {
@@ -336,7 +512,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setOfficerRoleIds(bridgeId: string, roleIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_officerRoleIds`, roleIds)
+    this.setConfig(bridgeId, `${bridgeId}_officerRoleIds`, roleIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_officerRoleIds`, roleIds)
+    })
   }
 
   public getOwnerRoleIds(bridgeId: string): string[] {
@@ -344,7 +522,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setOwnerRoleIds(bridgeId: string, roleIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_ownerRoleIds`, roleIds)
+    this.setConfig(bridgeId, `${bridgeId}_ownerRoleIds`, roleIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_ownerRoleIds`, roleIds)
+    })
   }
 
   public getJoinRequestRoleIds(bridgeId: string): string[] {
@@ -352,7 +532,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setJoinRequestRoleIds(bridgeId: string, roleIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_joinRequestRoleIds`, roleIds)
+    this.setConfig(bridgeId, `${bridgeId}_joinRequestRoleIds`, roleIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_joinRequestRoleIds`, roleIds)
+    })
   }
 
   public getAlwaysReplyReaction(bridgeId: string): boolean {
@@ -360,7 +542,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setAlwaysReplyReaction(bridgeId: string, value: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_alwaysReplyReaction`, value)
+    this.setConfig(bridgeId, `${bridgeId}_alwaysReplyReaction`, value, () => {
+      this.configuration.setBoolean(`${bridgeId}_alwaysReplyReaction`, value)
+    })
   }
 
   public getEnforceVerification(bridgeId: string): boolean {
@@ -368,7 +552,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setEnforceVerification(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_enforceVerification`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_enforceVerification`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_enforceVerification`, enabled)
+    })
   }
 
   public getGuildOnline(bridgeId: string): boolean {
@@ -376,7 +562,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setGuildOnline(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_guildOnline`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_guildOnline`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_guildOnline`, enabled)
+    })
   }
 
   public getGuildOffline(bridgeId: string): boolean {
@@ -384,7 +572,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setGuildOffline(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_guildOffline`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_guildOffline`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_guildOffline`, enabled)
+    })
   }
 
   public getPersistGuildOnlineOffline(bridgeId: string): boolean {
@@ -392,7 +582,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setPersistGuildOnlineOffline(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_persistGuildOnlineOffline`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_persistGuildOnlineOffline`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_persistGuildOnlineOffline`, enabled)
+    })
   }
 
   public getMaxTemporarilyInteractions(bridgeId: string): number {
@@ -400,7 +592,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setMaxTemporarilyInteractions(bridgeId: string, value: number): void {
-    this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsCount`, value)
+    this.setConfig(bridgeId, `${bridgeId}_temporarilyInteractionsCount`, value, () => {
+      this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsCount`, value)
+    })
   }
 
   public getDurationTemporarilyInteractions(bridgeId: string): Duration {
@@ -412,7 +606,10 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setDurationTemporarilyInteractions(bridgeId: string, value: Duration): void {
-    this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsDuration`, value.toSeconds())
+    const seconds = value.toSeconds()
+    this.setConfig(bridgeId, `${bridgeId}_temporarilyInteractionsDuration`, seconds, () => {
+      this.configuration.setNumber(`${bridgeId}_temporarilyInteractionsDuration`, seconds)
+    })
   }
 
   public getPersistGuildJoinLeave(bridgeId: string): boolean {
@@ -420,7 +617,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setPersistGuildJoinLeave(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_persistGuildJoinLeave`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_persistGuildJoinLeave`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_persistGuildJoinLeave`, enabled)
+    })
   }
 
   public getDurationJoinLeaveInteractions(bridgeId: string): Duration {
@@ -432,7 +631,10 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setDurationJoinLeaveInteractions(bridgeId: string, value: Duration): void {
-    this.configuration.setNumber(`${bridgeId}_joinLeaveInteractionsDuration`, value.toSeconds())
+    const seconds = value.toSeconds()
+    this.setConfig(bridgeId, `${bridgeId}_joinLeaveInteractionsDuration`, seconds, () => {
+      this.configuration.setNumber(`${bridgeId}_joinLeaveInteractionsDuration`, seconds)
+    })
   }
 
   public getProfanityEnabled(bridgeId: string): boolean | undefined {
@@ -442,11 +644,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setProfanityEnabled(bridgeId: string, enabled: boolean | undefined): void {
-    if (enabled === undefined) {
-      this.configuration.delete(`${bridgeId}_profanityEnabled`)
-    } else {
-      this.configuration.setString(`${bridgeId}_profanityEnabled`, enabled ? 'true' : 'false')
-    }
+    this.setConfig(bridgeId, `${bridgeId}_profanityEnabled`, enabled, () => {
+      if (enabled === undefined) {
+        this.configuration.delete(`${bridgeId}_profanityEnabled`)
+      } else {
+        this.configuration.setString(`${bridgeId}_profanityEnabled`, enabled ? 'true' : 'false')
+      }
+    })
   }
 
   public getCommandsEnabled(bridgeId: string): boolean | undefined {
@@ -456,11 +660,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setCommandsEnabled(bridgeId: string, enabled: boolean | undefined): void {
-    if (enabled === undefined) {
-      this.configuration.delete(`${bridgeId}_commandsEnabled`)
-    } else {
-      this.configuration.setString(`${bridgeId}_commandsEnabled`, enabled ? 'true' : 'false')
-    }
+    this.setConfig(bridgeId, `${bridgeId}_commandsEnabled`, enabled, () => {
+      if (enabled === undefined) {
+        this.configuration.delete(`${bridgeId}_commandsEnabled`)
+      } else {
+        this.configuration.setString(`${bridgeId}_commandsEnabled`, enabled ? 'true' : 'false')
+      }
+    })
   }
 
   public getCommandPrefix(bridgeId: string): string | undefined {
@@ -477,7 +683,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setDisabledCommands(bridgeId: string, commands: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_disabledCommands`, commands)
+    this.setConfig(bridgeId, `${bridgeId}_disabledCommands`, commands, () => {
+      this.configuration.setStringArray(`${bridgeId}_disabledCommands`, commands)
+    })
   }
 
   public getExplainCommandOnHelp(bridgeId: string): boolean | undefined {
@@ -487,11 +695,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setExplainCommandOnHelp(bridgeId: string, enabled: boolean | undefined): void {
-    if (enabled === undefined) {
-      this.configuration.delete(`${bridgeId}_explainCommandOnHelp`)
-    } else {
-      this.configuration.setString(`${bridgeId}_explainCommandOnHelp`, enabled ? 'true' : 'false')
-    }
+    this.setConfig(bridgeId, `${bridgeId}_explainCommandOnHelp`, enabled, () => {
+      if (enabled === undefined) {
+        this.configuration.delete(`${bridgeId}_explainCommandOnHelp`)
+      } else {
+        this.configuration.setString(`${bridgeId}_explainCommandOnHelp`, enabled ? 'true' : 'false')
+      }
+    })
   }
 
   public getSuggestOnTypo(bridgeId: string): boolean | undefined {
@@ -501,11 +711,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setSuggestOnTypo(bridgeId: string, enabled: boolean | undefined): void {
-    if (enabled === undefined) {
-      this.configuration.delete(`${bridgeId}_suggestOnTypo`)
-    } else {
-      this.configuration.setString(`${bridgeId}_suggestOnTypo`, enabled ? 'true' : 'false')
-    }
+    this.setConfig(bridgeId, `${bridgeId}_suggestOnTypo`, enabled, () => {
+      if (enabled === undefined) {
+        this.configuration.delete(`${bridgeId}_suggestOnTypo`)
+      } else {
+        this.configuration.setString(`${bridgeId}_suggestOnTypo`, enabled ? 'true' : 'false')
+      }
+    })
   }
 
   public getTypoSuggestionThreshold(bridgeId: string): number | undefined {
@@ -514,11 +726,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setTypoSuggestionThreshold(bridgeId: string, threshold: number | undefined): void {
-    if (threshold === undefined) {
-      this.configuration.delete(`${bridgeId}_typoSuggestionThreshold`)
-    } else {
-      this.configuration.setNumber(`${bridgeId}_typoSuggestionThreshold`, threshold)
-    }
+    this.setConfig(bridgeId, `${bridgeId}_typoSuggestionThreshold`, threshold, () => {
+      if (threshold === undefined) {
+        this.configuration.delete(`${bridgeId}_typoSuggestionThreshold`)
+      } else {
+        this.configuration.setNumber(`${bridgeId}_typoSuggestionThreshold`, threshold)
+      }
+    })
   }
 
   public getTypoCooldownSeconds(bridgeId: string): number | undefined {
@@ -527,11 +741,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setTypoCooldownSeconds(bridgeId: string, seconds: number | undefined): void {
-    if (seconds === undefined) {
-      this.configuration.delete(`${bridgeId}_typoCooldownSeconds`)
-    } else {
-      this.configuration.setNumber(`${bridgeId}_typoCooldownSeconds`, seconds)
-    }
+    this.setConfig(bridgeId, `${bridgeId}_typoCooldownSeconds`, seconds, () => {
+      if (seconds === undefined) {
+        this.configuration.delete(`${bridgeId}_typoCooldownSeconds`)
+      } else {
+        this.configuration.setNumber(`${bridgeId}_typoCooldownSeconds`, seconds)
+      }
+    })
   }
 
   public getInsultMode(bridgeId: string): string | undefined {
@@ -548,7 +764,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setJoinGuildReaction(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_joinGuildReaction`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_joinGuildReaction`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_joinGuildReaction`, enabled)
+    })
   }
 
   public getLeaveGuildReaction(bridgeId: string): boolean {
@@ -556,7 +774,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setLeaveGuildReaction(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_leaveGuildReaction`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_leaveGuildReaction`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_leaveGuildReaction`, enabled)
+    })
   }
 
   public getKickGuildReaction(bridgeId: string): boolean {
@@ -564,7 +784,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setKickGuildReaction(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_kickGuildReaction`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_kickGuildReaction`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_kickGuildReaction`, enabled)
+    })
   }
 
   public getJoinReactionEmojiType(bridgeId: string): string {
@@ -572,7 +794,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setJoinReactionEmojiType(bridgeId: string, value: string): void {
-    this.configuration.setString(`${bridgeId}_joinReactionEmojiType`, value)
+    this.setConfig(bridgeId, `${bridgeId}_joinReactionEmojiType`, value, () => {
+      this.configuration.setString(`${bridgeId}_joinReactionEmojiType`, value)
+    })
   }
 
   public getLeaveReactionEmojiType(bridgeId: string): string {
@@ -580,7 +804,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setLeaveReactionEmojiType(bridgeId: string, value: string): void {
-    this.configuration.setString(`${bridgeId}_leaveReactionEmojiType`, value)
+    this.setConfig(bridgeId, `${bridgeId}_leaveReactionEmojiType`, value, () => {
+      this.configuration.setString(`${bridgeId}_leaveReactionEmojiType`, value)
+    })
   }
 
   public getAnnounceMutedPlayer(bridgeId: string): boolean {
@@ -588,7 +814,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setAnnounceMutedPlayer(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_announceMutedPlayer`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_announceMutedPlayer`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_announceMutedPlayer`, enabled)
+    })
   }
 
   public getRankupEnabled(bridgeId: string): boolean {
@@ -666,7 +894,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setRankupLastRunAt(bridgeId: string, timestamp: number): void {
-    this.configuration.setNumber(`${bridgeId}_rankupLastRunAt`, timestamp)
+    this.setConfig(bridgeId, `${bridgeId}_rankupLastRunAt`, timestamp, () => {
+      this.configuration.setNumber(`${bridgeId}_rankupLastRunAt`, timestamp)
+    })
   }
 
   public getRankupRules(bridgeId: string): {
@@ -896,7 +1126,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setTranslationOverrides(bridgeId: string, overrides: Record<string, string>): void {
-    this.configuration.setString(`${bridgeId}_translationOverrides`, JSON.stringify(overrides))
+    this.setConfig(bridgeId, `${bridgeId}_translationOverrides`, overrides, () => {
+      this.configuration.setString(`${bridgeId}_translationOverrides`, JSON.stringify(overrides))
+    })
   }
 
   public getStatsTopicEnabled(bridgeId: string): boolean {
@@ -904,7 +1136,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setStatsTopicEnabled(bridgeId: string, enabled: boolean): void {
-    this.configuration.setBoolean(`${bridgeId}_statsTopicEnabled`, enabled)
+    this.setConfig(bridgeId, `${bridgeId}_statsTopicEnabled`, enabled, () => {
+      this.configuration.setBoolean(`${bridgeId}_statsTopicEnabled`, enabled)
+    })
   }
 
   public getStatsTopicTemplate(bridgeId: string): string {
@@ -912,11 +1146,13 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setStatsTopicTemplate(bridgeId: string, template: string | undefined): void {
-    if (template === undefined || template === '') {
-      this.configuration.delete(`${bridgeId}_statsTopicTemplate`)
-    } else {
-      this.configuration.setString(`${bridgeId}_statsTopicTemplate`, template)
-    }
+    this.setConfig(bridgeId, `${bridgeId}_statsTopicTemplate`, template, () => {
+      if (template === undefined || template === '') {
+        this.configuration.delete(`${bridgeId}_statsTopicTemplate`)
+      } else {
+        this.configuration.setString(`${bridgeId}_statsTopicTemplate`, template)
+      }
+    })
   }
 
   public getStatsTopicChannelIds(bridgeId: string): string[] {
@@ -924,7 +1160,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setStatsTopicChannelIds(bridgeId: string, channelIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_statsTopicChannelIds`, channelIds)
+    this.setConfig(bridgeId, `${bridgeId}_statsTopicChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_statsTopicChannelIds`, channelIds)
+    })
   }
 
   public getStatsTopicUpdateIntervalMinutes(bridgeId: string): number {
@@ -932,7 +1170,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setStatsTopicUpdateIntervalMinutes(bridgeId: string, minutes: number): void {
-    this.configuration.setNumber(`${bridgeId}_statsTopicUpdateIntervalMinutes`, minutes)
+    this.setConfig(bridgeId, `${bridgeId}_statsTopicUpdateIntervalMinutes`, minutes, () => {
+      this.configuration.setNumber(`${bridgeId}_statsTopicUpdateIntervalMinutes`, minutes)
+    })
   }
 
   public getInterviewEnabled(bridgeId: string): boolean {
@@ -959,7 +1199,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
 
   public setInterviewTimeoutMs(bridgeId: string, timeoutMs: number): void {
     const normalized = Number.isFinite(timeoutMs) && timeoutMs > 0 ? Math.floor(timeoutMs) : 600_000
-    this.configuration.setNumber(`${bridgeId}_interviewTimeoutMs`, normalized)
+    this.setConfig(bridgeId, `${bridgeId}_interviewTimeoutMs`, normalized, () => {
+      this.configuration.setNumber(`${bridgeId}_interviewTimeoutMs`, normalized)
+    })
   }
 
   public getInactivityEnabled(bridgeId: string): boolean {
@@ -977,7 +1219,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
   }
 
   public setInactivityChannelIds(bridgeId: string, channelIds: string[]): void {
-    this.configuration.setStringArray(`${bridgeId}_inactivityChannelIds`, channelIds)
+    this.setConfig(bridgeId, `${bridgeId}_inactivityChannelIds`, channelIds, () => {
+      this.configuration.setStringArray(`${bridgeId}_inactivityChannelIds`, channelIds)
+    })
   }
 
   public getInactivityMaxDays(bridgeId: string): number {
@@ -986,7 +1230,9 @@ export class BridgeConfigurations implements DynamicBridgeConfig {
 
   public setInactivityMaxDays(bridgeId: string, days: number): void {
     const normalized = Math.max(0, Math.floor(days))
-    this.configuration.setNumber(`${bridgeId}_inactivityMaxDays`, normalized)
+    this.setConfig(bridgeId, `${bridgeId}_inactivityMaxDays`, normalized, () => {
+      this.configuration.setNumber(`${bridgeId}_inactivityMaxDays`, normalized)
+    })
   }
 
   public getAllSettings(bridgeId: string): Record<string, unknown> {

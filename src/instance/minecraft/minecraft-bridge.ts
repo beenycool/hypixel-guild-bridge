@@ -41,12 +41,11 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
     super(application, clientInstance, logger, errorHandler)
   }
 
-  private shouldProcessEvent(event: { bridgeId?: string }, isStrictChat = false): boolean {
+  private shouldProcessEvent(event: { bridgeId?: string; scope?: 'global' }): boolean {
+    if (event.scope === 'global') return true
+
     const instanceBridgeId = this.clientInstance.bridgeId
-
-    if (isStrictChat && (event.bridgeId === undefined || instanceBridgeId === undefined)) return false
-
-    if (event.bridgeId === undefined) return true
+    if (event.bridgeId === undefined || instanceBridgeId === undefined) return false
 
     return instanceBridgeId === event.bridgeId
   }
@@ -58,7 +57,7 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
   async onChat(event: ChatEvent): Promise<void> {
     if (event.instanceName === this.clientInstance.instanceName) return
     if (event.channelType === ChannelType.Private) return
-    if (!this.shouldProcessEvent(event, true)) return
+    if (!this.shouldProcessEvent(event)) return
 
     const replyUsername = event.instanceType === InstanceType.Discord ? event.replyUsername : undefined
     const prefix = event.channelType === ChannelType.Public ? 'gc' : 'oc'
@@ -75,14 +74,14 @@ export default class MinecraftBridge extends Bridge<MinecraftInstance> {
   async onGuildPlayer(event: GuildPlayerEvent): Promise<void> {
     if (event.instanceName === this.clientInstance.instanceName) return
     if (event.type === GuildPlayerEventType.Online || event.type === GuildPlayerEventType.Offline) return
-    if (!this.shouldProcessEvent(event, true)) return
+    if (!this.shouldProcessEvent(event)) return
 
     await this.handleInGameEvent(event)
   }
 
   async onGuildGeneral(event: GuildGeneralEvent): Promise<void> {
     if (event.instanceName === this.clientInstance.instanceName) return
-    if (!this.shouldProcessEvent(event, true)) return
+    if (!this.shouldProcessEvent(event)) return
 
     await this.handleInGameEvent(event)
   }

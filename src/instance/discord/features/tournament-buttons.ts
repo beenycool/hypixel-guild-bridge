@@ -306,8 +306,12 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
       await interaction.editReply('Signups are closed for this tournament.')
       return
     }
+    if (!(await this.interactionBelongsToBridge(interaction, tournament.bridgeId))) {
+      await interaction.editReply('This tournament does not belong to this bridge.')
+      return
+    }
 
-    const link = await this.application.core.verification.findByDiscord(interaction.user.id)
+    const link = await this.application.core.verification.findByDiscord(interaction.user.id, tournament.bridgeId)
     if (link === undefined) {
       await interaction.editReply('You must link your Minecraft account first! Use `/verify` or contact an officer.')
       return
@@ -336,8 +340,12 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
       await interaction.editReply('You can only leave during the signup phase.')
       return
     }
+    if (!(await this.interactionBelongsToBridge(interaction, tournament.bridgeId))) {
+      await interaction.editReply('This tournament does not belong to this bridge.')
+      return
+    }
 
-    const link = await this.application.core.verification.findByDiscord(interaction.user.id)
+    const link = await this.application.core.verification.findByDiscord(interaction.user.id, tournament.bridgeId)
     if (link === undefined) {
       await interaction.editReply('You are not registered in this tournament.')
       return
@@ -362,6 +370,10 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
       await interaction.editReply('There is no tournament in the signup phase.')
       return
     }
+    if (!(await this.interactionBelongsToBridge(interaction, tournament.bridgeId))) {
+      await interaction.editReply('This tournament does not belong to this bridge.')
+      return
+    }
 
     const now = Math.floor(Date.now() / 1000)
     if (tournament.checkinOpensAt !== undefined && now < tournament.checkinOpensAt) {
@@ -373,7 +385,7 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
       return
     }
 
-    const link = await this.application.core.verification.findByDiscord(interaction.user.id)
+    const link = await this.application.core.verification.findByDiscord(interaction.user.id, tournament.bridgeId)
     if (link === undefined) {
       await interaction.editReply('You must link your Minecraft account first! Use `/verify` or contact an officer.')
       return
@@ -400,6 +412,12 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
     if (match.status !== MatchStatus.Active && match.status !== MatchStatus.Reported) {
       this.application.logger.info(`TournamentButtons: Report modal rejected — match ${matchId} status ${match.status}`)
       await interaction.reply({ content: 'This match can no longer be reported.', flags: MessageFlags.Ephemeral })
+      return
+    }
+
+    const tournament = await this.application.core.tournamentManager.getTournament(match.tournamentId)
+    if (tournament === undefined || !(await this.interactionBelongsToBridge(interaction, tournament.bridgeId))) {
+      await interaction.reply({ content: 'Match not found.', flags: MessageFlags.Ephemeral })
       return
     }
 
@@ -463,6 +481,10 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
       await interaction.editReply('Tournament no longer exists.')
       return
     }
+    if (!(await this.interactionBelongsToBridge(interaction, tournament.bridgeId))) {
+      await interaction.editReply('This tournament does not belong to this bridge.')
+      return
+    }
 
     const isPlayer1 = match.player1Id === reporter.id
     const p1Wins = isPlayer1 ? myWins : theirWins
@@ -521,6 +543,12 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
       return
     }
 
+    const tournament = await this.application.core.tournamentManager.getTournament(match.tournamentId)
+    if (tournament === undefined || !(await this.interactionBelongsToBridge(interaction, tournament.bridgeId))) {
+      await interaction.editReply('This tournament does not belong to this bridge.')
+      return
+    }
+
     const player = await this.findMatchPlayer(match, interaction.user.id)
     if (player === undefined) {
       await interaction.editReply('You are not a participant in this match.')
@@ -556,6 +584,12 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
       return
     }
 
+    const tournament = await this.application.core.tournamentManager.getTournament(match.tournamentId)
+    if (tournament === undefined || !(await this.interactionBelongsToBridge(interaction, tournament.bridgeId))) {
+      await interaction.editReply('This tournament does not belong to this bridge.')
+      return
+    }
+
     const player = await this.application.core.databaseManager.queryOne<TournamentPlayer>(
       'SELECT * FROM "tournament_players" WHERE "id" = $1',
       [playerId]
@@ -572,6 +606,25 @@ export default class TournamentButtons extends SubInstance<DiscordInstance, Inst
     } catch (error: unknown) {
       await interaction.editReply(error instanceof Error ? error.message : String(error))
     }
+  }
+
+  private async interactionBelongsToBridge(
+    interaction: ButtonInteraction | ModalSubmitInteraction,
+    bridgeId: string
+  ): Promise<boolean> {
+    let channelId = interaction.channelId
+    const channel = interaction.channel
+    if (channel !== null && channel.isThread() && channel.parentId !== null) {
+      channelId = channel.parentId
+    }
+    if (channelId === null) return false
+
+    const channelBridgeId = this.application.bridgeResolver.getBridgeIdForChannel(channelId)
+    if (channelBridgeId !== undefined) return channelBridgeId === bridgeId
+
+    if (interaction.guildId === null) return false
+    const bridgeGuildIds = await this.clientInstance.getBridgeGuildIds(bridgeId)
+    return bridgeGuildIds.has(interaction.guildId)
   }
 
   private async loadMatch(matchId: number): Promise<TournamentMatch | undefined> {

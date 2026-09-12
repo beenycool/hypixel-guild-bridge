@@ -40,15 +40,17 @@ export class TournamentNotifications {
     for (const name of instances) {
       const inst = this.application.minecraftManager
         .getAllInstances()
-        .find((index) => index.instanceName.toLowerCase() === name.toLowerCase())
+        .find(
+          (index) =>
+            index.instanceName.toLowerCase() === name.toLowerCase() &&
+            this.application.bridgeResolver.getBridgeIdForInstance(index.instanceName) === bridgeId
+        )
       if (inst && inst.currentStatus() === Status.Connected) {
         return inst
       }
     }
 
-    return this.application.minecraftManager
-      .getAllInstances()
-      .find((index) => index.currentStatus() === Status.Connected)
+    return
   }
 
   public async sendWhisper(bridgeId: string, playerUuid: string, message: string): Promise<boolean> {

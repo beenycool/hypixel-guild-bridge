@@ -1,6 +1,7 @@
 import type http from 'node:http'
 
 import { InstanceSignalType, MinecraftSendChatPriority, Permission } from '../../common/application-event.js'
+import type MinecraftInstance from '../minecraft/minecraft-instance.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { BaseApiHandler } from './base-api.js'
@@ -20,15 +21,22 @@ export class InstanceApiHandler extends BaseApiHandler {
       return true
     }
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuthWithUser(request, response)
+    if (auth === undefined) return true
+    const permission = auth.permission
+
+    if (auth.bridgeId === undefined) {
+      sendError(response, 'FORBIDDEN', 'Token is not bound to a bridge', 403)
+      return true
+    }
+    const bridgeId = auth.bridgeId
 
     if (pathPart === `${InstancePrefix}/execute`) {
       if (permission < Permission.Helper) {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleExecute(request, response)
+      await this.handleExecute(request, response, bridgeId)
       return true
     }
 
@@ -63,21 +71,35 @@ export class InstanceApiHandler extends BaseApiHandler {
       }
     }
 
-    await this.handleInstanceAction(response, instanceName, action)
+    await this.handleInstanceAction(response, instanceName, action, bridgeId)
     return true
+  }
+
+  private findBridgeInstance(instanceName: string, bridgeId: string): MinecraftInstance | undefined {
+    const match = this.application.minecraftManager
+      .getAllInstances()
+      .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
+    if (match === undefined) return undefined
+    if (this.application.bridgeResolver.getBridgeIdForInstance(match.instanceName) !== bridgeId) return undefined
+    return match
   }
 
   private async handleInstanceAction(
     response: http.ServerResponse,
     instanceName: string,
-    action: string
+    action: string,
+    bridgeId: string
   ): Promise<void> {
-    const instance = this.application.minecraftManager
-      .getAllInstances()
-      .find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
-
+    const instance = this.findBridgeInstance(instanceName, bridgeId)
     if (!instance) {
-      sendError(response, 'NOT_FOUND', `Instance "${instanceName}" not found`, 404)
+      const exists = this.application.minecraftManager
+        .getAllInstances()
+        .some((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
+      if (exists) {
+        sendError(response, 'FORBIDDEN', `Instance "${instanceName}" does not belong to this bridge`, 403)
+      } else {
+        sendError(response, 'NOT_FOUND', `Instance "${instanceName}" not found`, 404)
+      }
       return
     }
 
@@ -91,7 +113,11 @@ export class InstanceApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleExecute(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleExecute(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    bridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody<{ command?: unknown; instance?: unknown }>(request, response, this.logger)
     if (body === undefined) return
 
@@ -102,18 +128,34 @@ export class InstanceApiHandler extends BaseApiHandler {
       return
     }
 
-    const instances = this.application.minecraftManager.getAllInstances()
+    const allInstances = this.application.minecraftManager.getAllInstances()
     let targetInstances: string[]
 
     if (typeof instanceName === 'string' && instanceName.length > 0) {
-      const match = instances.find((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
+      const match = this.findBridgeInstance(instanceName, bridgeId)
       if (!match) {
-        sendError(response, 'NOT_FOUND', `Instance "${instanceName}" not found`, 404)
+        const exists = allInstances.some((inst) => inst.instanceName.toLowerCase() === instanceName.toLowerCase())
+        if (exists) {
+          sendError(response, 'FORBIDDEN', `Instance "${instanceName}" does not belong to this bridge`, 403)
+        } else {
+          sendError(response, 'NOT_FOUND', `Instance "${instanceName}" not found`, 404)
+        }
         return
       }
       targetInstances = [match.instanceName]
     } else {
-      targetInstances = instances.map((inst) => inst.instanceName)
+      const configured = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
+      const target = configured
+        .map((name) => allInstances.find((inst) => inst.instanceName.toLowerCase() === name.toLowerCase()))
+        .find(
+          (inst): inst is MinecraftInstance =>
+            inst !== undefined && this.application.bridgeResolver.getBridgeIdForInstance(inst.instanceName) === bridgeId
+        )
+      if (!target) {
+        sendError(response, 'VALIDATION_ERROR', 'No Minecraft instance is assigned to this bridge', 400)
+        return
+      }
+      targetInstances = [target.instanceName]
     }
 
     try {

@@ -37,7 +37,7 @@ export async function resolveDiscordMentionsInMessage(
 
   const unrestoredEntries: [string, string][] = []
   for (const [lowered, token] of searchEntries) {
-    const cached = ResolvedMentionsCache.get(lowered)
+    const cached = ResolvedMentionsCache.get(`${guild.id}:${lowered}`)
     if (cached && Date.now() - cached.timestamp < CacheTTL) {
       tokenToUserId.set(lowered, cached.userId)
     } else {
@@ -56,7 +56,7 @@ export async function resolveDiscordMentionsInMessage(
     if (usernameMatches.length === 1) {
       const userId = usernameMatches[0].id
       tokenToUserId.set(lowered, userId)
-      ResolvedMentionsCache.set(lowered, { userId, timestamp: Date.now() })
+      ResolvedMentionsCache.set(`${guild.id}:${lowered}`, { userId, timestamp: Date.now() })
       continue
     }
     if (usernameMatches.length > 1) continue
@@ -65,7 +65,7 @@ export async function resolveDiscordMentionsInMessage(
     if (nicknameMatches.length === 1) {
       const userId = nicknameMatches[0].id
       tokenToUserId.set(lowered, userId)
-      ResolvedMentionsCache.set(lowered, { userId, timestamp: Date.now() })
+      ResolvedMentionsCache.set(`${guild.id}:${lowered}`, { userId, timestamp: Date.now() })
     }
   }
 
@@ -73,14 +73,14 @@ export async function resolveDiscordMentionsInMessage(
     for (const [lowered, token] of searchEntries) {
       if (tokenToUserId.has(lowered)) continue
 
-      const cached = MinecraftNameCache.get(lowered)
+      const cached = MinecraftNameCache.get(`${guild.id}:${lowered}`)
       if (cached !== undefined && Date.now() - cached.timestamp < MinecraftNameCacheTTL) {
         tokenToUserId.set(lowered, cached.userId)
       } else {
         const discordId = await resolveMinecraftName(token)
         if (discordId !== undefined) {
           tokenToUserId.set(lowered, discordId)
-          MinecraftNameCache.set(lowered, { userId: discordId, timestamp: Date.now() })
+          MinecraftNameCache.set(`${guild.id}:${lowered}`, { userId: discordId, timestamp: Date.now() })
         }
       }
     }

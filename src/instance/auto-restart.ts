@@ -33,6 +33,7 @@ export default class AutoRestart extends Instance<InstanceType.Utility> {
 
           await this.application.emit('broadcast', {
             ...this.eventHelper.fillBaseEvent(),
+            scope: 'global',
 
             channels: [ChannelType.Public],
             color: Color.Info,

@@ -1,9 +1,13 @@
 import type { DatabaseManager } from '../../common/database-manager'
+import Duration from '../../utility/duration'
 
 import type { BridgeConfigurations } from './bridge-configurations'
 
 export class DiscordTemporarilyInteractions {
   private readonly entries = new Map<string, DiscordMessage>()
+  private static readonly DefaultTemporarilyInteractionsDuration = Duration.minutes(15)
+  private static readonly DefaultJoinLeaveInteractionsDuration = Duration.days(2)
+  private static readonly DefaultMaxTemporarilyInteractions = 5
 
   constructor(
     private readonly databaseManager: DatabaseManager,
@@ -48,7 +52,6 @@ export class DiscordTemporarilyInteractions {
 
   public findToDelete(): DiscordMessage[] {
     const currentTime = Date.now()
-    const maxInteractions = 5
 
     const allInteractions = [...this.entries.values()]
       .map((entry) => ({ ...entry }))
@@ -59,26 +62,38 @@ export class DiscordTemporarilyInteractions {
     const interactionsCount = new Map<string, number>()
     for (const interaction of allInteractions) {
       if (interaction.type === 'join-leave') {
-        const duration = this.bridgeConfigurations.getDurationJoinLeaveInteractions(interaction.bridgeId ?? '')
+        const duration =
+          interaction.bridgeId === undefined
+            ? DiscordTemporarilyInteractions.DefaultJoinLeaveInteractionsDuration
+            : this.bridgeConfigurations.getDurationJoinLeaveInteractions(interaction.bridgeId)
         if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
           toDelete.push(interaction)
         }
         continue
       }
 
-      const duration = this.bridgeConfigurations.getDurationTemporarilyInteractions(interaction.bridgeId ?? '')
+      const duration =
+        interaction.bridgeId === undefined
+          ? DiscordTemporarilyInteractions.DefaultTemporarilyInteractionsDuration
+          : this.bridgeConfigurations.getDurationTemporarilyInteractions(interaction.bridgeId)
       if (interaction.createdAt + duration.toMilliseconds() < currentTime) {
         toDelete.push(interaction)
         continue
       }
 
-      const currentInteractionsCount = interactionsCount.get(interaction.channelId) ?? 0
+      const maxInteractions =
+        interaction.bridgeId === undefined
+          ? DiscordTemporarilyInteractions.DefaultMaxTemporarilyInteractions
+          : this.bridgeConfigurations.getMaxTemporarilyInteractions(interaction.bridgeId)
+
+      const countKey = `${interaction.bridgeId ?? 'none'}:${interaction.channelId}`
+      const currentInteractionsCount = interactionsCount.get(countKey) ?? 0
       if (currentInteractionsCount >= maxInteractions) {
         toDelete.push(interaction)
         continue
       }
 
-      interactionsCount.set(interaction.channelId, currentInteractionsCount + 1)
+      interactionsCount.set(countKey, currentInteractionsCount + 1)
     }
 
     return toDelete

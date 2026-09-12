@@ -51,8 +51,13 @@ export class PlayerApiHandler extends BaseApiHandler {
       return true
     }
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuthWithUser(request, response)
+    if (auth === undefined) return true
+
+    if (auth.bridgeId === undefined) {
+      sendError(response, 'FORBIDDEN', 'Token is not bound to a bridge', 403)
+      return true
+    }
 
     const username = pathPart.slice(PlayerPrefix.length + 1)
     if (!username || username.length === 0) {
@@ -60,11 +65,11 @@ export class PlayerApiHandler extends BaseApiHandler {
       return true
     }
 
-    await this.handlePlayerLookup(response, username)
+    await this.handlePlayerLookup(response, username, auth.bridgeId)
     return true
   }
 
-  private async handlePlayerLookup(response: http.ServerResponse, username: string): Promise<void> {
+  private async handlePlayerLookup(response: http.ServerResponse, username: string, bridgeId: string): Promise<void> {
     let uuid: string
     try {
       const profile = await this.application.mojangApi.profileByUsername(username)
@@ -89,10 +94,13 @@ export class PlayerApiHandler extends BaseApiHandler {
       const guild = await this.application.hypixelApi.getGuild('player', uuid, {})
       const member = guild.members.find((m) => m.uuid === uuid)
       if (member) {
-        guildInfo = {
-          name: guild.name,
-          rank: member.rank,
-          joinedAt: member.joinedAt.getTime()
+        const bridgeGuildName = this.application.core.bridgeConfigurations.getGuildName(bridgeId)
+        if (bridgeGuildName === undefined || guild.name === bridgeGuildName) {
+          guildInfo = {
+            name: guild.name,
+            rank: member.rank,
+            joinedAt: member.joinedAt.getTime()
+          }
         }
       }
     } catch {

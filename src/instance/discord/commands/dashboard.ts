@@ -46,9 +46,18 @@ export default {
 
   handler: async function (context: Readonly<DiscordCommandContext>) {
     const { interaction } = context
+    const bridgeId = context.bridgeId
+    if (bridgeId === undefined) {
+      await interaction.reply({
+        content: "Run this command in one of this bridge's channels.",
+        ephemeral: true
+      })
+      return
+    }
+
     const userId = interaction.user.id
     const discordInstance = context.application.discordInstance
-    const userPermission = await discordInstance.resolvePermission(userId, context.bridgeId)
+    const userPermission = await discordInstance.resolvePermission(userId, bridgeId)
 
     if (userPermission < Permission.Helper) {
       await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true })
@@ -62,15 +71,14 @@ export default {
     }
     const base = await getBaseUrl(context)
     const signingSecret = webConfig.signingSecret
-    const signedToken = signToken(
-      {
-        sub: userId,
-        perm: userPermission,
-        exp: Math.floor(Date.now() / 1000) + 86_400,
-        iat: Math.floor(Date.now() / 1000)
-      },
-      signingSecret
-    )
+    const tokenPayload = {
+      sub: userId,
+      perm: userPermission,
+      exp: Math.floor(Date.now() / 1000) + 86_400,
+      iat: Math.floor(Date.now() / 1000),
+      bridge: bridgeId
+    }
+    const signedToken = signToken(tokenPayload, signingSecret)
     const t = encodeURIComponent(signedToken)
 
     const page = context.interaction.options.getString('page') ?? ''

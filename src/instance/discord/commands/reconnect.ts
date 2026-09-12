@@ -17,6 +17,12 @@ export default {
     const target = context.interaction.options.getString('instance', true)
     assert.ok(target)
 
+    const bridgeId = context.bridgeId
+    if (bridgeId === undefined || !context.application.bridgeResolver.shouldProcessEvent(bridgeId, target)) {
+      await context.interaction.editReply('This instance does not belong to this bridge.')
+      return
+    }
+
     await context.application.sendSignal([target], InstanceSignalType.Restart)
     await context.interaction.editReply('Reconnect signal has been sent!')
   }

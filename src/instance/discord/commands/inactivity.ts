@@ -79,7 +79,7 @@ export default {
         return
       }
 
-      const link = await context.application.core.verification.findByIngame(profile.id)
+      const link = await context.application.core.verification.findByIngame(profile.id, bridgeId)
       uuid = profile.id
       profileName = profile.name
       discordId = link?.discordId ?? ''

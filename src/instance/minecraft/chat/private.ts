@@ -12,7 +12,10 @@ export default {
       const playerMessage = match[3].trim()
 
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)
-      const user = await context.application.core.initializeMinecraftUser({ name: username, id: uuid }, {})
+      const user = await context.application.core.initializeMinecraftUser(
+        { name: username, id: uuid },
+        { bridgeId: context.clientInstance.bridgeId }
+      )
 
       if (context.application.minecraftManager.isMinecraftBot(username)) return
 

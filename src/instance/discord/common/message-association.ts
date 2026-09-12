@@ -4,10 +4,11 @@ export default class MessageAssociation {
   private readonly messageIds = new NodeCache({ stdTTL: 300 })
   private readonly messageUsernames = new NodeCache({ stdTTL: 300 })
 
-  public getMessageId(eventId: string | undefined): DiscordAssociatedMessage[] {
-    if (eventId === undefined) return []
+  public getMessageId(eventId: string | undefined, bridgeId: string | undefined): DiscordAssociatedMessage[] {
+    if (eventId === undefined || bridgeId === undefined) return []
+
     const list: DiscordAssociatedMessage[] = this.messageIds.get(eventId) ?? []
-    return [...list]
+    return list.filter((entry) => entry.bridgeId === bridgeId)
   }
 
   public addMessageId(eventId: string, options: DiscordAssociatedMessage): void {
@@ -33,4 +34,5 @@ export interface DiscordAssociatedMessage {
   guildId: string | undefined
   channelId: string
   messageId: string
+  bridgeId?: string
 }

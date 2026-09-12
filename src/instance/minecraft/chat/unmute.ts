@@ -14,13 +14,13 @@ export default {
       const targetProfile = await context.application.mojangApi.profileByUsername(target)
       const targetUser = await context.application.core.initializeMinecraftUser(
         { id: targetProfile.id, name: target },
-        {}
+        { bridgeId: context.clientInstance.bridgeId }
       )
 
       const responsibleProfile = await context.application.mojangApi.profileByUsername(responsible)
       const responsibleUser = await context.application.core.initializeMinecraftUser(
         { id: responsibleProfile.id, name: responsible },
-        {}
+        { bridgeId: context.clientInstance.bridgeId }
       )
 
       await context.application.emit('guildPlayer', {

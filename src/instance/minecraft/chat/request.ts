@@ -15,7 +15,10 @@ export default {
       context.logger.info(`[join-request] detected request from ${match[1]} | message: "${context.message}"`)
       const username = match[1]
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)
-      const user = await context.application.core.initializeMinecraftUser({ name: username, id: uuid }, {})
+      const user = await context.application.core.initializeMinecraftUser(
+        { name: username, id: uuid },
+        { bridgeId: context.clientInstance.bridgeId }
+      )
 
       await context.application.emit('guildPlayer', {
         ...context.eventHelper.fillBaseEvent(),

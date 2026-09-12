@@ -188,9 +188,11 @@ export class TournamentManager {
 
         if (match.status === MatchStatus.Bye && match.winnerId !== undefined) {
           this.logger.info(`Match ${match.id}: Rehydrating unadvanced BYE match, advancing winner ${match.winnerId}`)
-          await this.matchManager.resolveByeMatch(match.id, match.winnerId).catch((error: unknown) => {
-            this.logger.error(`Match ${match.id}: Failed to advance BYE winner during rehydration:`, error)
-          })
+          await this.matchManager
+            .resolveByeMatch(match.id, match.winnerId, tournament.bridgeId)
+            .catch((error: unknown) => {
+              this.logger.error(`Match ${match.id}: Failed to advance BYE winner during rehydration:`, error)
+            })
         }
 
         if (match.status === MatchStatus.Disputed && match.deadlineAt) {
@@ -430,7 +432,7 @@ export class TournamentManager {
     }
 
     if (discordId !== undefined) {
-      const signupCheck = this.antiAbuse.checkSignupRate(discordId)
+      const signupCheck = this.antiAbuse.checkSignupRate(discordId, tournament.bridgeId)
       if (!signupCheck.allowed) {
         throw new Error(signupCheck.reason ?? 'Please slow down. You are joining/leaving too fast.')
       }
@@ -439,10 +441,11 @@ export class TournamentManager {
       'SELECT "playerUuid" FROM "tournament_players" WHERE "tournamentId" = $1',
       [tournamentId]
     )
-    const altCheck = await this.antiAbuse.checkAltAccounts(tournamentId, [
-      ...existingPlayers.map((p) => p.playerUuid),
-      playerUuid
-    ])
+    const altCheck = await this.antiAbuse.checkAltAccounts(
+      tournamentId,
+      [...existingPlayers.map((p) => p.playerUuid), playerUuid],
+      tournament.bridgeId
+    )
     if (!altCheck.allowed) {
       throw new Error(altCheck.reason ?? 'FLAGGED: Potential alt account.')
     }
@@ -502,7 +505,7 @@ export class TournamentManager {
       throw new Error('Player is not registered for this tournament.')
     }
     if (tournament.status === TournamentStatus.Signup && player.discordId !== undefined) {
-      const signupCheck = this.antiAbuse.checkSignupRate(player.discordId)
+      const signupCheck = this.antiAbuse.checkSignupRate(player.discordId, tournament.bridgeId)
       if (!signupCheck.allowed) {
         throw new Error(signupCheck.reason ?? 'Please slow down. You are joining/leaving too fast.')
       }
@@ -798,20 +801,20 @@ export class TournamentManager {
     }
 
     const bridgeGuild = await this.resolveGuildForBridge(tournament.bridgeId)
-    const resolvedGuildId = bridgeGuild?.id ?? guildId
-    if (resolvedGuildId === undefined) {
+    if (bridgeGuild === undefined) {
       throw new Error(
-        `Could not resolve a Discord guild for bridge "${tournament.bridgeId}". Configure the bridge's channels or pass guildId.`
+        `Could not resolve a Discord guild for bridge "${tournament.bridgeId}". Configure the bridge's channels before starting the tournament.`
       )
     }
-    if (guildId !== undefined && bridgeGuild !== undefined && guildId !== bridgeGuild.id) {
-      this.logger.warn(
-        `Tournament ${tournamentId}: requested guild ${guildId} differs from bridge "${tournament.bridgeId}" guild ${bridgeGuild.id} (${bridgeGuild.name}); using the bridge guild`
+    if (guildId !== undefined && guildId !== bridgeGuild.id) {
+      throw new Error(
+        `Requested guild ${guildId} does not match guild ${bridgeGuild.id} (${bridgeGuild.name}) of bridge "${tournament.bridgeId}"; refusing to start the tournament.`
       )
     }
+    const resolvedGuildId = bridgeGuild.id
 
     this.logger.info(
-      `Tournament ${tournamentId} (${tournament.name}): Starting tournament for guild=${resolvedGuildId} (${bridgeGuild?.name ?? 'unknown'}), categoryId=${categoryId ?? 'default'}`
+      `Tournament ${tournamentId} (${tournament.name}): Starting tournament for guild=${resolvedGuildId} (${bridgeGuild.name}), categoryId=${categoryId ?? 'default'}`
     )
 
     const players = await this.databaseManager.queryRows<TournamentPlayer>(
@@ -1080,7 +1083,7 @@ export class TournamentManager {
     for (const m of byeRound1) {
       if (m.winnerId !== undefined) {
         this.logger.info(`Match ${m.id}: Resolving BYE match, winnerId=${m.winnerId}`)
-        await this.matchManager.resolveByeMatch(m.id, m.winnerId).catch((error: unknown) => {
+        await this.matchManager.resolveByeMatch(m.id, m.winnerId, tournament.bridgeId).catch((error: unknown) => {
           this.logger.error(`Error resolving BYE match ${m.id}:`, error)
         })
       }

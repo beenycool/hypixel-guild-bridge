@@ -102,29 +102,7 @@ export default {
     context.application.logger.info(
       `Discord /tournament ${subcommand} — user=${context.interaction.user.id}, channel=${context.interaction.channelId}`
     )
-    let bridgeId = context.bridgeId
-
-    if (bridgeId === undefined) {
-      const guild =
-        context.interaction.guild ??
-        (context.interaction.guildId === null
-          ? undefined
-          : await context.interaction.client.guilds.fetch(context.interaction.guildId).catch(() => undefined))
-      if (guild !== undefined) {
-        const guildBridgeIds = new Set<string>()
-        for (const [, channel] of guild.channels.cache) {
-          const bid = context.application.bridgeResolver.getBridgeIdForChannel(channel.id)
-          if (bid !== undefined) guildBridgeIds.add(bid)
-        }
-        if (guildBridgeIds.size === 1) {
-          bridgeId = [...guildBridgeIds][0]
-          context.application.logger.info(
-            `Discord /tournament ${subcommand}: resolved bridgeId=${bridgeId} from guild=${guild.id}`
-          )
-        }
-      }
-    }
-
+    const bridgeId = context.bridgeId
     if (bridgeId === undefined) {
       await context.interaction.reply({
         content: 'This command can only be executed within a bridge channel.',
@@ -151,7 +129,7 @@ export default {
         return
       }
 
-      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id, bridgeId)
       if (link === undefined) {
         await context.interaction.editReply(
           'You must link your Minecraft account first. Staff have been notified to help you verify.'
@@ -191,7 +169,7 @@ export default {
         return
       }
 
-      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id, bridgeId)
       if (link === undefined) {
         await context.interaction.editReply('You are not registered in this tournament.')
         return
@@ -218,7 +196,7 @@ export default {
         return
       }
 
-      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id, bridgeId)
       if (link === undefined) {
         await context.interaction.editReply(
           'You must link your Minecraft account first. Staff have been notified to help you verify.'
@@ -255,7 +233,7 @@ export default {
         return
       }
 
-      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id, bridgeId)
       if (link === undefined) {
         await context.interaction.editReply('You must be verified and registered to report.')
         return
@@ -339,7 +317,7 @@ export default {
         return
       }
 
-      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id, bridgeId)
       if (link === undefined) {
         await context.interaction.editReply('You must be verified to forfeit.')
         return
@@ -388,7 +366,7 @@ export default {
         return
       }
 
-      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id, bridgeId)
       if (link === undefined) {
         await context.interaction.reply({
           content: 'You must be verified and registered to schedule.',
@@ -522,7 +500,7 @@ export default {
         })
         return
       }
-      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id)
+      const link = await context.application.core.verification.findByDiscord(context.interaction.user.id, bridgeId)
       if (link === undefined) {
         await context.interaction.reply({
           content: 'You must be verified and registered to post proof.',

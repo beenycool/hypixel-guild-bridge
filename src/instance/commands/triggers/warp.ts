@@ -12,8 +12,6 @@ import { Status } from '../../../common/connectable-instance.js'
 import { sleep } from '../../../utility/shared-utility'
 // eslint-disable-next-line import/no-restricted-paths
 import type MinecraftInstance from '../../minecraft/minecraft-instance.js'
-// eslint-disable-next-line import/no-restricted-paths
-import type { MinecraftManager } from '../../minecraft/minecraft-manager.js'
 
 interface Stopwatch {
   startedAt: number
@@ -50,13 +48,20 @@ export default class Warp extends ChatCommandHandler {
     }
 
     const usernames = context.args
-    const instance = this.getActiveMinecraftInstanceName(
-      context.app.minecraftManager,
+    const bridgeId = context.message.bridgeId
+    if (bridgeId === undefined) {
+      context.logger.info(`[warp] command source is not associated with a bridge`)
+      return `This command must be used in a configured bridge channel.`
+    }
+
+    const instance = this.getConnectedBridgeInstance(
+      context.app,
+      bridgeId,
       context.message.instanceType === InstanceType.Minecraft ? context.message.instanceName : undefined
     )
     if (instance === undefined) {
-      context.logger.info(`[warp] no active connected Minecraft instance to use`)
-      return `No active connected Minecraft account exists to use`
+      context.logger.info(`[warp] no active connected Minecraft instance for bridge ${bridgeId}`)
+      return `No connected Minecraft instance is available for this bridge.`
     }
 
     context.logger.info(`[warp] started | usernames=${usernames.join(', ')} | instance=${instance.instanceName}`)
@@ -66,22 +71,27 @@ export default class Warp extends ChatCommandHandler {
     return response
   }
 
-  private getActiveMinecraftInstanceName(
-    minecraftManager: MinecraftManager,
+  private getConnectedBridgeInstance(
+    application: Application,
+    bridgeId: string,
     preferredInstanceName: string | undefined
   ): MinecraftInstance | undefined {
-    const availableInstances = minecraftManager
+    const availableInstances = application.minecraftManager
       .getAllInstances()
-      .filter((instance) => instance.currentStatus() === Status.Connected)
+      .filter(
+        (instance) =>
+          instance.currentStatus() === Status.Connected &&
+          application.bridgeResolver.getBridgeIdForInstance(instance.instanceName) === bridgeId
+      )
 
-    let result: MinecraftInstance | undefined
-    if (preferredInstanceName !== undefined)
-      result = availableInstances.find(
+    if (preferredInstanceName !== undefined) {
+      const preferred = availableInstances.find(
         (instance) => instance.instanceName.toLowerCase() === preferredInstanceName.toLowerCase()
       )
-    if (result === undefined && availableInstances.length > 0) result = availableInstances[0]
+      if (preferred !== undefined) return preferred
+    }
 
-    return result
+    return availableInstances[0]
   }
 
   async warpPlayers(instance: MinecraftInstance, context: ChatCommandContext, usernames: string[]): Promise<string> {
@@ -183,6 +193,7 @@ export default class Warp extends ChatCommandHandler {
 
         await application.emit('broadcast', {
           ...context.eventHelper.fillBaseEvent(),
+          bridgeId: context.message.bridgeId,
 
           channels: [ChannelType.Officer],
           color: Color.Bad,

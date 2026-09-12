@@ -72,7 +72,7 @@ export class DeadlineScheduler {
 
           if (now >= match.deadlineAt) {
             this.logger.info(`Match ${match.id}: Deadline expired (was ${match.deadlineAt}), auto-resolving`)
-            await this.matchManager.handleDeadlineExpiry(match.id).catch((error: unknown) => {
+            await this.matchManager.handleDeadlineExpiry(match.id, tournament.bridgeId).catch((error: unknown) => {
               this.logger.error(`Failed to handle deadline expiry for match ${match.id}:`, error)
             })
             continue

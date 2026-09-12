@@ -1,5 +1,6 @@
 import type { ChatCommandContext } from '../../../common/commands.js'
 import { ChatCommandHandler } from '../../../common/commands.js'
+import { Status } from '../../../common/connectable-instance.js'
 
 export default class GtopCommand extends ChatCommandHandler {
   constructor() {
@@ -12,9 +13,18 @@ export default class GtopCommand extends ChatCommandHandler {
   }
 
   public async handler(context: ChatCommandContext): Promise<string> {
-    const instances = context.app.minecraftManager.getAllInstances()
-    const botUuid = instances[0]?.uuid()
-    if (!botUuid) return 'No Minecraft instance is connected to fetch guild data.'
+    const bridgeId = context.message.bridgeId
+    if (bridgeId === undefined) return 'This command must be used in a configured bridge channel.'
+
+    const instance = context.app.minecraftManager
+      .getAllInstances()
+      .find(
+        (candidate) =>
+          candidate.currentStatus() === Status.Connected &&
+          context.app.bridgeResolver.getBridgeIdForInstance(candidate.instanceName) === bridgeId
+      )
+    const botUuid = instance?.uuid()
+    if (!botUuid) return 'No connected Minecraft instance is available for this bridge.'
 
     let guild
     try {

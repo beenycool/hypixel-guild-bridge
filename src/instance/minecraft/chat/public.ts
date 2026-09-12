@@ -14,7 +14,10 @@ export default {
       const playerMessage = match[4].trim()
       const uuid = getUuidFromGuildChat(context.jsonMessage)
 
-      const user = await context.application.core.initializeMinecraftUser({ name: username, id: uuid }, {})
+      const user = await context.application.core.initializeMinecraftUser(
+        { name: username, id: uuid },
+        { bridgeId: context.clientInstance.bridgeId }
+      )
 
       if (context.application.minecraftManager.isMinecraftBot(username)) {
         const isEcho = context.clientInstance.notifyChatEvent(ChannelType.Public, playerMessage)
@@ -37,7 +40,7 @@ export default {
           return
         }
 
-        if (context.application.core.isRecentlyFiltered(playerMessage)) {
+        if (context.application.core.isRecentlyFiltered(playerMessage, context.eventHelper.fillBaseEvent().bridgeId)) {
           return
         }
       }

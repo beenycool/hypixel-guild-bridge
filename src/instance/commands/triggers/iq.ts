@@ -43,15 +43,19 @@ export default class Iq extends ChatCommandHandler {
 
     const chatMessages = context.app.core.chatMessages
     const targetKey = givenUsername.toLowerCase()
+    const bridgeId = context.message.bridgeId
+    if (bridgeId === undefined) {
+      return 'IQ estimation is not available: this message is not associated with a bridge.'
+    }
 
-    const cachedIq = await chatMessages.getCachedIq(targetKey)
+    const cachedIq = await chatMessages.getCachedIq(bridgeId, targetKey)
     if (cachedIq !== undefined) {
       return `${givenUsername} has an IQ of ${cachedIq}`
     }
 
     const messages = isLookupSelf
-      ? await chatMessages.getMessages(senderId)
-      : await chatMessages.getMessagesByUsername(givenUsername)
+      ? await chatMessages.getMessages(senderId, bridgeId)
+      : await chatMessages.getMessagesByUsername(givenUsername, bridgeId)
 
     if (messages.length < minMessages) {
       return `${givenUsername}, not enough chat messages to estimate IQ (need at least ${minMessages}).`
@@ -74,7 +78,7 @@ export default class Iq extends ChatCommandHandler {
 
       const parsed = Number.parseInt(result.content.trim(), 10)
       const iq = Number.isNaN(parsed) ? 100 : Math.max(0, Math.min(200, parsed))
-      await chatMessages.setCachedIq(targetKey, iq)
+      await chatMessages.setCachedIq(bridgeId, targetKey, iq)
       return `${givenUsername} has an IQ of ${iq}`
     } catch (error: unknown) {
       return formatOpenRouterError(error, 'IQ estimation', context.logger)

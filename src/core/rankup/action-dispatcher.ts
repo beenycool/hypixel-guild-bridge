@@ -58,6 +58,14 @@ export class ActionDispatcher {
       return
     }
 
+    if (this.application.bridgeResolver.getBridgeIdForInstance(instance.instanceName) !== bridgeId) {
+      this.logger.error(
+        `[Rankup] Minecraft instance "${instanceName}" is not assigned to bridge ${bridgeId}; refusing to dispatch`
+      )
+      this.pendingManager.logHistory(bridgeId, uuid, 'reject', fromRank, toRank, 'System (Bridge Mismatch)')
+      return
+    }
+
     try {
       await instance.send(command, MinecraftSendChatPriority.High, undefined)
       this.pendingManager.logHistory(bridgeId, uuid, actionLog, fromRank, toRank, 'System')

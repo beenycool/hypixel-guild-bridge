@@ -31,7 +31,7 @@ export default class Blackjack extends ChatCommandHandler {
     }
 
     const subcommand = context.args[0]?.toLowerCase()
-    const game = this.activeGames.get(context.username)
+    const game = this.activeGames.get(this.gameKey(context))
 
     switch (subcommand) {
       case 'hit': {
@@ -61,7 +61,7 @@ export default class Blackjack extends ChatCommandHandler {
       dealerHand: [this.drawCard(deck), this.drawCard(deck)],
       deck: deck
     }
-    this.activeGames.set(context.username, newGame)
+    this.activeGames.set(this.gameKey(context), newGame)
 
     return this.render(
       context,
@@ -110,14 +110,14 @@ export default class Blackjack extends ChatCommandHandler {
   }
 
   private win(context: ChatCommandContext, result: string): string {
-    this.activeGames.delete(context.username)
+    this.activeGames.delete(this.gameKey(context))
     return `${this.message(context, 'win')
       .replaceAll('{{username}}', context.username)
       .replaceAll('{username}', context.username)} ${result}`
   }
 
   private lose(context: ChatCommandContext, result: string): string {
-    this.activeGames.delete(context.username)
+    this.activeGames.delete(this.gameKey(context))
 
     return `${this.message(context, 'lose')
       .replaceAll('{{username}}', context.username)
@@ -125,10 +125,14 @@ export default class Blackjack extends ChatCommandHandler {
   }
 
   private draw(context: ChatCommandContext, result: string): string {
-    this.activeGames.delete(context.username)
+    this.activeGames.delete(this.gameKey(context))
     return `${this.message(context, 'draw')
       .replaceAll('{{username}}', context.username)
       .replaceAll('{username}', context.username)} ${result}`
+  }
+
+  private gameKey(context: ChatCommandContext): string {
+    return `${context.message.bridgeId ?? 'unknown'}:${context.username}`
   }
 
   private render(context: ChatCommandContext, game: BlackjackGame, status: string): string {

@@ -63,12 +63,18 @@ export class TournamentApiHandler extends BaseApiHandler {
       return true
     }
 
+    if (auth.bridgeId === undefined) {
+      sendError(response, 'FORBIDDEN', 'Token is not bound to a bridge', 403)
+      return true
+    }
+    const bridgeId = auth.bridgeId
+
     if (pathPart === `${TournamentPrefix}/list`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      await this.handleList(response)
+      await this.handleList(response, bridgeId)
       return true
     }
 
@@ -77,7 +83,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      this.handleActive(request, response)
+      this.handleActive(request, response, bridgeId)
       return true
     }
 
@@ -86,7 +92,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      await this.handleResolveUsers(request, response)
+      await this.handleResolveUsers(request, response, bridgeId)
       return true
     }
 
@@ -95,7 +101,7 @@ export class TournamentApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      await this.handleCategories(request, response)
+      await this.handleCategories(request, response, bridgeId)
       return true
     }
 
@@ -131,6 +137,16 @@ export class TournamentApiHandler extends BaseApiHandler {
 
     if (!Number.isInteger(tournamentId) || tournamentId <= 0) {
       sendError(response, 'VALIDATION_ERROR', 'Invalid tournament ID', 400)
+      return true
+    }
+
+    const scopedTournament = await this.application.core.tournamentManager.getTournament(tournamentId)
+    if (scopedTournament === undefined) {
+      sendError(response, 'NOT_FOUND', 'Tournament not found', 404)
+      return true
+    }
+    if (scopedTournament.bridgeId !== bridgeId) {
+      sendError(response, 'FORBIDDEN', 'Tournament does not belong to this bridge', 403)
       return true
     }
 
@@ -393,10 +409,11 @@ export class TournamentApiHandler extends BaseApiHandler {
     return true
   }
 
-  private async handleList(response: http.ServerResponse): Promise<void> {
+  private async handleList(response: http.ServerResponse, bridgeId: string): Promise<void> {
     try {
       const rows = await this.application.core.databaseManager.queryRows<Tournament>(
-        'SELECT * FROM "tournaments" ORDER BY "createdAt" DESC'
+        'SELECT * FROM "tournaments" WHERE "bridgeId" = $1 ORDER BY "createdAt" DESC',
+        [bridgeId]
       )
       sendSuccess(response, rows)
     } catch (error: unknown) {
@@ -570,16 +587,16 @@ export class TournamentApiHandler extends BaseApiHandler {
   private async handleCreate(
     request: http.IncomingMessage,
     response: http.ServerResponse,
-    auth: { permission: Permission; userId?: string }
+    auth: { permission: Permission; userId?: string; bridgeId?: string }
   ): Promise<void> {
     const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
-    const bridgeId = body.bridgeId
+    const rawBridgeId = body.bridgeId
     const name = body.name
     const gameType = body.gameType
 
-    if (typeof bridgeId !== 'string' || typeof name !== 'string' || typeof gameType !== 'string') {
+    if (typeof rawBridgeId !== 'string' || typeof name !== 'string' || typeof gameType !== 'string') {
       sendError(response, 'VALIDATION_ERROR', 'bridgeId, name, and gameType are required', 400)
       return
     }
@@ -587,6 +604,9 @@ export class TournamentApiHandler extends BaseApiHandler {
       sendError(response, 'VALIDATION_ERROR', 'name and gameType must not be empty', 400)
       return
     }
+
+    const bridgeId = rawBridgeId.trim()
+    if (this.rejectUnauthorizedBridge(bridgeId, auth.bridgeId, response)) return
 
     const config = this.application.core.bridgeConfigurations
 
@@ -694,17 +714,25 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
   }
 
-  private handleActive(request: http.IncomingMessage, response: http.ServerResponse): void {
+  private handleActive(request: http.IncomingMessage, response: http.ServerResponse, authBridgeId: string): void {
     const rawUrl = request.url ?? ''
     const query = new URLSearchParams(rawUrl.split('?')[1] ?? '')
-    const bridgeId = query.get('bridgeId')
-    if (bridgeId === null || bridgeId.length === 0) {
+    const requestedBridgeId = query.get('bridgeId')
+    if (requestedBridgeId === null || requestedBridgeId.length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'bridgeId query parameter is required', 400)
+      return
+    }
+    if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(requestedBridgeId)) {
+      sendError(response, 'NOT_FOUND', `Unknown bridge "${requestedBridgeId}"`, 404)
+      return
+    }
+    if (requestedBridgeId !== authBridgeId) {
+      sendError(response, 'FORBIDDEN', 'Token is not authorized for this bridge', 403)
       return
     }
 
     try {
-      const tournament = this.application.core.tournamentManager.getActiveTournament(bridgeId)
+      const tournament = this.application.core.tournamentManager.getActiveTournament(requestedBridgeId)
       sendSuccess(response, { tournament })
     } catch (error: unknown) {
       this.logger.error('Failed to get active tournament:', error)
@@ -712,7 +740,11 @@ export class TournamentApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleResolveUsers(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleResolveUsers(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    authBridgeId: string
+  ): Promise<void> {
     const rawUrl = request.url ?? ''
     const query = new URLSearchParams(rawUrl.split('?')[1] ?? '')
     const idsRaw = query.get('ids') ?? ''
@@ -730,19 +762,16 @@ export class TournamentApiHandler extends BaseApiHandler {
       return
     }
 
-    const discordInstance = this.application.discordInstance
     const queryBridgeId = query.get('bridgeId')
-    const bridgeGuild =
-      queryBridgeId !== null && queryBridgeId.length > 0
-        ? await this.application.core.tournamentManager.resolveGuildForBridge(queryBridgeId).catch(() => undefined)
-        : undefined
-    let guild = bridgeGuild
-    if (guild === undefined) {
-      guild = discordInstance.getClient().guilds.cache.first()
-      if (guild !== undefined) {
-        this.logger.warn(`Resolved ${ids.length} profile(s) against arbitrary guild ${guild.id} (no bridgeId given)`)
-      }
+    if (queryBridgeId !== null && queryBridgeId.length > 0 && queryBridgeId !== authBridgeId) {
+      sendError(response, 'FORBIDDEN', 'Token is not authorized for this bridge', 403)
+      return
     }
+
+    const discordInstance = this.application.discordInstance
+    const guild = await this.application.core.tournamentManager
+      .resolveGuildForBridge(authBridgeId)
+      .catch(() => undefined)
     const now = Date.now()
     const resolved: Record<string, unknown> = {}
     const pending: string[] = []
@@ -775,15 +804,31 @@ export class TournamentApiHandler extends BaseApiHandler {
     sendSuccess(response, resolved)
   }
 
-  private async handleCategories(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleCategories(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    authBridgeId: string
+  ): Promise<void> {
     try {
       const rawUrl = request.url ?? ''
       const query = new URLSearchParams(rawUrl.split('?')[1] ?? '')
-      const bridgeId = query.get('bridgeId')
-      const guild =
-        bridgeId !== null && bridgeId.length > 0
-          ? await this.application.core.tournamentManager.resolveGuildForBridge(bridgeId)
-          : undefined
+      const requestedBridgeId = query.get('bridgeId')
+      if (requestedBridgeId === null || requestedBridgeId.length === 0) {
+        sendError(response, 'VALIDATION_ERROR', 'bridgeId query parameter is required', 400)
+        return
+      }
+      if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(requestedBridgeId)) {
+        sendError(response, 'NOT_FOUND', `Unknown bridge "${requestedBridgeId}"`, 404)
+        return
+      }
+      if (requestedBridgeId !== authBridgeId) {
+        sendError(response, 'FORBIDDEN', 'Token is not authorized for this bridge', 403)
+        return
+      }
+
+      const guild = await this.application.core.tournamentManager
+        .resolveGuildForBridge(requestedBridgeId)
+        .catch(() => undefined)
       if (guild === undefined) {
         sendSuccess(response, [])
         return
@@ -1280,6 +1325,22 @@ export class TournamentApiHandler extends BaseApiHandler {
     sendError(response, 'VALIDATION_ERROR', message, 400)
   }
 
+  private rejectUnauthorizedBridge(
+    bridgeId: string,
+    authBridgeId: string | undefined,
+    response: http.ServerResponse
+  ): boolean {
+    if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(bridgeId)) {
+      sendError(response, 'NOT_FOUND', `Unknown bridge "${bridgeId}"`, 404)
+      return true
+    }
+    if (authBridgeId === undefined || bridgeId !== authBridgeId) {
+      sendError(response, 'FORBIDDEN', 'Token is not authorized for this bridge', 403)
+      return true
+    }
+    return false
+  }
+
   private sendCoreError(response: http.ServerResponse, error: unknown): void {
     const message = error instanceof Error ? error.message : String(error)
     if (
@@ -1296,16 +1357,19 @@ export class TournamentApiHandler extends BaseApiHandler {
   private async handleTestCreate(
     request: http.IncomingMessage,
     response: http.ServerResponse,
-    auth: { permission: Permission; userId?: string }
+    auth: { permission: Permission; userId?: string; bridgeId?: string }
   ): Promise<void> {
     const body = await readJsonBody<Record<string, unknown>>(request, response, this.logger)
     if (body === undefined) return
 
-    const bridgeId = body.bridgeId
-    if (typeof bridgeId !== 'string' || bridgeId.trim().length === 0) {
+    const rawBridgeId = body.bridgeId
+    if (typeof rawBridgeId !== 'string' || rawBridgeId.trim().length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'bridgeId is required', 400)
       return
     }
+
+    const bridgeId = rawBridgeId.trim()
+    if (this.rejectUnauthorizedBridge(bridgeId, auth.bridgeId, response)) return
 
     const config = this.application.core.bridgeConfigurations
     const name = typeof body.name === 'string' && body.name.trim().length > 0 ? body.name.trim() : 'Test Tournament'

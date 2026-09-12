@@ -165,12 +165,14 @@ export class Core extends Instance<InstanceType.Core> {
     this.ready = this.initialize()
   }
 
-  public async completeUsername(query: string, limit: number): Promise<string[]> {
-    return await this.autoComplete.username(query, limit)
+  public async completeUsername(query: string, limit: number, bridgeId?: string): Promise<string[]> {
+    if (bridgeId === undefined) return []
+    return await this.autoComplete.username(query, limit, bridgeId)
   }
 
-  public async completeRank(query: string, limit: number): Promise<string[]> {
-    return await this.autoComplete.rank(query, limit)
+  public async completeRank(query: string, limit: number, bridgeId?: string): Promise<string[]> {
+    if (bridgeId === undefined) return []
+    return await this.autoComplete.rank(query, limit, bridgeId)
   }
 
   public filterProfanity(message: string): { filteredMessage: string; changed: boolean } {
@@ -178,20 +180,20 @@ export class Core extends Instance<InstanceType.Core> {
   }
 
   private static readonly FilteredMessageTtl = 60_000
-  private readonly recentlyFilteredMessages: { message: string; time: number }[] = []
+  private readonly recentlyFilteredMessages: { message: string; bridgeId: string | undefined; time: number }[] = []
 
-  public recordFilteredMessage(message: string): void {
-    this.recentlyFilteredMessages.push({ message, time: Date.now() })
+  public recordFilteredMessage(message: string, bridgeId?: string): void {
+    this.recentlyFilteredMessages.push({ message, bridgeId, time: Date.now() })
   }
 
-  public isRecentlyFiltered(message: string): boolean {
+  public isRecentlyFiltered(message: string, bridgeId?: string): boolean {
     const cutoff = Date.now() - Core.FilteredMessageTtl
     let found = false
     for (let index = this.recentlyFilteredMessages.length - 1; index >= 0; index--) {
       const entry = this.recentlyFilteredMessages[index]
       if (entry.time < cutoff) {
         this.recentlyFilteredMessages.splice(index, 1)
-      } else if (entry.message === message) {
+      } else if (entry.message === message && entry.bridgeId === bridgeId) {
         found = true
       }
     }
@@ -238,15 +240,14 @@ export class Core extends Instance<InstanceType.Core> {
     this.profanity.reloadProfanity()
   }
 
-  async initializeDiscordUser(
-    profile: DiscordProfile,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    context: InitializeOptions
-  ): Promise<DiscordUser> {
+  async initializeDiscordUser(profile: DiscordProfile, context: InitializeOptions): Promise<DiscordUser> {
     const identifier: UserIdentifier = { userId: profile.id, originInstance: InstanceType.Discord }
 
     let mojangProfile: MojangProfile | undefined
-    const userLink = await this.application.core.verification.findByDiscord(profile.id)
+    const userLink =
+      context.bridgeId === undefined
+        ? undefined
+        : await this.application.core.verification.findByDiscord(profile.id, context.bridgeId)
     if (userLink !== undefined) {
       mojangProfile = await this.application.mojangApi.profileByUuid(userLink.uuid)
     }
@@ -260,7 +261,10 @@ export class Core extends Instance<InstanceType.Core> {
     const identifier: UserIdentifier = { userId: mojangProfile.id, originInstance: InstanceType.Minecraft }
 
     let profile: DiscordProfile | undefined
-    const userLink = await this.application.core.verification.findByIngame(mojangProfile.id)
+    const userLink =
+      context.bridgeId === undefined
+        ? undefined
+        : await this.application.core.verification.findByIngame(mojangProfile.id, context.bridgeId)
     if (userLink !== undefined) {
       profile = await this.application.discordInstance.profileById(userLink.discordId, context.guild)
     }

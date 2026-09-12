@@ -6,6 +6,10 @@ import Duration from '../utility/duration.js'
 const MESSAGE_RETENTION = Duration.days(7)
 const MAX_MESSAGES_TO_FETCH = 50
 
+function chatMessagesCacheKey(bridgeId: string, userId: string): string {
+  return `${bridgeId}:${userId}`
+}
+
 export class ChatMessagesService {
   private initialized = false
 
@@ -28,6 +32,13 @@ export class ChatMessagesService {
       const discordId = event.user.discordProfile()?.id ?? undefined
       const bridgeId = event.bridgeId ?? this.app.bridgeResolver.getBridgeIdForInstance(event.instanceName) ?? undefined
 
+      if (bridgeId === undefined) {
+        this.app.logger.debug(
+          `Skipping chat message storage for ${username}: no bridge resolved for instance "${event.instanceName}"`
+        )
+        return
+      }
+
       this.databaseManager.enqueueWrite(`storing chat message for ${userId}`, async (database) => {
         await database.query(
           `INSERT INTO "ChatMessages" ("userId", "message", "createdAt", "bridgeId", "username", "discordId") VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -39,26 +50,26 @@ export class ChatMessagesService {
     this.databaseManager.registerCleaner(() => this.clean())
   }
 
-  async getMessages(userId: string): Promise<string[]> {
+  async getMessages(userId: string, bridgeId: string): Promise<string[]> {
     const rows = await this.databaseManager.queryRows<{ message: string }>(
-      `SELECT "message" FROM "ChatMessages" WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT ${MAX_MESSAGES_TO_FETCH}`,
-      [userId]
+      `SELECT "message" FROM "ChatMessages" WHERE "userId" = $1 AND "bridgeId" = $2 ORDER BY "createdAt" DESC LIMIT ${MAX_MESSAGES_TO_FETCH}`,
+      [userId, bridgeId]
     )
     return rows.map((r) => r.message).toReversed()
   }
 
-  async getMessagesByUsername(username: string): Promise<string[]> {
+  async getMessagesByUsername(username: string, bridgeId: string): Promise<string[]> {
     const rows = await this.databaseManager.queryRows<{ message: string }>(
-      `SELECT "message" FROM "ChatMessages" WHERE LOWER("username") = LOWER($1) ORDER BY "createdAt" DESC LIMIT ${MAX_MESSAGES_TO_FETCH}`,
-      [username]
+      `SELECT "message" FROM "ChatMessages" WHERE LOWER("username") = LOWER($1) AND "bridgeId" = $2 ORDER BY "createdAt" DESC LIMIT ${MAX_MESSAGES_TO_FETCH}`,
+      [username, bridgeId]
     )
     return rows.map((r) => r.message).toReversed()
   }
 
-  async getCachedIq(userId: string): Promise<number | undefined> {
+  async getCachedIq(bridgeId: string, userId: string): Promise<number | undefined> {
     const row = await this.databaseManager.queryOne<{ iq: number; calculatedAt: number }>(
       `SELECT "iq", "calculatedAt" FROM "IqScores" WHERE "userId" = $1`,
-      [userId]
+      [chatMessagesCacheKey(bridgeId, userId)]
     )
     if (row === undefined) return undefined
 
@@ -72,12 +83,12 @@ export class ChatMessagesService {
     return undefined
   }
 
-  async setCachedIq(userId: string, iq: number): Promise<void> {
+  async setCachedIq(bridgeId: string, userId: string, iq: number): Promise<void> {
     await this.databaseManager.transaction(async (database) => {
       await database.query(
         `INSERT INTO "IqScores" ("userId", "iq", "calculatedAt") VALUES ($1, $2, $3)
          ON CONFLICT ("userId") DO UPDATE SET "iq" = EXCLUDED."iq", "calculatedAt" = EXCLUDED."calculatedAt"`,
-        [userId, iq, Math.floor(Date.now() / 1000)]
+        [chatMessagesCacheKey(bridgeId, userId), iq, Math.floor(Date.now() / 1000)]
       )
     })
   }

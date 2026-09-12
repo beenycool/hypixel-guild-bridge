@@ -54,11 +54,11 @@ export default class TournamentSignup extends SubInstance<DiscordInstance, Insta
         return
       }
 
-      const link = await this.application.core.verification.findByDiscord(interaction.user.id)
+      const link = await this.application.core.verification.findByDiscord(interaction.user.id, bridgeId)
 
       if (action === 'join') {
         if (link === undefined) {
-          const abuseCheck = tournamentManager.antiAbuse.checkSignupRate(interaction.user.id)
+          const abuseCheck = tournamentManager.antiAbuse.checkSignupRate(interaction.user.id, bridgeId)
           if (abuseCheck.allowed) {
             await this.notifyStaffForUnlinkedUser(
               bridgeId,

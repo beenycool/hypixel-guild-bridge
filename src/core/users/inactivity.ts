@@ -34,11 +34,9 @@ export class Inactivity {
     return entry
   }
 
-  public getAllActive(bridgeId?: string): InactivityEntry[] {
+  public getAllActive(bridgeId: string): InactivityEntry[] {
     const now = nowSeconds()
-    return [...this.entries.values()].filter(
-      (entry) => entry.expiresAt > now && (bridgeId === undefined || entry.bridgeId === bridgeId)
-    )
+    return [...this.entries.values()].filter((entry) => entry.expiresAt > now && entry.bridgeId === bridgeId)
   }
 
   public getActiveByDiscordId(bridgeId: string, discordId: string): InactivityEntry | undefined {

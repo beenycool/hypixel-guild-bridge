@@ -3,12 +3,13 @@ import type { MinecraftChatContext, MinecraftChatMessage } from '../common/chat-
 
 const MUTE_EXPIRE_REGEX = /^Your mute will expire in/
 
-let lastWarning = 0
+const lastWarning = new Map<string, number>()
 
 export default {
   onChat: async function (context: MinecraftChatContext): Promise<void> {
     const match = MUTE_EXPIRE_REGEX.exec(context.message)
-    if (match != undefined && lastWarning + 300_000 < Date.now()) {
+    const lastWarningAt = lastWarning.get(context.instanceName) ?? 0
+    if (match != undefined && lastWarningAt + 300_000 < Date.now()) {
       const t = context.application.getTranslatorForBridge(context.clientInstance.bridgeId)
       const originEventId = context.clientInstance.getLastEventIdForSentChatMessage()
       if (originEventId === undefined) {
@@ -24,7 +25,7 @@ export default {
         message: t('instance.reaction.muted', { hypixelMessage: context.message }),
         rawMessage: context.rawMessage
       })
-      lastWarning = Date.now()
+      lastWarning.set(context.instanceName, Date.now())
     }
   }
 } satisfies MinecraftChatMessage

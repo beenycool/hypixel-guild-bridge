@@ -59,63 +59,63 @@ export default class GuildOnlineMetrics {
     this.guildTotalMembersCount = new Gauge({
       name: prefix + 'guild_members',
       help: 'Guild members count',
-      labelNames: ['name']
+      labelNames: ['name', 'bridge']
     })
     register.registerMetric(this.guildTotalMembersCount)
 
     this.guildOnlineMembersCount = new Gauge({
       name: prefix + 'guild_members_online',
       help: 'Guild online members',
-      labelNames: ['name']
+      labelNames: ['name', 'bridge']
     })
     register.registerMetric(this.guildOnlineMembersCount)
 
     this.guildTotalExperience = new Gauge({
       name: prefix + 'guild_gexp_total',
       help: 'Guild total cumulative GEXP',
-      labelNames: ['name']
+      labelNames: ['name', 'bridge']
     })
     register.registerMetric(this.guildTotalExperience)
 
     this.guildWeeklyExperience = new Gauge({
       name: prefix + 'guild_gexp_weekly',
       help: 'Guild weekly GEXP',
-      labelNames: ['name']
+      labelNames: ['name', 'bridge']
     })
     register.registerMetric(this.guildWeeklyExperience)
 
     this.memberWeeklyExperience = new Gauge({
       name: prefix + 'guild_member_gexp_weekly',
       help: 'Per member weekly GEXP snapshot',
-      labelNames: ['name', 'member_uuid', 'member_name']
+      labelNames: ['name', 'bridge', 'member_uuid', 'member_name']
     })
     register.registerMetric(this.memberWeeklyExperience)
 
     this.memberDailyExperience = new Gauge({
       name: prefix + 'guild_member_gexp_daily',
       help: 'Per member daily GEXP snapshot',
-      labelNames: ['name', 'member_uuid', 'member_name']
+      labelNames: ['name', 'bridge', 'member_uuid', 'member_name']
     })
     register.registerMetric(this.memberDailyExperience)
 
     this.memberJoinedAt = new Gauge({
       name: prefix + 'guild_member_joined_at',
       help: 'Member join time as unix seconds',
-      labelNames: ['name', 'member_uuid', 'member_name']
+      labelNames: ['name', 'bridge', 'member_uuid', 'member_name']
     })
     register.registerMetric(this.memberJoinedAt)
 
     this.memberLastSeenAt = new Gauge({
       name: prefix + 'guild_member_last_seen_at',
       help: 'Member last seen time as Unix milliseconds (use time()*1000 in PromQL with time())',
-      labelNames: ['name', 'member_uuid', 'member_name']
+      labelNames: ['name', 'bridge', 'member_uuid', 'member_name']
     })
     register.registerMetric(this.memberLastSeenAt)
 
     this.memberOnline = new Gauge({
       name: prefix + 'guild_member_online',
       help: 'Member current online status',
-      labelNames: ['name', 'member_uuid', 'member_name']
+      labelNames: ['name', 'bridge', 'member_uuid', 'member_name']
     })
     register.registerMetric(this.memberOnline)
 
@@ -129,14 +129,14 @@ export default class GuildOnlineMetrics {
     this.guildRankMembers = new Gauge({
       name: prefix + 'guild_rank_members',
       help: 'Guild member count per Hypixel in-game rank',
-      labelNames: ['name', 'rank_name']
+      labelNames: ['name', 'bridge', 'rank_name']
     })
     register.registerMetric(this.guildRankMembers)
 
     this.guildPendingRankupReviews = new Gauge({
       name: prefix + 'guild_pending_rankup_reviews',
       help: 'Pending manual rankup reviews for the bridge tied to this Minecraft instance',
-      labelNames: ['name']
+      labelNames: ['name', 'bridge']
     })
     register.registerMetric(this.guildPendingRankupReviews)
 
@@ -188,9 +188,12 @@ export default class GuildOnlineMetrics {
       guildTasks.push(
         this.getCachedGuildList(instanceName)
           .then((guild) => {
-            this.guildTotalMembersCount.set({ name: instanceName }, guild.members.length)
+            this.guildTotalMembersCount.set(
+              { name: instanceName, bridge: this.bridgeLabelForInstance(instanceName) },
+              guild.members.length
+            )
             this.guildOnlineMembersCount.set(
-              { name: instanceName },
+              { name: instanceName, bridge: this.bridgeLabelForInstance(instanceName) },
               guild.members.filter((member) => member.online).length
             )
           })
@@ -204,8 +207,14 @@ export default class GuildOnlineMetrics {
         (async () => {
           const hypixelGuild = await app.hypixelApi.getGuild('player', bot.uuid)
 
-          this.guildTotalExperience.set({ name: instanceName }, hypixelGuild.experience)
-          this.guildWeeklyExperience.set({ name: instanceName }, hypixelGuild.totalWeeklyGexp)
+          this.guildTotalExperience.set(
+            { name: instanceName, bridge: this.bridgeLabelForInstance(instanceName) },
+            hypixelGuild.experience
+          )
+          this.guildWeeklyExperience.set(
+            { name: instanceName, bridge: this.bridgeLabelForInstance(instanceName) },
+            hypixelGuild.totalWeeklyGexp
+          )
 
           this.recordGuildManagementMetrics(instanceName, hypixelGuild, app)
 
@@ -236,6 +245,7 @@ export default class GuildOnlineMetrics {
             /* eslint-disable @typescript-eslint/naming-convention */
             const labels = {
               name: instanceName,
+              bridge: this.bridgeLabelForInstance(instanceName),
               member_uuid: member.uuid,
               member_name: memberName
             }
@@ -383,6 +393,10 @@ export default class GuildOnlineMetrics {
     return this.app.bridgeResolver.getBridgeIdForInstance(instanceName)
   }
 
+  private bridgeLabelForInstance(instanceName: string): string {
+    return this.bridgeIdForMinecraftInstance(instanceName) ?? 'unknown'
+  }
+
   private recordGuildManagementMetrics(
     instanceName: string,
     hypixelGuild: { members: readonly { rank: string }[] },
@@ -395,13 +409,19 @@ export default class GuildOnlineMetrics {
     }
     for (const [rankName, count] of rankCounts) {
       /* eslint-disable @typescript-eslint/naming-convention */
-      this.guildRankMembers.set({ name: instanceName, rank_name: rankName }, count)
+      this.guildRankMembers.set(
+        { name: instanceName, bridge: this.bridgeLabelForInstance(instanceName), rank_name: rankName },
+        count
+      )
       /* eslint-enable @typescript-eslint/naming-convention */
     }
 
     const bridgeId = this.bridgeIdForMinecraftInstance(instanceName)
     const pendingCount = bridgeId === undefined ? 0 : app.core.pendingReviewManager.getReviews(bridgeId).length
-    this.guildPendingRankupReviews.set({ name: instanceName }, pendingCount)
+    this.guildPendingRankupReviews.set(
+      { name: instanceName, bridge: this.bridgeLabelForInstance(instanceName) },
+      pendingCount
+    )
   }
 
   private resetMetrics(): void {

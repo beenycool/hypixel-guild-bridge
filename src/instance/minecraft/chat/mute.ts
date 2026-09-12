@@ -17,7 +17,7 @@ export default {
           id: targetProfile.id,
           name: target
         },
-        {}
+        { bridgeId: context.clientInstance.bridgeId }
       )
 
       const responsibleProfile = await context.application.mojangApi.profileByUsername(responsible)
@@ -26,7 +26,7 @@ export default {
           id: responsibleProfile.id,
           name: responsible
         },
-        {}
+        { bridgeId: context.clientInstance.bridgeId }
       )
 
       await context.application.emit('guildPlayer', {

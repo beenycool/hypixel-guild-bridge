@@ -126,10 +126,11 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
       interaction.user,
       interaction.inCachedGuild() ? interaction.member : undefined
     )
-    const user = await this.application.core.initializeDiscordUser(identifier, {
-      guild: interaction.guild ?? undefined
-    })
     const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(interaction.channelId)
+    const user = await this.application.core.initializeDiscordUser(identifier, {
+      guild: interaction.guild ?? undefined,
+      bridgeId: bridgeId
+    })
     const permission = await user.permission(bridgeId)
     const focusedOption = interaction.options.getFocused(true)
 
@@ -155,7 +156,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     }
 
     if (focusedOption.name === 'username') {
-      const completedUsernames = await this.application.core.completeUsername(focusedOption.value, 25)
+      const completedUsernames = await this.application.core.completeUsername(focusedOption.value, 25, bridgeId)
       const response = completedUsernames.map((choice) => ({
         name: choice,
         value: choice
@@ -192,7 +193,8 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
     const command = this.commands.get(interaction.commandName)
 
     try {
-      if (!CommandManager.RateLimiter.tryAcquire(interaction.user.id)) {
+      const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(interaction.channelId)
+      if (!CommandManager.RateLimiter.tryAcquire(`${bridgeId ?? 'unmapped'}:${interaction.user.id}`)) {
         await interaction.reply({
           content: 'Please slow down. You are sending commands too fast!',
           flags: MessageFlags.Ephemeral
@@ -200,14 +202,14 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
         return
       }
 
-      const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(interaction.channelId)
       const channelType = this.getChannelType(interaction.channelId, bridgeId)
       const identifier = this.clientInstance.profileByUser(
         interaction.user,
         interaction.inCachedGuild() ? interaction.member : undefined
       )
       const user = await this.application.core.initializeDiscordUser(identifier, {
-        guild: interaction.guild ?? undefined
+        guild: interaction.guild ?? undefined,
+        bridgeId: bridgeId
       })
       const permission = await user.permission(bridgeId)
 
@@ -238,6 +240,14 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
 
       const instanceName = interaction.options.getString('instance')
       if (instanceName !== null) {
+        if (bridgeId === undefined) {
+          await interaction.reply({
+            content: "Run this command in one of this bridge's channels.",
+            flags: MessageFlags.Ephemeral
+          })
+          return
+        }
+
         const existingInstanceName = this.application
           .getInstancesNames(InstanceType.Minecraft)
           .find((name) => name.toLowerCase() === instanceName.toLowerCase())
@@ -250,10 +260,7 @@ export class CommandManager extends SubInstance<DiscordInstance, InstanceType.Di
           return
         }
 
-        if (
-          bridgeId !== undefined &&
-          !this.application.bridgeResolver.shouldProcessEvent(bridgeId, existingInstanceName)
-        ) {
+        if (!this.application.bridgeResolver.shouldProcessEvent(bridgeId, existingInstanceName)) {
           await interaction.reply({
             content: `The instance \`${existingInstanceName}\` does not belong to this bridge!`,
             flags: MessageFlags.Ephemeral

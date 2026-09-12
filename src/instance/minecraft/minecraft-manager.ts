@@ -17,8 +17,6 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
   private readonly instances = new Set<MinecraftInstance>()
   private readonly minecraftBots = new Map<string, MinecraftSelfBroadcast>()
   private readonly botRankCache = new Map<string, string>()
-  private readonly botLowerNames = new Set<string>()
-  private readonly botLowerUuids = new Set<string>()
 
   constructor(application: Application) {
     super(application, InternalInstancePrefix + 'MinecraftManager', InstanceType.Utility)
@@ -26,14 +24,15 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
 
     this.application.on('minecraftSelfBroadcast', (event) => {
       this.minecraftBots.set(event.instanceName, event)
-      this.botLowerNames.add(event.username.toLowerCase())
-      this.botLowerUuids.add(event.uuid.toLowerCase())
     })
   }
 
   public isMinecraftBot(username: string): boolean {
     const lowered = username.toLowerCase()
-    return this.botLowerNames.has(lowered) || this.botLowerUuids.has(lowered)
+    for (const bot of this.minecraftBots.values()) {
+      if (bot.username.toLowerCase() === lowered || bot.uuid.toLowerCase() === lowered) return true
+    }
+    return false
   }
 
   public getMinecraftBots(): MinecraftSelfBroadcast[] {
@@ -97,11 +96,6 @@ export class MinecraftManager extends Instance<InstanceType.Utility> {
     }
 
     for (const instance of instances) {
-      const broadcast = this.minecraftBots.get(instance.instanceName)
-      if (broadcast) {
-        this.botLowerNames.delete(broadcast.username.toLowerCase())
-        this.botLowerUuids.delete(broadcast.uuid.toLowerCase())
-      }
       assert.ok(this.instances.delete(instance))
       this.minecraftBots.delete(instance.instanceName)
       this.botRankCache.delete(instance.instanceName.toLowerCase())

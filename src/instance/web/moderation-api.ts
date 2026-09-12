@@ -26,8 +26,13 @@ export class ModerationApiHandler extends BaseApiHandler {
       return true
     }
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuthWithUser(request, response)
+    if (auth === undefined) return true
+
+    if (auth.permission < Permission.Admin) {
+      sendError(response, 'FORBIDDEN', 'Forbidden', 403)
+      return true
+    }
 
     if (method === 'GET') {
       this.handleGet(response)
@@ -35,10 +40,6 @@ export class ModerationApiHandler extends BaseApiHandler {
     }
 
     if (method === 'PUT') {
-      if (permission < Permission.Owner) {
-        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
-        return true
-      }
       const body = await readJsonBody<{ whitelist?: unknown; blacklist?: unknown }>(request, response, this.logger)
       if (body === undefined) return true
       this.handlePut(response, body)

@@ -45,18 +45,30 @@ export class InstanceStatusManager {
       return
     }
 
+    const bridgeResolver = this.application.bridgeResolver
+    const entryBridgeId =
+      entry.bridgeId ??
+      bridgeResolver.getBridgeIdForChannel(entry.channelId) ??
+      bridgeResolver.getBridgeIdForInstance(entry.instanceName)
+    const channelBridgeId = bridgeResolver.getBridgeIdForChannel(interaction.channelId)
+    if (entryBridgeId === undefined || channelBridgeId === undefined || entryBridgeId !== channelBridgeId) {
+      await interaction.editReply('This status message does not belong to this bridge.')
+      return
+    }
+
     const identifier = this.clientInstance.profileByUser(
       interaction.user,
       interaction.inCachedGuild() ? interaction.member : undefined
     )
     const user = await this.application.core.initializeDiscordUser(identifier, {
-      guild: interaction.guild ?? undefined
+      guild: interaction.guild ?? undefined,
+      bridgeId: entryBridgeId
     })
 
-    const permission = await user.permission()
+    const permission = await user.permission(entryBridgeId)
     if (permission < InstanceStatusManager.PermissionToView) {
       await interaction.editReply({
-        content: translateNoPermission(this.application, InstanceStatusManager.PermissionToView),
+        content: translateNoPermission(this.application, InstanceStatusManager.PermissionToView, entryBridgeId),
         allowedMentions: { parse: [] }
       })
       return

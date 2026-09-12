@@ -36,7 +36,8 @@ export class MatchManager {
     reporterPlayerId: number,
     claimedWinnerId: number,
     p1Wins: number,
-    p2Wins: number
+    p2Wins: number,
+    bridgeId?: string
   ): Promise<{ status: MatchStatus; message: string }> {
     this.logger?.debug(
       `[Tournament] Match #${matchId}: report by P${reporterPlayerId} -> winner P${claimedWinnerId} (${p1Wins}-${p2Wins})`
@@ -79,6 +80,7 @@ export class MatchManager {
       if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
         throw new Error('Tournament is not active.')
       }
+      this.assertTournamentBridge(tournament, bridgeId, `Match ${matchId} report`)
 
       const scoreCheck = validateSeriesScore(tournament.bestOf, p1Wins, p2Wins)
       if (!scoreCheck.valid) {
@@ -169,7 +171,8 @@ export class MatchManager {
   public async extendDeadline(
     matchId: number,
     hours: number,
-    maxExtensionHours: number
+    maxExtensionHours: number,
+    bridgeId?: string
   ): Promise<{ newDeadlineAt: number; addedMinutes: number }> {
     this.logger?.info(`[Tournament] Match #${matchId}: extending deadline +${hours}h (max: ${maxExtensionHours}h)`)
 
@@ -185,6 +188,7 @@ export class MatchManager {
       if (match.status === MatchStatus.Completed || match.status === MatchStatus.Bye) {
         throw new Error('Match is already completed.')
       }
+      await this.assertMatchBridge(match, bridgeId, `Match ${matchId} extend deadline`)
 
       const newCumulative = match.deadlineExtensionMinutes + hours * 60
       const maxCumulative = maxExtensionHours * 60
@@ -209,7 +213,11 @@ export class MatchManager {
     })
   }
 
-  public async forfeit(matchId: number, forfeitingPlayerId: number): Promise<{ status: MatchStatus; message: string }> {
+  public async forfeit(
+    matchId: number,
+    forfeitingPlayerId: number,
+    bridgeId?: string
+  ): Promise<{ status: MatchStatus; message: string }> {
     this.logger?.info(`Match ${matchId}: forfeit — forfeitingPlayerId=${forfeitingPlayerId}`)
 
     const postCommit: PostCommitAction[] = []
@@ -230,6 +238,7 @@ export class MatchManager {
       if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
         throw new Error('Tournament is not active.')
       }
+      this.assertTournamentBridge(tournament, bridgeId, `Match ${matchId} forfeit`)
 
       if (match.player1Id !== forfeitingPlayerId && match.player2Id !== forfeitingPlayerId) {
         throw new Error('Forfeiting player is not a participant in this match.')
@@ -254,7 +263,11 @@ export class MatchManager {
               )
 
         if (forfeitingPlayer !== undefined && opponent !== undefined) {
-          const check = await this.antiAbuse.checkForfeitPattern(forfeitingPlayer.playerUuid, opponent.playerUuid)
+          const check = await this.antiAbuse.checkForfeitPattern(
+            forfeitingPlayer.playerUuid,
+            opponent.playerUuid,
+            tournament.bridgeId
+          )
           if (!check.allowed) {
             throw new Error(check.reason ?? 'FLAGGED: Suspicious forfeit pattern')
           }
@@ -281,7 +294,7 @@ export class MatchManager {
       )
 
       if (this.antiAbuse !== undefined && forfeiterUuid !== undefined && opponentUuid !== undefined) {
-        this.antiAbuse.recordForfeit(forfeiterUuid, opponentUuid)
+        this.antiAbuse.recordForfeit(forfeiterUuid, opponentUuid, tournament.bridgeId)
       }
       return { status: MatchStatus.Completed, message: 'Forfeit accepted.' }
     })
@@ -295,7 +308,8 @@ export class MatchManager {
     winnerId: number,
     actorDiscordId?: string,
     p1Wins?: number,
-    p2Wins?: number
+    p2Wins?: number,
+    bridgeId?: string
   ): Promise<void> {
     this.logger?.info(
       `Match ${matchId}: adminConfirm — winnerId=${winnerId}, p1Wins=${p1Wins ?? 'default'}, p2Wins=${p2Wins ?? 'default'}`
@@ -320,6 +334,7 @@ export class MatchManager {
       if (tournament === undefined || tournament.status !== TournamentStatus.Active) {
         throw new Error('Tournament is not active.')
       }
+      this.assertTournamentBridge(tournament, bridgeId, `Match ${matchId} admin confirm`)
 
       if (match.player1Id !== winnerId && match.player2Id !== winnerId) {
         throw new Error('Selected winner is not a participant in this match.')
@@ -348,7 +363,7 @@ export class MatchManager {
       }
 
       if (this.antiAbuse !== undefined && actorDiscordId !== undefined) {
-        const check = await this.antiAbuse.checkFalseReporting(actorDiscordId)
+        const check = await this.antiAbuse.checkFalseReporting(actorDiscordId, tournament.bridgeId)
         if (!check.allowed) {
           throw new Error(check.reason ?? 'FLAGGED: High admin override rate')
         }
@@ -358,14 +373,14 @@ export class MatchManager {
       postCommit.push(...(await this.resolveWinner(matchId, winnerId, txClient, score1, score2)))
 
       if (this.antiAbuse !== undefined && actorDiscordId !== undefined) {
-        this.antiAbuse.recordAdminOverride(actorDiscordId)
+        this.antiAbuse.recordAdminOverride(actorDiscordId, tournament.bridgeId)
       }
     })
 
     await this.runPostCommit(`match ${matchId} admin confirm`, postCommit)
   }
 
-  public async resolveByeMatch(matchId: number, winnerId: number): Promise<void> {
+  public async resolveByeMatch(matchId: number, winnerId: number, bridgeId?: string): Promise<void> {
     this.logger?.info(`Match ${matchId}: resolveByeMatch — winnerId=${winnerId}`)
 
     const match = await this.databaseManager.queryOne<TournamentMatch>(
@@ -378,6 +393,7 @@ export class MatchManager {
     if (match.status !== MatchStatus.Bye) {
       throw new Error('Match is not a BYE match.')
     }
+    await this.assertMatchBridge(match, bridgeId, `Match ${matchId} bye resolve`)
 
     const postCommit = await this.resolveWinner(matchId, winnerId)
     await this.runPostCommit(`match ${matchId} bye resolve`, postCommit)
@@ -387,7 +403,8 @@ export class MatchManager {
     matchId: number,
     oldPlayerId: number,
     newPlayerUuid: string,
-    newDiscordId: string
+    newDiscordId: string,
+    bridgeId?: string
   ): Promise<{ success: boolean; message: string }> {
     this.logger?.info(
       `Match ${matchId}: substitute — oldPlayerId=${oldPlayerId}, newPlayerUuid=${newPlayerUuid}, newDiscordId=${newDiscordId}`
@@ -413,6 +430,12 @@ export class MatchManager {
 
       const tournament = await this.getTournament(match.tournamentId)
       if (!tournament) return { success: false, message: 'Tournament not found.' }
+      if (bridgeId !== undefined && tournament.bridgeId !== bridgeId) {
+        this.logger?.warn(
+          `[Tournament] Match ${matchId} substitute: tournament ${tournament.id} belongs to bridge "${tournament.bridgeId}", not "${bridgeId}"; refusing`
+        )
+        return { success: false, message: 'Tournament does not belong to this bridge.' }
+      }
 
       const oldPlayer = await this.databaseManager.queryOne<TournamentPlayer>(
         'SELECT * FROM "tournament_players" WHERE "id" = $1',
@@ -529,7 +552,7 @@ export class MatchManager {
     return result
   }
 
-  public async handleDeadlineExpiry(matchId: number): Promise<void> {
+  public async handleDeadlineExpiry(matchId: number, bridgeId?: string): Promise<void> {
     this.logger?.info(`Match ${matchId}: handleDeadlineExpiry called`)
 
     const postCommit: PostCommitAction[] = []
@@ -542,6 +565,16 @@ export class MatchManager {
       if (match === undefined || match.status === MatchStatus.Completed || match.status === MatchStatus.Bye) {
         this.logger?.info(`Match ${matchId}: Deadline expiry skipped — match is ${match?.status ?? 'not found'}`)
         return
+      }
+
+      if (bridgeId !== undefined) {
+        const matchTournament = await this.getTournament(match.tournamentId)
+        if (matchTournament?.bridgeId !== bridgeId) {
+          this.logger?.warn(
+            `Match ${matchId}: Deadline expiry refused — tournament ${match.tournamentId} belongs to bridge "${matchTournament?.bridgeId ?? 'unknown'}", not "${bridgeId}"`
+          )
+          return
+        }
       }
 
       const reportsResult = await txClient.query<TournamentReport>(
@@ -641,6 +674,29 @@ export class MatchManager {
         this.logger?.error(`[Tournament] ${context}: post-commit side effect failed:`, error)
       }
     }
+  }
+
+  private assertTournamentBridge(tournament: Tournament, bridgeId: string | undefined, context: string): void {
+    if (bridgeId === undefined || tournament.bridgeId === bridgeId) return
+
+    this.logger?.warn(
+      `[Tournament] ${context}: tournament ${tournament.id} belongs to bridge "${tournament.bridgeId}", not "${bridgeId}"; refusing`
+    )
+    throw new Error('Tournament does not belong to this bridge.')
+  }
+
+  private async assertMatchBridge(
+    match: TournamentMatch,
+    bridgeId: string | undefined,
+    context: string
+  ): Promise<void> {
+    if (bridgeId === undefined) return
+
+    const tournament = await this.getTournament(match.tournamentId)
+    if (tournament === undefined) {
+      throw new Error('Tournament not found.')
+    }
+    this.assertTournamentBridge(tournament, bridgeId, context)
   }
 
   private async getPlayerUuid(playerId: number | undefined, database?: Queryable): Promise<string | undefined> {

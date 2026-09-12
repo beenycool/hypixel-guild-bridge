@@ -1,10 +1,11 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
-interface TokenPayload {
+export interface TokenPayload {
   sub: string
   perm: number
   exp: number
   iat: number
+  bridge?: string
 }
 
 // simple HMAC token signing - basically a homebrewed mini-JWT so we don't have to pull in another npm dependency
@@ -14,7 +15,7 @@ export function signToken(payload: TokenPayload, secret: string): string {
   return `${data}.${signature}`
 }
 
-export function verifySignedToken(token: string, secret: string): TokenPayload | undefined {
+export function verifySignedToken(token: string, secret: string, expectedBridge?: string): TokenPayload | undefined {
   const dot = token.indexOf('.')
   if (dot === -1) return undefined
 
@@ -39,8 +40,10 @@ export function verifySignedToken(token: string, secret: string): TokenPayload |
     if (typeof payload.sub !== 'string' || typeof payload.perm !== 'number' || typeof payload.exp !== 'number') {
       return undefined
     }
+    if (payload.bridge !== undefined && typeof payload.bridge !== 'string') return undefined
     // token expired
     if (payload.exp < Math.floor(Date.now() / 1000)) return undefined
+    if (expectedBridge !== undefined && payload.bridge !== expectedBridge) return undefined
     return payload as TokenPayload
   } catch {
     return undefined

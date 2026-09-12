@@ -64,6 +64,13 @@ export default class StatMonitor extends Instance<InstanceType.Utility> {
       if (!player) continue
 
       for (const watch of watches) {
+        if (watch.bridgeId === null || this.application.bridgeResolver.getBridgeById(watch.bridgeId) === undefined) {
+          this.logger.warn(
+            `Skipping stat monitor ${watch.id}: bridge "${watch.bridgeId ?? 'null'}" is not a configured bridge.`
+          )
+          continue
+        }
+
         const currentValue = extractStatValue(player, watch.game, watch.stat)
         if (currentValue === undefined) continue
 
@@ -89,7 +96,7 @@ export default class StatMonitor extends Instance<InstanceType.Utility> {
               createdAt: Date.now(),
               instanceName: this.instanceName,
               instanceType: this.instanceType,
-              bridgeId: watch.bridgeId ?? undefined,
+              bridgeId: watch.bridgeId,
               channels: [ChannelType.Public],
               color: Color.Info,
               user: undefined,

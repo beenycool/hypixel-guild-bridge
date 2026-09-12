@@ -18,6 +18,8 @@ export class BridgeResolver {
   private loggerChannelToBridge = new Map<string, string>()
   private bridgeById = new Map<string, ResolvedBridge>()
   private promoteChannelToBridge = new Map<string, string>()
+  private conflictedChannels = new Set<string>()
+  private conflicts: string[] = []
 
   constructor() {
     this.rebuildLookupMaps()
@@ -32,6 +34,30 @@ export class BridgeResolver {
     return this.dynamicConfig
   }
 
+  private assignScoped(
+    map: Map<string, string>,
+    conflicted: Set<string>,
+    key: string,
+    bridgeId: string,
+    label: string
+  ): void {
+    if (conflicted.has(key)) return
+
+    const existing = map.get(key)
+    if (existing !== undefined && existing !== bridgeId) {
+      this.conflicts.push(`${label} is assigned to both bridge "${existing}" and bridge "${bridgeId}"; ignoring it`)
+      map.delete(key)
+      conflicted.add(key)
+      return
+    }
+
+    map.set(key, bridgeId)
+  }
+
+  public getConflicts(): string[] {
+    return [...this.conflicts]
+  }
+
   public rebuildLookupMaps(): void {
     this.instanceToBridge.clear()
     this.publicChannelToBridge.clear()
@@ -39,29 +65,124 @@ export class BridgeResolver {
     this.loggerChannelToBridge.clear()
     this.bridgeById.clear()
     this.promoteChannelToBridge.clear()
+    this.conflictedChannels.clear()
+    this.conflicts = []
 
     if (this.dynamicConfig !== undefined) {
+      const conflictedInstances = new Set<string>()
       for (const bridgeId of this.dynamicConfig.getAllBridgeIds()) {
         for (const instanceName of this.dynamicConfig.getMinecraftInstances(bridgeId)) {
-          this.instanceToBridge.set(instanceName.toLowerCase(), bridgeId)
+          this.assignScoped(
+            this.instanceToBridge,
+            conflictedInstances,
+            instanceName.toLowerCase(),
+            bridgeId,
+            `Minecraft instance "${instanceName}"`
+          )
         }
+      }
+
+      for (const bridgeId of this.dynamicConfig.getAllBridgeIds()) {
         for (const channelId of this.dynamicConfig.getPublicChannelIds(bridgeId)) {
-          this.publicChannelToBridge.set(channelId, bridgeId)
+          this.assignScoped(
+            this.publicChannelToBridge,
+            this.conflictedChannels,
+            channelId,
+            bridgeId,
+            `Discord channel "${channelId}" (public)`
+          )
         }
         for (const channelId of this.dynamicConfig.getOfficerChannelIds(bridgeId)) {
-          this.officerChannelToBridge.set(channelId, bridgeId)
+          this.assignScoped(
+            this.officerChannelToBridge,
+            this.conflictedChannels,
+            channelId,
+            bridgeId,
+            `Discord channel "${channelId}" (officer)`
+          )
         }
         for (const channelId of this.dynamicConfig.getLoggerChannelIds(bridgeId)) {
-          this.loggerChannelToBridge.set(channelId, bridgeId)
+          this.assignScoped(
+            this.loggerChannelToBridge,
+            this.conflictedChannels,
+            channelId,
+            bridgeId,
+            `Discord channel "${channelId}" (logger)`
+          )
         }
         for (const channelId of this.dynamicConfig.getPromoteChannelIds(bridgeId)) {
-          this.promoteChannelToBridge.set(channelId, bridgeId)
+          this.assignScoped(
+            this.promoteChannelToBridge,
+            this.conflictedChannels,
+            channelId,
+            bridgeId,
+            `Discord channel "${channelId}" (promote)`
+          )
         }
       }
     }
 
+    const combinedChannelToBridge = new Map<string, string>()
+    const combinedConflicts = new Set<string>()
+    for (const [channelId, bridgeId] of this.publicChannelToBridge) {
+      this.assignScoped(
+        combinedChannelToBridge,
+        combinedConflicts,
+        channelId,
+        bridgeId,
+        `Discord channel "${channelId}"`
+      )
+    }
+    for (const [channelId, bridgeId] of this.officerChannelToBridge) {
+      this.assignScoped(
+        combinedChannelToBridge,
+        combinedConflicts,
+        channelId,
+        bridgeId,
+        `Discord channel "${channelId}"`
+      )
+    }
+    for (const [channelId, bridgeId] of this.loggerChannelToBridge) {
+      this.assignScoped(
+        combinedChannelToBridge,
+        combinedConflicts,
+        channelId,
+        bridgeId,
+        `Discord channel "${channelId}"`
+      )
+    }
+    for (const [channelId, bridgeId] of this.promoteChannelToBridge) {
+      this.assignScoped(
+        combinedChannelToBridge,
+        combinedConflicts,
+        channelId,
+        bridgeId,
+        `Discord channel "${channelId}"`
+      )
+    }
+    for (const conflictedChannel of combinedConflicts) {
+      this.conflictedChannels.add(conflictedChannel)
+    }
+
     for (const bridge of this.getAllBridges()) {
-      this.bridgeById.set(bridge.id, bridge)
+      this.bridgeById.set(bridge.id, {
+        id: bridge.id,
+        minecraftInstanceNames: bridge.minecraftInstanceNames.filter(
+          (instanceName) => this.instanceToBridge.get(instanceName.toLowerCase()) === bridge.id
+        ),
+        publicChannelIds: bridge.publicChannelIds.filter(
+          (channelId) => this.publicChannelToBridge.get(channelId) === bridge.id
+        ),
+        officerChannelIds: bridge.officerChannelIds.filter(
+          (channelId) => this.officerChannelToBridge.get(channelId) === bridge.id
+        ),
+        loggerChannelIds: bridge.loggerChannelIds.filter(
+          (channelId) => this.loggerChannelToBridge.get(channelId) === bridge.id
+        ),
+        promoteChannelIds: bridge.promoteChannelIds.filter(
+          (channelId) => this.promoteChannelToBridge.get(channelId) === bridge.id
+        )
+      })
     }
   }
 
@@ -89,6 +210,8 @@ export class BridgeResolver {
   }
 
   public getBridgeIdForChannel(channelId: string): string | undefined {
+    if (this.conflictedChannels.has(channelId)) return undefined
+
     return (
       this.publicChannelToBridge.get(channelId) ??
       this.officerChannelToBridge.get(channelId) ??
@@ -98,6 +221,8 @@ export class BridgeResolver {
   }
 
   public getChannelTypeForChannel(channelId: string): 'public' | 'officer' | 'logger' | 'promote' | undefined {
+    if (this.conflictedChannels.has(channelId)) return undefined
+
     if (this.publicChannelToBridge.has(channelId)) return 'public'
     if (this.officerChannelToBridge.has(channelId)) return 'officer'
     if (this.loggerChannelToBridge.has(channelId)) return 'logger'
@@ -130,15 +255,15 @@ export class BridgeResolver {
   }
 
   public bridgesMatch(bridgeId1: string | undefined, bridgeId2: string | undefined): boolean {
-    if (bridgeId1 === undefined && bridgeId2 === undefined) return true
+    if (bridgeId1 === undefined || bridgeId2 === undefined) return false
 
     return bridgeId1 === bridgeId2
   }
 
   public shouldProcessEvent(eventBridgeId: string | undefined, instanceName: string): boolean {
-    const instanceBridgeId = this.getBridgeIdForInstance(instanceName)
+    if (eventBridgeId === undefined) return false
 
-    if (eventBridgeId === undefined) return true
+    const instanceBridgeId = this.getBridgeIdForInstance(instanceName)
 
     if (instanceBridgeId === undefined) return false
 

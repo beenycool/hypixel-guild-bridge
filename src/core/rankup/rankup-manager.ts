@@ -121,15 +121,20 @@ export class RankupManager {
   }
 
   public async approveReview(bridgeId: string, id: number): Promise<void> {
-    const review = this.pendingManager.getReview(id)
+    const review = this.pendingManager.getReview(bridgeId, id)
     if (review === undefined) {
       this.logger.warn(`approveReview: review %d not found for bridge %s`, id, bridgeId)
       return
     }
+    if (review.bridgeId !== bridgeId) {
+      this.logger.warn(`approveReview: review %d belongs to bridge %s, not %s; refusing`, id, review.bridgeId, bridgeId)
+      return
+    }
 
-    const instanceNames = this.bridgeConfig.getMinecraftInstances(bridgeId)
+    const reviewBridgeId = review.bridgeId
+    const instanceNames = this.bridgeConfig.getMinecraftInstances(reviewBridgeId)
     if (instanceNames.length === 0) {
-      this.logger.warn(`approveReview: no Minecraft instances configured for bridge %s`, bridgeId)
+      this.logger.warn(`approveReview: no Minecraft instances configured for bridge %s`, reviewBridgeId)
       return
     }
 
@@ -144,7 +149,29 @@ export class RankupManager {
             reason: review.reason
           }
 
-    await this.actionDispatcher.dispatch(bridgeId, instanceNames[0], decision, review.currentRank)
-    this.pendingManager.removeReview(id)
+    await this.actionDispatcher.dispatch(reviewBridgeId, instanceNames[0], decision, review.currentRank)
+    this.pendingManager.removeReview(reviewBridgeId, id)
+  }
+
+  public rejectReview(bridgeId: string, id: number, triggeredBy = 'web'): void {
+    const review = this.pendingManager.getReview(bridgeId, id)
+    if (review === undefined) {
+      this.logger.warn(`rejectReview: review %d not found for bridge %s`, id, bridgeId)
+      return
+    }
+    if (review.bridgeId !== bridgeId) {
+      this.logger.warn(`rejectReview: review %d belongs to bridge %s, not %s; refusing`, id, review.bridgeId, bridgeId)
+      return
+    }
+
+    this.pendingManager.logHistory(
+      review.bridgeId,
+      review.uuid,
+      'reject',
+      review.currentRank,
+      review.proposedRank,
+      triggeredBy
+    )
+    this.pendingManager.removeReview(review.bridgeId, id)
   }
 }

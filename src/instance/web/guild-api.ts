@@ -4,6 +4,7 @@ import { type InstanceType, MinecraftSendChatPriority, Permission } from '../../
 import { Status } from '../../common/connectable-instance.js'
 import type EventHelper from '../../common/event-helper.js'
 import { checkChatTriggers, InviteAcceptChat, RankChat } from '../../utility/chat-triggers.js'
+import type MinecraftInstance from '../minecraft/minecraft-instance.js'
 
 import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { BaseApiHandler } from './base-api.js'
@@ -20,15 +21,22 @@ export class GuildApiHandler extends BaseApiHandler {
 
     const method = request.method ?? 'GET'
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuthWithUser(request, response)
+    if (auth === undefined) return true
+    const permission = auth.permission
+
+    if (auth.bridgeId === undefined) {
+      sendError(response, 'FORBIDDEN', 'Token is not bound to a bridge', 403)
+      return true
+    }
+    const bridgeId = auth.bridgeId
 
     if (pathPart === `${GuildPrefix}/overview`) {
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      await this.handleOverview(response)
+      await this.handleOverview(response, bridgeId)
       return true
     }
 
@@ -37,7 +45,7 @@ export class GuildApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      await this.handleMembers(response)
+      await this.handleMembers(response, bridgeId)
       return true
     }
 
@@ -46,7 +54,7 @@ export class GuildApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      await this.handleLog(response)
+      await this.handleLog(response, bridgeId)
       return true
     }
 
@@ -59,7 +67,7 @@ export class GuildApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleMemberAccept(request, response)
+      await this.handleMemberAccept(request, response, bridgeId)
       return true
     }
 
@@ -72,7 +80,7 @@ export class GuildApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleMemberInvite(request, response)
+      await this.handleMemberInvite(request, response, bridgeId)
       return true
     }
 
@@ -85,7 +93,7 @@ export class GuildApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleMemberPromote(request, response)
+      await this.handleMemberPromote(request, response, bridgeId)
       return true
     }
 
@@ -98,7 +106,7 @@ export class GuildApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleMemberDemote(request, response)
+      await this.handleMemberDemote(request, response, bridgeId)
       return true
     }
 
@@ -111,7 +119,7 @@ export class GuildApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleMemberSetrank(request, response)
+      await this.handleMemberSetrank(request, response, bridgeId)
       return true
     }
 
@@ -124,21 +132,32 @@ export class GuildApiHandler extends BaseApiHandler {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
-      await this.handleBlacklist(request, response)
+      await this.handleBlacklist(request, response, bridgeId)
       return true
     }
 
     return false
   }
 
-  private getInstanceName(): string | undefined {
+  private getInstanceName(bridgeId: string): string | undefined {
+    const configured = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
     const allInstances = this.application.minecraftManager.getAllInstances()
-    const connected = allInstances.find((inst) => inst.currentStatus() === Status.Connected)
-    return connected?.instanceName
+
+    const bridged: MinecraftInstance[] = []
+    for (const name of configured) {
+      const match = allInstances.find((inst) => inst.instanceName.toLowerCase() === name.toLowerCase())
+      if (match === undefined) continue
+      if (this.application.bridgeResolver.getBridgeIdForInstance(match.instanceName) !== bridgeId) continue
+      bridged.push(match)
+    }
+
+    const connected = bridged.find((inst) => inst.currentStatus() === Status.Connected)
+    if (connected !== undefined) return connected.instanceName
+    return bridged.length > 0 ? bridged[0].instanceName : undefined
   }
 
-  private async handleOverview(response: http.ServerResponse): Promise<void> {
-    const instance = this.getInstanceName()
+  private async handleOverview(response: http.ServerResponse, bridgeId: string): Promise<void> {
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -160,8 +179,8 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleMembers(response: http.ServerResponse): Promise<void> {
-    const instance = this.getInstanceName()
+  private async handleMembers(response: http.ServerResponse, bridgeId: string): Promise<void> {
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -194,8 +213,8 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleLog(response: http.ServerResponse): Promise<void> {
-    const instance = this.getInstanceName()
+  private async handleLog(response: http.ServerResponse, bridgeId: string): Promise<void> {
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -237,7 +256,11 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleMemberAccept(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleMemberAccept(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    bridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
@@ -246,7 +269,7 @@ export class GuildApiHandler extends BaseApiHandler {
       return
     }
 
-    const instance = this.getInstanceName()
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -277,7 +300,11 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleMemberInvite(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleMemberInvite(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    bridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
@@ -286,7 +313,7 @@ export class GuildApiHandler extends BaseApiHandler {
       return
     }
 
-    const instance = this.getInstanceName()
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -317,7 +344,11 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleMemberPromote(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleMemberPromote(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    bridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
@@ -326,7 +357,7 @@ export class GuildApiHandler extends BaseApiHandler {
       return
     }
 
-    const instance = this.getInstanceName()
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -357,7 +388,11 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleMemberDemote(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleMemberDemote(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    bridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username } = body as { username?: string }
@@ -366,7 +401,7 @@ export class GuildApiHandler extends BaseApiHandler {
       return
     }
 
-    const instance = this.getInstanceName()
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -397,7 +432,11 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleMemberSetrank(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleMemberSetrank(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    bridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { username, rank } = body as { username?: string; rank?: string }
@@ -410,7 +449,7 @@ export class GuildApiHandler extends BaseApiHandler {
       return
     }
 
-    const instance = this.getInstanceName()
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return
@@ -441,7 +480,11 @@ export class GuildApiHandler extends BaseApiHandler {
     }
   }
 
-  private async handleBlacklist(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleBlacklist(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    bridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
     const { action, username } = body as { action?: string; username?: string }
@@ -454,7 +497,7 @@ export class GuildApiHandler extends BaseApiHandler {
       return
     }
 
-    const instance = this.getInstanceName()
+    const instance = this.getInstanceName(bridgeId)
     if (!instance) {
       sendError(response, 'INTERNAL_ERROR', 'No connected Minecraft instance', 502)
       return

@@ -48,6 +48,11 @@ export default class QCommand extends ChatCommandHandler {
       return `${context.username}, available bridges: ${withMarkers.join(', ')}`
     }
 
+    const sourceBridgeId = context.message.bridgeId
+    if (sourceBridgeId === undefined) {
+      return `${context.username}, this command can only be used from a configured bridge.`
+    }
+
     const mutedUsers = context.app.core.commandsConfigurations.getQMutedUsers()
     const currentTime = Date.now()
     const isMuted = mutedUsers.some(
@@ -79,6 +84,10 @@ export default class QCommand extends ChatCommandHandler {
       return `${context.username}, no bridges are configured.`
     }
 
+    if (!allBridgeIds.some((id) => id.toLowerCase() === sourceBridgeId.toLowerCase())) {
+      return `${context.username}, the source bridge is no longer configured.`
+    }
+
     let bestBridgeId: string | undefined
     let bestScore = -1
 
@@ -94,12 +103,11 @@ export default class QCommand extends ChatCommandHandler {
       return `${context.username}, no bridge matching "${query}" was found.`
     }
 
-    const sourceBridgeId = context.message.bridgeId
-    if (sourceBridgeId !== undefined && bestBridgeId.toLowerCase() === sourceBridgeId.toLowerCase()) {
+    if (bestBridgeId.toLowerCase() === sourceBridgeId.toLowerCase()) {
       return `${context.username}, you are already in that bridge.`
     }
 
-    const enrichedMessage = sourceBridgeId ? `${message} (from ${sourceBridgeId})` : message
+    const enrichedMessage = `${message} (from ${sourceBridgeId})`
 
     const rawMessage = `§2Guild > §f${context.username}: ${enrichedMessage}`
     const baseEvent = context.eventHelper.fillBaseEvent()
@@ -119,7 +127,11 @@ export default class QCommand extends ChatCommandHandler {
   }
 
   private async mute(context: ChatCommandContext): Promise<string> {
-    if ((await context.message.user.permission()) < Permission.Officer) {
+    const sourceBridgeId = context.message.bridgeId
+    if (sourceBridgeId === undefined) {
+      return `${context.username}, this command can only be used from a configured bridge.`
+    }
+    if ((await context.message.user.permission(sourceBridgeId)) < Permission.Officer) {
       return `${context.username}, you must be Officer or higher to use this command.`
     }
 
@@ -143,7 +155,11 @@ export default class QCommand extends ChatCommandHandler {
   }
 
   private async unmute(context: ChatCommandContext): Promise<string> {
-    if ((await context.message.user.permission()) < Permission.Officer) {
+    const sourceBridgeId = context.message.bridgeId
+    if (sourceBridgeId === undefined) {
+      return `${context.username}, this command can only be used from a configured bridge.`
+    }
+    if ((await context.message.user.permission(sourceBridgeId)) < Permission.Officer) {
       return `${context.username}, you must be Officer or higher to use this command.`
     }
 
@@ -159,7 +175,11 @@ export default class QCommand extends ChatCommandHandler {
   }
 
   private async muted(context: ChatCommandContext): Promise<string> {
-    if ((await context.message.user.permission()) < Permission.Officer) {
+    const sourceBridgeId = context.message.bridgeId
+    if (sourceBridgeId === undefined) {
+      return `${context.username}, this command can only be used from a configured bridge.`
+    }
+    if ((await context.message.user.permission(sourceBridgeId)) < Permission.Officer) {
       return `${context.username}, you must be Officer or higher to use this command.`
     }
 

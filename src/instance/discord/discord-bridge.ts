@@ -23,7 +23,6 @@ import type {
   GuildGeneralEvent,
   GuildPlayerEvent,
   InstanceReactive,
-  InstanceReactiveType,
   MinecraftReactiveEvent
 } from '../../common/application-event.js'
 import {
@@ -136,8 +135,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     super.dispose()
   }
 
-  private joinRequestKey(event: GuildPlayerEvent): string {
-    return `${event.instanceName}:${event.user.mojangProfile().id}`
+  private joinRequestKey(event: GuildPlayerEvent, bridgeId: string): string {
+    return `${bridgeId}:${event.instanceName}:${event.user.mojangProfile().id}`
   }
 
   private registerPendingJoinRequest(key: string, messages: Message[]): void {
@@ -194,22 +193,20 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   private resolveChannelsForEvent(
     channels: ChannelType[],
     bridgeId: string | undefined,
-    routingHint?: { kind: string; instanceName: string }
+    routingHint?: { kind: string; instanceName: string },
+    scope?: 'global'
   ): string[] {
     const bridgeResolver = this.application.bridgeResolver
+
+    if (scope === 'global') {
+      return this.resolveAllBridgeChannels(channels)
+    }
 
     const effectiveBridgeId =
       bridgeId ??
       (routingHint === undefined ? undefined : bridgeResolver.getBridgeIdForInstance(routingHint.instanceName))
 
-    let results: string[]
-    if (routingHint?.kind === 'broadcast') {
-      results = this.resolveAllBridgeChannels(channels)
-    } else if (effectiveBridgeId === undefined) {
-      results = []
-    } else {
-      results = this.resolveBridgeScopedChannels(channels, effectiveBridgeId)
-    }
+    const results = effectiveBridgeId === undefined ? [] : this.resolveBridgeScopedChannels(channels, effectiveBridgeId)
 
     const targetsGuildSurface = channels.includes(ChannelType.Public) || channels.includes(ChannelType.Officer)
     if (targetsGuildSurface && results.length === 0 && routingHint !== undefined) {
@@ -275,7 +272,11 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       if (event.instanceType === InstanceType.Discord && channelId === event.channelId) continue
 
       if (event.instanceType === InstanceType.Minecraft) {
-        const mentions = await this.resolveMinecraftMentionsForChannel(channelId, event.message)
+        const mentions = await this.resolveMinecraftMentionsForChannel(
+          channelId,
+          event.message,
+          this.application.bridgeResolver.getBridgeIdForChannel(channelId)
+        )
         let withoutPrefix = this.removeGuildPrefix(event.rawMessage)
         if (rankPrefix.length > 0) withoutPrefix = stripRealRankPrefix(withoutPrefix)
         if (playerOverride !== undefined) {
@@ -289,7 +290,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: event.user.displayName()
         })
-        const sentMessages = await this.sendImageToChannels(event.eventId, [channelId], image)
+        const sentMessages = await this.sendImageToChannels(event.eventId, [channelId], image, event.bridgeId)
         for (const message of sentMessages) {
           this.messageAssociation.addUsernameForMessage(message.id, username)
         }
@@ -319,22 +320,25 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const withoutPrefix = this.removeGuildPrefix(raw)
         const formattedMessage = `${this.getRenderedChannelPrefix(event.channelType)}${withoutPrefix}`
         const image = await this.messageToImage.generateMessageImage(formattedMessage)
-        await this.sendImageToChannels(event.eventId, [channelId], image)
+        await this.sendImageToChannels(event.eventId, [channelId], image, event.bridgeId)
       }
     }
   }
 
   private async resolveMinecraftMentionsForChannel(
     channelId: string,
-    message: string
+    message: string,
+    bridgeId: string | undefined
   ): Promise<ResolvedDiscordMentions | undefined> {
+    if (bridgeId === undefined) return undefined
+
     const channel = this.clientInstance.getClient().channels.cache.get(channelId)
     if (channel === undefined) return undefined
     if (channel.type !== DiscordChannelType.GuildText) return undefined
     try {
       return await resolveDiscordMentionsInMessage(message, channel.guild, async (mcName) => {
         const profile = await this.application.mojangApi.profileByUsername(mcName)
-        const link = await this.application.core.verification.findByIngame(profile.id)
+        const link = await this.application.core.verification.findByIngame(profile.id, bridgeId)
         return link?.discordId
       })
     } catch (error) {
@@ -360,7 +364,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       const image = await this.messageToImage.generateMessageImage(formattedMessage, {
         username: event.username
       })
-      await this.sendImageToChannels(`interview-${event.instanceName}-${event.username}`, channels, image)
+      await this.sendImageToChannels(
+        `interview-${event.instanceName}-${event.username}`,
+        channels,
+        image,
+        event.bridgeId
+      )
       if (event.message.includes('https://') || event.message.includes('http://')) {
         const links = event.message.match(/https?:\/\/[^\s]+/g)
         if (links !== null && links.length > 0) {
@@ -541,16 +550,17 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
 
     const messages = await this.sendImageToChannels(
       activeEvent.eventId,
-      this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
+      this.resolveChannelsForEvent(activeEvent.channels, effectiveBridgeId, {
         kind: 'guildPlayer',
         instanceName: activeEvent.instanceName
       }),
       await this.messageToImage.generateMessageImage(formattedMessage, {
         username: activeEvent.user.displayName()
-      })
+      }),
+      effectiveBridgeId
     )
     if ((components !== undefined && components.length > 0) || pingContent !== undefined) {
-      const targetChannels = this.resolveChannelsForEvent(activeEvent.channels, activeEvent.bridgeId, {
+      const targetChannels = this.resolveChannelsForEvent(activeEvent.channels, effectiveBridgeId, {
         kind: 'guildPlayer',
         instanceName: activeEvent.instanceName
       })
@@ -572,18 +582,15 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     }
 
     if (activeEvent.type === GuildPlayerEventType.Request && requestButtonMessages.length > 0) {
-      this.registerPendingJoinRequest(this.joinRequestKey(activeEvent), requestButtonMessages)
+      this.registerPendingJoinRequest(this.joinRequestKey(activeEvent, effectiveBridgeId), requestButtonMessages)
     }
 
     if (activeEvent.type === GuildPlayerEventType.Join) {
-      this.expirePendingJoinRequest(this.joinRequestKey(activeEvent))
+      this.expirePendingJoinRequest(this.joinRequestKey(activeEvent, effectiveBridgeId))
     }
 
     if (activeEvent.type === GuildPlayerEventType.Offline || activeEvent.type === GuildPlayerEventType.Online) {
-      const shouldPersist =
-        activeEvent.bridgeId === undefined
-          ? false
-          : this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(activeEvent.bridgeId)
+      const shouldPersist = this.application.core.bridgeConfigurations.getPersistGuildOnlineOffline(effectiveBridgeId)
       if (!shouldPersist) {
         const currentTime = Date.now()
         const entries = messages.map((message) => ({
@@ -591,17 +598,14 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           messageId: message.id,
           createdAt: currentTime,
           type: 'online-offline' as const,
-          bridgeId: activeEvent.bridgeId
+          bridgeId: effectiveBridgeId
         }))
         await this.messageDeleter.add(entries)
       }
     }
 
     if (activeEvent.type === GuildPlayerEventType.Join || activeEvent.type === GuildPlayerEventType.Leave) {
-      const shouldPersist =
-        activeEvent.bridgeId === undefined
-          ? false
-          : this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(activeEvent.bridgeId)
+      const shouldPersist = this.application.core.bridgeConfigurations.getPersistGuildJoinLeave(effectiveBridgeId)
       if (!shouldPersist) {
         const currentTime = Date.now()
         const entries = messages.map((message) => ({
@@ -609,7 +613,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           messageId: message.id,
           createdAt: currentTime,
           type: 'join-leave' as const,
-          bridgeId: activeEvent.bridgeId
+          bridgeId: effectiveBridgeId
         }))
         await this.messageDeleter.add(entries)
       }
@@ -629,7 +633,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           const image = await this.messageToImage.generateMessageImage(formattedMessage, {
             username: activeEvent.user.displayName()
           })
-          const imageMessages = await this.sendImageToChannels(activeEvent.eventId, promoteChannelIds, image)
+          const imageMessages = await this.sendImageToChannels(
+            activeEvent.eventId,
+            promoteChannelIds,
+            image,
+            effectiveBridgeId
+          )
           promoteImageMessages = imageMessages
           for (const message of imageMessages) {
             await message.react('🔥').catch((error: unknown) => {
@@ -696,25 +705,31 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       return
 
     const image = this.messageToImage.generateMessageImageSync(event.rawMessage)
+    const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
     await this.sendImageToChannels(
       event.eventId,
       this.resolveChannelsForEvent(event.channels, event.bridgeId, {
         kind: 'guildGeneral',
         instanceName: event.instanceName
       }),
-      image
+      image,
+      bridgeId
     )
   }
 
-  private lastMinecraftEvent = new Map<MinecraftReactiveEventType, number>()
+  private lastMinecraftEvent = new Map<string, number>()
 
   async onMinecraftChatEvent(event: MinecraftReactiveEvent): Promise<void> {
-    if ((this.lastMinecraftEvent.get(event.type) ?? 0) + 5000 > Date.now()) return
-    this.lastMinecraftEvent.set(event.type, Date.now())
+    const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+    if (bridgeId === undefined) return
+
+    const throttleKey = `${bridgeId}:${event.type}`
+    if ((this.lastMinecraftEvent.get(throttleKey) ?? 0) + 5000 > Date.now()) return
+    this.lastMinecraftEvent.set(throttleKey, Date.now())
 
     const client = this.clientInstance.getClient()
 
-    const replyIds = this.messageAssociation.getMessageId(event.originEventId)
+    const replyIds = this.messageAssociation.getMessageId(event.originEventId, bridgeId)
     for (const replyId of replyIds) {
       try {
         const channel = await client.channels.fetch(replyId.channelId)
@@ -757,10 +772,20 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     )
       return
 
-    const channels = this.resolveChannelsForEvent(event.channels, event.bridgeId, {
-      kind: 'broadcast',
-      instanceName: event.instanceName
-    })
+    const channels = this.resolveChannelsForEvent(
+      event.channels,
+      event.bridgeId,
+      {
+        kind: 'broadcast',
+        instanceName: event.instanceName
+      },
+      event.scope
+    )
+    const associationBridgeId =
+      event.bridgeId ??
+      (event.scope === 'global'
+        ? undefined
+        : this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName))
     if (event.guildChatImageStyle === undefined) {
       let formatted: string
       switch (event.color) {
@@ -787,7 +812,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         }
       }
       const image = this.messageToImage.generateMessageImageSync(formatted + event.message)
-      await this.sendImageToChannels(event.eventId, channels, image)
+      await this.sendImageToChannels(event.eventId, channels, image, associationBridgeId)
     } else {
       const { channelType, skinUsername, imageBodyFormatted } = event.guildChatImageStyle
       const prefix = this.getRenderedChannelPrefix(channelType)
@@ -801,7 +826,7 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       const image = await this.messageToImage.generateMessageImage(formattedMessage, {
         username: skinUsername
       })
-      await this.sendImageToChannels(event.eventId, channels, image)
+      await this.sendImageToChannels(event.eventId, channels, image, associationBridgeId)
     }
   }
 
@@ -813,24 +838,37 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     await this.sendCommandResponse(event)
   }
 
-  private lastInstanceReactiveEvent = new Map<InstanceReactiveType, number>()
+  private lastInstanceReactiveEvent = new Map<string, number>()
 
   async onInstanceReactiveEvent(event: InstanceReactive): Promise<void> {
-    if ((this.lastInstanceReactiveEvent.get(event.type) ?? 0) + 5000 > Date.now()) return
-    this.lastInstanceReactiveEvent.set(event.type, Date.now())
+    const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+    if (bridgeId === undefined) return
 
-    const replyIds = this.messageAssociation.getMessageId(event.originEventId)
+    const throttleKey = `${bridgeId}:${event.type}`
+    if ((this.lastInstanceReactiveEvent.get(throttleKey) ?? 0) + 5000 > Date.now()) return
+    this.lastInstanceReactiveEvent.set(throttleKey, Date.now())
+
+    const replyIds = this.messageAssociation.getMessageId(event.originEventId, bridgeId)
 
     for (const replyId of replyIds) {
       try {
         await this.replyWithEmbed(
           event.eventId,
           replyId,
-          await this.generateEmbed({ ...event, type: undefined }, replyId.guildId)
+          await this.generateEmbed({ ...event, type: undefined }, replyId.guildId),
+          bridgeId
         )
       } catch (error: unknown) {
         this.logger.error(error, 'can not reply to message. sending the event independently')
-        await this.sendEmbedToChannels({ ...event, type: undefined }, [replyId.channelId], undefined)
+        await this.sendEmbedToChannels(
+          { ...event, type: undefined },
+          [replyId.channelId],
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          bridgeId
+        )
       }
     }
   }
@@ -915,7 +953,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     return embed
   }
 
-  private async replyWithEmbed(eventId: string, replyId: DiscordAssociatedMessage, embed: APIEmbed): Promise<void> {
+  private async replyWithEmbed(
+    eventId: string,
+    replyId: DiscordAssociatedMessage,
+    embed: APIEmbed,
+    bridgeId?: string
+  ): Promise<void> {
     const channel = await this.clientInstance.getClient().channels.fetch(replyId.channelId)
     assert.ok(channel != undefined)
     assert.ok(channel.isSendable())
@@ -928,7 +971,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     this.messageAssociation.addMessageId(eventId, {
       guildId: result.guildId ?? undefined,
       channelId: result.channelId,
-      messageId: result.id
+      messageId: result.id,
+      bridgeId: bridgeId
     })
   }
 
@@ -938,7 +982,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     preGeneratedEmbed: APIEmbed | undefined,
     components?: ActionRowBuilder<ButtonBuilder>[],
     content?: string,
-    allowedMentions?: MessageMentionOptions
+    allowedMentions?: MessageMentionOptions,
+    bridgeId?: string
   ): Promise<Message<true>[]> {
     const results = await Promise.all(
       channels.map(async (channelId) => {
@@ -958,7 +1003,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           this.messageAssociation.addMessageId(event.eventId, {
             guildId: message.inGuild() ? message.guildId : undefined,
             channelId: message.channelId,
-            messageId: message.id
+            messageId: message.id,
+            bridgeId: bridgeId
           })
           return message
         } catch (error: unknown) {
@@ -971,7 +1017,12 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
     return results.filter((m): m is Message<true> => m !== undefined)
   }
 
-  private async sendImageToChannels(eventId: string, channels: string[], image: Buffer): Promise<Message<true>[]> {
+  private async sendImageToChannels(
+    eventId: string,
+    channels: string[],
+    image: Buffer,
+    bridgeId?: string
+  ): Promise<Message<true>[]> {
     const results = await Promise.all(
       channels.map(async (channelId) => {
         try {
@@ -984,7 +1035,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
           this.messageAssociation.addMessageId(eventId, {
             guildId: message.inGuild() ? message.guildId : undefined,
             channelId: message.channelId,
-            messageId: message.id
+            messageId: message.id,
+            bridgeId: bridgeId
           })
           return message
         } catch (error: unknown) {
@@ -998,7 +1050,10 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
   }
 
   private async sendCommandResponse(event: CommandEvent): Promise<void> {
-    const replyIds = this.messageAssociation.getMessageId(event.originEventId)
+    const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+    if (bridgeId === undefined) return
+
+    const replyIds = this.messageAssociation.getMessageId(event.originEventId, bridgeId)
 
     const bots = this.application.minecraftManager.getMinecraftBots()
     let botName = 'Bridge Bot'
@@ -1009,8 +1064,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
       const bot = bots.find((b) => b.instanceName === botInstanceName)
       if (bot) botName = bot.username
     } else {
-      const bridgeBots = bots.filter((bot) =>
-        this.application.bridgeResolver.shouldProcessEvent(event.bridgeId, bot.instanceName)
+      const bridgeBots = bots.filter(
+        (bot) => this.application.bridgeResolver.getBridgeIdForInstance(bot.instanceName) === bridgeId
       )
       if (bridgeBots.length > 0) {
         botInstanceName = bridgeBots[0].instanceName
@@ -1065,7 +1120,8 @@ export default class DiscordBridge extends Bridge<DiscordInstance> {
         const image = await this.messageToImage.generateMessageImage(formattedMessage, {
           username: botName === 'Bridge Bot' ? 'MHF_Question' : botName
         })
-        await this.sendImageToChannels(event.eventId, [replyId.channelId], image)
+        const replyBridgeId = this.application.bridgeResolver.getBridgeIdForChannel(replyId.channelId)
+        await this.sendImageToChannels(event.eventId, [replyId.channelId], image, replyBridgeId)
       } catch (error: unknown) {
         this.logger.error(error, 'failed to send command response')
       }

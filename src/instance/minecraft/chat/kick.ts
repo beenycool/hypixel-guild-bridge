@@ -12,12 +12,15 @@ export default {
       const responsibleUsername = match[2]
 
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)
-      const user = await context.application.core.initializeMinecraftUser({ id: uuid, name: username }, {})
+      const user = await context.application.core.initializeMinecraftUser(
+        { id: uuid, name: username },
+        { bridgeId: context.clientInstance.bridgeId }
+      )
 
       const responsible = await context.application.mojangApi.profileByUsername(responsibleUsername)
       const responsibleProfile = await context.application.core.initializeMinecraftUser(
         { name: responsibleUsername, id: responsible.id },
-        {}
+        { bridgeId: context.clientInstance.bridgeId }
       )
 
       await context.application.emit('guildPlayer', {

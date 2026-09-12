@@ -20,25 +20,32 @@ export class BridgeEvaluator {
   ) {}
 
   async processBridge(bridgeId: string): Promise<void> {
-    const instanceNames = this.bridgeConfig.getMinecraftInstances(bridgeId)
+    const configuredInstanceNames = this.bridgeConfig.getMinecraftInstances(bridgeId)
 
-    if (instanceNames.length === 0) {
+    if (configuredInstanceNames.length === 0) {
       this.logger.warn(`Bridge ${bridgeId}: no Minecraft instances configured, skipping checkup`)
       return
     }
 
+    const configuredInstanceNameSet = new Set(configuredInstanceNames.map((name) => name.toLowerCase()))
     const minecraftInstance = this.application.minecraftManager
       .getAllInstances()
-      .find((index) => index.instanceName === instanceNames[0])
+      .find(
+        (instance) =>
+          configuredInstanceNameSet.has(instance.instanceName.toLowerCase()) &&
+          this.application.bridgeResolver.getBridgeIdForInstance(instance.instanceName) === bridgeId
+      )
 
     if (!minecraftInstance) {
-      this.logger.warn(`No Minecraft instance "${instanceNames[0]}" found for bridge ${bridgeId}`)
+      this.logger.warn(
+        `No Minecraft instance registered to bridge ${bridgeId} found (configured: ${configuredInstanceNames.join(', ')})`
+      )
       return
     }
 
     const botUuid = minecraftInstance.uuid()
     if (!botUuid) {
-      this.logger.warn(`Minecraft instance "${instanceNames[0]}" is not connected for bridge ${bridgeId}`)
+      this.logger.warn(`Minecraft instance "${minecraftInstance.instanceName}" is not connected for bridge ${bridgeId}`)
       return
     }
 
@@ -71,7 +78,9 @@ export class BridgeEvaluator {
     const lastSeenRows = await this.application.core.databaseManager.queryRows<{
       memberUuid: string
       lastSeenAt: number
-    }>('SELECT "memberUuid", "lastSeenAt" FROM "guildMemberStates" WHERE "instanceName" = $1', [instanceNames[0]])
+    }>('SELECT "memberUuid", "lastSeenAt" FROM "guildMemberStates" WHERE "instanceName" = $1', [
+      minecraftInstance.instanceName
+    ])
     const lastSeenByUuid = new Map(lastSeenRows.map((row) => [row.memberUuid, row.lastSeenAt]))
 
     for (const member of guild.members) {
@@ -188,9 +197,11 @@ export class BridgeEvaluator {
         }
       } else {
         if (decision.kind === 'promote' || decision.kind === 'demote' || decision.kind === 'kick') {
-          this.actionDispatcher.dispatch(bridgeId, instanceNames[0], decision, member.rank).catch((error: unknown) => {
-            this.logger.error(`Failed to dispatch ${decision.kind} for ${member.uuid} in ${bridgeId}:`, error)
-          })
+          this.actionDispatcher
+            .dispatch(bridgeId, minecraftInstance.instanceName, decision, member.rank)
+            .catch((error: unknown) => {
+              this.logger.error(`Failed to dispatch ${decision.kind} for ${member.uuid} in ${bridgeId}:`, error)
+            })
         } else {
           this.notificationManager.sendNotifyOnly(bridgeId, notificationChannels, decision).catch((error: unknown) => {
             this.logger.error(`Failed to send notify for ${member.uuid} in ${bridgeId}:`, error)
@@ -215,7 +226,7 @@ export class BridgeEvaluator {
 
       if (sent) {
         for (const r of unnotified) {
-          this.pendingManager.updateNotifiedAt(r.id)
+          this.pendingManager.updateNotifiedAt(bridgeId, r.id, Math.floor(now / 1000))
         }
       }
     }

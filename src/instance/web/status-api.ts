@@ -2,7 +2,7 @@ import type http from 'node:http'
 
 import { Status } from '../../common/connectable-instance.js'
 
-import { sendSuccess } from './api-utils.js'
+import { sendError, sendSuccess } from './api-utils.js'
 import { BaseApiHandler } from './base-api.js'
 
 const StatusPrefix = '/api/status'
@@ -22,15 +22,22 @@ export class StatusApiHandler extends BaseApiHandler {
       return true
     }
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuthWithUser(request, response)
+    if (auth === undefined) return true
 
-    await this.handleStatus(response)
+    if (auth.bridgeId === undefined) {
+      sendError(response, 'FORBIDDEN', 'Token is not bound to a bridge', 403)
+      return true
+    }
+
+    await this.handleStatus(response, auth.bridgeId)
     return true
   }
 
-  private async handleStatus(response: http.ServerResponse): Promise<void> {
-    const mcInstances = this.application.minecraftManager.getAllInstances()
+  private async handleStatus(response: http.ServerResponse, bridgeId: string): Promise<void> {
+    const mcInstances = this.application.minecraftManager
+      .getAllInstances()
+      .filter((inst) => this.application.bridgeResolver.getBridgeIdForInstance(inst.instanceName) === bridgeId)
     const connectedInstances = mcInstances
       .filter((inst) => inst.currentStatus() === Status.Connected)
       .map((inst) => ({
@@ -38,7 +45,7 @@ export class StatusApiHandler extends BaseApiHandler {
         uuid: inst.uuid()
       }))
 
-    const bridges = this.application.core.bridgeConfigurations.getAllBridgeIds()
+    const bridges = [bridgeId]
     const discordClient = this.application.discordInstance.getClient()
 
     let guildInfo: { name?: string; memberCount?: number; weeklyGexp?: number } | undefined

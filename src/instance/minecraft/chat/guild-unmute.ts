@@ -14,7 +14,10 @@ export default {
       const uuid = context.clientInstance.uuid()
       assert.ok(username !== undefined)
       assert.ok(uuid !== undefined)
-      const botUser = await context.application.core.initializeMinecraftUser({ id: uuid, name: username }, {})
+      const botUser = await context.application.core.initializeMinecraftUser(
+        { id: uuid, name: username },
+        { bridgeId: context.clientInstance.bridgeId }
+      )
 
       await context.application.emit('guildPlayer', {
         ...context.eventHelper.fillBaseEvent(),

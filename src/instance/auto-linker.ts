@@ -5,6 +5,8 @@ import Duration from '../utility/duration'
 import { setIntervalAsync } from '../utility/scheduling'
 import { sleep } from '../utility/shared-utility'
 
+import { getFirstConnectedBridgeMinecraftInstanceName } from './discord/common/bridge-minecraft-instances.js'
+
 interface FailedLookup {
   timestamp: number
 }
@@ -29,41 +31,71 @@ export default class AutoLinker extends Instance<InstanceType.Utility> {
     const client = this.application.discordInstance.getClient()
     if (!client.isReady()) return
 
-    const bots = this.application.minecraftManager.getMinecraftBots()
-    if (bots.length === 0) return
-    const bot = bots[0]
+    let linked = 0
+    for (const bridge of this.application.bridgeResolver.getAllBridges()) {
+      linked += await this.autoLinkBridge(bridge).catch((error: unknown) => {
+        this.logger.warn(`Auto-linker failed for bridge ${bridge.id}`, error)
+        return 0
+      })
+    }
+
+    if (linked > 0) {
+      this.logger.info(`Auto-linker completed: ${linked} new links created`)
+    }
+  }
+
+  private async autoLinkBridge(bridge: {
+    id: string
+    publicChannelIds: string[]
+    officerChannelIds: string[]
+    loggerChannelIds: string[]
+    promoteChannelIds: string[]
+  }): Promise<number> {
+    const client = this.application.discordInstance.getClient()
+
+    const botInstanceName = getFirstConnectedBridgeMinecraftInstanceName(this.application, bridge.id)
+    if (botInstanceName === undefined) {
+      this.logger.info(`Auto-linker: no connected Minecraft account for bridge ${bridge.id}, skipping.`)
+      return 0
+    }
+
+    const bot = this.application.minecraftManager
+      .getMinecraftBots()
+      .find((entry) => entry.instanceName === botInstanceName)
+    if (bot === undefined) {
+      this.logger.info(`Auto-linker: no self-broadcast for Minecraft account ${botInstanceName}, skipping.`)
+      return 0
+    }
 
     let hypixelGuild
     try {
       hypixelGuild = await this.application.hypixelApi.getGuild('player', bot.uuid)
     } catch (error: unknown) {
-      this.logger.warn('Failed to fetch Hypixel guild for auto-linker', error)
-      return
+      this.logger.warn(`Failed to fetch Hypixel guild for auto-linker bridge ${bridge.id}`, error)
+      return 0
     }
 
     const guildMembers = hypixelGuild.members
-    if (guildMembers.length === 0) return
+    if (guildMembers.length === 0) return 0
 
-    const bridges = this.application.bridgeResolver.getAllBridges()
-    const configuredChannelIds = new Set<string>()
-    for (const bridge of bridges) {
-      for (const id of bridge.publicChannelIds) configuredChannelIds.add(id)
-      for (const id of bridge.officerChannelIds) configuredChannelIds.add(id)
-      for (const id of bridge.loggerChannelIds) configuredChannelIds.add(id)
-      for (const id of bridge.promoteChannelIds) configuredChannelIds.add(id)
-    }
+    const configuredChannelIds = new Set<string>([
+      ...bridge.publicChannelIds,
+      ...bridge.officerChannelIds,
+      ...bridge.loggerChannelIds,
+      ...bridge.promoteChannelIds
+    ])
 
-    if (configuredChannelIds.size === 0) return
+    if (configuredChannelIds.size === 0) return 0
 
     const bridgeGuilds = client.guilds.cache.filter((guild) =>
       guild.channels.cache.some((channel) => configuredChannelIds.has(channel.id))
     )
 
-    if (bridgeGuilds.size === 0) return
+    if (bridgeGuilds.size === 0) return 0
 
     let linked = 0
     for (const member of guildMembers) {
-      if (this.application.core.verification.findByIngame(member.uuid)) continue
+      if (this.application.core.verification.findByIngame(member.uuid, bridge.id)) continue
 
       const failed = this.failedLookups.get(member.uuid)
       if (failed && Date.now() - failed.timestamp < AutoLinker.FailedLookupRetry.toMilliseconds()) continue
@@ -93,7 +125,7 @@ export default class AutoLinker extends Instance<InstanceType.Utility> {
           if (!discordMember) continue
 
           const discordId = discordMember.id
-          if (this.application.core.verification.findByDiscord(discordId)) continue
+          if (this.application.core.verification.findByDiscord(discordId, bridge.id)) continue
 
           const matchedName =
             discordMember.user.username.toLowerCase() === discordUsername ||
@@ -101,10 +133,10 @@ export default class AutoLinker extends Instance<InstanceType.Utility> {
             discordMember.displayName.toLowerCase() === discordUsername
 
           if (matchedName) {
-            this.application.core.verification.addConfirmedLink(discordId, member.uuid)
+            this.application.core.verification.addConfirmedLink(discordId, member.uuid, bridge.id)
             this.logger.info(
               `Auto-linked Discord ${discordMember.user.username} (${discordId}) ` +
-                `to MC ${player.nickname} (${member.uuid})`
+                `to MC ${player.nickname} (${member.uuid}) for bridge ${bridge.id}`
             )
             linked++
             break
@@ -115,8 +147,6 @@ export default class AutoLinker extends Instance<InstanceType.Utility> {
       }
     }
 
-    if (linked > 0) {
-      this.logger.info(`Auto-linker completed: ${linked} new links created`)
-    }
+    return linked
   }
 }

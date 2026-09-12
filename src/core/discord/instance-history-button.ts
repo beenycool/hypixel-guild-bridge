@@ -16,7 +16,7 @@ export class InstanceHistoryButton {
       for (const [messageId, button] of this.buttons) {
         if (button.endTime < cutoff) {
           this.buttons.delete(messageId)
-          this.lastButtons.delete(lastButtonKey(button.channelId, button.instanceName))
+          this.lastButtons.delete(lastButtonKey(button.bridgeId, button.channelId, button.instanceName))
           deleted++
         }
       }
@@ -53,19 +53,20 @@ export class InstanceHistoryButton {
 
     this.lastButtons.clear()
     for (const button of lastButtons) {
-      this.lastButtons.set(lastButtonKey(button.channelId, button.instanceName), button.messageId)
+      const bridgeId = this.buttons.get(button.messageId)?.bridgeId
+      this.lastButtons.set(lastButtonKey(bridgeId, button.channelId, button.instanceName), button.messageId)
     }
   }
 
-  public add(entry: DiscordPersistentInstance): void {
+  public add(entry: DiscordPersistentInstance & { bridgeId: string }): void {
     this.buttons.set(entry.messageId, { ...entry })
-    this.lastButtons.set(lastButtonKey(entry.channelId, entry.instanceName), entry.messageId)
+    this.lastButtons.set(lastButtonKey(entry.bridgeId, entry.channelId, entry.instanceName), entry.messageId)
 
     this.databaseManager.enqueueTransaction(`saving discord history button ${entry.messageId}`, async (database) => {
       await database.query(
         `INSERT INTO "discordInstanceHistoryButton"
-          ("messageId", "channelId", "instanceName", "instanceType", "type", "startTime", "endTime", "createdAt")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          ("messageId", "channelId", "instanceName", "instanceType", "type", "startTime", "endTime", "createdAt", "bridgeId")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          ON CONFLICT ("messageId") DO UPDATE SET
            "channelId" = EXCLUDED."channelId",
            "instanceName" = EXCLUDED."instanceName",
@@ -73,7 +74,8 @@ export class InstanceHistoryButton {
            "type" = EXCLUDED."type",
            "startTime" = EXCLUDED."startTime",
            "endTime" = EXCLUDED."endTime",
-           "createdAt" = EXCLUDED."createdAt"`,
+           "createdAt" = EXCLUDED."createdAt",
+           "bridgeId" = EXCLUDED."bridgeId"`,
         [
           entry.messageId,
           entry.channelId,
@@ -82,7 +84,8 @@ export class InstanceHistoryButton {
           entry.type,
           Math.floor(entry.startTime / 1000),
           Math.floor(entry.endTime / 1000),
-          Math.floor(entry.endTime / 1000)
+          Math.floor(entry.endTime / 1000),
+          entry.bridgeId
         ]
       )
       await database.query(
@@ -100,8 +103,12 @@ export class InstanceHistoryButton {
     return entry === undefined ? undefined : { ...entry }
   }
 
-  public lastButton(channelId: string, instanceName: string): DiscordPersistentInstance | undefined {
-    const lastMessageId = this.lastButtons.get(lastButtonKey(channelId, instanceName))
+  public lastButton(
+    bridgeId: string | undefined,
+    channelId: string,
+    instanceName: string
+  ): DiscordPersistentInstance | undefined {
+    const lastMessageId = this.lastButtons.get(lastButtonKey(bridgeId, channelId, instanceName))
     if (!lastMessageId) return undefined
 
     const entry = this.buttons.get(lastMessageId)
@@ -126,7 +133,7 @@ export class InstanceHistoryButton {
     for (const messageId of messagesIds) {
       const entry = this.buttons.get(messageId)
       if (entry !== undefined) {
-        this.lastButtons.delete(lastButtonKey(entry.channelId, entry.instanceName))
+        this.lastButtons.delete(lastButtonKey(entry.bridgeId, entry.channelId, entry.instanceName))
       }
       if (this.buttons.delete(messageId)) count++
     }
@@ -169,6 +176,6 @@ interface StoredLastButton {
   instanceName: string
 }
 
-function lastButtonKey(channelId: string, instanceName: string): string {
-  return `${channelId}:${instanceName.toLowerCase()}`
+function lastButtonKey(bridgeId: string | undefined, channelId: string, instanceName: string): string {
+  return `${bridgeId ?? ''}:${channelId}:${instanceName.toLowerCase()}`
 }

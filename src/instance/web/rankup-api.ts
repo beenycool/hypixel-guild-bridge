@@ -3,7 +3,7 @@ import type http from 'node:http'
 import { Permission } from '../../common/application-event.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
 
-import { readJsonBody, sendError, sendSuccess } from './api-utils.js'
+import { readBody, readJsonBody, sendError, sendSuccess } from './api-utils.js'
 import { BaseApiHandler } from './base-api.js'
 
 interface BridgeListEntry {
@@ -61,11 +61,16 @@ export class RankupApiHandler extends BaseApiHandler {
     const method = request.method ?? 'GET'
     const query = this.parseQuery(queryPart)
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuthWithUser(request, response)
+    if (auth === undefined) return true
 
-    if (permission < Permission.Helper) {
+    if (auth.permission < Permission.Helper) {
       sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
+      return true
+    }
+
+    if (auth.bridgeId === undefined) {
+      sendError(response, 'FORBIDDEN', 'Token is not bound to a bridge', 403)
       return true
     }
 
@@ -74,12 +79,12 @@ export class RankupApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      this.handleBridgesList(response)
+      this.handleBridgesList(response, auth.bridgeId)
       return true
     }
 
     if (pathPart === `${PREFIX}/pending`) {
-      const bridgeId = this.requireBridgeId(query, response)
+      const bridgeId = this.requireBridgeId(query, response, auth.bridgeId)
       if (bridgeId === undefined) return true
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -94,7 +99,7 @@ export class RankupApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      const bridgeId = this.requireBridgeId(query, response)
+      const bridgeId = this.requireBridgeId(query, response, auth.bridgeId)
       if (bridgeId === undefined) return true
       const limit = this.parseLimit(query.limit)
       await this.handleHistory(response, bridgeId, limit)
@@ -102,13 +107,13 @@ export class RankupApiHandler extends BaseApiHandler {
     }
 
     if (pathPart === `${PREFIX}/rules`) {
-      const bridgeId = this.requireBridgeId(query, response)
+      const bridgeId = this.requireBridgeId(query, response, auth.bridgeId)
       if (bridgeId === undefined) return true
       if (method === 'GET') {
         await this.handleGetRules(response, bridgeId)
         return true
       }
-      if (method === 'PUT' && permission < Permission.Owner) {
+      if (method === 'PUT' && auth.permission < Permission.Owner) {
         sendError(response, 'FORBIDDEN', 'Insufficient permissions', 403)
         return true
       }
@@ -121,7 +126,7 @@ export class RankupApiHandler extends BaseApiHandler {
     }
 
     if (pathPart === `${PREFIX}/guild-ranks`) {
-      const bridgeId = this.requireBridgeId(query, response)
+      const bridgeId = this.requireBridgeId(query, response, auth.bridgeId)
       if (bridgeId === undefined) return true
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -136,7 +141,7 @@ export class RankupApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['GET'])
         return true
       }
-      await this.handleCheckPlayer(response, query)
+      await this.handleCheckPlayer(response, query, auth.bridgeId)
       return true
     }
 
@@ -145,12 +150,12 @@ export class RankupApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['POST'])
         return true
       }
-      await this.handleRunCheck(request, response)
+      await this.handleRunCheck(request, response, auth.bridgeId)
       return true
     }
 
     if (pathPart === `${PREFIX}/status`) {
-      const bridgeId = this.requireBridgeId(query, response)
+      const bridgeId = this.requireBridgeId(query, response, auth.bridgeId)
       if (bridgeId === undefined) return true
       if (method !== 'GET') {
         this.sendMethodNotAllowed(response, ['GET'])
@@ -176,12 +181,39 @@ export class RankupApiHandler extends BaseApiHandler {
         this.sendMethodNotAllowed(response, ['POST'])
         return true
       }
+
+      let requestedBridge: string | string[] | undefined
+      if (Object.prototype.hasOwnProperty.call(query, 'bridgeId')) {
+        requestedBridge = query.bridgeId
+      }
+      if (requestedBridge === undefined) {
+        const rawBody = await readBody(request)
+        if (rawBody.trim().length > 0) {
+          try {
+            const parsed: unknown = JSON.parse(rawBody)
+            if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              const bodyBridge = (parsed as { bridgeId?: unknown }).bridgeId
+              if (typeof bodyBridge === 'string') requestedBridge = bodyBridge
+            }
+          } catch (error: unknown) {
+            void error
+          }
+        }
+      }
+
+      const bridgeId = this.validateBridgeId(
+        Array.isArray(requestedBridge) ? requestedBridge[0] : requestedBridge,
+        response,
+        auth.bridgeId
+      )
+      if (bridgeId === undefined) return true
+
       if (action === 'approve') {
-        await this.handleApprove(response, id)
+        await this.handleApprove(response, bridgeId, id)
         return true
       }
       if (action === 'reject') {
-        this.handleReject(response, id)
+        this.handleReject(response, bridgeId, id)
         return true
       }
       sendError(response, 'NOT_FOUND', 'Not found', 404)
@@ -191,18 +223,19 @@ export class RankupApiHandler extends BaseApiHandler {
     return false
   }
 
-  private handleBridgesList(response: http.ServerResponse): void {
+  private handleBridgesList(response: http.ServerResponse, bridgeId: string): void {
     const bridgeConfigurations = this.application.core.bridgeConfigurations
     const pendingReviewManager = this.application.core.pendingReviewManager
-    const bridgeIds = bridgeConfigurations.getAllBridgeIds()
 
-    const bridges: BridgeListEntry[] = bridgeIds.map((bridgeId) => ({
-      bridgeId,
-      enabled: bridgeConfigurations.getRankupEnabled(bridgeId),
-      manualReview: bridgeConfigurations.getRankupManualReview(bridgeId),
-      pendingCount: pendingReviewManager.getReviews(bridgeId).length,
-      lastCheckAt: this.lastCheckByBridge.get(bridgeId)
-    }))
+    const bridges: BridgeListEntry[] = [
+      {
+        bridgeId,
+        enabled: bridgeConfigurations.getRankupEnabled(bridgeId),
+        manualReview: bridgeConfigurations.getRankupManualReview(bridgeId),
+        pendingCount: pendingReviewManager.getReviews(bridgeId).length,
+        lastCheckAt: this.lastCheckByBridge.get(bridgeId)
+      }
+    ]
 
     sendSuccess(response, { bridges })
   }
@@ -277,7 +310,9 @@ export class RankupApiHandler extends BaseApiHandler {
   }
 
   private async handleGuildRanks(response: http.ServerResponse, bridgeId: string): Promise<void> {
-    const instances = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
+    const instances = this.application.core.bridgeConfigurations
+      .getMinecraftInstances(bridgeId)
+      .filter((name) => this.application.bridgeResolver.getBridgeIdForInstance(name) === bridgeId)
     if (instances.length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'No Minecraft instances configured for this bridge', 400)
       return
@@ -311,9 +346,10 @@ export class RankupApiHandler extends BaseApiHandler {
 
   private async handleCheckPlayer(
     response: http.ServerResponse,
-    query: Record<string, string | string[]>
+    query: Record<string, string | string[]>,
+    authBridgeId: string
   ): Promise<void> {
-    const bridgeId = this.requireBridgeId(query, response)
+    const bridgeId = this.requireBridgeId(query, response, authBridgeId)
     if (bridgeId === undefined) return
 
     const usernameRaw = query.username
@@ -334,7 +370,9 @@ export class RankupApiHandler extends BaseApiHandler {
 
     const bridgeConfig = this.application.core.bridgeConfigurations
 
-    const instances = bridgeConfig.getMinecraftInstances(bridgeId)
+    const instances = bridgeConfig
+      .getMinecraftInstances(bridgeId)
+      .filter((name) => this.application.bridgeResolver.getBridgeIdForInstance(name) === bridgeId)
     if (instances.length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'No Minecraft instances configured for this bridge', 400)
       return
@@ -392,7 +430,11 @@ export class RankupApiHandler extends BaseApiHandler {
     })
   }
 
-  private async handleRunCheck(request: http.IncomingMessage, response: http.ServerResponse): Promise<void> {
+  private async handleRunCheck(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    authBridgeId: string
+  ): Promise<void> {
     const body = await readJsonBody(request, response, this.logger)
     if (body === undefined) return
 
@@ -401,11 +443,14 @@ export class RankupApiHandler extends BaseApiHandler {
       return
     }
 
-    const bridgeId = (body as { bridgeId?: unknown }).bridgeId
-    if (typeof bridgeId !== 'string' || bridgeId.length === 0) {
+    const rawBridgeId = (body as { bridgeId?: unknown }).bridgeId
+    if (typeof rawBridgeId !== 'string' || rawBridgeId.length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'Missing or empty bridgeId', 400)
       return
     }
+
+    const bridgeId = this.validateBridgeId(rawBridgeId, response, authBridgeId)
+    if (bridgeId === undefined) return
 
     const rankupManager = this.application.core.rankupManager
     void rankupManager.runTaskForBridge(bridgeId).catch((error: unknown) => {
@@ -424,15 +469,15 @@ export class RankupApiHandler extends BaseApiHandler {
     })
   }
 
-  private async handleApprove(response: http.ServerResponse, id: number): Promise<void> {
-    const review = this.application.core.pendingReviewManager.getReview(id)
+  private async handleApprove(response: http.ServerResponse, bridgeId: string, id: number): Promise<void> {
+    const review = this.application.core.pendingReviewManager.getReview(bridgeId, id)
     if (review === undefined) {
       sendError(response, 'NOT_FOUND', 'Review not found', 404)
       return
     }
 
     try {
-      await this.application.core.rankupManager.approveReview(review.bridgeId, id)
+      await this.application.core.rankupManager.approveReview(bridgeId, id)
       sendSuccess(response, { success: true })
     } catch (error: unknown) {
       this.logger.error('Failed to approve review %d: %s', id, error)
@@ -440,23 +485,20 @@ export class RankupApiHandler extends BaseApiHandler {
     }
   }
 
-  private handleReject(response: http.ServerResponse, id: number): void {
-    const review = this.application.core.pendingReviewManager.getReview(id)
+  private handleReject(response: http.ServerResponse, bridgeId: string, id: number): void {
+    const review = this.application.core.pendingReviewManager.getReview(bridgeId, id)
     if (review === undefined) {
       sendError(response, 'NOT_FOUND', 'Review not found', 404)
       return
     }
 
-    this.application.core.pendingReviewManager.logHistory(
-      review.bridgeId,
-      review.uuid,
-      'reject',
-      review.currentRank,
-      review.proposedRank,
-      'web'
-    )
-    this.application.core.pendingReviewManager.removeReview(id)
-    sendSuccess(response, { success: true })
+    try {
+      this.application.core.rankupManager.rejectReview(bridgeId, id)
+      sendSuccess(response, { success: true })
+    } catch (error: unknown) {
+      this.logger.error('Failed to reject review %d: %s', id, error)
+      sendError(response, 'INTERNAL_ERROR', 'Failed to reject review', 500)
+    }
   }
 
   private validateRulesBody(body: unknown): string | undefined {
@@ -586,13 +628,34 @@ export class RankupApiHandler extends BaseApiHandler {
     return items.map((item) => ({ ...item, name: names.get(item.uuid) }))
   }
 
-  private requireBridgeId(query: Record<string, string | string[]>, response: http.ServerResponse): string | undefined {
+  private requireBridgeId(
+    query: Record<string, string | string[]>,
+    response: http.ServerResponse,
+    authBridgeId: string
+  ): string | undefined {
     const raw = query.bridgeId
-    const value = Array.isArray(raw) ? raw[0] : raw
-    if (value.length === 0) {
+    return this.validateBridgeId(Array.isArray(raw) ? raw[0] : raw, response, authBridgeId)
+  }
+
+  private validateBridgeId(
+    value: string | undefined,
+    response: http.ServerResponse,
+    authBridgeId: string
+  ): string | undefined {
+    if (value === undefined || value.trim().length === 0) {
       sendError(response, 'VALIDATION_ERROR', 'Missing or empty bridgeId', 400)
       return undefined
     }
-    return value
+
+    const bridgeId = value.trim()
+    if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(bridgeId)) {
+      sendError(response, 'NOT_FOUND', `Unknown bridge "${bridgeId}"`, 404)
+      return undefined
+    }
+    if (bridgeId !== authBridgeId) {
+      sendError(response, 'FORBIDDEN', 'Token is not authorized for this bridge', 403)
+      return undefined
+    }
+    return bridgeId
   }
 }

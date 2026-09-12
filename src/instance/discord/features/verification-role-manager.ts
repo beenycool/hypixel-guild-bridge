@@ -59,6 +59,7 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
       uuid?: string
       guild?: Guild
       hypixelGuild?: HypixelGuild
+      bridgeId?: string
     } = {}
   ): Promise<UpdateSummary> {
     const config = this.application.config.verification
@@ -72,42 +73,58 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
 
     const link = options.uuid
       ? { discordId: discordId, uuid: options.uuid }
-      : await this.application.core.verification.findByDiscord(discordId)
+      : options.bridgeId === undefined
+        ? undefined
+        : await this.application.core.verification.findByDiscord(discordId, options.bridgeId)
     const uuid = link?.uuid
 
-    const guilds = options.guild ? [options.guild] : [...client.guilds.cache.values()]
+    const guilds = (options.guild ? [options.guild] : [...client.guilds.cache.values()]).filter(
+      (guild) => options.bridgeId === undefined || this.resolveBridgeIdForGuild(guild) === options.bridgeId
+    )
     if (guilds.length === 0) {
       this.logger.warn('Verification role update skipped: no guilds are available.')
       return emptyUpdateSummary()
     }
 
-    let stats: StatsMap | undefined
-    let isGuildMember = false
-    let guildRank = ''
-    let guildName = ''
-
+    let player: Player | undefined
+    let skyblockMember: SkyblockV2Member | undefined
     if (uuid) {
-      const [player, skyblockMember, hypixelGuild] = await Promise.all([
+      ;[player, skyblockMember] = await Promise.all([
         this.application.hypixelApi.getPlayer(uuid).catch(() => undefined),
-        this.fetchSkyblockMember(uuid),
-        options.hypixelGuild ?? this.fetchHypixelGuild()
+        this.fetchSkyblockMember(uuid)
       ])
 
       if (!player) {
         throw new Error(`Failed to fetch Hypixel stats for uuid ${uuid}`)
       }
-
-      const guildMember = hypixelGuild?.members.find((member) => member.uuid === uuid)
-      isGuildMember = guildMember !== undefined
-      guildRank = guildMember?.rank ?? ''
-      guildName = hypixelGuild?.name ?? ''
-
-      stats = this.buildStats(player, skyblockMember, guildRank, guildName)
     }
 
     const summary = emptyUpdateSummary()
 
     for (const guild of guilds) {
+      const bridgeId = this.resolveBridgeIdForGuild(guild)
+      if (bridgeId === undefined) {
+        this.logger.warn(`Verification role update skipped for guild ${guild.id}: no bridge is configured for it.`)
+        continue
+      }
+
+      const hypixelGuild = options.hypixelGuild ?? (await this.fetchHypixelGuild(bridgeId))
+      if (hypixelGuild === undefined) {
+        this.logger.warn(
+          `Verification role update skipped for guild ${guild.id}: no Minecraft bot is available for bridge ${bridgeId}.`
+        )
+        continue
+      }
+
+      let stats: StatsMap | undefined
+      let isGuildMember = false
+      if (uuid && player) {
+        const guildMember = hypixelGuild.members.find((member) => member.uuid === uuid)
+        isGuildMember = guildMember !== undefined
+        const guildRank = guildMember?.rank ?? ''
+        stats = this.buildStats(player, skyblockMember, guildRank, hypixelGuild.name)
+      }
+
       const member = await this.fetchMember(guild, discordId)
       if (!member) continue
 
@@ -135,7 +152,17 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
     const links = this.application.core.verification.getAllLinks()
     if (links.length === 0) return { ...emptyUpdateSummary(), updatedUsers: 0, failedUsers: 0 }
 
-    const hypixelGuild = await this.fetchHypixelGuild()
+    const client = this.clientInstance.getClient()
+    if (!client.isReady()) {
+      this.logger.warn('Verification role update skipped: Discord client is not ready.')
+      return { ...emptyUpdateSummary(), updatedUsers: 0, failedUsers: 0 }
+    }
+
+    const guilds = options.guild ? [options.guild] : [...client.guilds.cache.values()]
+    if (guilds.length === 0) {
+      this.logger.warn('Verification role update skipped: no guilds are available.')
+      return { ...emptyUpdateSummary(), updatedUsers: 0, failedUsers: 0 }
+    }
 
     const summary: UpdateAllSummary = {
       ...emptyUpdateSummary(),
@@ -143,21 +170,39 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
       failedUsers: 0
     }
 
-    for (const link of links) {
-      try {
-        const result = await this.updateUser(link.discordId, {
-          uuid: link.uuid,
-          guild: options.guild,
-          hypixelGuild: hypixelGuild
-        })
-        summary.updatedUsers += 1
-        summary.updatedGuilds += result.updatedGuilds
-        summary.rolesAdded += result.rolesAdded
-        summary.rolesRemoved += result.rolesRemoved
-        summary.nicknamesUpdated += result.nicknamesUpdated
-      } catch (error: unknown) {
-        summary.failedUsers += 1
-        this.logger.error(`Failed to update verification roles for ${link.discordId}`, error)
+    for (const guild of guilds) {
+      const bridgeId = this.resolveBridgeIdForGuild(guild)
+      if (bridgeId === undefined) {
+        this.logger.warn(`Verification role update skipped for guild ${guild.id}: no bridge is configured for it.`)
+        continue
+      }
+
+      const hypixelGuild = await this.fetchHypixelGuild(bridgeId)
+      if (hypixelGuild === undefined) {
+        this.logger.warn(
+          `Verification role update skipped for guild ${guild.id}: no Minecraft bot is available for bridge ${bridgeId}.`
+        )
+        continue
+      }
+
+      const bridgeLinks = this.application.core.verification.getAllLinks(bridgeId)
+      for (const link of bridgeLinks) {
+        try {
+          const result = await this.updateUser(link.discordId, {
+            uuid: link.uuid,
+            guild: guild,
+            hypixelGuild: hypixelGuild,
+            bridgeId: bridgeId
+          })
+          summary.updatedUsers += 1
+          summary.updatedGuilds += result.updatedGuilds
+          summary.rolesAdded += result.rolesAdded
+          summary.rolesRemoved += result.rolesRemoved
+          summary.nicknamesUpdated += result.nicknamesUpdated
+        } catch (error: unknown) {
+          summary.failedUsers += 1
+          this.logger.error(`Failed to update verification roles for ${link.discordId}`, error)
+        }
       }
     }
 
@@ -173,14 +218,37 @@ export default class VerificationRoleManager extends SubInstance<DiscordInstance
     return Duration.hours(intervalHours)
   }
 
-  private async fetchHypixelGuild(): Promise<HypixelGuild | undefined> {
-    const bots = this.application.minecraftManager.getMinecraftBots()
-    if (bots.length === 0) {
-      this.logger.warn('Verification role update skipped guild lookup: no Minecraft bots are connected.')
+  private resolveBridgeIdForGuild(guild: Guild): string | undefined {
+    let resolved: string | undefined
+    for (const channel of guild.channels.cache.values()) {
+      const bridgeId = this.application.bridgeResolver.getBridgeIdForChannel(channel.id)
+      if (bridgeId === undefined) continue
+
+      if (resolved === undefined) {
+        resolved = bridgeId
+      } else if (resolved !== bridgeId) {
+        this.logger.warn(
+          `Verification role update skipped for guild ${guild.id}: its channels belong to multiple bridges.`
+        )
+        return undefined
+      }
+    }
+
+    return resolved
+  }
+
+  private async fetchHypixelGuild(bridgeId: string): Promise<HypixelGuild | undefined> {
+    const selectedBot = this.application.minecraftManager
+      .getMinecraftBots()
+      .find((entry) => this.application.bridgeResolver.getBridgeIdForInstance(entry.instanceName) === bridgeId)
+
+    if (selectedBot === undefined) {
+      this.logger.warn(
+        `Verification role update skipped guild lookup: no Minecraft bot is available for bridge ${bridgeId}.`
+      )
       return undefined
     }
 
-    const selectedBot = bots[0]
     try {
       return await this.application.hypixelApi.getGuild('player', selectedBot.uuid)
     } catch (error: unknown) {

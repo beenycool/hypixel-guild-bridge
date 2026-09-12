@@ -95,6 +95,11 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
     if (lastUpdate + interval.toMilliseconds() > Date.now()) return
 
     const instance = this.resolveTopicInstance(bridgeId)
+    if (instance === undefined) {
+      this.logger.warn(`Skipping stats topic update for bridge ${bridgeId}: no Minecraft instance is mapped to it.`)
+      return
+    }
+
     const guildName = bridgeConfigurations.getGuildName(bridgeId)
     const hypixelGuild = await this.withTimeout(this.fetchTopicGuild(instance, guildName), 15_000).catch(
       (error: unknown): HypixelGuild | undefined => {
@@ -181,12 +186,12 @@ export default class StatsChannels extends SubInstance<DiscordInstance, Instance
   }
 
   private resolveTopicInstance(bridgeId: string): TopicInstance | undefined {
-    const instances = this.application.minecraftManager.getAllInstances()
-    const configured = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
-    if (configured.length > 0) {
-      const match = instances.find((instance) => configured.includes(instance.instanceName))
-      if (match) return match
-    }
+    const instances = this.application.minecraftManager
+      .getAllInstances()
+      .filter((instance) => this.application.bridgeResolver.getBridgeIdForInstance(instance.instanceName) === bridgeId)
+
+    if (instances.length === 0) return undefined
+
     return instances.find((instance) => instance.currentStatus() === Status.Connected) ?? instances[0]
   }
 

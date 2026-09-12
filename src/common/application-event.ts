@@ -73,6 +73,8 @@ export interface BaseEvent extends InstanceIdentifier {
   readonly eventId: string
 
   readonly createdAt: number
+
+  readonly scope?: 'global'
 }
 
 export interface InstanceIdentifier {
@@ -290,6 +292,7 @@ export type CommandEvent = CommandLike
 export type CommandFeedbackEvent = CommandLike
 
 export interface UserLink {
+  bridgeId: string
   uuid: string
   discordId: string
 }

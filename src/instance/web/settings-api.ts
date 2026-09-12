@@ -54,11 +54,16 @@ export class SettingsApiHandler extends BaseApiHandler {
       .split('/')
       .filter(Boolean)
 
-    const permission = this.verifyAuth(request, response)
-    if (permission === undefined) return true
+    const auth = this.verifyAuthWithUser(request, response)
+    if (auth === undefined) return true
+    const permission = auth.permission
 
     if (method === 'GET' && segments.length === 0) {
-      this.handleBridgesList(response)
+      if (auth.bridgeId === undefined) {
+        sendError(response, 'FORBIDDEN', 'Token is not bound to a bridge', 403)
+        return true
+      }
+      this.handleBridgesList(response, auth.bridgeId, permission)
       return true
     }
 
@@ -74,40 +79,32 @@ export class SettingsApiHandler extends BaseApiHandler {
     }
 
     if (method === 'GET' && segments.length === 1) {
-      if (permission < Permission.Owner) {
-        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
-        return true
-      }
-      this.handleBridgeGet(response, segments[0])
+      const bridgeId = this.authorizeBridge(request, response, segments[0], Permission.Owner)
+      if (bridgeId === undefined) return true
+      this.handleBridgeGet(response, bridgeId)
       return true
     }
 
     if (method === 'DELETE' && segments.length === 1) {
-      if (permission < Permission.Admin) {
-        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
-        return true
-      }
-      this.handleDelete(response, segments[0])
+      const bridgeId = this.authorizeBridge(request, response, segments[0], Permission.Owner)
+      if (bridgeId === undefined) return true
+      this.handleDelete(response, bridgeId)
       return true
     }
 
     if (method === 'GET' && segments.length === 2 && segments[1] === 'settings') {
-      if (permission < Permission.Owner) {
-        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
-        return true
-      }
-      await this.handleGet(response, segments[0])
+      const bridgeId = this.authorizeBridge(request, response, segments[0], Permission.Owner)
+      if (bridgeId === undefined) return true
+      await this.handleGet(response, bridgeId)
       return true
     }
 
     if (method === 'PUT' && segments.length === 3 && segments[1] === 'settings') {
-      if (permission < Permission.Owner) {
-        sendError(response, 'FORBIDDEN', 'Forbidden', 403)
-        return true
-      }
+      const bridgeId = this.authorizeBridge(request, response, segments[0], Permission.Owner)
+      if (bridgeId === undefined) return true
       const body = await readJsonBody<SettingObject>(request, response, this.logger)
       if (body === undefined) return true
-      this.handlePut(response, segments[0], segments[2], body)
+      this.handlePut(response, bridgeId, segments[2], body)
       return true
     }
 
@@ -115,14 +112,18 @@ export class SettingsApiHandler extends BaseApiHandler {
     return true
   }
 
-  private handleBridgesList(response: http.ServerResponse): void {
+  private handleBridgesList(response: http.ServerResponse, bridgeId: string, permission: Permission): void {
     try {
       const bridgeConfigurations = this.application.core.bridgeConfigurations
-      const bridgeIds = bridgeConfigurations.getAllBridgeIds()
-      const bridges = bridgeIds.map((id) => {
-        const settings = bridgeConfigurations.getAllSettings(id)
-        return { id, ...settings }
-      })
+      if (!bridgeConfigurations.getAllBridgeIds().includes(bridgeId)) {
+        sendSuccess(response, [])
+        return
+      }
+
+      const bridges =
+        permission >= Permission.Owner
+          ? [{ id: bridgeId, ...bridgeConfigurations.getAllSettings(bridgeId) }]
+          : [{ id: bridgeId }]
       sendSuccess(response, bridges)
     } catch (error: unknown) {
       sendError(response, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to list bridges', 500)
@@ -206,7 +207,9 @@ export class SettingsApiHandler extends BaseApiHandler {
     const availableLanguages = Object.values(ApplicationLanguages)
 
     let guildRanks: string[] = []
-    const instances = this.application.core.bridgeConfigurations.getMinecraftInstances(bridgeId)
+    const instances = this.application.core.bridgeConfigurations
+      .getMinecraftInstances(bridgeId)
+      .filter((name) => this.application.bridgeResolver.getBridgeIdForInstance(name) === bridgeId)
     if (instances.length > 0) {
       const botInstanceName = instances[0]
       const mcInstance = this.application.minecraftManager
@@ -257,6 +260,59 @@ export class SettingsApiHandler extends BaseApiHandler {
     }
 
     const cfg = this.application.core.bridgeConfigurations
+
+    const conflicts: string[] = []
+
+    if (category === 'channels' || category === 'instances') {
+      const updatingChannels = category === 'channels'
+      conflicts.push(
+        ...cfg.validateBridgeAssignments(bridgeId, {
+          minecraftInstances: updatingChannels ? cfg.getMinecraftInstances(bridgeId) : array(body.minecraftInstances),
+          publicChannelIds: updatingChannels ? array(body.publicChannelIds) : cfg.getPublicChannelIds(bridgeId),
+          officerChannelIds: updatingChannels ? array(body.officerChannelIds) : cfg.getOfficerChannelIds(bridgeId),
+          loggerChannelIds: updatingChannels ? array(body.loggerChannelIds) : cfg.getLoggerChannelIds(bridgeId),
+          promoteChannelIds: updatingChannels ? array(body.promoteChannelIds) : cfg.getPromoteChannelIds(bridgeId)
+        })
+      )
+    }
+
+    switch (category) {
+      case 'channels': {
+        conflicts.push(...cfg.validateChannelOwnership(bridgeId, array(body.chatSummaryChannelIds), 'chatSummary'))
+        break
+      }
+      case 'rankup': {
+        conflicts.push(...cfg.validateChannelOwnership(bridgeId, array(body.notificationChannelIds), 'rankup'))
+        break
+      }
+      case 'tournament': {
+        const tournamentChannelId = stringValue(body.notificationChannelId)
+        conflicts.push(
+          ...cfg.validateChannelOwnership(
+            bridgeId,
+            tournamentChannelId.length > 0 ? [tournamentChannelId] : [],
+            'tournament notification'
+          )
+        )
+        break
+      }
+      case 'statsChannels': {
+        conflicts.push(...cfg.validateChannelOwnership(bridgeId, array(body.channelIds), 'statsChannels'))
+        break
+      }
+      case 'inactivity': {
+        conflicts.push(...cfg.validateChannelOwnership(bridgeId, array(body.channelIds), 'inactivity'))
+        break
+      }
+      default: {
+        break
+      }
+    }
+
+    if (conflicts.length > 0) {
+      sendError(response, 'VALIDATION_ERROR', conflicts.join('; '), 400)
+      return
+    }
 
     try {
       switch (category) {
@@ -417,12 +473,15 @@ export class SettingsApiHandler extends BaseApiHandler {
     }
 
     const existing = this.application.core.bridgeConfigurations.getAllBridgeIds()
-    if (existing.includes(bridgeId)) {
+    if (existing.some((id) => id.toLowerCase() === bridgeId)) {
       sendError(response, 'CONFLICT', `Bridge "${bridgeId}" already exists`, 409)
       return
     }
 
-    this.application.core.bridgeConfigurations.addBridgeId(bridgeId)
+    if (!this.application.core.bridgeConfigurations.addBridgeId(bridgeId)) {
+      sendError(response, 'VALIDATION_ERROR', 'Bridge id is invalid or reserved', 400)
+      return
+    }
     this.application.bridgeResolver.rebuildLookupMaps()
 
     sendSuccess(response, { success: true, bridgeId })

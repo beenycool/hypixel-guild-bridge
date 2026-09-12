@@ -9,7 +9,10 @@ export default {
     if (match != undefined) {
       const username = match[1]
       const uuid = await context.application.mojangApi.profileByUsername(username).then((profile) => profile.id)
-      const user = await context.application.core.initializeMinecraftUser({ id: uuid, name: username }, {})
+      const user = await context.application.core.initializeMinecraftUser(
+        { id: uuid, name: username },
+        { bridgeId: context.clientInstance.bridgeId }
+      )
 
       await context.application.emit('guildPlayer', {
         ...context.eventHelper.fillBaseEvent(),

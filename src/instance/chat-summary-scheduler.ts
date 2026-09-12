@@ -106,6 +106,14 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
     const bridgeConfigurations = this.application.core.bridgeConfigurations
     const bridgeIds = bridgeConfigurations.getAllBridgeIds()
 
+    const additionalChannelBridgeId =
+      additionalChannelId === undefined
+        ? undefined
+        : this.application.bridgeResolver.getBridgeIdForChannel(additionalChannelId)
+    if (additionalChannelId !== undefined && additionalChannelBridgeId === undefined) {
+      this.logger.warn(`Chat summary channel ${additionalChannelId} is not mapped to any bridge and will be ignored.`)
+    }
+
     const nowSeconds = Math.floor(Date.now() / 1000)
     const startTime = nowSeconds - 24 * 60 * 60
 
@@ -116,14 +124,17 @@ export class ChatSummaryScheduler extends Instance<InstanceType.Utility> {
         }
 
         const channelIds = bridgeConfigurations.getChatSummaryChannelIds(bridgeId)
-        if (channelIds.length === 0 && !additionalChannelId) {
+        const additionalChannelForThisBridge =
+          additionalChannelId !== undefined && additionalChannelBridgeId === bridgeId ? additionalChannelId : undefined
+
+        if (channelIds.length === 0 && additionalChannelForThisBridge === undefined) {
           this.logger.warn(`Chat summary is enabled for bridge ${bridgeId} but no summary channels are configured.`)
           continue
         }
 
         const targetChannelIds =
-          additionalChannelId && !channelIds.includes(additionalChannelId)
-            ? [...channelIds, additionalChannelId]
+          additionalChannelForThisBridge !== undefined && !channelIds.includes(additionalChannelForThisBridge)
+            ? [...channelIds, additionalChannelForThisBridge]
             : channelIds
 
         const rows = await this.application.core.databaseManager.queryRows<{

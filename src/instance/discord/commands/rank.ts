@@ -77,7 +77,7 @@ export default {
   autoComplete: async function (context) {
     const option = context.interaction.options.getFocused(true)
     if (option.name === 'rank') {
-      const rankChoices = await context.application.core.completeRank(option.value, 25)
+      const rankChoices = await context.application.core.completeRank(option.value, 25, context.bridgeId)
       const response = rankChoices.map((choice) => ({
         name: choice,
         value: choice

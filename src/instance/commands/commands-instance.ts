@@ -193,7 +193,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     if (event.instanceType === InstanceType.Minecraft) {
       const now = Date.now()
-      const dedupKey = `${event.user.displayName()}:${event.message.trim().toLowerCase()}`
+      const dedupKey = `${event.bridgeId ?? 'none'}:${event.user.displayName()}:${event.message.trim().toLowerCase()}`
       const lastExecuted = this.commandDeduplicationCache.get(dedupKey)
 
       if (lastExecuted !== undefined && now - lastExecuted < 2000) {
@@ -270,7 +270,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     if (
       disabledCommands.includes(command.triggers[0].toLowerCase()) &&
-      (await event.user.permission()) === Permission.Anyone
+      (await event.user.permission(event.bridgeId)) === Permission.Anyone
     ) {
       return
     }
@@ -332,7 +332,8 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
 
     const userId = event.user.discordProfile()?.id ?? event.user.mojangProfile()?.id ?? event.user.displayName()
     const now = Date.now()
-    const lastSuggestion = this.typoSuggestionCooldowns.get(userId)
+    const cooldownKey = `${bridgeId ?? 'none'}:${userId}`
+    const lastSuggestion = this.typoSuggestionCooldowns.get(cooldownKey)
 
     const typoCooldownSeconds = bridgeId === undefined ? 30 : (bridgeConfig.getTypoCooldownSeconds(bridgeId) ?? 30)
 
@@ -351,7 +352,7 @@ export class CommandsInstance extends ConnectableInstance<InstanceType.Commands>
     const suggestionMessage = `Did you mean ${chatPrefix}${closestMatch.trigger}?`
     await this.reply(event, 'typo-suggestion', suggestionMessage)
 
-    this.typoSuggestionCooldowns.set(userId, now)
+    this.typoSuggestionCooldowns.set(cooldownKey, now)
   }
 
   private cleanupExpiredCooldowns(): void {

@@ -100,7 +100,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   private readonly startTime = Date.now()
   private readonly httpServer: http.Server
   private readonly wsServer: WebSocketServer
-  private readonly connections = new Set<WebSocket>()
+  private readonly connections = new Map<WebSocket, { bridgeId?: string; permission: Permission }>()
+  private readonly upgradeAuth = new WeakMap<http.IncomingMessage, AuthResult>()
   private readonly config: WebConfig
   private readonly appSettingsApi: AppSettingsApiHandler
   private readonly guildApi: GuildApiHandler
@@ -134,8 +135,8 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     })
 
     this.wsServer = new WebSocketServer({ noServer: true })
-    this.wsServer.on('connection', (socket) => {
-      this.onWebSocketConnection(socket)
+    this.wsServer.on('connection', (socket, request) => {
+      this.onWebSocketConnection(socket, this.upgradeAuth.get(request))
     })
 
     this.httpServer.on('upgrade', (request, socket, head) => {
@@ -144,11 +145,13 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
 
-      if (!this.authenticateWebSocketUpgrade(request).ok) {
+      const auth = this.authenticateWebSocketUpgrade(request)
+      if (!auth.ok) {
         socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
         socket.destroy()
         return
       }
+      this.upgradeAuth.set(request, auth)
 
       this.wsServer.handleUpgrade(request, socket, head, (client) => {
         this.wsServer.emit('connection', client, request)
@@ -220,8 +223,6 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       sendError(response, 'NOT_FOUND', 'Invalid route', 404)
       return
     }
-
-    this.recordPublicUrl(request)
 
     if (route === '/uptime') {
       if (request.method !== 'GET') {
@@ -369,10 +370,17 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         return
       }
 
+      if (result.permission >= Permission.Admin) {
+        this.recordPublicUrl(request)
+      }
+
       const permissionName = Permission[result.permission].toLowerCase()
       const body: Record<string, unknown> = { permission: permissionName }
       if (result.userId) {
         body.userId = result.userId
+      }
+      if (result.bridgeId) {
+        body.bridgeId = result.bridgeId
       }
       sendSuccess(response, body)
       return
@@ -464,11 +472,19 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       return
     }
 
+    if (payload.token === undefined) {
+      const authorization = request.headers.authorization
+      if (authorization?.startsWith('Bearer ') === true) {
+        payload.token = authorization.slice('Bearer '.length)
+      }
+    }
+
     const result = await this.dispatchMessage(payload)
     if (result.body.success) {
       sendSuccess(response, { success: true })
     } else {
-      sendError(response, 'INTERNAL_ERROR', result.body.error ?? 'Unknown error', result.status)
+      const code = result.status === 401 ? 'UNAUTHORIZED' : result.status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR'
+      sendError(response, code, result.body.error ?? 'Unknown error', result.status)
     }
   }
 
@@ -481,6 +497,27 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       }
     }
 
+    if (auth.permission < Permission.Helper) {
+      return {
+        status: 403,
+        body: { success: false, error: 'Insufficient permissions' }
+      }
+    }
+
+    if (auth.bridgeId === undefined) {
+      return {
+        status: 403,
+        body: { success: false, error: 'Token is not bound to a bridge' }
+      }
+    }
+
+    if (!this.application.core.bridgeConfigurations.getAllBridgeIds().includes(auth.bridgeId)) {
+      return {
+        status: 403,
+        body: { success: false, error: 'Unknown bridge' }
+      }
+    }
+
     if (payload.data == undefined || typeof payload.data !== 'string' || payload.data.trim().length === 0) {
       return {
         status: 400,
@@ -489,7 +526,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     }
 
     const message = payload.data.trim()
-    const target = this.resolveTargetInstances(payload.instance)
+    const target = this.resolveTargetInstances(payload.instance, auth.bridgeId)
     if (target.error) {
       return {
         status: 400,
@@ -512,17 +549,24 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     }
   }
 
-  private resolveTargetInstances(requested: string | undefined): { instances: string[]; error?: string } {
-    const available = this.application.getInstancesNames(InstanceType.Minecraft)
+  private resolveTargetInstances(
+    requested: string | undefined,
+    bridgeId: string
+  ): { instances: string[]; error?: string } {
+    const available = this.application.minecraftManager
+      .getAllInstances()
+      .filter((inst) => this.application.bridgeResolver.getBridgeIdForInstance(inst.instanceName) === bridgeId)
+      .map((inst) => inst.instanceName)
+
     if (available.length === 0) {
-      return { instances: [], error: 'No minecraft instances are connected.' }
+      return { instances: [], error: 'No minecraft instances are connected for this bridge.' }
     }
 
     const requestedName = requested?.trim()
     if (requestedName) {
       const match = available.find((name) => name.toLowerCase() === requestedName.toLowerCase())
       if (!match) {
-        return { instances: [], error: `Unknown minecraft instance "${requestedName}".` }
+        return { instances: [], error: `Unknown minecraft instance "${requestedName}" for this bridge.` }
       }
       return { instances: [match] }
     }
@@ -546,8 +590,11 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     }
   }
 
-  private onWebSocketConnection(socket: WebSocket): void {
-    this.connections.add(socket)
+  private onWebSocketConnection(socket: WebSocket, auth?: AuthResult): void {
+    this.connections.set(socket, {
+      bridgeId: auth?.ok ? auth.bridgeId : undefined,
+      permission: auth?.ok ? auth.permission : Permission.Anyone
+    })
     this.logger.info('WebSocket client connected')
 
     socket.on('close', () => {
@@ -594,7 +641,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
         return
       }
-      this.rankupWs.subscribe(socket)
+      if (auth.bridgeId === undefined || !this.isKnownBridge(auth.bridgeId)) {
+        this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Unknown bridge' })
+        return
+      }
+      this.connections.set(socket, { bridgeId: auth.bridgeId, permission: auth.permission })
+      this.rankupWs.subscribe(socket, auth.bridgeId)
       this.sendWebSocket(socket, { type: 'ack', success: true })
       return
     }
@@ -605,7 +657,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
         return
       }
-      this.settingsWs.subscribe(socket)
+      if (auth.bridgeId === undefined || !this.isKnownBridge(auth.bridgeId)) {
+        this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Unknown bridge' })
+        return
+      }
+      this.connections.set(socket, { bridgeId: auth.bridgeId, permission: auth.permission })
+      this.settingsWs.subscribe(socket, auth.bridgeId, auth.permission)
       this.sendWebSocket(socket, { type: 'ack', success: true })
       return
     }
@@ -616,7 +673,12 @@ export default class WebServer extends Instance<InstanceType.Utility> {
         this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Invalid token' })
         return
       }
-      this.tournamentWs.subscribe(socket)
+      if (auth.bridgeId === undefined || !this.isKnownBridge(auth.bridgeId)) {
+        this.sendWebSocket(socket, { type: 'ack', success: false, error: 'Unknown bridge' })
+        return
+      }
+      this.connections.set(socket, { bridgeId: auth.bridgeId, permission: auth.permission })
+      this.tournamentWs.subscribe(socket, auth.bridgeId)
       this.sendWebSocket(socket, { type: 'ack', success: true })
       return
     }
@@ -643,6 +705,10 @@ export default class WebServer extends Instance<InstanceType.Utility> {
     return Buffer.from(data as Uint8Array).toString('utf8')
   }
 
+  private isKnownBridge(bridgeId: string): boolean {
+    return this.application.core.bridgeConfigurations.getAllBridgeIds().includes(bridgeId)
+  }
+
   private broadcastChat(event: ChatEvent): void {
     if (this.connections.size === 0) return
     const message: WebSocketChatMessage = {
@@ -650,8 +716,13 @@ export default class WebServer extends Instance<InstanceType.Utility> {
       data: this.buildChatPayload(event)
     }
 
+    const isGlobal = event.scope === 'global'
     const payload = JSON.stringify(message)
-    for (const socket of this.connections) {
+    for (const [socket, connection] of this.connections) {
+      if (!isGlobal && (event.bridgeId === undefined || connection.bridgeId !== event.bridgeId)) {
+        continue
+      }
+
       if (socket.readyState !== WebSocket.OPEN) {
         this.connections.delete(socket)
         continue
@@ -714,7 +785,7 @@ export default class WebServer extends Instance<InstanceType.Utility> {
   }
 
   private shutdown(): void {
-    for (const socket of this.connections) {
+    for (const socket of this.connections.keys()) {
       socket.close()
     }
     this.connections.clear()

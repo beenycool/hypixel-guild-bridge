@@ -4,12 +4,10 @@ import { ChatCommandHandler } from '../../../common/commands.js'
 import { Status } from '../../../common/connectable-instance.js'
 import { checkChatTriggers, PrivateMessageChat } from '../../../utility/chat-triggers.js'
 import { antiSpamString } from '../../../utility/shared-utility'
-// eslint-disable-next-line import/no-restricted-paths
-import type { MinecraftManager } from '../../minecraft/minecraft-manager.js'
 
 export default class Boop extends ChatCommandHandler {
   private static readonly CommandCoolDown = 60_000
-  private lastCommandExecutionAt = 0
+  private readonly lastCommandExecutionAt = new Map<string, number>()
 
   constructor() {
     super({
@@ -22,18 +20,21 @@ export default class Boop extends ChatCommandHandler {
 
   async handler(context: ChatCommandContext): Promise<string> {
     const givenUsername = context.args[0] ?? context.username
+    const bridgeId = context.message.bridgeId
+    if (bridgeId === undefined) {
+      return `This command must be used in a configured bridge channel.`
+    }
+
     const currentTime = Date.now()
-    if (this.lastCommandExecutionAt + Boop.CommandCoolDown > currentTime) {
-      return `Can use command again in ${Math.floor((this.lastCommandExecutionAt + Boop.CommandCoolDown - currentTime) / 1000)} seconds.`
+    const lastCommandExecutionAt = this.lastCommandExecutionAt.get(bridgeId) ?? 0
+    if (lastCommandExecutionAt + Boop.CommandCoolDown > currentTime) {
+      return `Can use command again in ${Math.floor((lastCommandExecutionAt + Boop.CommandCoolDown - currentTime) / 1000)} seconds.`
     }
-    const minecraftInstanceName =
-      context.message.instanceType === InstanceType.Minecraft
-        ? context.message.instanceName
-        : this.getActiveMinecraftInstanceName(context.app.minecraftManager)
+    const minecraftInstanceName = this.getActiveMinecraftInstanceName(context, bridgeId)
     if (minecraftInstanceName === undefined) {
-      return `No active connected Minecraft account exists to use`
+      return `No connected Minecraft instance is available for this bridge.`
     }
-    this.lastCommandExecutionAt = currentTime
+    this.lastCommandExecutionAt.set(bridgeId, currentTime)
 
     const result = await checkChatTriggers(
       context.app,
@@ -56,8 +57,22 @@ export default class Boop extends ChatCommandHandler {
     }
   }
 
-  private getActiveMinecraftInstanceName(minecraftManager: MinecraftManager): string | undefined {
-    return minecraftManager.getAllInstances().find((instance) => instance.currentStatus() === Status.Connected)
-      ?.instanceName
+  private getActiveMinecraftInstanceName(context: ChatCommandContext, bridgeId: string): string | undefined {
+    const instances = context.app.minecraftManager
+      .getAllInstances()
+      .filter(
+        (instance) =>
+          instance.currentStatus() === Status.Connected &&
+          context.app.bridgeResolver.getBridgeIdForInstance(instance.instanceName) === bridgeId
+      )
+
+    if (context.message.instanceType === InstanceType.Minecraft) {
+      const ownInstance = instances.find(
+        (instance) => instance.instanceName.toLowerCase() === context.message.instanceName.toLowerCase()
+      )
+      if (ownInstance !== undefined) return ownInstance.instanceName
+    }
+
+    return instances[0]?.instanceName
   }
 }

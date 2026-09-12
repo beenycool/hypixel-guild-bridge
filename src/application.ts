@@ -152,6 +152,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
     this.bridgeResolver.setDynamicConfig(this.core.bridgeConfigurations)
 
+    this.on('bridgeConfigChanged', () => {
+      this.bridgeResolver.rebuildLookupMaps()
+      this.logBridgeConflicts()
+    })
+
     this.discordInstance = new DiscordInstance(this, this.config.discord)
 
     this.minecraftManager = new MinecraftManager(this)
@@ -176,7 +181,12 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.config.lunarClient?.cacheSeconds
     )
 
-    this.essentialService = new EssentialService(this, this.logger, this.config.essentialClient?.minecraftInstance ?? defaultAccount, this.config.essentialClient?.cacheSeconds)
+    this.essentialService = new EssentialService(
+      this,
+      this.logger,
+      this.config.essentialClient?.minecraftInstance ?? defaultAccount,
+      this.config.essentialClient?.cacheSeconds
+    )
 
     this.on('minecraftSelfBroadcast', () => {
       void this.lunarService.ensureConnected().catch(() => undefined)
@@ -263,6 +273,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
     await this.core.statusHistory.closeOpenConnectionSpans()
     await this.core.tournamentManager.rehydrate()
     this.bridgeResolver.rebuildLookupMaps()
+    this.logBridgeConflicts()
     this.applyStoredLanguage()
     this.minecraftManager.loadInstances()
 
@@ -285,7 +296,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
 
         const botInstance = this.minecraftManager
           .getAllInstances()
-          .find((inst) => instanceNames.some((n) => n.toLowerCase() === inst.instanceName.toLowerCase()))
+          .find(
+            (inst) =>
+              instanceNames.some((n) => n.toLowerCase() === inst.instanceName.toLowerCase()) &&
+              this.bridgeResolver.getBridgeIdForInstance(inst.instanceName) === bridgeId
+          )
 
         if (!botInstance) continue
 
@@ -408,18 +423,20 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   }
 
   public resolveMinecraftInstanceForDiscordPing(bridgeId?: string): MinecraftInstance | undefined {
-    const all = this.minecraftManager.getAllInstances()
-    if (all.length === 0) return undefined
+    if (bridgeId === undefined) return undefined
 
-    let pool: MinecraftInstance[]
-    if (bridgeId === undefined) {
-      pool = all
-    } else {
-      const bridged = all.filter((instance) => instance.bridgeId === bridgeId)
-      pool = bridged.length > 0 ? bridged : all
-    }
+    const pool = this.minecraftManager
+      .getAllInstances()
+      .filter((instance) => this.bridgeResolver.getBridgeIdForInstance(instance.instanceName) === bridgeId)
+    if (pool.length === 0) return undefined
 
     return pool.find((instance) => instance.currentStatus() === Status.Connected) ?? pool[0]
+  }
+
+  private logBridgeConflicts(): void {
+    for (const conflict of this.bridgeResolver.getConflicts()) {
+      this.logger.warn(`Bridge configuration conflict: ${conflict}`)
+    }
   }
 
   public getAllInstancesIdentifiers(): InstanceIdentifier[] {

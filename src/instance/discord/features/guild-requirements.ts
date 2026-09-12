@@ -90,6 +90,10 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     const config = this.application.config.guildRequirements
     if (!config?.enabled) return
 
+    const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
+    if (bridgeId === undefined) return
+    if (!this.application.bridgeResolver.shouldProcessEvent(bridgeId, event.instanceName)) return
+
     const mojangProfile = event.user.mojangProfile() as ReturnType<typeof event.user.mojangProfile> | undefined
     if (mojangProfile == undefined) return
 
@@ -103,7 +107,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     await this.sendOfficerSummary(event.instanceName, result).catch(
       this.errorHandler.promiseCatch('sending guild requirements officer summary')
     )
-    await this.notifyDiscord(event, mojangProfile.name, result, config).catch(
+    await this.notifyDiscord(event, bridgeId, mojangProfile.name, result, config).catch(
       this.errorHandler.promiseCatch('sending guild requirements discord notification')
     )
 
@@ -116,15 +120,13 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
   private async notifyDiscord(
     event: GuildPlayerEvent,
+    bridgeId: string,
     username: string,
     result: GuildRequirementsCheck,
     config: GuildRequirementsConfig
   ): Promise<void> {
     const client = this.clientInstance.getClient()
     if (!client.isReady()) return
-
-    const bridgeId = event.bridgeId ?? this.application.bridgeResolver.getBridgeIdForInstance(event.instanceName)
-    if (bridgeId === undefined) return
 
     const channelIds = this.application.core.bridgeConfigurations.getLoggerChannelIds(bridgeId)
     if (channelIds.length === 0) {
@@ -172,7 +174,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
-    if (!(await this.ensurePermission(interaction))) {
+    if (!(await this.ensurePermission(interaction, payload.instanceName))) {
       await interaction.editReply('You do not have permission to accept guild requests.')
       return
     }
@@ -204,7 +206,7 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
 
     await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
-    if (!(await this.ensurePermission(interaction))) {
+    if (!(await this.ensurePermission(interaction, payload.instanceName))) {
       await interaction.editReply('You do not have permission to interrogate guild requests.')
       return
     }
@@ -249,8 +251,19 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     return 'The interview feature is not enabled for this bridge. Enable it in the web dashboard settings.'
   }
 
-  private async ensurePermission(interaction: ButtonInteraction): Promise<boolean> {
-    const permission = await this.clientInstance.resolvePermission(interaction.user.id)
+  private async ensurePermission(interaction: ButtonInteraction, instanceName: string): Promise<boolean> {
+    const bridgeResolver = this.application.bridgeResolver
+    const instanceBridgeId = bridgeResolver.getBridgeIdForInstance(instanceName)
+    const channelBridgeId = bridgeResolver.getBridgeIdForChannel(interaction.channelId)
+    if (instanceBridgeId === undefined || channelBridgeId === undefined || instanceBridgeId !== channelBridgeId) {
+      return false
+    }
+
+    if (interaction.guildId === null) return false
+    const bridgeGuildIds = await this.clientInstance.getBridgeGuildIds(instanceBridgeId)
+    if (!bridgeGuildIds.has(interaction.guildId)) return false
+
+    const permission = await this.clientInstance.resolvePermission(interaction.user.id, instanceBridgeId)
     return permission >= Permission.Helper
   }
 
@@ -293,6 +306,11 @@ export default class GuildRequirements extends SubInstance<DiscordInstance, Inst
     const action = parts[1]
     const instanceName = parts[2]
     const username = parts.slice(3).join(':')
+
+    if (!(await this.ensurePermission(interaction, instanceName))) {
+      await interaction.editReply('You do not have permission to manage guild requests.')
+      return
+    }
 
     const disabledRows = interaction.message.components.map((row) => {
       const builder = new ActionRowBuilder<ButtonBuilder>()

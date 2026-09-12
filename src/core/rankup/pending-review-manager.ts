@@ -148,19 +148,20 @@ export class PendingReviewManager {
       .map((review) => ({ ...review }))
   }
 
-  public getReview(id: number): PendingReview | undefined {
+  public getReview(bridgeId: string, id: number): PendingReview | undefined {
     const review = this.reviews.get(id)
-    return review === undefined ? undefined : { ...review }
+    if (review?.bridgeId !== bridgeId) return undefined
+    return { ...review }
   }
 
-  public removeReview(id: number): void {
+  public removeReview(bridgeId: string, id: number): void {
     const review = this.reviews.get(id)
+    if (review?.bridgeId !== bridgeId) return
+
     this.reviews.delete(id)
-    if (review !== undefined) {
-      this.onEvent?.('reviewRemoved', { bridgeId: review.bridgeId, id: review.id })
-    }
-    this.databaseManager.enqueueWrite(`removing rankup review ${id}`, async (database) => {
-      await database.query('DELETE FROM "rankupPendingReviews" WHERE "id" = $1', [id])
+    this.onEvent?.('reviewRemoved', { bridgeId: review.bridgeId, id: review.id })
+    this.databaseManager.enqueueWrite(`removing rankup review ${bridgeId}:${id}`, async (database) => {
+      await database.query('DELETE FROM "rankupPendingReviews" WHERE "id" = $1 AND "bridgeId" = $2', [id, bridgeId])
     })
   }
 
@@ -203,15 +204,16 @@ export class PendingReviewManager {
     })
   }
 
-  public updateNotifiedAt(id: number): void {
+  public updateNotifiedAt(bridgeId: string, id: number, value: number): void {
     const review = this.reviews.get(id)
-    if (review === undefined) return
+    if (review?.bridgeId !== bridgeId) return
 
-    review.notifiedAt = Math.floor(Date.now() / 1000)
-    this.databaseManager.enqueueWrite(`updating rankup notifiedAt ${id}`, async (database) => {
-      await database.query('UPDATE "rankupPendingReviews" SET "notifiedAt" = $1 WHERE "id" = $2', [
-        review.notifiedAt,
-        id
+    review.notifiedAt = value
+    this.databaseManager.enqueueWrite(`updating rankup notifiedAt ${bridgeId}:${id}`, async (database) => {
+      await database.query('UPDATE "rankupPendingReviews" SET "notifiedAt" = $1 WHERE "id" = $2 AND "bridgeId" = $3', [
+        value,
+        id,
+        bridgeId
       ])
     })
   }
@@ -256,10 +258,22 @@ export class PendingReviewManager {
   }
 
   public pruneHistory(): void {
-    const maxEntries = 1000
-    if (this.history.length > maxEntries) {
-      this.history.splice(0, this.history.length - maxEntries)
+    const maxEntriesPerBridge = 1000
+    const countsByBridge = new Map<string, number>()
+    const kept: RankupHistoryEntry[] = []
+
+    for (let index = this.history.length - 1; index >= 0; index--) {
+      const entry = this.history[index]
+      const count = countsByBridge.get(entry.bridgeId) ?? 0
+      if (count >= maxEntriesPerBridge) continue
+
+      countsByBridge.set(entry.bridgeId, count + 1)
+      kept.push(entry)
     }
+
+    kept.reverse()
+    this.history.length = 0
+    this.history.push(...kept)
   }
 
   public getHistory(bridgeId: string, limit = 20): RankupHistoryEntry[] {

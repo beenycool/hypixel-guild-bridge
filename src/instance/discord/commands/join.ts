@@ -28,6 +28,12 @@ export default {
     const command = `/g join ${name}`
 
     const instance: string = context.interaction.options.getString('instance', true)
+    const bridgeId = context.bridgeId
+    if (bridgeId === undefined || !context.application.bridgeResolver.shouldProcessEvent(bridgeId, instance)) {
+      await context.interaction.editReply('This instance does not belong to this bridge.')
+      return
+    }
+
     const result = await checkChatTriggers(
       context.application,
       context.eventHelper,

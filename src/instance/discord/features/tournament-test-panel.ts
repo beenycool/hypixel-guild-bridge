@@ -2,10 +2,12 @@ import type { ButtonInteraction, Client } from 'discord.js'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
 import type { InstanceType } from '../../../common/application-event.js'
+import { Permission } from '../../../common/application-event.js'
 import SubInstance from '../../../common/sub-instance.js'
 import type { TournamentTestPanelEntry } from '../../../core/tournament/tournament-test-panels.js'
 import { MatchStatus, TournamentStatus } from '../../../core/tournament/types.js'
 import type { Tournament, TournamentMatch, TournamentPlayer } from '../../../core/tournament/types.js'
+import { translateNoPermission } from '../common/discord-language.js'
 import type DiscordInstance from '../discord-instance.js'
 
 interface HistoryEntry {
@@ -53,6 +55,8 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
       return
     }
 
+    if (!(await this.verifyAccess(interaction, panel))) return
+
     switch (action) {
       case 'resolve-round': {
         await this.handleResolveRound(interaction, panel)
@@ -82,6 +86,36 @@ export default class TournamentTestPanel extends SubInstance<DiscordInstance, In
         await interaction.editReply({ content: `Unknown action: ${action}` })
       }
     }
+  }
+
+  private async verifyAccess(interaction: ButtonInteraction, panel: TournamentTestPanelEntry): Promise<boolean> {
+    const channelBridgeId = this.application.bridgeResolver.getBridgeIdForChannel(interaction.channelId)
+    if (channelBridgeId === undefined || channelBridgeId !== panel.bridgeId) {
+      await interaction.editReply({ content: 'This test panel does not belong to this bridge.' })
+      return false
+    }
+
+    if (interaction.guildId !== panel.guildId) {
+      await interaction.editReply({ content: 'This test panel does not belong to this server.' })
+      return false
+    }
+
+    const tournament = await this.application.core.tournamentManager.getTournament(panel.tournamentId)
+    if (tournament === undefined || tournament.bridgeId !== panel.bridgeId) {
+      await interaction.editReply({ content: 'This tournament no longer exists.' })
+      return false
+    }
+
+    const permission = await this.clientInstance.resolvePermission(interaction.user.id, panel.bridgeId)
+    if (permission < Permission.Owner) {
+      await interaction.editReply({
+        content: translateNoPermission(this.application, Permission.Owner, panel.bridgeId),
+        allowedMentions: { parse: [] }
+      })
+      return false
+    }
+
+    return true
   }
 
   private buildControlPanelEmbed(

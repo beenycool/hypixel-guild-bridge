@@ -72,9 +72,9 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     }
 
     const userProfile = this.clientInstance.profileByUser(event.author, event.member ?? undefined)
-    const user = await this.application.core.initializeDiscordUser(userProfile, {})
+    const user = await this.application.core.initializeDiscordUser(userProfile, { bridgeId })
 
-    const readableReplyUsername = await this.getReplyUsername(event)
+    const readableReplyUsername = await this.getReplyUsername(event, bridgeId)
 
     const content = await this.cleanMessage(event)
     if (content.length === 0) return
@@ -83,12 +83,13 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     this.messageAssociation.addMessageId(fillBaseEvent.eventId, {
       guildId: event.guildId ?? undefined,
       channelId: event.channelId,
-      messageId: event.id
+      messageId: event.id,
+      bridgeId: bridgeId
     })
 
     const { filteredMessage, changed } = this.application.core.filterProfanityForBridge(content, bridgeId)
     if (changed) {
-      this.application.core.recordFilteredMessage(filteredMessage)
+      this.application.core.recordFilteredMessage(filteredMessage, bridgeId)
       const emoji = this.clientInstance.emojiHandler.emojiByName.get(FilteredReaction.name)
       if (emoji !== undefined) await event.react(emoji)
     }
@@ -106,10 +107,16 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     })
   }
 
-  private async getReplyUsername(messageEvent: Message): Promise<string | undefined> {
+  private async getReplyUsername(
+    messageEvent: Message,
+    eventBridgeId: string | undefined
+  ): Promise<string | undefined> {
     if (messageEvent.reference?.messageId === undefined) return
 
     const messageId = messageEvent.reference.messageId
+
+    const replyBridgeId = this.application.bridgeResolver.getBridgeIdForChannel(messageEvent.reference.channelId)
+    if (replyBridgeId !== eventBridgeId) return undefined
 
     const minecraftUsername = this.messageAssociation.getUsernameForMessage(messageId)
     if (minecraftUsername !== undefined) return minecraftUsername
@@ -118,7 +125,9 @@ export default class ChatManager extends SubInstance<DiscordInstance, InstanceTy
     const replyMessage = await channel.messages.fetch(messageId)
 
     const resolvedProfile = this.clientInstance.profileByUser(replyMessage.author, replyMessage.member ?? undefined)
-    const replyUser = await this.application.core.initializeDiscordUser(resolvedProfile, {})
+    const replyUser = await this.application.core.initializeDiscordUser(resolvedProfile, {
+      bridgeId: eventBridgeId
+    })
 
     return replyUser.displayName()
   }

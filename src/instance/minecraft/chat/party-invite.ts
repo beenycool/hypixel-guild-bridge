@@ -7,24 +7,27 @@ export { findPartyInvite, PartyInviteRegex, PartyJoinRegex, PartyLeaveRegex } fr
 const PARTY_RELATED_REGEX = /party|invit/i
 
 interface PartyInviteModule extends MinecraftChatMessage {
-  inParty: boolean
+  inParty: Map<string, boolean>
   cooldowns: Map<string, number>
 }
 
 export default {
-  inParty: false,
+  inParty: new Map<string, boolean>(),
   cooldowns: new Map<string, number>(),
   onChat: async function (context: MinecraftChatContext): Promise<void> {
     const message = context.message
+    const instanceName = context.instanceName
+
+    const inParty = this.inParty.get(instanceName) ?? false
 
     const partyRelated = PARTY_RELATED_REGEX.test(message)
     if (partyRelated) {
       context.logger.info(
-        `[party-invite] party-related message: "${message}" | raw: "${context.rawMessage}" | inParty=${this.inParty}`
+        `[party-invite] party-related message: "${message}" | raw: "${context.rawMessage}" | inParty=${inParty}`
       )
     }
 
-    this.inParty = updatePartyState(message, this.inParty)
+    this.inParty.set(instanceName, updatePartyState(message, inParty))
 
     const username = findPartyInvite(message)
     if (username == undefined) return
@@ -35,7 +38,8 @@ export default {
       return
     }
 
-    const cooldownUntil = this.cooldowns.get(username.toLowerCase())
+    const cooldownKey = `${instanceName}:${username.toLowerCase()}`
+    const cooldownUntil = this.cooldowns.get(cooldownKey)
     if (cooldownUntil != undefined && Date.now() < cooldownUntil) {
       context.logger.info(`[party-invite] ignoring ${username}: within cooldown`)
       return
@@ -93,7 +97,7 @@ export default {
           `[party-invite] /p accept result for ${username}: status=${result.status}, messages=${JSON.stringify(result.message.map((entry) => entry.content))}`
         )
         if (result.status !== 'failed' || !alreadyInParty) {
-          this.cooldowns.set(username.toLowerCase(), Date.now() + 30_000)
+          this.cooldowns.set(cooldownKey, Date.now() + 30_000)
           return
         }
 
@@ -109,8 +113,9 @@ export default {
       }
     }
 
-    context.logger.info(`[party-invite] accepting invite from guild member ${username} (inParty=${this.inParty})`)
-    if (this.inParty) {
+    const currentlyInParty = this.inParty.get(instanceName) ?? false
+    context.logger.info(`[party-invite] accepting invite from guild member ${username} (inParty=${currentlyInParty})`)
+    if (currentlyInParty) {
       const leaveResult = await checkChatTriggers(
         context.application,
         context.eventHelper,

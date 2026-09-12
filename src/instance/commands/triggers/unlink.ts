@@ -27,20 +27,27 @@ export default class Unlink extends ChatCommandHandler {
     }
 
     const uuid = context.message.user.mojangProfile().id
+    const bridgeId = context.message.bridgeId
+    if (bridgeId === undefined) {
+      return `${context.username}, This command must be run from a bridge-scoped chat.`
+    }
 
     if (this.confirmationId.get<string>(givenId) === uuid) {
-      const userLink = await context.app.core.verification.findByIngame(uuid)
-      const count = context.app.core.verification.invalidate({ uuid: uuid })
+      const userLink = await context.app.core.verification.findByIngame(uuid, bridgeId)
+      const count = context.app.core.verification.invalidate({ uuid: uuid, bridgeId: bridgeId })
       if (count > 0 && userLink) {
         try {
-          await context.app.discordInstance.verificationRoleManager.updateUser(userLink.discordId)
+          await context.app.discordInstance.verificationRoleManager.updateUser(userLink.discordId, {
+            uuid: userLink.uuid,
+            bridgeId: bridgeId
+          })
         } catch (error: unknown) {
           context.logger.error('Failed to sync verification roles after unlinking', error)
         }
       }
       return count > 0 ? `${context.username}, Successfully unlinked!` : `${context.username}, Nothing to Unlink!`
     } else {
-      const userLink = await context.app.core.verification.findByIngame(uuid)
+      const userLink = await context.app.core.verification.findByIngame(uuid, bridgeId)
       if (userLink === undefined) {
         return `${context.username}, Nothing to Unlink!`
       }

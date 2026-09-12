@@ -21,13 +21,18 @@ export default {
       formattedResponsible += responsible
 
       const responsibleProfile = await context.application.mojangApi.profileByUsername(responsible)
-      const responsibleUser = await context.application.core.initializeMinecraftUser(responsibleProfile, {})
+      const responsibleUser = await context.application.core.initializeMinecraftUser(responsibleProfile, {
+        bridgeId: context.clientInstance.bridgeId
+      })
 
       const name = context.clientInstance.username()
       const uuid = context.clientInstance.uuid()
       assert.ok(name !== undefined)
       assert.ok(uuid !== undefined)
-      const botUser = await context.application.core.initializeMinecraftUser({ id: uuid, name: name }, {})
+      const botUser = await context.application.core.initializeMinecraftUser(
+        { id: uuid, name: name },
+        { bridgeId: context.clientInstance.bridgeId }
+      )
 
       await context.application.emit('guildPlayer', {
         ...context.eventHelper.fillBaseEvent(),

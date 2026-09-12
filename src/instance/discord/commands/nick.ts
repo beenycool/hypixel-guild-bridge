@@ -201,7 +201,11 @@ export default {
   autoComplete: async function (context) {
     const focusedOption = context.interaction.options.getFocused(true)
     if (focusedOption.name === 'player') {
-      const usernameChoices: string[] = await context.application.core.completeUsername(focusedOption.value, 25)
+      const usernameChoices: string[] = await context.application.core.completeUsername(
+        focusedOption.value,
+        25,
+        context.bridgeId
+      )
       await context.interaction.respond(usernameChoices.map((username) => ({ name: username, value: username })))
     } else if (focusedOption.name === 'rank') {
       const query = focusedOption.value.toLowerCase()

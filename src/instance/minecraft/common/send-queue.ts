@@ -39,19 +39,24 @@ const CommandTypeSleep: Record<CommandType, number> = {
 export class SentChatMessages {
   private static readonly Ttl = 10_000
 
-  private readonly entries: { message: string; time: number }[] = []
+  private readonly entries = new WeakMap<object, { message: string; time: number }[]>()
 
-  public record(message: string): void {
-    this.entries.push({ message, time: Date.now() })
+  public record(owner: object, message: string): void {
+    const ownerEntries = this.entries.get(owner) ?? []
+    ownerEntries.push({ message, time: Date.now() })
+    this.entries.set(owner, ownerEntries)
   }
 
-  public has(message: string): boolean {
+  public has(owner: object, message: string): boolean {
+    const ownerEntries = this.entries.get(owner)
+    if (ownerEntries === undefined) return false
+
     const cutoff = Date.now() - SentChatMessages.Ttl
     let found = false
-    for (let index = this.entries.length - 1; index >= 0; index--) {
-      const entry = this.entries[index]
+    for (let index = ownerEntries.length - 1; index >= 0; index--) {
+      const entry = ownerEntries[index]
       if (entry.time < cutoff) {
-        this.entries.splice(index, 1)
+        ownerEntries.splice(index, 1)
       } else if (entry.message === message) {
         found = true
       }
@@ -97,7 +102,7 @@ export class SendQueue {
       }
     }
 
-    return this.sentChatMessages.has(message)
+    return this.sentChatMessages.has(this, message)
   }
 
   public async queue(command: string, priority: MinecraftSendChatPriority, eventId: string | undefined): Promise<void> {
@@ -124,7 +129,7 @@ export class SendQueue {
   private recordSentChatMessage(command: string): void {
     for (const potentialChannel of SendQueue.GuildChatChannels) {
       if (command.toLowerCase().startsWith(potentialChannel.prefix)) {
-        this.sentChatMessages.record(command.slice(potentialChannel.prefix.length))
+        this.sentChatMessages.record(this, command.slice(potentialChannel.prefix.length))
       }
     }
   }

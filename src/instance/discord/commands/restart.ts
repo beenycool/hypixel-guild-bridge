@@ -9,7 +9,7 @@ export default {
   permission: Permission.Admin,
 
   handler: async function (context) {
-    if ((await context.user.permission()) < Permission.Admin) {
+    if ((await context.user.permission(context.bridgeId)) < Permission.Admin) {
       await context.showPermissionDenied(Permission.Admin)
       return
     }

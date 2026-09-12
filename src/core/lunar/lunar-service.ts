@@ -49,13 +49,12 @@ export class LunarService {
     const instances = this.app.minecraftManager.getAllInstances()
     const targetName = this.instanceName?.toLowerCase()
 
-    let instance = targetName
-      ? instances.find(
-          (index) => index.instanceName.toLowerCase() === targetName && index.currentStatus() === Status.Connected
-        )
-      : undefined
-
-    instance ??= instances.find((index) => index.currentStatus() === Status.Connected)
+    const instance =
+      targetName === undefined
+        ? instances.find((index) => index.currentStatus() === Status.Connected)
+        : instances.find(
+            (index) => index.instanceName.toLowerCase() === targetName && index.currentStatus() === Status.Connected
+          )
 
     return instance?.getLunarCredentials()
   }

@@ -6,7 +6,13 @@ import type Application from '../../application.js'
 import type { Permission } from '../../common/application-event.js'
 
 import { sendError } from './api-utils.js'
-import { buildTokenSet, verifyToken } from './auth.js'
+import { authorizeBridge as authorizeBridgeAccess, buildTokenSet, verifyToken } from './auth.js'
+
+export interface WebAuthContext {
+  permission: Permission
+  userId?: string
+  bridgeId?: string
+}
 
 export abstract class BaseApiHandler {
   constructor(
@@ -17,28 +23,52 @@ export abstract class BaseApiHandler {
   abstract handle(request: http.IncomingMessage, response: http.ServerResponse): Promise<boolean>
 
   protected verifyAuth(request: http.IncomingMessage, response: http.ServerResponse): Permission | undefined {
-    const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
-    const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
-    if (!result.ok) {
-      sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
-      return undefined
-    }
-    return result.permission
+    const auth = this.verifyAuthResult(request, response)
+    return auth?.permission
   }
 
   protected verifyAuthWithUser(
     request: http.IncomingMessage,
     response: http.ServerResponse
-  ): { permission: Permission; userId?: string } | undefined {
+  ): WebAuthContext | undefined {
+    return this.verifyAuthResult(request, response)
+  }
+
+  protected authorizeBridge(
+    request: http.IncomingMessage,
+    response: http.ServerResponse,
+    requestedBridgeId: string | undefined,
+    minimumPermission: Permission
+  ): string | undefined {
+    const auth = this.verifyAuthResult(request, response)
+    if (auth === undefined) return undefined
+
+    const result = authorizeBridgeAccess(
+      { ok: true, permission: auth.permission, userId: auth.userId, bridgeId: auth.bridgeId },
+      requestedBridgeId,
+      minimumPermission
+    )
+    if (!result.ok) {
+      sendError(response, 'FORBIDDEN', result.message, result.status)
+      return undefined
+    }
+    return requestedBridgeId
+  }
+
+  private verifyAuthResult(request: http.IncomingMessage, response: http.ServerResponse): WebAuthContext | undefined {
     const webConfig = this.application.config.web
-    if (!webConfig?.signingSecret) return undefined
+    if (!webConfig?.signingSecret) {
+      sendError(response, 'UNAUTHORIZED', 'Web server is not configured', 401)
+      return undefined
+    }
+
     const result = verifyToken(buildTokenSet(webConfig), request.headers.authorization)
     if (!result.ok) {
       sendError(response, 'UNAUTHORIZED', 'Invalid token', 401)
       return undefined
     }
-    return { permission: result.permission, userId: result.userId }
+
+    return { permission: result.permission, userId: result.userId, bridgeId: result.bridgeId }
   }
 
   protected sendMethodNotAllowed(response: http.ServerResponse, allowed?: string[]): void {

@@ -12,6 +12,8 @@ import { Status } from './connectable-instance'
 
 export interface InitializeOptions {
   guild?: Guild
+
+  bridgeId?: string
 }
 
 export class User {

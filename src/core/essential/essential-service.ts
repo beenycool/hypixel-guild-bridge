@@ -91,23 +91,18 @@ export class EssentialService {
   }
 
   private getCredentials() {
-    var instances = this.app.minecraftManager.getAllInstances()
-    var found = instances.find(function (i: any) {
-      return i.currentStatus() === Status.Connected
-    })
-    if (this.instanceName) {
-      for (var i = 0; i < instances.length; i++) {
-        if (instances[i].instanceName.toLowerCase() == this.instanceName.toLowerCase()) {
-          if (instances[i].currentStatus() === Status.Connected) {
-            found = instances[i]
-          }
-        }
-      }
-    }
-    if (!found) {
-      return undefined
-    }
-    return found.getLunarCredentials()
+    const instances = this.app.minecraftManager.getAllInstances()
+    const targetName = this.instanceName?.toLowerCase()
+
+    const found =
+      targetName === undefined
+        ? instances.find((instance) => instance.currentStatus() === Status.Connected)
+        : instances.find(
+            (instance) =>
+              instance.instanceName.toLowerCase() === targetName && instance.currentStatus() === Status.Connected
+          )
+
+    return found?.getLunarCredentials()
   }
 
   public async checkEssentialStatus(uuid: string) {

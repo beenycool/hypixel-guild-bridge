@@ -53,7 +53,7 @@ export default class Unscramble extends ChatCommandHandler {
   }
 
   async handler(context: ChatCommandContext): Promise<string> {
-    const gameKey = `${context.message.instanceType}:${context.message.instanceName}`
+    const gameKey = `${context.message.bridgeId ?? 'unknown'}:${context.message.instanceName}`
     const now = Date.now()
     const activeGameStartedAt = Unscramble.ActiveGames.get(gameKey)
     if (activeGameStartedAt && now - activeGameStartedAt < Unscramble.GameDuration) {
@@ -79,6 +79,7 @@ export default class Unscramble extends ChatCommandHandler {
     const listener = (event: ChatEvent) => {
       if (event.instanceType !== context.message.instanceType) return
       if (event.instanceName !== context.message.instanceName) return
+      if (event.bridgeId !== context.message.bridgeId) return
       if (event.channelType !== context.message.channelType) return
 
       const lastWord = event.message.trim().split(/\s+/).pop()?.toLowerCase() ?? ''

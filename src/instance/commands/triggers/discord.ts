@@ -18,7 +18,10 @@ export default class Discord extends ChatCommandHandler {
     const mojangProfile = await context.app.mojangApi.profileByUsername(givenUsername).catch(() => undefined)
     if (mojangProfile == undefined) return usernameNotExists(context, givenUsername)
 
-    const targetUser = await context.app.core.initializeMinecraftUser(mojangProfile, { guild: undefined })
+    const targetUser = await context.app.core.initializeMinecraftUser(mojangProfile, {
+      guild: undefined,
+      bridgeId: context.message.bridgeId
+    })
     const discordProfile = targetUser.discordProfile()
     if (discordProfile !== undefined) {
       return `${mojangProfile.name} has linked to ${discordProfile.username} (${discordProfile.id})`

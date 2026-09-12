@@ -10,6 +10,8 @@ export type QueryFunction = (
 
 export interface QueryInterface {
   execute(text: string, values?: readonly unknown[]): Promise<number>
+
+  queryRows<T = Record<string, unknown>>(text: string, values?: readonly unknown[]): Promise<T[]>
 }
 
 export async function runMigrations(query: QueryFunction): Promise<void> {
@@ -26,6 +28,10 @@ export async function runMigrations(query: QueryFunction): Promise<void> {
     execute: async (text, values) => {
       const result = await query(text, values)
       return result.rowCount ?? 0
+    },
+    queryRows: async <T>(text: string, values?: readonly unknown[]) => {
+      const result = await query(text, values)
+      return result.rows as T[]
     }
   }
 

@@ -4,8 +4,12 @@ import { WebSocket } from 'ws'
 import type Application from '../../application.js'
 import type { PendingReview, RankupHistoryEntry } from '../../core/rankup/pending-review-manager.js'
 
+interface RankupSubscriber {
+  bridgeId?: string
+}
+
 export class RankupWsEvents {
-  private readonly subscribers = new Set<WebSocket>()
+  private readonly subscribers = new Map<WebSocket, RankupSubscriber>()
   private static readonly HistorySnapshotLimit = 50
 
   constructor(
@@ -13,7 +17,7 @@ export class RankupWsEvents {
     private readonly logger: Logger
   ) {
     void this.application.on('bridgeConfigChanged', (event) => {
-      this.broadcast({ type: 'rankup.bridgeConfigChanged', data: { bridgeId: event.bridgeId } })
+      this.broadcastScoped(event.bridgeId, { type: 'rankup.bridgeConfigChanged', data: { bridgeId: event.bridgeId } })
     })
 
     void this.application.on('pendingReviewAdded', async (event) => {
@@ -25,11 +29,14 @@ export class RankupWsEvents {
       } catch {
         // Mojang profile lookup failed
       }
-      this.broadcast({ type: 'rankup.reviewAdded', data })
+      this.broadcastScoped(event.bridgeId, { type: 'rankup.reviewAdded', data })
     })
 
     void this.application.on('pendingReviewRemoved', (event) => {
-      this.broadcast({ type: 'rankup.reviewRemoved', data: { bridgeId: event.bridgeId, id: event.id } })
+      this.broadcastScoped(event.bridgeId, {
+        type: 'rankup.reviewRemoved',
+        data: { bridgeId: event.bridgeId, id: event.id }
+      })
     })
 
     void this.application.on('pendingHistoryAppended', async (event) => {
@@ -41,12 +48,12 @@ export class RankupWsEvents {
       } catch {
         // Mojang profile lookup failed
       }
-      this.broadcast({ type: 'rankup.historyAppended', data })
+      this.broadcastScoped(event.bridgeId, { type: 'rankup.historyAppended', data })
     })
   }
 
-  public subscribe(socket: WebSocket): void {
-    this.subscribers.add(socket)
+  public subscribe(socket: WebSocket, bridgeId?: string): void {
+    this.subscribers.set(socket, { bridgeId })
     this.sendSnapshot(socket)
   }
 
@@ -63,24 +70,29 @@ export class RankupWsEvents {
   }
 
   private sendSnapshot(socket: WebSocket): void {
-    const bridgeIds = this.application.core.bridgeConfigurations.getAllBridgeIds()
+    const info = this.subscribers.get(socket)
+    if (info === undefined) return
+
     const pendingReviewManager = this.application.core.pendingReviewManager
     const bridges: Record<string, { pending: PendingReview[]; history: RankupHistoryEntry[] }> = {}
 
-    for (const bridgeId of bridgeIds) {
-      bridges[bridgeId] = {
-        pending: pendingReviewManager.getReviews(bridgeId),
-        history: pendingReviewManager.getHistory(bridgeId, RankupWsEvents.HistorySnapshotLimit)
+    if (info.bridgeId !== undefined) {
+      bridges[info.bridgeId] = {
+        pending: pendingReviewManager.getReviews(info.bridgeId),
+        history: pendingReviewManager.getHistory(info.bridgeId, RankupWsEvents.HistorySnapshotLimit)
       }
     }
 
     this.send(socket, { type: 'rankup.snapshot', data: { bridges } })
   }
 
-  private broadcast(message: { type: string; data: unknown }): void {
+  private broadcastScoped(bridgeId: string, message: { type: string; data: unknown }): void {
     if (this.subscribers.size === 0) return
     const payload = JSON.stringify(message)
-    for (const socket of this.subscribers) {
+
+    for (const [socket, info] of this.subscribers) {
+      if (info.bridgeId !== bridgeId) continue
+
       if (socket.readyState !== WebSocket.OPEN) {
         this.subscribers.delete(socket)
         continue

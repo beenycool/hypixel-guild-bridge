@@ -20,25 +20,31 @@ export class AntiAbuse {
     private readonly logger?: Logger
   ) {}
 
-  checkSignupRate(userId: string): AbuseCheckResult {
-    if (!this.signupLimiter.tryAcquire(userId)) {
+  private static scopedKey(bridgeId: string | undefined, key: string): string {
+    return `${bridgeId ?? 'none'}:${key}`
+  }
+
+  checkSignupRate(userId: string, bridgeId?: string): AbuseCheckResult {
+    if (!this.signupLimiter.tryAcquire(AntiAbuse.scopedKey(bridgeId, userId))) {
       return { allowed: false, reason: 'You are joining/leaving too fast. Please slow down.' }
     }
     return { allowed: true }
   }
 
-  checkForfeitPattern(playerUuid: string, opponentUuid: string): Promise<AbuseCheckResult> {
+  checkForfeitPattern(playerUuid: string, opponentUuid: string, bridgeId?: string): Promise<AbuseCheckResult> {
     const cutoff = Date.now() - AntiAbuse.ForfeitWindowMs
-    const entry = (this.forfeitTracker.get(playerUuid) ?? []).find((h) => h.opponent === opponentUuid)
+    const trackerKey = AntiAbuse.scopedKey(bridgeId, playerUuid)
+    const entry = (this.forfeitTracker.get(trackerKey) ?? []).find((h) => h.opponent === opponentUuid)
     if (entry && this.pruneTimestamps(entry.timestamps, cutoff).length >= 3) {
       return Promise.resolve({ allowed: false, reason: 'Suspicious forfeit pattern detected.' })
     }
     return Promise.resolve({ allowed: true })
   }
 
-  recordForfeit(playerUuid: string, opponentUuid: string): void {
+  recordForfeit(playerUuid: string, opponentUuid: string, bridgeId?: string): void {
     const cutoff = Date.now() - AntiAbuse.ForfeitWindowMs
-    const history = (this.forfeitTracker.get(playerUuid) ?? [])
+    const trackerKey = AntiAbuse.scopedKey(bridgeId, playerUuid)
+    const history = (this.forfeitTracker.get(trackerKey) ?? [])
       .map((entry) => ({ opponent: entry.opponent, timestamps: this.pruneTimestamps(entry.timestamps, cutoff) }))
       .filter((entry) => entry.timestamps.length > 0)
 
@@ -48,15 +54,16 @@ export class AntiAbuse {
     } else {
       history.push({ opponent: opponentUuid, timestamps: [Date.now()] })
     }
-    this.forfeitTracker.set(playerUuid, history)
+    this.forfeitTracker.set(trackerKey, history)
   }
 
-  checkFalseReporting(adminDiscordId: string): Promise<AbuseCheckResult> {
+  checkFalseReporting(adminDiscordId: string, bridgeId?: string): Promise<AbuseCheckResult> {
     const cutoff = Date.now() - AntiAbuse.OverrideWindowMs
-    const overrides = this.pruneTimestamps(this.overrideTracker.get(adminDiscordId) ?? [], cutoff)
-    if (this.overrideTracker.has(adminDiscordId)) {
-      if (overrides.length === 0) this.overrideTracker.delete(adminDiscordId)
-      else this.overrideTracker.set(adminDiscordId, overrides)
+    const trackerKey = AntiAbuse.scopedKey(bridgeId, adminDiscordId)
+    const overrides = this.pruneTimestamps(this.overrideTracker.get(trackerKey) ?? [], cutoff)
+    if (this.overrideTracker.has(trackerKey)) {
+      if (overrides.length === 0) this.overrideTracker.delete(trackerKey)
+      else this.overrideTracker.set(trackerKey, overrides)
     }
     if (overrides.length >= 3) {
       return Promise.resolve({ allowed: false, reason: 'High admin override rate detected.' })
@@ -64,20 +71,27 @@ export class AntiAbuse {
     return Promise.resolve({ allowed: true })
   }
 
-  recordAdminOverride(adminDiscordId: string): void {
+  recordAdminOverride(adminDiscordId: string, bridgeId?: string): void {
     const cutoff = Date.now() - AntiAbuse.OverrideWindowMs
-    const timestamps = this.pruneTimestamps(this.overrideTracker.get(adminDiscordId) ?? [], cutoff)
+    const trackerKey = AntiAbuse.scopedKey(bridgeId, adminDiscordId)
+    const timestamps = this.pruneTimestamps(this.overrideTracker.get(trackerKey) ?? [], cutoff)
     timestamps.push(Date.now())
-    this.overrideTracker.set(adminDiscordId, timestamps)
+    this.overrideTracker.set(trackerKey, timestamps)
   }
 
-  async checkAltAccounts(tournamentId: number, playerUuids: string[]): Promise<AbuseCheckResult> {
+  async checkAltAccounts(tournamentId: number, playerUuids: string[], bridgeId?: string): Promise<AbuseCheckResult> {
     if (playerUuids.length <= 1) return { allowed: true }
     try {
-      const rows = await this.databaseManager.queryRows<{ uuid: string; discordId: string | null }>(
-        'SELECT "uuid", "discordId" FROM "links" WHERE "uuid" = ANY($1)',
-        [playerUuids]
-      )
+      const rows =
+        bridgeId === undefined
+          ? await this.databaseManager.queryRows<{ uuid: string; discordId: string | null }>(
+              'SELECT "uuid", "discordId" FROM "links" WHERE "uuid" = ANY($1)',
+              [playerUuids]
+            )
+          : await this.databaseManager.queryRows<{ uuid: string; discordId: string | null }>(
+              'SELECT "uuid", "discordId" FROM "links" WHERE "uuid" = ANY($1) AND "bridgeId" = $2',
+              [playerUuids, bridgeId]
+            )
       const discordMap = new Map<string, string[]>()
       for (const row of rows) {
         if (row.discordId === null || row.discordId.length === 0) continue

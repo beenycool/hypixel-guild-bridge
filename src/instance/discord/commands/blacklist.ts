@@ -33,6 +33,12 @@ export default {
     const username = context.interaction.options.getString('username', true)
     const instance = context.interaction.options.getString('instance', true)
 
+    const bridgeId = context.bridgeId
+    if (bridgeId === undefined || !context.application.bridgeResolver.shouldProcessEvent(bridgeId, instance)) {
+      await context.interaction.editReply('This instance does not belong to this bridge.')
+      return
+    }
+
     const command = action === 'add' ? `/ignore add ${username}` : `/ignore remove ${username}`
     await context.application.sendMinecraft([instance], MinecraftSendChatPriority.High, undefined, command)
 
