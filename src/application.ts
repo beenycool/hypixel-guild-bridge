@@ -21,6 +21,7 @@ import { BridgeResolver } from './common/bridge-resolver.js'
 import { ConnectableInstance, Status } from './common/connectable-instance.js'
 import UnexpectedErrorHandler from './common/unexpected-error-handler.js'
 import { Core } from './core/core.js'
+import { EssentialService } from './core/essential/essential-service.js'
 import { ApplicationLanguages, LanguageConfigurations } from './core/language-configurations.js'
 import { LunarService } from './core/lunar/lunar-service.js'
 import type { MojangApi } from './core/users/mojang'
@@ -61,6 +62,7 @@ export default class Application extends Emittery<ApplicationEvents> implements 
   public readonly hypixelApi: HypixelClient
   public readonly mojangApi: MojangApi
   public readonly lunarService: LunarService
+  public readonly essentialService: EssentialService
 
   public get hypixelApiKey(): string {
     return this.config.general.hypixelApiKey
@@ -174,8 +176,11 @@ export default class Application extends Emittery<ApplicationEvents> implements 
       this.config.lunarClient?.cacheSeconds
     )
 
+    this.essentialService = new EssentialService(this, this.logger, this.config.essentialClient?.minecraftInstance ?? defaultAccount, this.config.essentialClient?.cacheSeconds)
+
     this.on('minecraftSelfBroadcast', () => {
       void this.lunarService.ensureConnected().catch(() => undefined)
+      void this.essentialService.ensureConnected().catch(() => undefined)
     })
   }
 

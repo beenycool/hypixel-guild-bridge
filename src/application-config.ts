@@ -88,6 +88,12 @@ export interface LunarClientConfig {
   cacheSeconds?: number
 }
 
+export interface EssentialClientConfig {
+  enabled?: boolean
+  minecraftInstance?: string
+  cacheSeconds?: number
+}
+
 export interface AutoRestartConfig {
   enabled: boolean
   maxUptimeHours?: number
@@ -103,5 +109,6 @@ export interface ApplicationConfig {
   verification?: VerificationConfig
   guildRequirements?: GuildRequirementsConfig
   lunarClient?: LunarClientConfig
+  essentialClient?: EssentialClientConfig
   autoRestart?: AutoRestartConfig
 }

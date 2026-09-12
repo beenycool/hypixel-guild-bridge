@@ -40,29 +40,45 @@ export default class Status extends ChatCommandHandler {
       return usernameNotExists(context, givenUsername)
     }
 
-    const [lunarStatus, session, player] = await Promise.all([
+    const [lunarStatus, essentialStatus, session, player] = await Promise.all([
       withTimeout(context.app.lunarService.checkLunarStatus(uuid)),
+      withTimeout(context.app.essentialService.checkEssentialStatus(uuid)),
       context.app.hypixelApi.getStatus(uuid, { noCaching: true }).catch(() => undefined),
       context.app.hypixelApi.getPlayer(uuid).catch(() => undefined) as Promise<
         { lastLogoutTimestamp: number } | undefined
       >
     ])
 
+    var isLunar = lunarStatus === true
+    var isEssential = essentialStatus === true
+
+    // you cant run lunar and essential at the same time so just pick one
+    let client = ''
+    if (isLunar) {
+      client = 'Lunar Client'
+    } else if (isEssential) {
+      client = 'Essential Client'
+    }
+
+    let suffix = ''
+    if (client != '') {
+      suffix = ' and is on ' + client
+    }
+
     if (session?.online) {
-      const suffix = lunarStatus === true ? ' and is on Lunar Client' : ''
       return this.formatStatus(givenUsername, session, suffix)
     }
 
     if (player !== undefined) {
-      const lastSeen = formatTime(Date.now() - player.lastLogoutTimestamp)
-      if (lunarStatus === true) {
-        return `${givenUsername} is currently online with Lunar Client on another server (last seen on Hypixel ${lastSeen} ago).`
+      let lastSeen = formatTime(Date.now() - player.lastLogoutTimestamp)
+      if (client != '') {
+        return givenUsername + ' is currently online with ' + client + ' on another server (last seen on Hypixel ' + lastSeen + ' ago).'
       }
-      return `${givenUsername} was last online ${lastSeen} ago.`
+      return givenUsername + ' was last online ' + lastSeen + ' ago.'
     }
 
-    if (lunarStatus === true) {
-      return `${givenUsername} is currently online with Lunar Client on another server.`
+    if (client != '') {
+      return givenUsername + ' is currently online with ' + client + ' on another server.'
     }
     return this.formatStatus(givenUsername, session, '')
   }

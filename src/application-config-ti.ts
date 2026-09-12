@@ -90,6 +90,12 @@ export const LunarClientConfig = t.iface([], {
   "cacheSeconds": t.opt("number"),
 });
 
+export const EssentialClientConfig = t.iface([], {
+  "enabled": t.opt("boolean"),
+  "minecraftInstance": t.opt("string"),
+  "cacheSeconds": t.opt("number"),
+});
+
 export const AutoRestartConfig = t.iface([], {
   "enabled": "boolean",
   "maxUptimeHours": t.opt("number"),
@@ -105,6 +111,7 @@ export const ApplicationConfig = t.iface([], {
   "verification": t.opt("VerificationConfig"),
   "guildRequirements": t.opt("GuildRequirementsConfig"),
   "lunarClient": t.opt("LunarClientConfig"),
+  "essentialClient": t.opt("EssentialClientConfig"),
   "autoRestart": t.opt("AutoRestartConfig"),
 });
 
@@ -121,6 +128,7 @@ const exportedTypeSuite: t.ITypeSuite = {
   GuildRequirementsConfig,
   InterviewConfig,
   LunarClientConfig,
+  EssentialClientConfig,
   AutoRestartConfig,
   ApplicationConfig,
 };
